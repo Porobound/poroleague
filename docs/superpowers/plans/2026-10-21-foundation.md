@@ -16,22 +16,23 @@
 
 ## File map
 
-| File | Responsibility |
-| --- | --- |
-| `src/lib/server/db/schema.ts` | All tables (replaces scaffold demo) |
-| `src/lib/legends.ts` | Legend list (placeholder names for now) |
-| `src/lib/league/score.ts` | Valid Bo3 scores, match points |
-| `src/lib/league/roundRobin.ts` | Circle-method schedule |
-| `src/lib/league/groups.ts` | Random group split, default group count |
-| `src/lib/league/standings.ts` | Standings + tiebreakers + drop voiding + double loss |
-| `src/lib/league/*.spec.ts` | Vitest unit tests, colocated |
-| `CLAUDE.md` | Repo guide for future sessions |
+| File                           | Responsibility                                       |
+| ------------------------------ | ---------------------------------------------------- |
+| `src/lib/server/db/schema.ts`  | All tables (replaces scaffold demo)                  |
+| `src/lib/legends.ts`           | Legend list (placeholder names for now)              |
+| `src/lib/league/score.ts`      | Valid Bo3 scores, match points                       |
+| `src/lib/league/roundRobin.ts` | Circle-method schedule                               |
+| `src/lib/league/groups.ts`     | Random group split, default group count              |
+| `src/lib/league/standings.ts`  | Standings + tiebreakers + drop voiding + double loss |
+| `src/lib/league/*.spec.ts`     | Vitest unit tests, colocated                         |
+| `CLAUDE.md`                    | Repo guide for future sessions                       |
 
 ---
 
 ### Task 1: Scaffold
 
 **Files:**
+
 - Create: whole SvelteKit project in repo root (`docs/` already exists)
 - Modify: `.gitignore`
 
@@ -43,11 +44,13 @@ Expected: `Initialized empty Git repository in .../poroleague/.git/`
 - [ ] **Step 2: Scaffold with add-ons**
 
 Run:
+
 ```sh
 npx sv create . --template minimal --types ts \
   --add prettier vitest="usages:unit" sveltekit-adapter="adapter:node" drizzle="database:sqlite+sqlite:better-sqlite3" \
   --install npm --no-dir-check
 ```
+
 Expected: project files created, dependencies installed, no errors. If the CLI rejects an option name, run `npx sv create --help` / `npx sv add --help` and use the reported spelling — do not drop the add-on.
 
 - [ ] **Step 3: Inspect what the scaffold generated**
@@ -58,6 +61,7 @@ Expected: scripts include `check`, `test:unit`, `db:generate`, `db:migrate`; `.e
 - [ ] **Step 4: Ignore the database file**
 
 Append to `.gitignore` (if not already present):
+
 ```
 *.db
 *.db-journal
@@ -80,17 +84,21 @@ git commit -m "chore: scaffold SvelteKit with drizzle, vitest, adapter-node"
 ### Task 2: Database schema
 
 **Files:**
+
 - Modify (replace contents): `src/lib/server/db/schema.ts`
 
 - [ ] **Step 1: Write the schema**
 
 Replace `src/lib/server/db/schema.ts` with:
+
 ```ts
 import { sql } from 'drizzle-orm';
 import { index, integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 const createdAt = () =>
-	integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`);
+	integer('created_at', { mode: 'timestamp' })
+		.notNull()
+		.default(sql`(unixepoch())`);
 
 export const players = sqliteTable('players', {
 	id: text('id').primaryKey(), // Discord user id
@@ -208,12 +216,39 @@ Expected: 0 errors. If `src/lib/server/db/index.ts` or a demo route referenced t
 - [ ] **Step 5: Legend list config**
 
 Create `src/lib/legends.ts` (placeholder LoL names until the real Riftbound list is supplied):
+
 ```ts
 // ponytail: placeholder champion names; replace with the real Riftbound legend list
 export const LEGENDS = [
-	'Ahri', 'Annie', 'Ashe', 'Darius', 'Draven', 'Ekko', 'Ezreal', 'Fiora', 'Garen', 'Irelia',
-	'Jax', 'Jinx', "Kai'Sa", 'Katarina', 'Leona', 'Lee Sin', 'Lux', 'Master Yi', 'Miss Fortune',
-	'Rumble', 'Sett', 'Sivir', 'Teemo', 'Thresh', 'Vi', 'Viktor', 'Volibear', 'Yasuo', 'Yone',
+	'Ahri',
+	'Annie',
+	'Ashe',
+	'Darius',
+	'Draven',
+	'Ekko',
+	'Ezreal',
+	'Fiora',
+	'Garen',
+	'Irelia',
+	'Jax',
+	'Jinx',
+	"Kai'Sa",
+	'Katarina',
+	'Leona',
+	'Lee Sin',
+	'Lux',
+	'Master Yi',
+	'Miss Fortune',
+	'Rumble',
+	'Sett',
+	'Sivir',
+	'Teemo',
+	'Thresh',
+	'Vi',
+	'Viktor',
+	'Volibear',
+	'Yasuo',
+	'Yone',
 	'Zed'
 ] as const;
 
@@ -232,6 +267,7 @@ git commit -m "feat(db): league schema and legend list"
 ### Task 3: Score rules
 
 **Files:**
+
 - Create: `src/lib/league/score.ts`
 - Test: `src/lib/league/score.spec.ts`
 
@@ -243,12 +279,24 @@ import { isValidScore, matchPoints } from './score';
 
 describe('isValidScore', () => {
 	it('accepts Bo3 results and draws', () => {
-		for (const [a, b] of [[2, 0], [2, 1], [1, 1], [0, 2], [1, 2]]) {
+		for (const [a, b] of [
+			[2, 0],
+			[2, 1],
+			[1, 1],
+			[0, 2],
+			[1, 2]
+		]) {
 			expect(isValidScore(a, b)).toBe(true);
 		}
 	});
 	it('rejects impossible scores', () => {
-		for (const [a, b] of [[2, 2], [3, 0], [0, 0], [1, 0], [-1, 2]]) {
+		for (const [a, b] of [
+			[2, 2],
+			[3, 0],
+			[0, 0],
+			[1, 0],
+			[-1, 2]
+		]) {
 			expect(isValidScore(a, b)).toBe(false);
 		}
 	});
@@ -299,6 +347,7 @@ git commit -m "feat(league): score validation and match points"
 ### Task 4: Round-robin schedule
 
 **Files:**
+
 - Create: `src/lib/league/roundRobin.ts`
 - Test: `src/lib/league/roundRobin.spec.ts`
 
@@ -393,6 +442,7 @@ git commit -m "feat(league): round-robin schedule"
 ### Task 5: Group split
 
 **Files:**
+
 - Create: `src/lib/league/groups.ts`
 - Test: `src/lib/league/groups.spec.ts`
 
@@ -472,6 +522,7 @@ git commit -m "feat(league): random group split"
 Rules (from spec): points (W3/D1/L0) → head-to-head mini-league among tied players → game-win % → organizer `tiebreak` rank (lower first). Matches involving a dropped player are void. Unplayed matches count as a loss for both players once the deadline has passed (0 points). Ties still unresolved after all keys are marked `unresolvedTie` so admin can surface them.
 
 **Files:**
+
 - Create: `src/lib/league/standings.ts`
 - Test: `src/lib/league/standings.spec.ts`
 
@@ -487,7 +538,12 @@ const entry = (playerId: string, extra: Partial<Entry> = {}): Entry => ({
 	tiebreak: null,
 	...extra
 });
-const m = (p1: string, p1Games: number | null, p2Games: number | null, p2: string): MatchResult => ({
+const m = (
+	p1: string,
+	p1Games: number | null,
+	p2Games: number | null,
+	p2: string
+): MatchResult => ({
 	p1,
 	p2,
 	p1Games,
@@ -553,7 +609,10 @@ describe('standings', () => {
 
 	it('unplayed match is a double loss only after the deadline', () => {
 		const unplayed = [m('A', null, null, 'B')];
-		expect(standings([entry('A'), entry('B')], unplayed)[0]).toMatchObject({ played: 0, losses: 0 });
+		expect(standings([entry('A'), entry('B')], unplayed)[0]).toMatchObject({
+			played: 0,
+			losses: 0
+		});
 		expect(standings([entry('A'), entry('B')], unplayed, true)[0]).toMatchObject({
 			played: 1,
 			losses: 1,
@@ -574,7 +633,12 @@ Expected: FAIL — cannot resolve `./standings`.
 import { matchPoints } from './score';
 
 export type Entry = { playerId: string; dropped: boolean; tiebreak: number | null };
-export type MatchResult = { p1: string; p2: string; p1Games: number | null; p2Games: number | null };
+export type MatchResult = {
+	p1: string;
+	p2: string;
+	p1Games: number | null;
+	p2Games: number | null;
+};
 export type Row = {
 	playerId: string;
 	played: number;
@@ -628,7 +692,7 @@ export function standings(entries: Entry[], matches: MatchResult[], deadlinePass
 
 	const byPoints = [...rows.values()].sort((x, y) => y.points - x.points);
 	const result: Row[] = [];
-	for (let i = 0; i < byPoints.length; ) {
+	for (let i = 0; i < byPoints.length;) {
 		let j = i;
 		while (j < byPoints.length && byPoints[j].points === byPoints[i].points) j++;
 		result.push(...breakTie(byPoints.slice(i, j), counted, active));
@@ -690,6 +754,7 @@ git commit -m "feat(league): standings with tiebreakers, drops, double losses"
 ### Task 7: Repo CLAUDE.md and final verification
 
 **Files:**
+
 - Create: `CLAUDE.md`
 - Modify: `/home/mikhe/Projects/claude/CLAUDE.md` (Sub-projects list)
 
@@ -701,19 +766,23 @@ git commit -m "feat(league): standings with tiebreakers, drops, double losses"
 Community Riftbound TCG league site. Spec: `docs/spec.md`. Plans: `docs/superpowers/plans/`.
 
 ## Stack
+
 SvelteKit (adapter-node) · TypeScript · SQLite via Drizzle (better-sqlite3) · Vitest
 
 ## Layout
+
 - `src/lib/league/` — pure league rules (score, round-robin, groups, standings). No DB/framework imports. Unit-tested.
 - `src/lib/server/db/schema.ts` — all tables. Change → `npm run db:generate` → commit `drizzle/`.
 
 ## Commands
+
 - `npm run dev` — dev server
 - `npm run check` — typecheck
 - `npx vitest run` — unit tests
 - `npm run db:generate` / `npm run db:migrate` — migrations
 
 ## Rules
+
 - League rules stay pure in `src/lib/league/`; routes and the future bot API call them, never reimplement.
 - Every result change writes an `audit` row.
 - Design from Claude Design HTML: extract tokens into `src/app.css` and components — don't paste raw HTML.
@@ -722,6 +791,7 @@ SvelteKit (adapter-node) · TypeScript · SQLite via Drizzle (better-sqlite3) ·
 - [ ] **Step 2: Register sub-project in parent CLAUDE.md**
 
 In `/home/mikhe/Projects/claude/CLAUDE.md`, under `## Sub-projects`, add:
+
 ```markdown
 - `poroleague/` — Riftbound TCG community league website (SvelteKit + SQLite)
 ```

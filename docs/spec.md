@@ -42,13 +42,13 @@ Top cut (top X per group, cross-seeded A1 vs B4 …, single elim, Bo3, online, s
 
 ## Organizer powers (`/admin` per season)
 
-| Phase   | Actions                                                              |
-| ------- | -------------------------------------------------------------------- |
-| Setup   | Create season, edit settings                                          |
-| Signup  | Open/close signup, remove signup                                      |
-| Groups  | Choose group count, draw, swap in preview, lock (generates schedule)  |
-| Play    | Edit any result, resolve flags, mark player dropped, post round pairings to Discord |
-| End     | Enter unplayed results, set tiebreak ranks, finalize season           |
+| Phase  | Actions                                                                             |
+| ------ | ----------------------------------------------------------------------------------- |
+| Setup  | Create season, edit settings                                                        |
+| Signup | Open/close signup, remove signup                                                    |
+| Groups | Choose group count, draw, swap in preview, lock (generates schedule)                |
+| Play   | Edit any result, resolve flags, mark player dropped, post round pairings to Discord |
+| End    | Enter unplayed results, set tiebreak ranks, finalize season                         |
 
 Not in UI: managing organizers (Discord role), legend list (config file), messaging (Discord).
 
