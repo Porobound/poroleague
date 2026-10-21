@@ -1066,7 +1066,7 @@ git commit -m "feat(admin): season list and create"
 
 - Create: `src/routes/seasons/[slug]/admin/+layout.server.ts`, `+layout.svelte`, `+page.server.ts`, `+page.svelte`
 
-- [ ] **Step 1: Guard + season for all admin pages**
+- [x] **Step 1: Guard + season for all admin pages**
 
 Create `src/routes/seasons/[slug]/admin/+layout.server.ts`:
 
@@ -1111,7 +1111,7 @@ Create `src/routes/seasons/[slug]/admin/+layout.svelte`:
 </div>
 ```
 
-- [ ] **Step 2: Actions**
+- [x] **Step 2: Actions**
 
 Create `src/routes/seasons/[slug]/admin/+page.server.ts`:
 
@@ -1158,7 +1158,7 @@ export const actions: Actions = {
 };
 ```
 
-- [ ] **Step 3: Page**
+- [x] **Step 3: Page**
 
 Create `src/routes/seasons/[slug]/admin/+page.svelte`:
 
@@ -1224,14 +1224,14 @@ Create `src/routes/seasons/[slug]/admin/+page.svelte`:
 </div>
 ```
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 Run: `npm run check`
 Expected: 0 errors.
 
 Open `/seasons/test-season/admin`: sidebar (Season, Players, Groups), draft eyebrow, "Open signup", editable form. Change the name → "Saved.". Click "Open signup", confirm → status message; slug field now locked.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```sh
 git add "src/routes/seasons/[slug]/admin"
