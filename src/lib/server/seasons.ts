@@ -79,6 +79,14 @@ export function setGroup(seasonId: number, playerId: string, group: number) {
 		.run();
 }
 
+// Back to signup: clears the draw so people can join or withdraw again; closing signup redraws.
+export function reopenSignup(seasonId: number) {
+	db.transaction((tx) => {
+		tx.update(entries).set({ group: null }).where(eq(entries.seasonId, seasonId)).run();
+		tx.update(seasons).set({ status: 'signup' }).where(eq(seasons.id, seasonId)).run();
+	});
+}
+
 export function drawGroups(seasonId: number) {
 	const ids = seasonEntries(seasonId).map((e) => e.playerId);
 	const groups = splitGroups(ids, defaultGroupCount(ids.length));

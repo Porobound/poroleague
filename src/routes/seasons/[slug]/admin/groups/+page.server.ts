@@ -5,6 +5,7 @@ import {
 	getSeason,
 	groupsOf,
 	lockGroups,
+	reopenSignup,
 	seasonEntries,
 	setGroup
 } from '#lib/server/seasons.ts';
@@ -39,6 +40,14 @@ export const actions: Actions = {
 		if (!season) return fail(409, { message: 'Groups are locked.' });
 		drawGroups(season.id);
 		return { message: 'Groups redrawn at random.' };
+	},
+
+	reopenSignup: async (event) => {
+		const season = await inGroupsPhase(event);
+		if (!season)
+			return fail(409, { message: 'Groups are locked, so signup can no longer be reopened.' });
+		reopenSignup(season.id);
+		redirect(303, `/seasons/${season.slug}/admin`);
 	},
 
 	lock: async (event) => {

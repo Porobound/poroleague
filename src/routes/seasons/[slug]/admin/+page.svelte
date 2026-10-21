@@ -36,6 +36,11 @@
 			The season goes public and anyone in the Porobound Discord can sign up until you close signup.
 			You can still edit the dates and top cut until groups are locked.
 		</ConfirmButton>
+	{:else if season.status === 'groups'}
+		<p class="muted">
+			Signup is closed. Check the draw on <a href="/seasons/{season.slug}/admin/groups">Groups</a>,
+			then lock it, or reopen signup from there.
+		</p>
 	{:else if season.status === 'signup'}
 		<ConfirmButton
 			action="?/closeSignup"

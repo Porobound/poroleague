@@ -48,6 +48,16 @@
 					You can't move players between groups after this. Dropping a player later voids their
 					matches instead.
 				</ConfirmButton>
+				<ConfirmButton
+					action="?/reopenSignup"
+					variant="ghost"
+					label="Reopen signup"
+					title="Reopen signup?"
+					confirmLabel="Reopen signup"
+				>
+					The draw is cleared and players can sign up or withdraw again. Closing signup draws new
+					groups.
+				</ConfirmButton>
 			</div>
 		{:else}
 			<p class="status" role="status">Groups are locked and the schedule is ready.</p>
