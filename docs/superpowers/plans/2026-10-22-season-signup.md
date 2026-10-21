@@ -958,7 +958,7 @@ git commit -m "feat(ui): page/admin styles, season form, confirm button"
 
 - Create: `src/routes/admin/+page.server.ts`, `src/routes/admin/+page.svelte`
 
-- [ ] **Step 1: Server**
+- [x] **Step 1: Server**
 
 Create `src/routes/admin/+page.server.ts`:
 
@@ -995,7 +995,7 @@ export const actions: Actions = {
 };
 ```
 
-- [ ] **Step 2: Page**
+- [x] **Step 2: Page**
 
 Create `src/routes/admin/+page.svelte`:
 
@@ -1044,14 +1044,14 @@ Create `src/routes/admin/+page.svelte`:
 </div>
 ```
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 Run: `npm run check`
 Expected: 0 errors.
 
 Open http://localhost:5173/admin as an organizer. Submit an empty name → inline error, other values kept. Submit `Test Season`, start/deadline dates → redirect to `/seasons/test-season/admin` (404 until Task 7 — expected).
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```sh
 git add src/routes/admin
