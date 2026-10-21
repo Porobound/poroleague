@@ -1515,7 +1515,7 @@ git commit -m "feat(season): public season page, signup and withdraw, home routi
 - Create: `src/routes/seasons/[slug]/admin/players/+page.server.ts`, `+page.svelte`
 - Create: `src/routes/seasons/[slug]/admin/groups/+page.server.ts`, `+page.svelte`
 
-- [ ] **Step 1: Players server**
+- [x] **Step 1: Players server**
 
 Create `src/routes/seasons/[slug]/admin/players/+page.server.ts`:
 
@@ -1543,7 +1543,7 @@ export const actions: Actions = {
 };
 ```
 
-- [ ] **Step 2: Players page**
+- [x] **Step 2: Players page**
 
 Create `src/routes/seasons/[slug]/admin/players/+page.svelte`:
 
@@ -1600,7 +1600,7 @@ Create `src/routes/seasons/[slug]/admin/players/+page.svelte`:
 </div>
 ```
 
-- [ ] **Step 3: Groups server**
+- [x] **Step 3: Groups server**
 
 Create `src/routes/seasons/[slug]/admin/groups/+page.server.ts`:
 
@@ -1660,7 +1660,7 @@ export const actions: Actions = {
 };
 ```
 
-- [ ] **Step 4: Groups page**
+- [x] **Step 4: Groups page**
 
 Create `src/routes/seasons/[slug]/admin/groups/+page.svelte`:
 
@@ -1749,12 +1749,12 @@ Create `src/routes/seasons/[slug]/admin/groups/+page.svelte`:
 </div>
 ```
 
-- [ ] **Step 5: Verify**
+- [x] **Step 5: Verify**
 
 Run: `npm run check`
 Expected: 0 errors.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```sh
 git add "src/routes/seasons/[slug]/admin/players" "src/routes/seasons/[slug]/admin/groups"
