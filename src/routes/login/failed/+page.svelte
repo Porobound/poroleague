@@ -1,5 +1,5 @@
 <svelte:head>
-	<title>Login didn't go through · Porobound</title>
+	<title>Login didn't go through · Poroleague</title>
 </svelte:head>
 
 <section class="message-card">

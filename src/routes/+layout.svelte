@@ -15,7 +15,7 @@
 
 <header class="site-header">
 	<nav aria-label="Main" class="container site-nav">
-		<a href="/" class="brand">Porobound</a>
+		<a href="/" class="brand">Poroleague</a>
 		{#if data.user}
 			<span class="me">
 				<Avatar name={data.user.displayName} src={data.user.avatar} />

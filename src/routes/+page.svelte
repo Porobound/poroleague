@@ -5,7 +5,7 @@
 </script>
 
 <svelte:head>
-	<title>Porobound</title>
+	<title>Poroleague</title>
 </svelte:head>
 
 {#if data.season}
