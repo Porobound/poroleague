@@ -17,6 +17,9 @@
 	<nav aria-label="Main" class="container site-nav">
 		<a href="/" class="brand">Poroleague</a>
 		{#if data.user}
+			{#if data.user.isOrganizer}
+				<a href="/admin" class="nav-link">Admin</a>
+			{/if}
 			<span class="me">
 				<Avatar name={data.user.displayName} src={data.user.avatar} />
 				{data.user.displayName}

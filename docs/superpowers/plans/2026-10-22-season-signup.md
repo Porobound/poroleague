@@ -404,7 +404,7 @@ git commit -m "feat(league): schedule from groups"
 - Modify: `src/lib/server/session.ts`, `src/routes/+layout.svelte`
 - Create: `src/lib/server/auth.ts`, `src/routes/login/not-organizer/+page.svelte`
 
-- [ ] **Step 1: `setOrganizer`**
+- [x] **Step 1: `setOrganizer`**
 
 Append to `src/lib/server/session.ts`:
 
@@ -414,7 +414,7 @@ export function setOrganizer(id: string, isOrganizer: boolean) {
 }
 ```
 
-- [ ] **Step 2: Guards**
+- [x] **Step 2: Guards**
 
 Create `src/lib/server/auth.ts`:
 
@@ -458,7 +458,7 @@ export async function organizerAction({ locals, url }: Ctx) {
 }
 ```
 
-- [ ] **Step 3: Organizers-only page (design copy)**
+- [x] **Step 3: Organizers-only page (design copy)**
 
 Create `src/routes/login/not-organizer/+page.svelte`:
 
@@ -480,7 +480,7 @@ Create `src/routes/login/not-organizer/+page.svelte`:
 </section>
 ```
 
-- [ ] **Step 4: Admin link in the header**
+- [x] **Step 4: Admin link in the header**
 
 In `src/routes/+layout.svelte`, inside `{#if data.user}` before `<span class="me">`, add:
 
@@ -505,14 +505,14 @@ Append to `src/app.css`:
 }
 ```
 
-- [ ] **Step 5: Verify**
+- [x] **Step 5: Verify**
 
 Run: `npm run check`
 Expected: 0 errors.
 
 Open http://localhost:5173/login/not-organizer — the card renders. Logged in as an organizer, the header shows "Admin".
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```sh
 git add src/lib/server/session.ts src/lib/server/auth.ts src/routes/login/not-organizer src/routes/+layout.svelte src/app.css
