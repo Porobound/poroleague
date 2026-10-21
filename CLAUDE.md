@@ -23,3 +23,8 @@ SvelteKit (adapter-node) · TypeScript · SQLite via Drizzle (better-sqlite3) ·
 - League rules stay pure in `src/lib/league/`; routes and the future bot API call them, never reimplement.
 - Every result change writes an `audit` row.
 - Design from Claude Design HTML: extract tokens into `src/app.css` and components — don't paste raw HTML.
+- Import app code as `#lib/<path>.ts` (extension required); there is no `$lib`.
+- Env vars: declare in `src/env.ts`, import from `$app/env/private`.
+- Styles: `src/lib/styles/porobound.css` is a verbatim design-system snapshot (`pb-` classes); replace it wholesale to re-sync, put app styles in `src/app.css`.
+- Auth: `locals.user` (with `isOrganizer` from login) is set in `hooks.server.ts`. Admin actions must re-check the role with Discord (`fetchMember`), not trust the session flag.
+- CSRF origin checks run only in production builds (`npm run build && npm run preview`), never in `npm run dev`; test cross-site POST behaviour there.

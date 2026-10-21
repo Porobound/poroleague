@@ -908,7 +908,7 @@ git commit -m "feat(auth): Discord login, callback, logout, refusal pages"
 
 - Modify: `CLAUDE.md`
 
-- [ ] **Step 1: Happy path (needs `.env` from Task 1)**
+- [x] **Step 1: Happy path (needs `.env` from Task 1)**
 
 Run: `npm run db:migrate && npm run dev`, open http://localhost:5173, click "Log in with Discord", approve.
 Expected: back on `/`, header shows your server nickname + avatar and "Log out".
@@ -916,23 +916,23 @@ Expected: back on `/`, header shows your server nickname + avatar and "Log out".
 Run: `sqlite3 local.db "select id, display_name from players; select player_id, is_organizer, datetime(expires_at,'unixepoch') from sessions;"`
 Expected: one player row (your Discord id, server nickname); one session with `is_organizer` = 1 if you have the organizer role, expiry ~7 days out.
 
-- [ ] **Step 2: Logout**
+- [x] **Step 2: Logout**
 
 Click "Log out".
 Expected: back on `/` logged out; `sqlite3 local.db "select count(*) from sessions;"` → `0`.
 
-- [ ] **Step 3: Refusals**
+- [x] **Step 3: Refusals**
 
 1. Click login, then "Cancel" on Discord's screen → `/login/failed`.
 2. Stop the server, set `GUILD_ID=1` in `.env`, start it, log in → `/login/not-member` (Discord answers 404 for a guild you're not in). Restore `GUILD_ID`.
 3. Open `http://localhost:5173/auth/callback?code=x&state=forged` → `/login/failed`.
 
-- [ ] **Step 4: Return path**
+- [x] **Step 4: Return path**
 
 Open `http://localhost:5173/login/failed`, click "Log in with Discord" in the header (logged out), approve.
 Expected: lands on `/`, not back on the failure page.
 
-- [ ] **Step 5: Document conventions**
+- [x] **Step 5: Document conventions**
 
 In `CLAUDE.md`, under `## Rules`, add:
 
@@ -943,12 +943,12 @@ In `CLAUDE.md`, under `## Rules`, add:
 - Auth: `locals.user` (with `isOrganizer` from login) is set in `hooks.server.ts`. Admin actions must re-check the role with Discord (`fetchMember`), not trust the session flag.
 ```
 
-- [ ] **Step 6: Full verification**
+- [x] **Step 6: Full verification**
 
 Run: `npm run check && npx vitest run && npm run build && npx prettier --check .`
 Expected: 0 errors; 5 test files, 22 tests; build succeeds; prettier clean.
 
-- [ ] **Step 7: Commit and PR**
+- [x] **Step 7: Commit and PR**
 
 ```sh
 git add CLAUDE.md docs/superpowers/plans/2026-10-21-shell-auth.md
