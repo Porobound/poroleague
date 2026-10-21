@@ -4,8 +4,8 @@ import { organizerAction, organizerPage } from '#lib/server/auth.ts';
 import { allSeasons, createSeason, slugTaken } from '#lib/server/seasons.ts';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load: PageServerLoad = (event) => {
-	organizerPage(event);
+export const load: PageServerLoad = async (event) => {
+	await organizerPage(event);
 	return { seasons: allSeasons() };
 };
 
