@@ -1,6 +1,6 @@
 # Poroleague — Spec
 
-Public brand: **Porobound** (repo name `poroleague`). Website for a small community Riftbound TCG league (~20–30 players). Players log in with Discord, self-report matches; organizers run the season.
+Public name: **Poroleague** (the league site). **Porobound** is the private Discord community it serves; UI copy says "Porobound" only when it means that server. Website for a small community Riftbound TCG league (~20–30 players). Players log in with Discord, self-report matches; organizers run the season.
 
 ## Season lifecycle
 
