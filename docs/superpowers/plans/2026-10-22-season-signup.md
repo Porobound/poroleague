@@ -1247,7 +1247,7 @@ git commit -m "feat(admin): season settings, open and close signup"
 - Create: `src/routes/seasons/[slug]/+page.server.ts`, `src/routes/seasons/[slug]/+page.svelte`
 - Modify: `src/routes/+page.server.ts`, `src/routes/+page.svelte`
 
-- [ ] **Step 1: Season page server**
+- [x] **Step 1: Season page server**
 
 Create `src/routes/seasons/[slug]/+page.server.ts`:
 
@@ -1290,7 +1290,7 @@ export const actions: Actions = {
 };
 ```
 
-- [ ] **Step 2: Season page**
+- [x] **Step 2: Season page**
 
 Create `src/routes/seasons/[slug]/+page.svelte`:
 
@@ -1422,7 +1422,7 @@ Create `src/routes/seasons/[slug]/+page.svelte`:
 </style>
 ```
 
-- [ ] **Step 3: Home routing**
+- [x] **Step 3: Home routing**
 
 Replace `src/routes/+page.server.ts`:
 
@@ -1492,14 +1492,14 @@ Replace `src/routes/+page.svelte`:
 </style>
 ```
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 Run: `npm run check`
 Expected: 0 errors.
 
 With `test-season` in signup: `/` redirects to `/seasons/test-season`; "Sign up" → "You're in", count 1, your name in the list; "Withdraw" (confirm) → count 0. Logged out: login button with return to the season page. Create a second season (draft): logged out, `/seasons/<draft-slug>` → 404.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```sh
 git add "src/routes/seasons/[slug]/+page.server.ts" "src/routes/seasons/[slug]/+page.svelte" src/routes/+page.server.ts src/routes/+page.svelte
