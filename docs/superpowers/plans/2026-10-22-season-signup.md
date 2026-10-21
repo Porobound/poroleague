@@ -332,7 +332,7 @@ git commit -m "feat(season): form parsing, editable fields, slugify"
 - Create: `src/lib/league/schedule.ts`
 - Test: `src/lib/league/schedule.spec.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `src/lib/league/schedule.spec.ts`:
 
@@ -360,12 +360,12 @@ describe('buildSchedule', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/lib/league/schedule.spec.ts`
 Expected: FAIL — cannot resolve `./schedule`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/lib/league/schedule.ts`:
 
@@ -383,12 +383,12 @@ export function buildSchedule(groups: string[][]): ScheduledMatch[] {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run src/lib/league/schedule.spec.ts`
 Expected: PASS (2 tests).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```sh
 git add src/lib/league/schedule.ts src/lib/league/schedule.spec.ts
