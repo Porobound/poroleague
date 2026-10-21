@@ -123,7 +123,7 @@ git commit -m "chore(env): declare Discord OAuth variables"
 - Create: `src/app.css`, `src/lib/components/Avatar.svelte`, `src/routes/+page.server.ts`
 - Modify: `src/app.html`, `src/routes/+layout.svelte`, `src/routes/+page.svelte`
 
-- [ ] **Step 1: Fonts**
+- [x] **Step 1: Fonts**
 
 In `src/app.html`, add inside `<head>` before `%sveltekit.head%`:
 
@@ -136,7 +136,7 @@ In `src/app.html`, add inside `<head>` before `%sveltekit.head%`:
 />
 ```
 
-- [ ] **Step 2: Base and shell styles**
+- [x] **Step 2: Base and shell styles**
 
 Create `src/app.css`:
 
@@ -226,7 +226,7 @@ a:hover {
 }
 ```
 
-- [ ] **Step 3: Avatar component**
+- [x] **Step 3: Avatar component**
 
 Create `src/lib/components/Avatar.svelte`:
 
@@ -256,7 +256,7 @@ Create `src/lib/components/Avatar.svelte`:
 {/if}
 ```
 
-- [ ] **Step 4: Layout**
+- [x] **Step 4: Layout**
 
 Replace `src/routes/+layout.svelte` (the `data.user` part is wired in Task 4; until then `data.user` is a type error, so this step uses the final version and Task 4 adds the server load):
 
@@ -312,7 +312,7 @@ export const load: LayoutServerLoad = () => ({
 });
 ```
 
-- [ ] **Step 5: Home page**
+- [x] **Step 5: Home page**
 
 Create `src/routes/+page.server.ts`:
 
@@ -383,7 +383,7 @@ Replace `src/routes/+page.svelte`:
 </style>
 ```
 
-- [ ] **Step 6: Verify**
+- [x] **Step 6: Verify**
 
 Run: `npm run check`
 Expected: 0 errors.
@@ -391,7 +391,7 @@ Expected: 0 errors.
 Run: `npm run dev`, open http://localhost:5173.
 Expected: dark page, Bricolage "Porobound" brand top-left, "Log in with Discord" button top-right, centered "The herd is gathering." empty state. At 390px width: no horizontal scroll. Stop the server.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```sh
 git add src/app.css src/app.html src/lib/components/Avatar.svelte src/routes/+layout.svelte src/routes/+layout.server.ts src/routes/+page.svelte src/routes/+page.server.ts
