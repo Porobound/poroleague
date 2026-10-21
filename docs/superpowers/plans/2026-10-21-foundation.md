@@ -353,7 +353,7 @@ git commit -m "feat(league): score validation and match points"
 - Create: `src/lib/league/roundRobin.ts`
 - Test: `src/lib/league/roundRobin.spec.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 import { describe, expect, it } from 'vitest';
@@ -397,12 +397,12 @@ describe('roundRobin', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/lib/league/roundRobin.spec.ts`
 Expected: FAIL — cannot resolve `./roundRobin`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 ```ts
 export type Pairing = [string, string];
@@ -427,12 +427,12 @@ export function roundRobin(players: string[]): Pairing[][] {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run src/lib/league/roundRobin.spec.ts`
 Expected: PASS (3 tests).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```sh
 git add src/lib/league/roundRobin.ts src/lib/league/roundRobin.spec.ts
