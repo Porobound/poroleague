@@ -17,7 +17,8 @@
 		"db:push": "drizzle-kit push",
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "drizzle-kit migrate",
-		"db:studio": "drizzle-kit studio"
+		"db:studio": "drizzle-kit studio",
+		"db:seed-dev": "node scripts/seed-dev.ts"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-node": "^6.0.0",

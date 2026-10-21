@@ -45,8 +45,8 @@ Top cut (top X per group, cross-seeded A1 vs B4 …, single elim, Bo3, online, s
 | Phase  | Actions                                                                            |
 | ------ | ---------------------------------------------------------------------------------- |
 | Setup  | Create season, edit settings                                                       |
-| Signup | Open/close signup, remove signup                                                   |
-| Groups | Draw, swap in preview, lock (generates schedule)                                   |
+| Signup | Open/close signup (closing draws the groups), remove signup                        |
+| Groups | Redraw, move player between groups, lock (generates schedule)                      |
 | Play   | Edit any result, resolve flags, mark player dropped, post week pairings to Discord |
 | End    | Enter unplayed results, set tiebreak ranks, finalize season                        |
 
@@ -54,7 +54,8 @@ Not in UI: managing organizers (Discord role), legend list (config file), messag
 
 ## Pages (all public; login only for actions)
 
-- `/` — current season overview; if the newest season is a draft, a "next season coming soon" page; no seasons at all → empty state
+- `/` — the newest non-draft season if it's still running (redirect); else "next season coming soon" if a draft exists; else the newest finished season; no seasons → empty state
+- `/admin` — organizers: season list, create season
 - `/seasons` — archive
 - `/seasons/[slug]` — groups + standings
 - `/seasons/[slug]/schedule` — rounds and results
