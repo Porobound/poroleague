@@ -684,7 +684,7 @@ git commit -m "feat(auth): SQLite sessions and session hook"
 
 - Create: `src/lib/server/discord.ts`, `src/routes/auth/login/+server.ts`, `src/routes/auth/callback/+server.ts`, `src/routes/auth/logout/+server.ts`, `src/routes/login/not-member/+page.svelte`, `src/routes/login/failed/+page.svelte`
 
-- [ ] **Step 1: Discord HTTP calls**
+- [x] **Step 1: Discord HTTP calls**
 
 Create `src/lib/server/discord.ts`:
 
@@ -733,7 +733,7 @@ export async function fetchMember(accessToken: string): Promise<MemberResult> {
 }
 ```
 
-- [ ] **Step 2: Start login**
+- [x] **Step 2: Start login**
 
 Create `src/routes/auth/login/+server.ts`:
 
@@ -759,7 +759,7 @@ export const GET: RequestHandler = ({ url, cookies }) => {
 };
 ```
 
-- [ ] **Step 3: Callback**
+- [x] **Step 3: Callback**
 
 Create `src/routes/auth/callback/+server.ts`:
 
@@ -821,7 +821,7 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 };
 ```
 
-- [ ] **Step 4: Logout**
+- [x] **Step 4: Logout**
 
 Create `src/routes/auth/logout/+server.ts`:
 
@@ -837,7 +837,7 @@ export const POST: RequestHandler = ({ cookies, locals }) => {
 };
 ```
 
-- [ ] **Step 5: Refusal pages (copy from design; no invite link — Porobound is private)**
+- [x] **Step 5: Refusal pages (copy from design; no invite link — Porobound is private)**
 
 Create `src/routes/login/not-member/+page.svelte`:
 
@@ -888,12 +888,12 @@ Create `src/routes/login/failed/+page.svelte`:
 </section>
 ```
 
-- [ ] **Step 6: Typecheck and tests**
+- [x] **Step 6: Typecheck and tests**
 
 Run: `npm run check && npx vitest run`
 Expected: 0 errors; 22 tests passing.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```sh
 git add src/lib/server/discord.ts src/routes/auth src/routes/login
