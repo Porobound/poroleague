@@ -528,7 +528,7 @@ Rules (from spec): points (W3/D1/L0) → head-to-head mini-league among tied pla
 - Create: `src/lib/league/standings.ts`
 - Test: `src/lib/league/standings.spec.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 import { describe, expect, it } from 'vitest';
@@ -629,12 +629,12 @@ describe('standings', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/lib/league/standings.spec.ts`
 Expected: FAIL — cannot resolve `./standings`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 ```ts
 import { matchPoints } from './score';
@@ -745,12 +745,12 @@ function breakTie(tied: Row[], matches: MatchResult[], entries: Map<string, Entr
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run src/lib/league/standings.spec.ts`
 Expected: PASS (7 tests).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```sh
 git add src/lib/league/standings.ts src/lib/league/standings.spec.ts
