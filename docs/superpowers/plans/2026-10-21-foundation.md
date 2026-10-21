@@ -448,7 +448,7 @@ git commit -m "feat(league): round-robin schedule"
 - Create: `src/lib/league/groups.ts`
 - Test: `src/lib/league/groups.spec.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 import { describe, expect, it } from 'vitest';
@@ -481,12 +481,12 @@ describe('defaultGroupCount', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/lib/league/groups.spec.ts`
 Expected: FAIL — cannot resolve `./groups`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 ```ts
 export function defaultGroupCount(players: number): number {
@@ -505,12 +505,12 @@ export function splitGroups<T>(items: T[], groupCount: number, random = Math.ran
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run src/lib/league/groups.spec.ts`
 Expected: PASS (4 tests).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```sh
 git add src/lib/league/groups.ts src/lib/league/groups.spec.ts
