@@ -7,6 +7,7 @@ Draft v0.1. Items marked **[TBD]** are not decided yet.
 - Any member of the Porobound Discord server can play. Log in to the league site with your Discord account.
 - Sign up on the site while signup is open. You can withdraw until signup closes.
 - Organizers are the members with the organizer role in Discord. Organizers can play too.
+- The league is free to enter. There is no buy-in.
 
 ## 2. Season format
 
@@ -15,16 +16,17 @@ Draft v0.1. Items marked **[TBD]** are not decided yet.
 - **Byes.** If a group has an odd number of players, one player sits out each round. A bye is not a match and gives no points.
 - **Schedule.** The schedule is set when groups are locked. Each week has 2 rounds, so a 12-player group runs about 6 weeks.
 - **Season deadline.** Every season has a hard deadline at 23:59 Helsinki time (Europe/Helsinki) on the deadline date.
-- **Top cut.** After the group stage, the top players of each group go on to a single-elimination top cut (cross-seeded: group A's 1st plays group B's last qualifier, and so on). How many qualify, and when the top cut is played: **[TBD]**.
+- **Top cut.** After the group stage, the top players of each group go on to a single-elimination top cut (cross-seeded: group A's 1st plays group B's last qualifier, and so on). How many qualify, when the top cut is played, and prizes: **[TBD]**.
 
 ## 3. Playing a match
 
 - Matches are best of three (Bo3) games of Riftbound. Play online or in person, whichever you and your opponent prefer.
 - Contact your opponent on Discord and agree when and where to play. Aim to play during the week the match is scheduled.
-- **Dice roll.** Roll a die before the match. The winner's name is recorded with the result. What the winner gets (e.g. choice of who goes first): **[TBD]**, following the official Riftbound rules.
+- **Dice roll.** Roll a die before the match. The winner's name is recorded with the result.
 - **Legends.** Each player plays one legend for the whole match. You can switch legends between matches.
-- **Draws.** If the match ends 1-1 (out of time or unfinished), it is a draw. Time limit per match: **[TBD]**.
-- Game rules, deck construction and banned cards follow the official Riftbound rules: **[TBD: link]**.
+- **Decks.** No decklists. Play any deck you like, and change it between matches.
+- **Draws.** If the match ends 1-1 (out of time or unfinished), it is a draw.
+- Game rules, deck construction and banned cards follow the official Riftbound rules.
 
 ## 4. Points and standings
 
@@ -68,10 +70,7 @@ Draft v0.1. Items marked **[TBD]** are not decided yet.
 
 ## Open questions
 
-- Top cut: how many players per group qualify, and when it's played.
-- What the dice-roll winner chooses.
-- Match time limit.
-- Link to the official Riftbound rules, and any league-specific deck rules or bans.
+- Top cut: how many players per group qualify, when it's played, and prizes.
 - No-show policy: when organizers award a win instead of a double loss.
 - Can a dropped player rejoin the same season?
 - Conduct rules and penalties.
