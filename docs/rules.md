@@ -1,4 +1,4 @@
-# Porobound League Rules
+# Poroleague Rules
 
 Draft v0.1. Items marked **[TBD]** are not decided yet.
 
