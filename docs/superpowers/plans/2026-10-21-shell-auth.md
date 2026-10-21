@@ -560,7 +560,7 @@ git commit -m "feat(auth): Discord authorize URL, member profile, safe return pa
 - Create: `src/lib/server/session.ts`, `src/hooks.server.ts`
 - Modify: `src/app.d.ts`, `src/routes/+layout.server.ts`
 
-- [ ] **Step 1: Locals type**
+- [x] **Step 1: Locals type**
 
 Replace `src/app.d.ts`:
 
@@ -577,7 +577,7 @@ declare global {
 export {};
 ```
 
-- [ ] **Step 2: Session store**
+- [x] **Step 2: Session store**
 
 Create `src/lib/server/session.ts`:
 
@@ -626,7 +626,7 @@ export function deleteSession(id: string) {
 }
 ```
 
-- [ ] **Step 3: Hook**
+- [x] **Step 3: Hook**
 
 Create `src/hooks.server.ts`:
 
@@ -652,7 +652,7 @@ export const handle: Handle = ({ event, resolve }) => {
 };
 ```
 
-- [ ] **Step 4: Expose the user to pages**
+- [x] **Step 4: Expose the user to pages**
 
 Replace `src/routes/+layout.server.ts`:
 
@@ -662,14 +662,14 @@ import type { LayoutServerLoad } from './$types';
 export const load: LayoutServerLoad = ({ locals }) => ({ user: locals.user });
 ```
 
-- [ ] **Step 5: Verify**
+- [x] **Step 5: Verify**
 
 Run: `npm run check && npx vitest run`
 Expected: 0 errors; 5 test files, 22 tests passing.
 
 Run: `npm run dev`, open http://localhost:5173 — page still renders logged out. Stop the server.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```sh
 git add src/app.d.ts src/lib/server/session.ts src/hooks.server.ts src/routes/+layout.server.ts
