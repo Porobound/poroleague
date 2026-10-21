@@ -19,8 +19,8 @@ Draft v0.1. Items marked **[TBD]** are not decided yet.
 
 ## 3. Playing a match
 
-- Matches are best of three (Bo3), played online.
-- Contact your opponent on Discord and agree a time. Aim to play during the week the match is scheduled.
+- Matches are best of three (Bo3) games of Riftbound. Play online or in person, whichever you and your opponent prefer.
+- Contact your opponent on Discord and agree when and where to play. Aim to play during the week the match is scheduled.
 - **Dice roll.** Roll a die before the match. The winner's name is recorded with the result. What the winner gets (e.g. choice of who goes first): **[TBD]**, following the official Riftbound rules.
 - **Legends.** Each player plays one legend for the whole match. You can switch legends between matches.
 - **Draws.** If the match ends 1-1 (out of time or unfinished), it is a draw. Time limit per match: **[TBD]**.
