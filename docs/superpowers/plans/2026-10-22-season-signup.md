@@ -527,7 +527,7 @@ git commit -m "feat(auth): organizer guards with Discord re-check on actions"
 
 - Create: `src/lib/server/seasons.ts`
 
-- [ ] **Step 1: Queries and season operations**
+- [x] **Step 1: Queries and season operations**
 
 Create `src/lib/server/seasons.ts`:
 
@@ -639,12 +639,12 @@ export function lockGroups(seasonId: number) {
 }
 ```
 
-- [ ] **Step 2: Verify**
+- [x] **Step 2: Verify**
 
 Run: `npm run check`
 Expected: 0 errors.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```sh
 git add src/lib/server/seasons.ts
