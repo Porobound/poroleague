@@ -22,10 +22,11 @@ Draft v0.1. Items marked **[TBD]** are not decided yet.
 
 - Matches are best of three (Bo3) games of Riftbound. Play online or in person, whichever you and your opponent prefer.
 - Contact your opponent on Discord and agree when and where to play. Aim to play during the week the match is scheduled.
+- **Agree the terms first.** Before the match begins, agree with your opponent how much time you have for it, so nobody ends up in a much longer match than they planned for. Stick to what you agreed.
 - **Dice roll.** Roll a die before the match, as in the official Riftbound rules. The winner's name is recorded with the result.
 - **Legends.** Each player plays one legend for the whole match. You can switch legends between matches.
 - **Decks.** No decklists. Play any legal deck you like, and change it between matches, but not between games.
-- **Draws.** If the match ends 1-1, it is a draw.
+- **Draws.** If the match ends 1-1, for example when your agreed time runs out, it is a draw.
 - Game rules, deck construction and banned cards follow the official Riftbound rules.
 
 ## 4. Points and standings
@@ -54,7 +55,7 @@ Draft v0.1. Items marked **[TBD]** are not decided yet.
 
 - If you can't finish the season, tell an organizer.
 - When you drop, **all** your matches in that season, played and unplayed, are void. They don't count for anyone's standings. Your name stays in the group, marked as dropped.
-- Whether a dropped player can rejoin the same season: **[TBD]**.
+- Dropping is final: you can't rejoin the same season.
 
 ## 8. Organizers
 
@@ -65,11 +66,10 @@ Draft v0.1. Items marked **[TBD]** are not decided yet.
 ## 9. Conduct
 
 - Be on time, be honest about results and be decent to your opponent.
-- Conduct rules and penalties: **[TBD]**.
+- Riftbound's official code of conduct applies.
 
 ## Open questions
 
 - Top cut: how many players per group qualify, when it's played, and prizes.
 - No-show policy: when organizers award a win instead of a double loss.
-- Can a dropped player rejoin the same season?
-- Conduct rules and penalties.
+- What's reported if the agreed time runs out before 1-1 (e.g. at 1-0).
