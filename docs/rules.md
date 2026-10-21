@@ -22,20 +22,19 @@ Draft v0.1. Items marked **[TBD]** are not decided yet.
 
 - Matches are best of three (Bo3) games of Riftbound. Play online or in person, whichever you and your opponent prefer.
 - Contact your opponent on Discord and agree when and where to play. Aim to play during the week the match is scheduled.
-- **Dice roll.** Roll a die before the match. The winner's name is recorded with the result.
+- **Dice roll.** Roll a die before the match, as in the official Riftbound rules. The winner's name is recorded with the result.
 - **Legends.** Each player plays one legend for the whole match. You can switch legends between matches.
-- **Decks.** No decklists. Play any deck you like, and change it between matches.
-- **Draws.** If the match ends 1-1 (out of time or unfinished), it is a draw.
+- **Decks.** No decklists. Play any legal deck you like, and change it between matches, but not between games.
+- **Draws.** If the match ends 1-1, it is a draw.
 - Game rules, deck construction and banned cards follow the official Riftbound rules.
 
 ## 4. Points and standings
 
 - Win 3 points, draw 1 point, loss 0 points.
-- Ties are broken in this order:
-  1. Points.
-  2. Head-to-head: points from matches between the tied players only.
-  3. Game-win %: games won ÷ games played.
-  4. If still tied, the organizers decide the order.
+- Standings are ordered by points. Ties are broken in this order:
+  1. Head-to-head: points from matches between the tied players only.
+  2. Game-win %: games won ÷ games played.
+  3. If still tied, the organizers decide the order.
 
 ## 5. Reporting results
 
