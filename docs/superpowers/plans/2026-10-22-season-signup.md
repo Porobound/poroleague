@@ -660,7 +660,7 @@ git commit -m "feat(season): season and entry data access, draw and lock"
 - Modify: `src/app.css`
 - Create: `src/lib/components/SeasonForm.svelte`, `src/lib/components/ConfirmButton.svelte`
 
-- [ ] **Step 1: Styles**
+- [x] **Step 1: Styles**
 
 Append to `src/app.css`:
 
@@ -760,7 +760,7 @@ Append to `src/app.css`:
 }
 ```
 
-- [ ] **Step 2: Season form component**
+- [x] **Step 2: Season form component**
 
 Create `src/lib/components/SeasonForm.svelte`:
 
@@ -867,7 +867,7 @@ Create `src/lib/components/SeasonForm.svelte`:
 </style>
 ```
 
-- [ ] **Step 3: Confirm button (design's ConfirmDialog)**
+- [x] **Step 3: Confirm button (design's ConfirmDialog)**
 
 Create `src/lib/components/ConfirmButton.svelte`:
 
@@ -938,12 +938,12 @@ Create `src/lib/components/ConfirmButton.svelte`:
 </style>
 ```
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 Run: `npm run check`
 Expected: 0 errors.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```sh
 git add src/app.css src/lib/components/SeasonForm.svelte src/lib/components/ConfirmButton.svelte
