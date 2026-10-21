@@ -6,6 +6,7 @@
 
 	let { data, form }: PageProps = $props();
 	const season = $derived(data.season);
+	const hasResults = $derived(season.status === 'play' || season.status === 'finished');
 </script>
 
 <svelte:head>
@@ -26,7 +27,12 @@
 		<p class="status" role="status">Saved.</p>
 	{/if}
 
-	{#if season.status === 'draft'}
+	{#if season.status === 'draft' && data.running}
+		<p class="muted">
+			<a href="/seasons/{data.running.slug}/admin">{data.running.name}</a> is still running. Only one
+			season can be open at a time, so signup for this one opens once that season is finished.
+		</p>
+	{:else if season.status === 'draft'}
 		<ConfirmButton
 			action="?/openSignup"
 			label="Open signup"
@@ -61,4 +67,47 @@
 			submit="Save changes"
 		/>
 	</form>
+
+	<section class="danger">
+		<h2>Delete season</h2>
+		<p class="muted">
+			Removes the season for everyone: {data.entryCount} signups{data.matchCount
+				? ` and ${data.matchCount} matches with their results`
+				: ''}. This can't be undone.
+		</p>
+		<ConfirmButton
+			action="?/delete"
+			variant="secondary"
+			label="Delete season"
+			title="Delete {season.name}?"
+			confirmLabel="Delete season"
+		>
+			This removes {season.name}, its {data.entryCount} signups{data.matchCount
+				? `, ${data.matchCount} matches and every reported result`
+				: ''}. It can't be undone.
+			{#if hasResults}
+				<label class="pb-field">
+					Type {season.slug} to confirm
+					<input
+						class="pb-input"
+						name="confirmSlug"
+						required
+						pattern={season.slug}
+						autocomplete="off"
+					/>
+				</label>
+			{/if}
+		</ConfirmButton>
+	</section>
 </div>
+
+<style>
+	.danger {
+		border-top: 1px solid var(--line);
+		padding-top: 24px;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 12px;
+	}
+</style>

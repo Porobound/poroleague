@@ -6,6 +6,8 @@ Public name: **Poroleague** (the league site). **Porobound** is the private Disc
 
 `draft → signup → groups → play → finished`
 
+Only one season can be running (signup, groups or play) at a time; drafts and finished seasons are unlimited.
+
 1. **draft** — organizer creates season: name, slug, start date, rounds per week (default 2), season deadline, top-cut size X.
 2. **signup** — any member of the Discord guild can join until an organizer closes signup. Players can withdraw while signup is open; organizers can remove a signup.
 3. **groups** — group count is automatic (1 if < 16 signups, else 2); organizer draws random groups, previews, swaps players, locks. Uneven sizes allowed (25 → 13 + 12). Locking generates the round-robin schedule (circle method, byes on odd counts).
@@ -44,7 +46,7 @@ Top cut (top X per group, cross-seeded A1 vs B4 …, single elim, Bo3, online, s
 
 | Phase  | Actions                                                                                        |
 | ------ | ---------------------------------------------------------------------------------------------- |
-| Setup  | Create season, edit settings                                                                   |
+| Setup  | Create season, edit settings, delete season (typed slug once it has matches)                   |
 | Signup | Open/close signup (closing draws the groups), remove signup                                    |
 | Groups | Redraw, move player between groups, reopen signup (clears the draw), lock (generates schedule) |
 | Play   | Edit any result, resolve flags, mark player dropped, post week pairings to Discord             |
