@@ -273,7 +273,7 @@ git commit -m "feat(db): league schema and legend list"
 - Create: `src/lib/league/score.ts`
 - Test: `src/lib/league/score.spec.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 import { describe, expect, it } from 'vitest';
@@ -313,12 +313,12 @@ describe('matchPoints', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/lib/league/score.spec.ts`
 Expected: FAIL — cannot resolve `./score`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 ```ts
 const VALID = new Set(['2-0', '2-1', '1-1', '0-2', '1-2']);
@@ -332,12 +332,12 @@ export function matchPoints(a: number, b: number): [number, number] {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run src/lib/league/score.spec.ts`
 Expected: PASS (3 tests).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```sh
 git add src/lib/league/score.ts src/lib/league/score.spec.ts
