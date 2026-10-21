@@ -56,7 +56,7 @@
 - Modify: `src/env.ts`
 - Modify: `.env.example`
 
-- [ ] **Step 1: Owner — create the Discord application (manual, not code)**
+- [x] **Step 1: Owner — create the Discord application (manual, not code)**
 
 1. https://discord.com/developers/applications → New Application → name `Porobound (dev)`.
 2. OAuth2 → copy **Client ID**, reset + copy **Client Secret**.
@@ -72,7 +72,7 @@ GUILD_ID=...
 ORGANIZER_ROLE_ID=...
 ```
 
-- [ ] **Step 2: Declare the vars**
+- [x] **Step 2: Declare the vars**
 
 Replace `src/env.ts` with:
 
@@ -89,7 +89,7 @@ export const variables = defineEnvVars({
 });
 ```
 
-- [ ] **Step 3: Document them**
+- [x] **Step 3: Document them**
 
 Replace `.env.example` with:
 
@@ -102,12 +102,12 @@ GUILD_ID=
 ORGANIZER_ROLE_ID=
 ```
 
-- [ ] **Step 4: Typecheck**
+- [x] **Step 4: Typecheck**
 
 Run: `npm run check`
 Expected: 0 errors.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```sh
 git add src/env.ts .env.example
