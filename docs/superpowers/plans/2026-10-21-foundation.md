@@ -87,7 +87,7 @@ git commit -m "chore: scaffold SvelteKit with drizzle, vitest, adapter-node"
 
 - Modify (replace contents): `src/lib/server/db/schema.ts`
 
-- [ ] **Step 1: Write the schema**
+- [x] **Step 1: Write the schema**
 
 Replace `src/lib/server/db/schema.ts` with:
 
@@ -200,22 +200,22 @@ export const audit = sqliteTable(
 );
 ```
 
-- [ ] **Step 2: Generate migration**
+- [x] **Step 2: Generate migration**
 
 Run: `npm run db:generate`
 Expected: new SQL file under `drizzle/` creating 6 tables: `players`, `sessions`, `seasons`, `entries`, `matches`, `audit`.
 
-- [ ] **Step 3: Apply migration locally**
+- [x] **Step 3: Apply migration locally**
 
 Run: `npm run db:migrate && sqlite3 local.db .tables`
 Expected output includes: `audit  entries  matches  players  seasons  sessions` (plus `__drizzle_migrations`).
 
-- [ ] **Step 4: Typecheck**
+- [x] **Step 4: Typecheck**
 
 Run: `npm run check`
 Expected: 0 errors. If `src/lib/server/db/index.ts` or a demo route referenced the removed demo table, delete that reference.
 
-- [ ] **Step 5: Legend list config**
+- [x] **Step 5: Legend list config**
 
 Create `src/lib/legends.ts` (placeholder LoL names until the real Riftbound list is supplied):
 
@@ -257,7 +257,7 @@ export const LEGENDS = [
 export type Legend = (typeof LEGENDS)[number];
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```sh
 git add src/lib/server/db/schema.ts src/lib/legends.ts drizzle/

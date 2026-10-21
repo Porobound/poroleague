@@ -1,0 +1,35 @@
+// ponytail: placeholder champion names; replace with the real Riftbound legend list
+export const LEGENDS = [
+	'Ahri',
+	'Annie',
+	'Ashe',
+	'Darius',
+	'Draven',
+	'Ekko',
+	'Ezreal',
+	'Fiora',
+	'Garen',
+	'Irelia',
+	'Jax',
+	'Jinx',
+	"Kai'Sa",
+	'Katarina',
+	'Leona',
+	'Lee Sin',
+	'Lux',
+	'Master Yi',
+	'Miss Fortune',
+	'Rumble',
+	'Sett',
+	'Sivir',
+	'Teemo',
+	'Thresh',
+	'Vi',
+	'Viktor',
+	'Volibear',
+	'Yasuo',
+	'Yone',
+	'Zed'
+] as const;
+
+export type Legend = (typeof LEGENDS)[number];

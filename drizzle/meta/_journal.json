@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1792601572692,
+      "tag": "0000_groovy_salo",
+      "breakpoints": true
+    }
+  ]
+}
