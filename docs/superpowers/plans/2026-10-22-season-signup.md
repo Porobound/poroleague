@@ -62,7 +62,7 @@
 - Create: `src/lib/season.ts`
 - Test: `src/lib/season.spec.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `src/lib/season.spec.ts`:
 
@@ -166,12 +166,12 @@ describe('editableFields', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/lib/season.spec.ts`
 Expected: FAIL — cannot resolve `./season`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/lib/season.ts`:
 
@@ -311,12 +311,12 @@ export function parseSeasonForm(
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run src/lib/season.spec.ts`
 Expected: PASS (6 tests).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```sh
 git add src/lib/season.ts src/lib/season.spec.ts
