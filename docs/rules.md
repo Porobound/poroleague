@@ -16,7 +16,7 @@ Draft v0.1. Items marked **[TBD]** are not decided yet.
 - **Byes.** If a group has an odd number of players, one player sits out each round. A bye is not a match and gives no points.
 - **Schedule.** The schedule is set when groups are locked. Each week has 2 rounds, so a 12-player group runs about 6 weeks.
 - **Season deadline.** Every season has a hard deadline at 23:59 Helsinki time (Europe/Helsinki) on the deadline date.
-- **Top cut.** After the group stage, the top players of each group go on to a single-elimination top cut (cross-seeded: group A's 1st plays group B's last qualifier, and so on). How many qualify, when the top cut is played, and prizes: **[TBD]**.
+- **Top cut.** After the group stage, the top players go on to a single-elimination top cut. With one group, it's seeded by the standings: 1st plays the last qualifier, 2nd plays the second-to-last, and so on. With two groups, it's cross-seeded: group A's 1st plays group B's last qualifier, group B's 1st plays group A's last, and so on. How many qualify, when the top cut is played, and prizes: **[TBD]**.
 
 ## 3. Playing a match
 
