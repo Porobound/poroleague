@@ -36,7 +36,7 @@ Top cut (top X per group, cross-seeded A1 vs B4 …, single elim, Bo3, online, s
 
 - Discord OAuth, scopes `identify guilds.members.read`. Hand-rolled (~60 lines), no auth library.
 - At login: `GET /users/@me/guilds/{GUILD_ID}/member` with the user's token. 404 → not a guild member → login refused. Porobound is private: the refusal page offers no invite link, only "try again" (wrong Discord account) and browsing without login. Response gives server nickname (display name, fallback global name) and roles.
-- Organizer = has `ORGANIZER_ROLE_ID`. Stored in session; **rechecked on every `/admin` action** (one API call) so revocation is immediate.
+- Organizer = has `ORGANIZER_ROLE_ID`. Stored in session; **re-checked with Discord at most once a minute** on admin pages and actions (the member endpoint is heavily rate-limited), so a role change applies within a minute without re-login. If Discord refuses (429) or fails, the last known role is kept.
 - Sessions in SQLite, ~7-day expiry. Display name refreshed each login.
 - Organizers may play; edits to their own matches are allowed and visible in the audit log.
 

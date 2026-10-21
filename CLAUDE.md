@@ -26,5 +26,5 @@ SvelteKit (adapter-node) · TypeScript · SQLite via Drizzle (better-sqlite3) ·
 - Import app code as `#lib/<path>.ts` (extension required); there is no `$lib`.
 - Env vars: declare in `src/env.ts`, import from `$app/env/private`.
 - Styles: `src/lib/styles/porobound.css` is a verbatim design-system snapshot (`pb-` classes); replace it wholesale to re-sync, put app styles in `src/app.css`.
-- Auth: `locals.user` is set in `hooks.server.ts`. Admin pages use `organizerPage` (Discord re-check, cached 1 min per session) and admin actions `organizerAction` (re-check every time), both in `src/lib/server/auth.ts`. Never gate admin work on `locals.user.isOrganizer` alone.
+- Auth: `locals.user` is set in `hooks.server.ts`. Admin pages use `organizerPage` and admin actions `organizerAction` (`src/lib/server/auth.ts`): Discord re-check at most once a minute per session, last known role kept on 429. Discord's member endpoint rate-limits hard: never call it per request. Never gate admin work on `locals.user.isOrganizer` alone.
 - CSRF origin checks run only in production builds (`npm run build && npm run preview`), never in `npm run dev`; test cross-site POST behaviour there.

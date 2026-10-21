@@ -6,7 +6,7 @@
 
 **Goal:** Organizers can create a season, open and close signup, draw and adjust groups, and lock them to generate the round-robin schedule; players can sign up and withdraw.
 
-**Architecture:** Season rules that need no DB are pure and unit-tested: form parsing, editable fields per status and slugify in `src/lib/season.ts`, and schedule building in `src/lib/league/schedule.ts`. DB access for seasons lives in `src/lib/server/seasons.ts`. Pages use plain SvelteKit form actions; irreversible or public actions go through `ConfirmButton`, the design's ConfirmDialog built on the native `<dialog>` element. Admin page loads re-check the role with Discord at most once a minute per session (`organizerPage`); every admin **action** re-checks it every time (`organizerAction`). Changed during execution: trusting the login-time flag on loads meant role changes needed a re-login.
+**Architecture:** Season rules that need no DB are pure and unit-tested: form parsing, editable fields per status and slugify in `src/lib/season.ts`, and schedule building in `src/lib/league/schedule.ts`. DB access for seasons lives in `src/lib/server/seasons.ts`. Pages use plain SvelteKit form actions; irreversible or public actions go through `ConfirmButton`, the design's ConfirmDialog built on the native `<dialog>` element. Admin pages and actions re-check the role with Discord at most once a minute per session and keep the last known role if Discord refuses. Changed during execution: trusting the login-time flag meant role changes needed a re-login, and re-checking on every action hit Discord's 429 rate limit.
 
 **Tech Stack:** SvelteKit 3 form actions, Drizzle + better-sqlite3 (sync API: `.get()`, `.all()`, `.run()`, `db.transaction`), Vitest.
 
