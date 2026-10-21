@@ -766,7 +766,7 @@ git commit -m "feat(league): standings with tiebreakers, drops, double losses"
 - Create: `CLAUDE.md`
 - Modify: `/home/mikhe/Projects/claude/CLAUDE.md` (Sub-projects list)
 
-- [ ] **Step 1: Write `CLAUDE.md`**
+- [x] **Step 1: Write `CLAUDE.md`**
 
 ```markdown
 # Poroleague
@@ -796,7 +796,7 @@ SvelteKit (adapter-node) · TypeScript · SQLite via Drizzle (better-sqlite3) ·
 - Design from Claude Design HTML: extract tokens into `src/app.css` and components — don't paste raw HTML.
 ```
 
-- [ ] **Step 2: Register sub-project in parent CLAUDE.md**
+- [x] **Step 2: Register sub-project in parent CLAUDE.md**
 
 In `/home/mikhe/Projects/claude/CLAUDE.md`, under `## Sub-projects`, add:
 
@@ -804,12 +804,12 @@ In `/home/mikhe/Projects/claude/CLAUDE.md`, under `## Sub-projects`, add:
 - `poroleague/` — Riftbound TCG community league website (SvelteKit + SQLite)
 ```
 
-- [ ] **Step 3: Full verification**
+- [x] **Step 3: Full verification**
 
 Run: `npm run check && npx vitest run && npm run build`
 Expected: 0 type errors; 4 test files, 17 tests passing; build succeeds.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```sh
 git add CLAUDE.md docs/superpowers/plans/2026-10-21-foundation.md
