@@ -62,7 +62,15 @@ describe('profileFromMember', () => {
 describe('safeReturnTo', () => {
 	it('keeps same-site paths, rejects everything else', () => {
 		expect(safeReturnTo('/seasons/s1?x=1')).toBe('/seasons/s1?x=1');
-		for (const bad of [null, '', 'https://evil.com', '//evil.com', '/\\evil.com']) {
+		for (const bad of [
+			null,
+			'',
+			'https://evil.com',
+			'//evil.com',
+			'/\\evil.com',
+			'/\t/evil.com',
+			'/\n/evil.com'
+		]) {
 			expect(safeReturnTo(bad)).toBe('/');
 		}
 	});

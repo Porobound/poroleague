@@ -37,8 +37,9 @@ export function profileFromMember(m: GuildMember, guildId: string): Profile {
 	return { id: u.id, displayName: m.nick ?? u.global_name ?? u.username, avatar };
 }
 
+// Parse like a browser would (it strips tabs/newlines and treats \ as /), then require the same origin.
 export function safeReturnTo(path: string | null): string {
-	return path && path.startsWith('/') && !path.startsWith('//') && !path.startsWith('/\\')
-		? path
-		: '/';
+	if (!path?.startsWith('/')) return '/';
+	const url = new URL(path, 'http://same.invalid');
+	return url.origin === 'http://same.invalid' ? url.pathname + url.search + url.hash : '/';
 }
