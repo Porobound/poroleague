@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 >
-> **Owner rule:** every `git commit` step requires the owner's explicit go-ahead before running. Never push.
+> **Owner rule:** foundation work commits straight to `main` (owner-approved 2026-10-21); tick the matching box on issue #1 after each task. Later plans use branches + PRs.
 
 **Goal:** Scaffolded SvelteKit repo with the full database schema and tested pure league logic (score validation, round-robin, group split, standings with tiebreakers).
 
@@ -36,12 +36,12 @@
 - Create: whole SvelteKit project in repo root (`docs/` already exists)
 - Modify: `.gitignore`
 
-- [ ] **Step 1: Init git**
+- [x] **Step 1: Init git**
 
 Run: `git init -b main`
 Expected: `Initialized empty Git repository in .../poroleague/.git/`
 
-- [ ] **Step 2: Scaffold with add-ons**
+- [x] **Step 2: Scaffold with add-ons**
 
 Run:
 
@@ -53,12 +53,12 @@ npx sv create . --template minimal --types ts \
 
 Expected: project files created, dependencies installed, no errors. If the CLI rejects an option name, run `npx sv create --help` / `npx sv add --help` and use the reported spelling — do not drop the add-on.
 
-- [ ] **Step 3: Inspect what the scaffold generated**
+- [x] **Step 3: Inspect what the scaffold generated**
 
 Run: `cat package.json drizzle.config.ts src/lib/server/db/index.ts .env vite.config.ts`
 Expected: scripts include `check`, `test:unit`, `db:generate`, `db:migrate`; `.env` contains `DATABASE_URL=local.db`; `vite.config.ts` has a vitest project including `src/**/*.{test,spec}.{js,ts}`. Note any deviation before continuing.
 
-- [ ] **Step 4: Ignore the database file**
+- [x] **Step 4: Ignore the database file**
 
 Append to `.gitignore` (if not already present):
 
@@ -67,12 +67,12 @@ Append to `.gitignore` (if not already present):
 *.db-journal
 ```
 
-- [ ] **Step 5: Verify build + typecheck**
+- [x] **Step 5: Verify build + typecheck**
 
 Run: `npm run check && npm run build`
 Expected: `svelte-check found 0 errors`, build completes.
 
-- [ ] **Step 6: Commit (confirm with owner first)**
+- [x] **Step 6: Commit**
 
 ```sh
 git add -A
@@ -124,7 +124,7 @@ export const seasons = sqliteTable('seasons', {
 		.notNull()
 		.default('draft'),
 	startDate: text('start_date'), // ISO date
-	roundDays: integer('round_days').notNull().default(7),
+	roundsPerWeek: integer('rounds_per_week').notNull().default(2),
 	deadline: text('deadline'), // ISO date
 	topCutSize: integer('top_cut_size'),
 	createdAt: createdAt()
@@ -173,7 +173,9 @@ export const matches = sqliteTable(
 		reportedBy: text('reported_by').references(() => players.id),
 		reportedAt: integer('reported_at', { mode: 'timestamp' }),
 		flaggedBy: text('flagged_by').references(() => players.id),
-		flagReason: text('flag_reason')
+		flagReason: text('flag_reason'),
+		flagResolvedBy: text('flag_resolved_by').references(() => players.id),
+		flagResolvedAt: integer('flag_resolved_at', { mode: 'timestamp' })
 	},
 	(t) => [index('matches_season_idx').on(t.seasonId)]
 );
@@ -255,7 +257,7 @@ export const LEGENDS = [
 export type Legend = (typeof LEGENDS)[number];
 ```
 
-- [ ] **Step 6: Commit (confirm with owner first)**
+- [ ] **Step 6: Commit**
 
 ```sh
 git add src/lib/server/db/schema.ts src/lib/legends.ts drizzle/
@@ -335,7 +337,7 @@ export function matchPoints(a: number, b: number): [number, number] {
 Run: `npx vitest run src/lib/league/score.spec.ts`
 Expected: PASS (3 tests).
 
-- [ ] **Step 5: Commit (confirm with owner first)**
+- [ ] **Step 5: Commit**
 
 ```sh
 git add src/lib/league/score.ts src/lib/league/score.spec.ts
@@ -430,7 +432,7 @@ export function roundRobin(players: string[]): Pairing[][] {
 Run: `npx vitest run src/lib/league/roundRobin.spec.ts`
 Expected: PASS (3 tests).
 
-- [ ] **Step 5: Commit (confirm with owner first)**
+- [ ] **Step 5: Commit**
 
 ```sh
 git add src/lib/league/roundRobin.ts src/lib/league/roundRobin.spec.ts
@@ -508,7 +510,7 @@ export function splitGroups<T>(items: T[], groupCount: number, random = Math.ran
 Run: `npx vitest run src/lib/league/groups.spec.ts`
 Expected: PASS (4 tests).
 
-- [ ] **Step 5: Commit (confirm with owner first)**
+- [ ] **Step 5: Commit**
 
 ```sh
 git add src/lib/league/groups.ts src/lib/league/groups.spec.ts
@@ -519,7 +521,7 @@ git commit -m "feat(league): random group split"
 
 ### Task 6: Standings and tiebreakers
 
-Rules (from spec): points (W3/D1/L0) → head-to-head mini-league among tied players → game-win % → organizer `tiebreak` rank (lower first). Matches involving a dropped player are void. Unplayed matches count as a loss for both players once the deadline has passed (0 points). Ties still unresolved after all keys are marked `unresolvedTie` so admin can surface them.
+Rules (from spec): points (W3/D1/L0) → head-to-head mini-league among tied players → game-win % → organizer `tiebreak` rank (lower first). Matches involving a dropped player are void. Unplayed matches count as a loss for both players once the deadline has passed (0 points). Ties still unresolved after all keys are marked `unresolvedTie` so admin can surface them — only between players who have played (before any results everyone is level, and the UI lists them alphabetically).
 
 **Files:**
 
@@ -605,6 +607,11 @@ describe('standings', () => {
 		const ranked = standings([entry('A', { tiebreak: 2 }), entry('B', { tiebreak: 1 })], draw);
 		expect(order(ranked)).toEqual(['B', 'A']);
 		expect(ranked.some((r) => r.unresolvedTie)).toBe(false);
+	});
+
+	it('before any results, nobody is flagged as tied', () => {
+		const rows = standings([entry('A'), entry('B'), entry('C')], [m('A', null, null, 'B')]);
+		expect(rows.some((r) => r.unresolvedTie)).toBe(false);
 	});
 
 	it('unplayed match is a double loss only after the deadline', () => {
@@ -728,9 +735,10 @@ function breakTie(tied: Row[], matches: MatchResult[], entries: Map<string, Entr
 
 	const sorted = [...tied].sort(cmp);
 	for (let i = 0; i < sorted.length - 1; i++) {
-		if (cmp(sorted[i], sorted[i + 1]) === 0) {
-			sorted[i].unresolvedTie = true;
-			sorted[i + 1].unresolvedTie = true;
+		const [x, y] = [sorted[i], sorted[i + 1]];
+		if (x.played > 0 && y.played > 0 && cmp(x, y) === 0) {
+			x.unresolvedTie = true;
+			y.unresolvedTie = true;
 		}
 	}
 	return sorted;
@@ -740,9 +748,9 @@ function breakTie(tied: Row[], matches: MatchResult[], entries: Map<string, Entr
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run src/lib/league/standings.spec.ts`
-Expected: PASS (6 tests).
+Expected: PASS (7 tests).
 
-- [ ] **Step 5: Commit (confirm with owner first)**
+- [ ] **Step 5: Commit**
 
 ```sh
 git add src/lib/league/standings.ts src/lib/league/standings.spec.ts
@@ -799,11 +807,11 @@ In `/home/mikhe/Projects/claude/CLAUDE.md`, under `## Sub-projects`, add:
 - [ ] **Step 3: Full verification**
 
 Run: `npm run check && npx vitest run && npm run build`
-Expected: 0 type errors; 4 test files, 16 tests passing; build succeeds.
+Expected: 0 type errors; 4 test files, 17 tests passing; build succeeds.
 
-- [ ] **Step 4: Commit (confirm with owner first)**
+- [ ] **Step 4: Commit**
 
 ```sh
-git add CLAUDE.md docs/
-git commit -m "docs: spec, foundation plan, CLAUDE.md"
+git add CLAUDE.md docs/superpowers/plans/2026-10-21-foundation.md
+git commit -m "docs: repo CLAUDE.md, foundation plan complete"
 ```
