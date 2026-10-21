@@ -407,7 +407,7 @@ git commit -m "feat(ui): app shell and home empty state from design"
 - Create: `src/lib/discord.ts`
 - Test: `src/lib/discord.spec.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `src/lib/discord.spec.ts`:
 
@@ -483,12 +483,12 @@ describe('safeReturnTo', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/lib/discord.spec.ts`
 Expected: FAIL — cannot resolve `./discord`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/lib/discord.ts`:
 
@@ -539,12 +539,12 @@ export function safeReturnTo(path: string | null): string {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run src/lib/discord.spec.ts`
 Expected: PASS (5 tests).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```sh
 git add src/lib/discord.ts src/lib/discord.spec.ts
