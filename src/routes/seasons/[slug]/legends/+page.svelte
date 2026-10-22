@@ -85,7 +85,7 @@
 						{#if data.open === r.key}
 							<tr>
 								<td colspan="6">
-									<ul class="player-list" aria-label="Players who used {r.key}">
+									<ul class="player-list users" aria-label="Players who used {r.key}">
 										{#each data.users as u (u.key)}
 											<li>
 												<a class="grow" href="/seasons/{season.slug}/players/{u.key}">{u.name}</a>
@@ -135,6 +135,10 @@
 	}
 	.leg[aria-expanded='true'] .chev {
 		transform: rotate(90deg);
+	}
+	/* Line the players up with the legend name, past the chevron. */
+	.users {
+		padding-left: 20px;
 	}
 	.leg:hover .chev,
 	.leg[aria-expanded='true'] .chev {
