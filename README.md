@@ -183,13 +183,14 @@ CI lints, typechecks and tests every PR. Every push to `main` that passes builds
 
 ### First-time host setup
 
-1. `docker login ghcr.io` with a GitHub token that has `read:packages` (only while the package is private).
-2. Make a directory, e.g. `/opt/poroleague`, and copy in `compose.yaml` and `scripts/backup.sh`.
-3. `mkdir data && sudo chown 1000:1000 data`. The app runs as uid 1000 and keeps the database in `data/poroleague.db`.
-4. In Cloudflare **Zero Trust → Networks → Tunnels**, create a tunnel, copy its token, and add a public hostname pointing to `http://app:3000`.
-5. Write `.env` with the production values: every variable from `.env.example`, plus `ORIGIN=https://<domain>` and `TUNNEL_TOKEN`. Use the production Discord application, with `DISCORD_REDIRECT_URI=https://<domain>/auth/callback` (set the same redirect in the developer portal). `DATABASE_URL` is set by compose and can stay as is.
-6. `docker compose up -d`.
-7. Backups need `sqlite3` on the host. Add to the host's crontab: `0 4 * * * /opt/poroleague/scripts/backup.sh`. It writes `backups/poroleague-<date>.db` and keeps 14 days. Copying them off the box (Proxmox backup, rclone) is up to the host.
+The image is public, so the host needs no registry login.
+
+1. Make a directory, e.g. `/opt/poroleague`, and copy in `compose.yaml` and `scripts/backup.sh`.
+2. `mkdir data && sudo chown 1000:1000 data`. The app runs as uid 1000 and keeps the database in `data/poroleague.db`.
+3. In Cloudflare **Zero Trust → Networks → Tunnels**, create a tunnel, copy its token, and add a public hostname pointing to `http://app:3000`.
+4. Write `.env` with the production values: every variable from `.env.example`, plus `ORIGIN=https://<domain>` and `TUNNEL_TOKEN`. Use the production Discord application, with `DISCORD_REDIRECT_URI=https://<domain>/auth/callback` (set the same redirect in the developer portal). `DATABASE_URL` is set by compose and can stay as is.
+5. `docker compose up -d`.
+6. Backups need `sqlite3` on the host. Add to the host's crontab: `0 4 * * * /opt/poroleague/scripts/backup.sh`. It writes `backups/poroleague-<date>.db` and keeps 14 days. Copying them off the box (Proxmox backup, rclone) is up to the host.
 
 ### Update
 
