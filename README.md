@@ -168,6 +168,16 @@ scripts/               dev-only data helpers
 docs/                  spec, plans
 ```
 
+## Updating legends
+
+New Riftbound sets come out about every quarter. When one does, add its legends to `src/lib/legends.ts`:
+
+1. Open [the legend list on Piltover Archive](https://piltoverarchive.com/cards?types=legend&rarities=rare) and find the new set's legends.
+2. Add each one by champion name, keeping the list in A–Z order. If a champion already has a legend, give both entries the community nickname, like `Master Yi (PG)` and `Master Yi (XP)`.
+3. Run `npm run check` and `npx vitest run`, then open a PR.
+
+Never rename or remove a legend that has already been picked. Each match stores the legend's name, so a renamed entry starts its stats from zero, and the old name can't be picked any more.
+
 ## Contributing
 
 - `main` is protected: open a PR, get one approval, squash or rebase merge.
