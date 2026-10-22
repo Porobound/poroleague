@@ -79,8 +79,8 @@ Career stats across seasons: **deferred**. Wanted: from any player page, see tha
 - **v1 (in site):** webhooks, URLs in env vars, one `fetch` per event.
   - results channel: every reported result ("Alice 2-1 Bob (Jinx vs Ahri, Alice won the roll)")
   - organizer channel: flags, drops
-  - pairings channel: "Post week N pairings" button in admin (all rounds of that week), mentions each paired player (`<@id>`)
-  - Every webhook post disables mentions (`allowed_mentions: none`), since names and flag reasons are user text; pairings (Plan 6) opt in to user mentions only.
+  - pairings channel: "Post week N pairings" button in admin (all rounds of that week): one message, an embed per round, players as `<@id>` mentions inside embeds (clickable names, no pings)
+  - Every webhook post disables mentions (`allowed_mentions: none`), since names and flag reasons are user text; nothing pings, pairings included.
   - No DMs in v1: UI copy says "posted in Discord", never "notified".
 - **Bot (separate repo, later):** talks to the site only via its HTTP JSON endpoints with a service token (`BOT_TOKEN`). Site owns DB and all rules; bot never touches the DB. A bot `/report` calls the same endpoint as the web form, acting as the player.
 

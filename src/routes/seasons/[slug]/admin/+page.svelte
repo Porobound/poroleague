@@ -48,8 +48,8 @@
 		>
 			Posts the {p.count} pairings for {p.rounds[0] === p.rounds[1]
 				? `round ${p.rounds[0]}`
-				: `rounds ${p.rounds[0]}–${p.rounds[1]}`} in the pairings channel and pings every player in them.
-			It can't be unsent from here.
+				: `rounds ${p.rounds[0]}–${p.rounds[1]}`} in the pairings channel, with each player's Discord
+			name. Nobody is pinged. It can't be unsent from here.
 		</ConfirmButton>
 	{/if}
 

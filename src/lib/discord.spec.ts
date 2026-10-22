@@ -160,10 +160,9 @@ describe('pairingsPost', () => {
 	];
 	const body = pairingsPost('Autumn *26* · Week 3', 'http://x/schedule', rounds);
 
-	it('pings each paired player once from content, and nobody else', () => {
-		expect(body.content).toBe('**Autumn \\*26\\* · Week 3**\n<@1> <@2> <@3> <@4> <@dev-2>');
-		// Discord rejects the whole message for a non-snowflake id, so dev players are left out.
-		expect(body.allowed_mentions).toEqual({ parse: [], users: ['1', '2', '3', '4'] });
+	it('pings nobody', () => {
+		expect(body.content).toBe('**Autumn \\*26\\* · Week 3**');
+		expect(body.allowed_mentions).toEqual({ parse: [] });
 	});
 	it('lays out one embed per round with a field per group', () => {
 		expect(body.embeds!.map((e) => e.title)).toEqual(['Round 5', 'Round 6']);

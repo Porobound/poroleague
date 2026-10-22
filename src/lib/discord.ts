@@ -139,22 +139,19 @@ export const seasonDeletedEmbed = (name: string, by: string): Embed => ({
 export type WebhookBody = {
 	content?: string;
 	embeds?: Embed[];
-	allowed_mentions: { parse: []; users?: string[] };
+	allowed_mentions: { parse: [] };
 };
 export type Pairing = { group: number | null; p1Id: string; p2Id: string };
 export type PairingRound = { round: number; pairs: Pairing[] };
 
-const snowflake = (id: string) => /^\d+$/.test(id);
-
-// One message per week. Mentions only ping from `content`, so it lists each paired player once;
-// the embeds lay out the rounds (mentions there show as names without pinging).
+// One message per week, an embed per round. Players are mentions inside embeds: they show as
+// clickable server names and never ping.
 export function pairingsPost(
 	title: string,
 	url: string,
 	rounds: PairingRound[],
 	at = new Date()
 ): WebhookBody {
-	const ids = [...new Set(rounds.flatMap((r) => r.pairs.flatMap((p) => [p.p1Id, p.p2Id])))];
 	const field = (pairs: Pairing[], group: number | null) => ({
 		name: group ? groupName(group) : 'Matches',
 		value: pairs
@@ -164,7 +161,7 @@ export function pairingsPost(
 		inline: true
 	});
 	return {
-		content: `**${escapeMd(title)}**\n${ids.map((id) => `<@${id}>`).join(' ')}`,
+		content: `**${escapeMd(title)}**`,
 		embeds: rounds.map((r, i) => ({
 			title: `Round ${r.round}`,
 			// Discord merges embeds that share a url, so only the first links out.
@@ -174,7 +171,6 @@ export function pairingsPost(
 			footer: { text: title },
 			timestamp: at.toISOString()
 		})),
-		// Only these users can be pinged; a non-snowflake id (dev players) would 400 the whole message.
-		allowed_mentions: { parse: [], users: ids.filter(snowflake) }
+		allowed_mentions: { parse: [] }
 	};
 }
