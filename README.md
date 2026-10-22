@@ -176,7 +176,7 @@ docs/                  spec, plans
 
 ## Deploy
 
-Every push to `main` builds `ghcr.io/porobound/poroleague` (`latest` and the commit SHA). The host runs it with Docker Compose next to a `cloudflared` tunnel, so no ports are open. The container applies migrations on start, then serves on port 3000.
+CI typechecks and tests every PR. Every push to `main` that passes builds `ghcr.io/porobound/poroleague` (`latest` and the commit SHA). The host runs it with Docker Compose next to a `cloudflared` tunnel, so no ports are open. The container applies migrations on start, then serves on port 3000.
 
 ### First-time host setup
 
