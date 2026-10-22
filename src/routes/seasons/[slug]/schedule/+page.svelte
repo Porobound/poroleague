@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { centerCurrent } from '#lib/attach.ts';
 	import MatchCard from '#lib/components/MatchCard.svelte';
 	import { date, tzName } from '#lib/format.ts';
 	import type { PageProps } from './$types';
@@ -13,11 +14,6 @@
 		return `?${u}`;
 	};
 	const shown = $derived(data.sections.filter((s) => s.cards.length));
-	// On phones the week chips scroll sideways; start with the selected week in view.
-	const centerCurrent = (el: HTMLElement) => {
-		const cur = el.querySelector<HTMLElement>('[aria-current]');
-		if (cur) el.scrollLeft = cur.offsetLeft - (el.clientWidth - cur.offsetWidth) / 2;
-	};
 </script>
 
 <svelte:head>

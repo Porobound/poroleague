@@ -84,14 +84,14 @@
 		</div>
 		{#if data.recent.length}
 			<div class="panel standings">
-				<table class="pb-table">
+				<table class="pb-table audit-table">
 					<thead><tr><th>When</th><th>Who</th><th>What</th></tr></thead>
 					<tbody>
 						{#each data.recent as l (l.id)}
 							<tr>
 								<td class="when">{l.when}</td>
-								<td>{l.actor}</td>
-								<td>{l.label}{l.what ? ` · ${l.what}` : ''}</td>
+								<td class="who">{l.actor}</td>
+								<td class="what">{l.label}{l.what ? ` · ${l.what}` : ''}</td>
 							</tr>
 						{/each}
 					</tbody>
@@ -142,5 +142,12 @@
 		font-family: var(--font-mono);
 		color: var(--ink-muted);
 		white-space: nowrap;
+	}
+	@media (max-width: 640px) {
+		.head > :global(.pb-btn) {
+			box-sizing: border-box;
+			width: 100%;
+			justify-content: center;
+		}
 	}
 </style>

@@ -40,7 +40,7 @@
 					<tr>
 						<th>Player</th>
 						<th>Group</th>
-						<th class="pb-num">Played</th>
+						<th class="pb-num pb-opt">Played</th>
 						<th class="pb-num">W–D–L</th>
 						<th>Status</th>
 						<th></th>
@@ -55,8 +55,8 @@
 									<span class="pb-player-name">{e.displayName}</span>
 								</span>
 							</td>
-							<td>{e.group ? groupName(e.group) : ''}</td>
-							<td class="pb-num">{e.record?.played ?? '—'}</td>
+							<td class="nowrap">{e.group ? groupName(e.group) : ''}</td>
+							<td class="pb-num pb-opt">{e.record?.played ?? '—'}</td>
 							<td class="pb-num">{e.record?.wdl ?? '—'}</td>
 							<td>
 								<span class={['pb-badge', e.dropped && 'pb-badge-loss']}
@@ -127,6 +127,9 @@
 </div>
 
 <style>
+	.nowrap {
+		white-space: nowrap;
+	}
 	.is-dropped td:not(:last-child) {
 		opacity: 0.6;
 	}

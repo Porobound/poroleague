@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { centerCurrent } from '#lib/attach.ts';
 	import type { LayoutProps } from './$types';
 
 	let { data, children }: LayoutProps = $props();
@@ -14,7 +15,7 @@
 </script>
 
 <div class="admin">
-	<nav aria-label="Admin" class="admin-nav">
+	<nav aria-label="Admin" class="admin-nav" {@attach centerCurrent}>
 		<span class="eyebrow">{data.season.name}</span>
 		{#each links as l (l.href)}
 			<a href={l.href} aria-current={page.url.pathname === l.href ? 'page' : undefined}>{l.label}</a

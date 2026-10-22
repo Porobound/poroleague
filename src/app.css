@@ -583,6 +583,37 @@ dialog.pb-dialog {
 		min-height: 48px;
 	}
 
+	/* Admin: the side nav becomes one scrolling row of chips above the page. */
+	.admin {
+		gap: 16px;
+		padding-block: 16px 32px;
+	}
+	.admin-nav {
+		flex: 1 1 100%;
+		flex-direction: row;
+		gap: 8px;
+		overflow-x: auto;
+		margin-inline: calc(-1 * var(--space-4));
+		padding: 0 var(--space-4);
+		scrollbar-width: none;
+	}
+	.admin-nav .eyebrow {
+		display: none;
+	}
+	.admin-nav a {
+		flex: none;
+		display: inline-flex;
+		align-items: center;
+		min-height: 44px;
+		padding: 0 16px;
+		border: 1px solid var(--line);
+		border-radius: var(--radius-pill);
+		white-space: nowrap;
+	}
+	.admin-nav a[aria-current='page'] {
+		border-color: var(--accent);
+	}
+
 	/* Back-arrow header (replaces the site header) and a sticky bar for the page's main action. */
 	.back-bar {
 		display: flex;
@@ -661,6 +692,10 @@ dialog.pb-dialog {
 	.standings .pb-table th {
 		padding-left: 8px;
 		padding-right: 8px;
+	}
+	/* Names get room; a table that's still too wide scrolls inside its panel. */
+	.standings .pb-player-cell {
+		min-width: 130px;
 	}
 
 	/* Season page: one group at a time behind a switcher. */
