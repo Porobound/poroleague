@@ -462,6 +462,15 @@ dialog.pb-dialog {
 	.pb-match {
 		min-width: 0;
 	}
+	/* The card's View / Report link is its main action: a 44px target without growing the footer. */
+	.pb-match-foot a {
+		display: inline-flex;
+		align-items: center;
+		min-height: 44px;
+		margin-block: -10px;
+		padding-inline: 12px;
+		margin-inline-end: -12px;
+	}
 	.pb-btn {
 		min-height: 44px;
 	}
@@ -471,6 +480,13 @@ dialog.pb-dialog {
 	}
 	.round summary {
 		min-height: 44px;
+	}
+
+	.seg a {
+		display: inline-flex;
+		align-items: center;
+		min-height: 40px;
+		box-sizing: border-box;
 	}
 
 	/* Schedule: weeks as one scrolling row of chips, filters as a grid. */
