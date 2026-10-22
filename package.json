@@ -29,7 +29,6 @@
 		"@types/better-sqlite3": "^9.6.0",
 		"@types/node": "^24",
 		"drizzle-kit": "^0.31.10",
-		"drizzle-orm": "^0.45.2",
 		"prettier": "^3.8.3",
 		"prettier-plugin-svelte": "^4.1.0",
 		"svelte": "^5.57.1",
@@ -43,6 +42,7 @@
 		"#lib/*": "./src/lib/*"
 	},
 	"dependencies": {
-		"better-sqlite3": "^13.0.2"
+		"better-sqlite3": "^13.0.2",
+		"drizzle-orm": "^0.45.4"
 	}
 }
