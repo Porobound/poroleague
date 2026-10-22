@@ -20,6 +20,8 @@ SvelteKit (adapter-node) · TypeScript · SQLite via Drizzle (better-sqlite3) ·
 
 ## Rules
 
+- Dependencies are pinned to exact versions (no `^`/`~`). `.npmrc` sets `save-exact=true`; keep it that way when adding or upgrading.
+
 - League rules stay pure in `src/lib/league/`; routes and the future bot API call them, never reimplement.
 - Every result change writes an `audit` row.
 - Design from Claude Design HTML: extract tokens into `src/app.css` and components — don't paste raw HTML.
