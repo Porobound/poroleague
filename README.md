@@ -15,8 +15,10 @@ League website for the Porobound community's Riftbound TCG league. Players log i
 | 2. Shell & auth      | Done: app shell, Discord login, sessions              |
 | 3. Season & signup   | Done: create season, signup, group draw, schedule     |
 | 4. Reporting         | Done: report, flag, audit rows, Discord posts         |
-| 5. Standings & pages | Next                                                  |
-| 6–8                  | Admin, deploy, bot API                                |
+| 5. Standings & pages | Done: standings, schedule, legends, player pages      |
+| 6. Admin             | Done: overview, players, groups, results, finalize    |
+| 7. Deploy            | Done: Docker image, compose + cloudflared, backups    |
+| 8. Bot API           | Later: when a Discord bot is being built (#8)         |
 
 ## Stack
 
@@ -131,6 +133,10 @@ Your test server has one real player: you. These dev-only scripts fill in the re
 | `ORGANIZER_ROLE_ID`      | Discord role that makes someone an organizer              |
 | `WEBHOOK_RESULTS_URL`    | Discord webhook for reported results (empty = off)        |
 | `WEBHOOK_ORGANIZERS_URL` | Discord webhook for flags (empty = off)                   |
+| `WEBHOOK_PAIRINGS_URL`   | Discord webhook for weekly pairings (empty = off)         |
+| `ORIGIN`                 | Servers only: public URL, e.g. `https://<domain>`         |
+| `TUNNEL_TOKEN`           | Servers only: Cloudflare Tunnel token (compose)           |
+| `IMAGE_TAG`              | Servers only: image tag (empty = `latest`, `dev`, a SHA)  |
 
 Declare new variables in `src/env.ts` and add them to `.env.example`.
 
@@ -164,12 +170,58 @@ src/
   routes/              pages and endpoints (auth/ = OAuth, login/ = refusal pages, admin/, seasons/, players/ = career)
   hooks.server.ts      session cookie → locals.user
 drizzle/               SQL migrations (commit these)
-scripts/               dev-only data helpers
+scripts/               migrate.ts (container start), backup.sh (host cron), dev-only data helpers
+Dockerfile             server image
+compose.yaml           host stack: app + cloudflared
+.github/workflows/     CI: lint, check, tests; image to GHCR from main and dev
 docs/                  spec, plans
+```
+
+## Deploy
+
+CI lints, typechecks and tests every PR. Every push to `main` that passes builds `ghcr.io/porobound/poroleague:latest`, and every push to the `dev` branch builds `:dev`. Both also get a tag with the commit SHA. The host runs it with Docker Compose next to a `cloudflared` tunnel, so no ports are open. The container applies migrations on start, then serves on port 3000.
+
+### First-time host setup
+
+1. `docker login ghcr.io` with a GitHub token that has `read:packages` (only while the package is private).
+2. Make a directory, e.g. `/opt/poroleague`, and copy in `compose.yaml` and `scripts/backup.sh`.
+3. `mkdir data && sudo chown 1000:1000 data`. The app runs as uid 1000 and keeps the database in `data/poroleague.db`.
+4. In Cloudflare **Zero Trust → Networks → Tunnels**, create a tunnel, copy its token, and add a public hostname pointing to `http://app:3000`.
+5. Write `.env` with the production values: every variable from `.env.example`, plus `ORIGIN=https://<domain>` and `TUNNEL_TOKEN`. Use the production Discord application, with `DISCORD_REDIRECT_URI=https://<domain>/auth/callback` (set the same redirect in the developer portal). `DATABASE_URL` is set by compose and can stay as is.
+6. `docker compose up -d`.
+7. Backups need `sqlite3` on the host. Add to the host's crontab: `0 4 * * * /opt/poroleague/scripts/backup.sh`. It writes `backups/poroleague-<date>.db` and keeps 14 days. Copying them off the box (Proxmox backup, rclone) is up to the host.
+
+### Update
+
+```sh
+docker compose pull && docker compose up -d
+```
+
+To roll back, set `IMAGE_TAG=<sha>` of the last good commit in `.env` and run the same two commands. Clear it to go back to `latest`.
+
+### Dev server
+
+Same setup in its own directory (e.g. `/opt/poroleague-dev`), with its own tunnel and hostname (e.g. `dev.<domain>`), and `IMAGE_TAG=dev` in `.env`. Point it at your **dev** Discord application and test server, never the real Porobound ones, and add `https://dev.<domain>/auth/callback` as a redirect in that application. Backups are optional. To start from demo data, copy a `local.db` to `data/poroleague.db` before the first `up`.
+
+To put any branch on it:
+
+```sh
+git push --force origin HEAD:dev
+```
+
+CI checks it and builds `:dev`. Then on the dev server: `docker compose pull && docker compose up -d`.
+
+### Restore
+
+```sh
+docker compose stop app
+cp backups/poroleague-<date>.db data/poroleague.db
+docker compose start app
 ```
 
 ## Contributing
 
 - `main` is protected: open a PR, get one approval, squash or rebase merge.
+- CI runs `npm run lint`, `npm run check` and `npx vitest run` on every PR. Run `npm run format` before pushing.
 - League rules live only in `src/lib/league/`, and routes call them. Every result change writes an audit row.
 - See [`CLAUDE.md`](CLAUDE.md) for code conventions (`#lib/…ts` imports, env vars, styling).
