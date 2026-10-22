@@ -7,7 +7,8 @@
 	const links = $derived([
 		{ href: base, label: 'Season' },
 		{ href: `${base}/players`, label: 'Players' },
-		{ href: `${base}/groups`, label: 'Groups' }
+		{ href: `${base}/groups`, label: 'Groups' },
+		{ href: `${base}/matches`, label: 'Matches' }
 	]);
 </script>
 

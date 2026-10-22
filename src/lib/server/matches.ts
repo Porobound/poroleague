@@ -1,8 +1,10 @@
 import { and, asc, desc, eq, inArray, isNotNull, or } from 'drizzle-orm';
+import type { MatchPost } from '#lib/discord.ts';
 import type { Report } from '#lib/league/report.ts';
 import { isVoid } from '#lib/league/status.ts';
 import { db } from '#lib/server/db/index.ts';
 import { audit, entries, matches, players } from '#lib/server/db/schema.ts';
+import { groupName } from '#lib/season.ts';
 
 export type Match = typeof matches.$inferSelect;
 export type Player = typeof players.$inferSelect;
@@ -88,6 +90,80 @@ export function saveReport(m: Match, actorId: string, values: Report) {
 			.run();
 		tx.insert(audit)
 			.values({ seasonId: m.seasonId, matchId: m.id, actorId, action: 'report', after: values })
+			.run();
+	});
+}
+
+export const resultOf = (m: Match): Report | null =>
+	m.reportedBy
+		? {
+				p1Games: m.p1Games!,
+				p2Games: m.p2Games!,
+				p1Legend: m.p1Legend!,
+				p2Legend: m.p2Legend!,
+				diceWinnerId: m.diceWinnerId!
+			}
+		: null;
+
+export function matchPost(
+	origin: string,
+	season: { name: string; slug: string },
+	match: Match,
+	report: Report
+): MatchPost {
+	const [p1, p2] = matchPlayers(match);
+	const group = match.group ? ` · ${groupName(match.group)}` : '';
+	return {
+		p1: { id: p1.id, name: p1.displayName },
+		p2: { id: p2.id, name: p2.displayName },
+		report,
+		where: `${season.name}${group} · Round ${match.round}`,
+		url: `${origin}/seasons/${season.slug}/matches/${match.id}`,
+		at: new Date()
+	};
+}
+
+// Organizer fix or entry. Resolves an open flag; an unreported match gets the organizer as reporter.
+export function organizerEdit(m: Match, actorId: string, values: Report) {
+	const now = new Date();
+	db.transaction((tx) => {
+		tx.update(matches)
+			.set({
+				...values,
+				...(m.reportedBy ? {} : { reportedBy: actorId, reportedAt: now }),
+				...(m.flaggedBy && !m.flagResolvedAt
+					? { flagResolvedBy: actorId, flagResolvedAt: now }
+					: {})
+			})
+			.where(eq(matches.id, m.id))
+			.run();
+		tx.insert(audit)
+			.values({
+				seasonId: m.seasonId,
+				matchId: m.id,
+				actorId,
+				action: 'edit',
+				before: resultOf(m),
+				after: values
+			})
+			.run();
+	});
+}
+
+export function keepResult(m: Match, actorId: string) {
+	db.transaction((tx) => {
+		tx.update(matches)
+			.set({ flagResolvedBy: actorId, flagResolvedAt: new Date() })
+			.where(eq(matches.id, m.id))
+			.run();
+		tx.insert(audit)
+			.values({
+				seasonId: m.seasonId,
+				matchId: m.id,
+				actorId,
+				action: 'resolve',
+				after: resultOf(m)
+			})
 			.run();
 	});
 }
