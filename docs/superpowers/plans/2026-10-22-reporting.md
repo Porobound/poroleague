@@ -56,7 +56,7 @@
 - Create: `src/lib/league/time.ts`
 - Test: `src/lib/league/time.spec.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `src/lib/league/time.spec.ts`:
 
@@ -88,12 +88,12 @@ describe('reportingClosed', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/lib/league/time.spec.ts`
 Expected: FAIL, cannot resolve `./time`.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Create `src/lib/league/time.ts`:
 
@@ -110,12 +110,12 @@ export const reportingClosed = (deadline: string | null, now: Date) =>
 	!!deadline && leagueDate(now) > deadline;
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run src/lib/league/time.spec.ts`
 Expected: PASS (4 tests).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/lib/league/time.ts src/lib/league/time.spec.ts
@@ -131,7 +131,7 @@ git commit -m "feat(league): league timezone and reporting deadline"
 - Create: `src/lib/league/report.ts`
 - Test: `src/lib/league/report.spec.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `src/lib/league/report.spec.ts`:
 
@@ -235,12 +235,12 @@ describe('resultLine', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/lib/league/report.spec.ts`
 Expected: FAIL, cannot resolve `./report`.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Create `src/lib/league/report.ts`:
 
@@ -316,17 +316,17 @@ export function resultLine(p1: Named, p2: Named, r: Report): string {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run src/lib/league/report.spec.ts`
 Expected: PASS (10 tests). If `#lib/legends.ts` fails to resolve under Vitest, use `'../legends'` and say so in the commit message.
 
-- [ ] **Step 5: Run the whole suite and typecheck**
+- [x] **Step 5: Run the whole suite and typecheck**
 
 Run: `npx vitest run && npm run check`
 Expected: all tests pass, 0 errors.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/lib/league/report.ts src/lib/league/report.spec.ts
@@ -341,7 +341,7 @@ git commit -m "feat(league): report parsing, match modes, result line"
 
 - Create: `src/lib/server/matches.ts`
 
-- [ ] **Step 1: Write the module**
+- [x] **Step 1: Write the module**
 
 Create `src/lib/server/matches.ts`:
 
@@ -404,10 +404,7 @@ export function lastLegend(playerId: string): string | null {
 		.select({ p1Id: matches.p1Id, p1Legend: matches.p1Legend, p2Legend: matches.p2Legend })
 		.from(matches)
 		.where(
-			and(
-				or(eq(matches.p1Id, playerId), eq(matches.p2Id, playerId)),
-				isNotNull(matches.reportedAt)
-			)
+			and(or(eq(matches.p1Id, playerId), eq(matches.p2Id, playerId)), isNotNull(matches.reportedAt))
 		)
 		.orderBy(desc(matches.reportedAt))
 		.limit(1)
@@ -466,12 +463,12 @@ export function flagMatch(m: Match, actorId: string, reason: string) {
 }
 ```
 
-- [ ] **Step 2: Typecheck**
+- [x] **Step 2: Typecheck**
 
 Run: `npm run check`
 Expected: 0 errors. (No unit test: this module is thin DB access; the spec keeps Vitest on pure logic. It is exercised in Task 7.)
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add src/lib/server/matches.ts
@@ -488,7 +485,7 @@ git commit -m "feat(server): match queries, report and flag writes with audit"
 - Modify: `.env.example`
 - Create: `src/lib/server/webhooks.ts`
 
-- [ ] **Step 1: Declare the env vars**
+- [x] **Step 1: Declare the env vars**
 
 In `src/env.ts`, add after `ORGANIZER_ROLE_ID`:
 
@@ -508,7 +505,7 @@ WEBHOOK_ORGANIZERS_URL=
 
 Add the same two empty lines to your local `.env`, or the app refuses to start.
 
-- [ ] **Step 2: Write the module**
+- [x] **Step 2: Write the module**
 
 Create `src/lib/server/webhooks.ts`:
 
@@ -535,12 +532,12 @@ export const postResult = (content: string) => void post(WEBHOOK_RESULTS_URL, co
 export const postToOrganizers = (content: string) => void post(WEBHOOK_ORGANIZERS_URL, content);
 ```
 
-- [ ] **Step 3: Typecheck**
+- [x] **Step 3: Typecheck**
 
 Run: `npm run check`
 Expected: 0 errors.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/env.ts .env.example src/lib/server/webhooks.ts
@@ -556,7 +553,7 @@ git commit -m "feat(server): Discord result and organizer webhooks"
 - Create: `src/lib/components/MatchCard.svelte`
 - Modify: `src/app.css` (append)
 
-- [ ] **Step 1: Write the component**
+- [x] **Step 1: Write the component**
 
 From the design system's `MatchCard` (statuses limited to what Plan 4 shows; `overdue`, `live` and `double-loss` come with Plans 5–6). Create `src/lib/components/MatchCard.svelte`:
 
@@ -632,7 +629,7 @@ From the design system's `MatchCard` (statuses limited to what Plan 4 shows; `ov
 </article>
 ```
 
-- [ ] **Step 2: Append form styles**
+- [x] **Step 2: Append form styles**
 
 Append to `src/app.css` (from the design's Report board):
 
@@ -687,12 +684,12 @@ Append to `src/app.css` (from the design's Report board):
 }
 ```
 
-- [ ] **Step 3: Typecheck**
+- [x] **Step 3: Typecheck**
 
 Run: `npm run check`
 Expected: 0 errors.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/lib/components/MatchCard.svelte src/app.css
@@ -708,7 +705,7 @@ git commit -m "feat(ui): MatchCard and report form styles from design"
 - Create: `src/routes/seasons/[slug]/matches/[id]/+page.server.ts`
 - Create: `src/routes/seasons/[slug]/matches/[id]/+page.svelte`
 
-- [ ] **Step 1: Write the server module**
+- [x] **Step 1: Write the server module**
 
 Create `src/routes/seasons/[slug]/matches/[id]/+page.server.ts`:
 
@@ -835,7 +832,7 @@ export const actions: Actions = {
 };
 ```
 
-- [ ] **Step 2: Write the page**
+- [x] **Step 2: Write the page**
 
 Create `src/routes/seasons/[slug]/matches/[id]/+page.svelte`:
 
@@ -853,8 +850,7 @@ Create `src/routes/seasons/[slug]/matches/[id]/+page.svelte`:
 	// The viewer's side comes first; form field names stay p1/p2.
 	const order = $derived(me === m.p2Id ? (['p2', 'p1'] as const) : (['p1', 'p2'] as const));
 	const player = (k: 'p1' | 'p2') => (k === 'p1' ? data.p1 : data.p2);
-	const name = (k: 'p1' | 'p2') =>
-		player(k).displayName + (player(k).id === me ? ' (you)' : '');
+	const name = (k: 'p1' | 'p2') => player(k).displayName + (player(k).id === me ? ' (you)' : '');
 	const opponent = $derived(player(order[1]).displayName);
 	const head = $derived(`${m.group ? `${groupName(m.group)} · ` : ''}Round ${m.round}`);
 	const values = $derived<Record<string, string>>(
@@ -868,9 +864,7 @@ Create `src/routes/seasons/[slug]/matches/[id]/+page.svelte`:
 					dice: m.diceWinnerId ?? ''
 				}
 	);
-	const errors = $derived<Record<string, string>>(
-		(form && 'errors' in form && form.errors) || {}
-	);
+	const errors = $derived<Record<string, string>>((form && 'errors' in form && form.errors) || {});
 	const side = (k: 'p1' | 'p2') => ({
 		name: player(k).displayName,
 		avatar: player(k).avatar,
@@ -973,7 +967,13 @@ Create `src/routes/seasons/[slug]/matches/[id]/+page.svelte`:
 			{head}
 			{sides}
 			{dice}
-			status={data.voided ? 'void' : m.flaggedBy ? 'flagged' : m.reportedBy ? 'reported' : 'scheduled'}
+			status={data.voided
+				? 'void'
+				: m.flaggedBy
+					? 'flagged'
+					: m.reportedBy
+						? 'reported'
+						: 'scheduled'}
 			note={m.flaggedBy
 				? `Flagged by ${flagger.id === me ? 'you' : flagger.displayName} · only organizers can change it now`
 				: m.reportedBy
@@ -998,8 +998,7 @@ Create `src/routes/seasons/[slug]/matches/[id]/+page.svelte`:
 							name="reason"
 							maxlength="500"
 							required
-							placeholder="e.g. It was 1-2, not 0-2."
-						></textarea>
+							placeholder="e.g. It was 1-2, not 0-2."></textarea>
 					</label>
 				</ConfirmButton>
 				<span class="muted">Looks right? Nothing to do.</span>
@@ -1054,12 +1053,12 @@ Create `src/routes/seasons/[slug]/matches/[id]/+page.svelte`:
 
 Notes: `.actions` (flex row, gap) and `.grid-2` already exist in `src/app.css`. Every `fail(409, …)` carries `error: true`, which is what turns the status line red; success returns only `message`.
 
-- [ ] **Step 3: Typecheck**
+- [x] **Step 3: Typecheck**
 
 Run: `npm run check`
 Expected: 0 errors.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add 'src/routes/seasons/[slug]/matches'
@@ -1077,7 +1076,7 @@ git commit -m "feat(report): match page with report, edit and flag"
 - Create: `scripts/report-dev.ts`
 - Modify: `package.json`
 
-- [ ] **Step 1: Load the viewer's matches**
+- [x] **Step 1: Load the viewer's matches**
 
 In `src/routes/seasons/[slug]/+page.server.ts`, import `playerMatches` and add to the returned object in `load`:
 
@@ -1086,13 +1085,12 @@ import { playerMatches } from '#lib/server/matches.ts';
 ```
 
 ```ts
-		myMatches:
-			locals.user && (season.status === 'play' || season.status === 'finished')
-				? playerMatches(season.id, locals.user.id)
-				: []
+myMatches: locals.user && (season.status === 'play' || season.status === 'finished')
+	? playerMatches(season.id, locals.user.id)
+	: [];
 ```
 
-- [ ] **Step 2: Render the list**
+- [x] **Step 2: Render the list**
 
 In `src/routes/seasons/[slug]/+page.svelte`, add a name lookup in the script:
 
@@ -1103,34 +1101,33 @@ const nameOf = $derived(new Map(data.entries.map((e) => [e.playerId, e.displayNa
 and, right after the `{#if form?.message}` block, add:
 
 ```svelte
-	{#if data.myMatches.length}
-		<section class="panel">
-			<h2>Your matches</h2>
-			<ul class="player-list">
-				{#each data.myMatches as m (m.id)}
-					{@const opp = m.p1Id === user?.id ? m.p2Id : m.p1Id}
-					{@const mine = m.p1Id === user?.id ? [m.p1Games, m.p2Games] : [m.p2Games, m.p1Games]}
-					<li>
-						<span class="muted">Round {m.round}</span>
-						<span class="grow">vs {nameOf.get(opp)}</span>
-						{#if m.flaggedBy}<span class="pb-badge pb-badge-rank">Flagged</span>{/if}
-						{#if m.reportedBy}
-							<span class="pb-num">{mine[0]}-{mine[1]}</span>
-							<a href="/seasons/{season.slug}/matches/{m.id}">View</a>
-						{:else}
-							<a
-								class="pb-btn pb-btn-primary pb-btn-sm"
-								href="/seasons/{season.slug}/matches/{m.id}">Report</a
-							>
-						{/if}
-					</li>
-				{/each}
-			</ul>
-		</section>
-	{/if}
+{#if data.myMatches.length}
+	<section class="panel">
+		<h2>Your matches</h2>
+		<ul class="player-list">
+			{#each data.myMatches as m (m.id)}
+				{@const opp = m.p1Id === user?.id ? m.p2Id : m.p1Id}
+				{@const mine = m.p1Id === user?.id ? [m.p1Games, m.p2Games] : [m.p2Games, m.p1Games]}
+				<li>
+					<span class="muted">Round {m.round}</span>
+					<span class="grow">vs {nameOf.get(opp)}</span>
+					{#if m.flaggedBy}<span class="pb-badge pb-badge-rank">Flagged</span>{/if}
+					{#if m.reportedBy}
+						<span class="pb-num">{mine[0]}-{mine[1]}</span>
+						<a href="/seasons/{season.slug}/matches/{m.id}">View</a>
+					{:else}
+						<a class="pb-btn pb-btn-primary pb-btn-sm" href="/seasons/{season.slug}/matches/{m.id}"
+							>Report</a
+						>
+					{/if}
+				</li>
+			{/each}
+		</ul>
+	</section>
+{/if}
 ```
 
-- [ ] **Step 3: Dev helper to report as the opponent**
+- [x] **Step 3: Dev helper to report as the opponent**
 
 The flag flow needs a result reported by someone else, and dev has one real account. Create `scripts/report-dev.ts`:
 
@@ -1145,7 +1142,8 @@ if (!id || !me) throw new Error('usage: npm run db:report-dev -- <match-id> <you
 
 const db = new Database(process.env.DATABASE_URL!);
 const m = db.prepare('select * from matches where id = ?').get(Number(id)) as
-	{ id: number; season_id: number; p1_id: string; p2_id: string; reported_by: string | null } | undefined;
+	| { id: number; season_id: number; p1_id: string; p2_id: string; reported_by: string | null }
+	| undefined;
 if (!m) throw new Error(`No match ${id}`);
 if (m.reported_by) throw new Error(`Match ${id} is already reported`);
 const other = m.p1_id === me ? m.p2_id : m.p2_id === me ? m.p1_id : null;
@@ -1170,12 +1168,12 @@ In `package.json` scripts, after `db:seed-dev`:
 		"db:report-dev": "node scripts/report-dev.ts"
 ```
 
-- [ ] **Step 4: Typecheck and tests**
+- [x] **Step 4: Typecheck and tests**
 
 Run: `npx vitest run && npm run check`
 Expected: all tests pass, 0 errors.
 
-- [ ] **Step 5: Manual check (dev server)**
+- [x] **Step 5: Manual check (dev server)**
 
 Setup: a season in play with your account in it (`npm run db:seed-dev -- <slug> 7` during signup, close signup, lock).
 
@@ -1189,7 +1187,7 @@ Setup: a season in play with your account in it (`npm run db:seed-dev -- <slug> 
 8. Optional: set `WEBHOOK_RESULTS_URL` / `WEBHOOK_ORGANIZERS_URL` to a test channel's webhook, report again → messages appear, no mention pings.
 9. Logged out, open a match URL → read-only card, no form.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add 'src/routes/seasons/[slug]' scripts/report-dev.ts package.json
@@ -1204,7 +1202,7 @@ git commit -m "feat(report): your matches on season page, dev report helper"
 
 - Modify: `docs/spec.md`
 
-- [ ] **Step 1: Record decisions in the spec**
+- [x] **Step 1: Record decisions in the spec**
 
 In `docs/spec.md` → **Reporting & trust**, add:
 
@@ -1217,18 +1215,18 @@ In `docs/spec.md` → **Reporting & trust**, add:
 
 In **Discord integration** → results channel bullet, append: `; edits post again prefixed "Edited:"`. Add a bullet: `Every webhook post disables mentions (allowed_mentions: none), since names and flag reasons are user text; pairings (Plan 6) opt in to user mentions only.`
 
-- [ ] **Step 2: Full verification**
+- [x] **Step 2: Full verification**
 
 Run: `npx vitest run && npm run check && npm run lint`
 Expected: all pass. Run `npm run format` first if lint flags formatting only.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add docs/spec.md
 git commit -m "docs: reporting decisions in spec"
 ```
 
-- [ ] **Step 4: Hand off**
+- [x] **Step 4: Hand off**
 
 Tick the last box on issue #4, then ask the owner before `git push -u origin plan-4-reporting` and `gh pr create` (body starts `Closes #4`; don't add the PR to the board). Suggest `/security-review` first: this plan adds the first player-writable results and outbound webhooks.
