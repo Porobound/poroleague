@@ -4,7 +4,8 @@ import { isVoid } from '#lib/league/status.ts';
 import { currentWeek, reportingClosed, roundsOfWeek } from '#lib/league/time.ts';
 import { editableFields, parseSeasonForm, seasonFields } from '#lib/season.ts';
 import { organizerAction } from '#lib/server/auth.ts';
-import { seasonMatches } from '#lib/server/matches.ts';
+import { adminRows, seasonMatches } from '#lib/server/matches.ts';
+import { editResult, keepFlag } from '#lib/server/resultActions.ts';
 import {
 	deleteSeason,
 	drawGroups,
@@ -59,19 +60,37 @@ function endState(season: Season, now = new Date()) {
 	type Tie = {
 		group: number;
 		resolved: boolean;
-		players: { playerId: string; name: string; place: number }[];
+		players: { playerId: string; name: string; avatar: string | null; place: number }[];
+		points: number;
+		gwp: number;
+		h2h: string;
+	};
+	// Equal head-to-head between two players means they drew or never played.
+	const h2h = (ids: string[]) => {
+		if (ids.length > 2) return 'level';
+		const m = live.find((m) => ids.includes(m.p1Id) && ids.includes(m.p2Id));
+		return m?.reportedBy ? `drew ${m.p1Games}–${m.p2Games}` : 'not played';
 	};
 	const ties = ending
 		? groupStandings(season, list).flatMap((g) => {
 				const byKey = new Map<string, Tie>();
 				g.rows.forEach((r, i) => {
 					if (!r.tie) return;
-					const t = byKey.get(r.tie) ?? { group: g.group, resolved: true, players: [] };
-					t.players.push({ playerId: r.playerId, name: r.name, place: i + 1 });
+					const t = byKey.get(r.tie) ?? {
+						group: g.group,
+						resolved: true,
+						players: [],
+						points: r.points,
+						gwp: r.gwp,
+						h2h: ''
+					};
+					t.players.push({ playerId: r.playerId, name: r.name, avatar: r.avatar, place: i + 1 });
 					if (r.unresolvedTie) t.resolved = false;
 					byKey.set(r.tie, t);
 				});
-				return [...byKey.values()];
+				const ties = [...byKey.values()];
+				for (const t of ties) t.h2h = h2h(t.players.map((p) => p.playerId));
+				return ties;
 			})
 		: [];
 	const ready = ending && !openFlags && ties.every((t) => t.resolved);
@@ -85,11 +104,22 @@ export const load: PageServerLoad = async ({ parent }) => {
 		entryCount: seasonEntries(season.id).length,
 		matchCount: matchCount(season.id),
 		pairings: season.status === 'play' ? weekPairings(season) : null,
-		end: season.status === 'play' ? endState(season) : null
+		end: season.status === 'play' ? endState(season) : null,
+		flags:
+			season.status === 'play'
+				? adminRows(
+						season,
+						seasonEntries(season.id),
+						seasonMatches(season.id).filter((m) => m.flaggedBy && !m.flagResolvedAt)
+					).filter((r) => r.status === 'flagged')
+				: []
 	};
 };
 
 export const actions: Actions = {
+	edit: editResult,
+	keep: keepFlag,
+
 	save: async (event) => {
 		const user = await organizerAction(event);
 		const season = getSeason(event.params.slug, user);

@@ -20,6 +20,7 @@
 			>
 		{/each}
 		<a href="/seasons/{data.season.slug}">Public page ↗</a>
+		<a href="/seasons/{data.season.slug}/audit">Public audit log ↗</a>
 		<a href="/admin">All seasons</a>
 	</nav>
 	<div class="admin-main">{@render children()}</div>
