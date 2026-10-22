@@ -16,6 +16,7 @@ export type CardMatch = {
 	diceWinnerId: string | null;
 	reportedBy: string | null;
 	flaggedBy: string | null;
+	flagResolvedAt: Date | null;
 };
 type Person = { playerId: string; displayName: string; avatar: string | null; dropped: boolean };
 type CardSeason = {
@@ -57,7 +58,7 @@ export function matchCard(m: CardMatch, c: CardContext) {
 	});
 	const status: Status = voided
 		? 'void'
-		: m.flaggedBy
+		: m.flaggedBy && !m.flagResolvedAt
 			? 'flagged'
 			: m.reportedBy
 				? 'reported'
