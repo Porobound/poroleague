@@ -41,9 +41,9 @@ Draft v0.1. Items marked **[TBD]** are not decided yet.
 
 - After the match, either player reports it on the site: the score, both legends and who won the dice roll.
 - The result counts as soon as it's reported, and it's posted in Discord.
-- The reporter can edit their report until the opponent flags it.
-- **Flags.** If the report is wrong, the opponent flags it and gives a reason. After a flag, only organizers can change the result. They either correct it or keep it as reported. A result can only be flagged once.
-- Every report, edit, flag and organizer decision is listed in the public audit log.
+- The site asks you to confirm before saving. **A saved report is final:** neither player can edit it.
+- **Flags.** If a result is wrong, either player flags it and gives a reason. This includes the reporter fixing their own mistake. After a flag, only organizers can change the result. They either correct it or keep it as reported. A result can only be flagged once. You can still flag after the season deadline, until the season is finalized.
+- Every report, flag and organizer decision is listed in the public audit log.
 
 ## 6. Late and unplayed matches
 
@@ -67,6 +67,13 @@ Draft v0.1. Items marked **[TBD]** are not decided yet.
 
 - Be on time, be honest about results and be decent to your opponent.
 - Riftbound's official code of conduct applies.
+
+## Ideas for future seasons
+
+Not rules yet. These may change how later seasons work, and will be decided before any season uses them.
+
+- **Seeded groups instead of random ones.** When there are two or more groups, they could be filled based on how players did in earlier seasons, rather than drawn at random.
+- **Divisions.** The groups could become ranked divisions (e.g. Division 1 and Division 2). At the end of a season, the top players of a lower division move up and the bottom players of a higher division move down. How many players move, and how new players are placed, would be decided first.
 
 ## Open questions
 
