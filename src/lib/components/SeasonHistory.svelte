@@ -72,7 +72,7 @@
 		tbody tr:last-child {
 			border-bottom: 0;
 		}
-		tbody tr > * {
+		.pb-table tbody tr > * {
 			display: block;
 			padding: 0;
 			border: 0;
