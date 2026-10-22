@@ -76,6 +76,24 @@ describe('standings', () => {
 		expect(ranked.some((r) => r.unresolvedTie)).toBe(false);
 	});
 
+	it('groups tied players under one tie key, kept after the organizer ranks them', () => {
+		// C beats both; A and B draw and lose to C the same way: tied on everything.
+		const ms = [m('A', 1, 1, 'B'), m('C', 2, 0, 'A'), m('C', 2, 0, 'B')];
+		const tied = standings([entry('A'), entry('B'), entry('C')], ms);
+		const by = (rows: typeof tied, id: string) => rows.find((r) => r.playerId === id)!;
+		expect(by(tied, 'C').tie).toBeNull();
+		expect(by(tied, 'A').tie).not.toBeNull();
+		expect(by(tied, 'A').tie).toBe(by(tied, 'B').tie);
+
+		const ranked = standings(
+			[entry('A', { tiebreak: 2 }), entry('B', { tiebreak: 1 }), entry('C')],
+			ms
+		);
+		expect(order(ranked)).toEqual(['C', 'B', 'A']);
+		expect(by(ranked, 'A').tie).toBe(by(ranked, 'B').tie);
+		expect(ranked.some((r) => r.unresolvedTie)).toBe(false);
+	});
+
 	it('before any results, nobody is flagged as tied', () => {
 		const rows = standings([entry('A'), entry('B'), entry('C')], [m('A', null, null, 'B')]);
 		expect(rows.some((r) => r.unresolvedTie)).toBe(false);
