@@ -161,32 +161,34 @@
 				</div>
 			{/if}
 			<hr />
-			{#if !user}
-				<a
-					class="pb-btn pb-btn-primary"
-					href="/auth/login?returnTo={encodeURIComponent(page.url.pathname)}"
-					data-sveltekit-reload>Log in with Discord to sign up</a
-				>
-			{:else if data.signedUp}
-				<p>
-					<span class="pb-badge pb-badge-win">You're in</span> Signed up as
-					<strong>{user.displayName}</strong>. You can withdraw until signup closes.
-				</p>
-				<ConfirmButton
-					action="?/withdraw"
-					variant="secondary"
-					label="Withdraw"
-					title="Withdraw from {season.name}?"
-					confirmLabel="Withdraw"
-				>
-					You'll be taken off the signup list. You can sign up again while signup is open.
-				</ConfirmButton>
-			{:else}
-				<p>You'll play as <strong>{user.displayName}</strong>, your nickname on the server.</p>
-				<form method="POST" action="?/join">
-					<button class="pb-btn pb-btn-primary">Sign up for {season.name}</button>
-				</form>
-			{/if}
+			<div class="signup-action action-bar">
+				{#if !user}
+					<a
+						class="pb-btn pb-btn-primary"
+						href="/auth/login?returnTo={encodeURIComponent(page.url.pathname)}"
+						data-sveltekit-reload>Log in with Discord to sign up</a
+					>
+				{:else if data.signedUp}
+					<p>
+						<span class="pb-badge pb-badge-win">You're in</span> Signed up as
+						<strong>{user.displayName}</strong>. You can withdraw until signup closes.
+					</p>
+					<ConfirmButton
+						action="?/withdraw"
+						variant="secondary"
+						label="Withdraw"
+						title="Withdraw from {season.name}?"
+						confirmLabel="Withdraw"
+					>
+						You'll be taken off the signup list. You can sign up again while signup is open.
+					</ConfirmButton>
+				{:else}
+					<p>You'll play as <strong>{user.displayName}</strong>, your nickname on the server.</p>
+					<form method="POST" action="?/join">
+						<button class="pb-btn pb-btn-primary">Sign up for {season.name}</button>
+					</form>
+				{/if}
+			</div>
 		</section>
 	{:else if season.status === 'groups'}
 		<p class="pb-notice">Signup is closed. Groups are being drawn; the schedule follows shortly.</p>
@@ -274,6 +276,15 @@
 		max-width: 480px;
 	}
 	.signup p {
+		margin: 0;
+	}
+	.signup-action {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 12px;
+	}
+	.signup-action p {
 		margin: 0;
 	}
 	.signup hr {
@@ -381,6 +392,9 @@
 		.deadline-date {
 			font-size: 17px;
 			line-height: 22px;
+		}
+		.signup-action {
+			align-items: stretch;
 		}
 	}
 	.standings-h {
