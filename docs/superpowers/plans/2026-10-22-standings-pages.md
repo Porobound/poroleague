@@ -38,6 +38,7 @@
 The pages need a played season to look at. `db:seed-dev` signs players up and `db:report-dev` reports one match; this script fills a locked season with results.
 
 **Files:**
+
 - Create: `scripts/play-dev.ts`
 - Modify: `package.json` (script), `README.md` (dev setup + commands table)
 
@@ -57,8 +58,7 @@ if (!slug) throw new Error('usage: npm run db:play-dev -- <season-slug> [share=0
 
 const db = new Database(process.env.DATABASE_URL!);
 const season = db.prepare('select id, status from seasons where slug = ?').get(slug) as
-	| { id: number; status: string }
-	| undefined;
+	{ id: number; status: string } | undefined;
 if (!season) throw new Error(`No season with slug "${slug}"`);
 if (season.status !== 'play') throw new Error(`"${slug}" isn't in play; lock the groups first.`);
 
@@ -76,7 +76,15 @@ const pick = <T>(list: readonly T[]) => list[Math.floor(rand() * list.length)];
 const pool = LEGENDS.slice(0, 12);
 const main = (id: string) => pool[Number(id.slice(4)) % pool.length];
 const legendOf = (id: string) => (rand() < 0.75 ? main(id) : pick(pool));
-const SCORES = [[2, 0], [2, 0], [2, 1], [2, 1], [1, 2], [0, 2], [1, 1]] as const;
+const SCORES = [
+	[2, 0],
+	[2, 0],
+	[2, 1],
+	[2, 1],
+	[1, 2],
+	[0, 2],
+	[1, 1]
+] as const;
 
 type M = { id: number; p1_id: string; p2_id: string };
 const open = db
@@ -138,11 +146,11 @@ console.log(
 - [ ] **Step 3: `README.md`** — in the dev setup, after the `db:report-dev` step, add:
 
 ````md
-   To fill a locked season with results (only dev-vs-dev matches, so yours stay open):
+To fill a locked season with results (only dev-vs-dev matches, so yours stay open):
 
-   ```sh
-   npm run db:play-dev -- <season-slug> [share]   # share of the schedule to play, default 0.6; --drop drops a dev player
-   ```
+```sh
+npm run db:play-dev -- <season-slug> [share]   # share of the schedule to play, default 0.6; --drop drops a dev player
+```
 ````
 
 and to the commands table: `| `npm run db:play-dev -- <slug> [share]`      | Dev: play out a season with fake results               |`
@@ -161,6 +169,7 @@ git commit -m "chore(dev): play-dev script fills a season with results"
 ### Task 1: Week math
 
 **Files:**
+
 - Modify: `src/lib/league/time.ts`
 - Test: `src/lib/league/time.spec.ts`
 
@@ -213,6 +222,7 @@ git commit -m "feat(league): week of a round, current week"
 ### Task 2: Legend stats
 
 **Files:**
+
 - Create: `src/lib/league/legendStats.ts`
 - Test: `src/lib/league/legendStats.spec.ts`
 
@@ -230,7 +240,14 @@ import {
 	type LegendMatch
 } from './legendStats';
 
-const m = (p1: string, l1: string, g1: number, g2: number, l2: string, p2: string): LegendMatch => ({
+const m = (
+	p1: string,
+	l1: string,
+	g1: number,
+	g2: number,
+	l2: string,
+	p2: string
+): LegendMatch => ({
 	p1Id: p1,
 	p2Id: p2,
 	p1Games: g1,
@@ -259,8 +276,26 @@ describe('legendStats', () => {
 	it('tallies picks per legend; mirrors count as picks only', () => {
 		const rows = legendStats(ms);
 		expect(rows.map(pick)).toEqual([
-			{ key: 'Jinx', picks: 5, mirrors: 2, wins: 1, draws: 1, losses: 1, gameWins: 4, gameLosses: 3 },
-			{ key: 'Ahri', picks: 3, mirrors: 0, wins: 1, draws: 1, losses: 1, gameWins: 3, gameLosses: 4 }
+			{
+				key: 'Jinx',
+				picks: 5,
+				mirrors: 2,
+				wins: 1,
+				draws: 1,
+				losses: 1,
+				gameWins: 4,
+				gameLosses: 3
+			},
+			{
+				key: 'Ahri',
+				picks: 3,
+				mirrors: 0,
+				wins: 1,
+				draws: 1,
+				losses: 1,
+				gameWins: 3,
+				gameLosses: 4
+			}
 		]);
 		expect(rows.map((r) => r.players.size)).toEqual([4, 2]);
 	});
@@ -361,7 +396,17 @@ function group(list: Side[], key: (s: Side) => string, mirrorsCount = false): Ta
 		const k = key(s);
 		let t = rows.get(k);
 		if (!t) {
-			t = { key: k, players: new Set(), picks: 0, mirrors: 0, wins: 0, draws: 0, losses: 0, gameWins: 0, gameLosses: 0 };
+			t = {
+				key: k,
+				players: new Set(),
+				picks: 0,
+				mirrors: 0,
+				wins: 0,
+				draws: 0,
+				losses: 0,
+				gameWins: 0,
+				gameLosses: 0
+			};
 			rows.set(k, t);
 		}
 		t.players.add(s.playerId);
@@ -420,6 +465,7 @@ git commit -m "feat(league): legend stats; mirrors are picks, results per player
 ### Task 3: Data helpers and site nav
 
 **Files:**
+
 - Modify: `src/lib/server/matches.ts`, `src/lib/server/seasons.ts`, `src/routes/+layout.svelte`
 - Create: `src/lib/format.ts`
 
@@ -451,7 +497,12 @@ export function groupStandings(season: Season, list: SeasonEntry[]) {
 	return groupsOf(list).map((g, i) => {
 		const by = new Map(g.map((e) => [e.playerId, e]));
 		const ms = all.filter((m) => m.group === i + 1);
-		const results = ms.map((m) => ({ p1: m.p1Id, p2: m.p2Id, p1Games: m.p1Games, p2Games: m.p2Games }));
+		const results = ms.map((m) => ({
+			p1: m.p1Id,
+			p2: m.p2Id,
+			p1Games: m.p1Games,
+			p2Games: m.p2Games
+		}));
 		return {
 			group: i + 1,
 			size: g.length,
@@ -510,7 +561,9 @@ and right after the brand link:
 ```svelte
 {#if slug}
 	{#each [['', 'Season'], ['/schedule', 'Schedule'], ['/legends', 'Legends']] as [path, label] (path)}
-		<a href="/seasons/{slug}{path}" class="nav-link" aria-current={here(`/seasons/${slug}${path}`)}>{label}</a>
+		<a href="/seasons/{slug}{path}" class="nav-link" aria-current={here(`/seasons/${slug}${path}`)}
+			>{label}</a
+		>
 	{/each}
 {/if}
 <a href="/seasons" class="nav-link" aria-current={here('/seasons')}>Archive</a>
@@ -530,6 +583,7 @@ git commit -m "feat: season data helpers, season nav"
 ### Task 4: Shared match cards
 
 **Files:**
+
 - Create: `src/lib/matchCard.ts`
 - Modify: `src/lib/components/MatchCard.svelte`
 
@@ -576,7 +630,12 @@ type CardSeason = {
 export type Status = 'scheduled' | 'reported' | 'flagged' | 'void' | 'overdue';
 
 // Everything a page needs to turn matches into cards, built once per request.
-export function cardContext(season: CardSeason, people: Person[], viewerId: string | null, now = new Date()) {
+export function cardContext(
+	season: CardSeason,
+	people: Person[],
+	viewerId: string | null,
+	now = new Date()
+) {
 	return {
 		season,
 		viewerId,
@@ -656,6 +715,7 @@ git commit -m "feat: shared match cards with overdue and links"
 ### Task 5: Standings on the season page
 
 **Files:**
+
 - Create: `src/lib/components/StandingsTable.svelte`
 - Modify: `src/routes/seasons/[slug]/+page.server.ts`, `src/routes/seasons/[slug]/+page.svelte`
 
@@ -696,7 +756,8 @@ git commit -m "feat: shared match cards with overdue and links"
 					<a class="pb-player" href="/seasons/{slug}/players/{r.playerId}">
 						<Avatar name={r.name} src={r.avatar} size={24} />
 						<span class="pb-player-name">{r.name}</span>
-						{#if r.unresolvedTie}<span class="pb-tie" title="Tied: an organizer decides">Tie</span>{/if}
+						{#if r.unresolvedTie}<span class="pb-tie" title="Tied: an organizer decides">Tie</span
+							>{/if}
 					</a>
 				</td>
 				<td class="pb-num">{r.played}</td>
@@ -711,7 +772,7 @@ git commit -m "feat: shared match cards with overdue and links"
 </table>
 ```
 
-`StandingsTable` imports only the *type* from `#lib/server/seasons.ts`; `import type` is erased, so no server code reaches the client. If SvelteKit's server-import guard still complains, move `GroupStanding` to `src/lib/season.ts` as a structural type.
+`StandingsTable` imports only the _type_ from `#lib/server/seasons.ts`; `import type` is erased, so no server code reaches the client. If SvelteKit's server-import guard still complains, move `GroupStanding` to `src/lib/season.ts` as a structural type.
 
 - [ ] **Step 2: `+page.server.ts`** — import `groupStandings`, drop `groupsOf`; replace the `groups:` line with:
 
@@ -766,6 +827,7 @@ git commit -m "feat: group standings on the season page"
 ### Task 6: Schedule page
 
 **Files:**
+
 - Create: `src/routes/seasons/[slug]/schedule/+page.server.ts`, `+page.svelte`
 
 - [ ] **Step 1: `+page.server.ts`**
@@ -785,7 +847,10 @@ export const load: PageServerLoad = ({ params, locals, url }) => {
 	const rpw = season.roundsPerWeek;
 	const weeks = Math.max(0, ...all.map((m) => weekOf(m.round, rpw)));
 	const asked = Number(url.searchParams.get('week'));
-	const week = Math.min(weeks, Math.max(1, Number.isInteger(asked) && asked > 0 ? asked : ctx.week));
+	const week = Math.min(
+		weeks,
+		Math.max(1, Number.isInteger(asked) && asked > 0 ? asked : ctx.week)
+	);
 	const groups = Math.max(0, ...all.map((m) => m.group ?? 0));
 	const group = Number(url.searchParams.get('group')) || 0;
 	const mine = !!locals.user && url.searchParams.has('mine');
@@ -858,8 +923,8 @@ export const load: PageServerLoad = ({ params, locals, url }) => {
 
 <div class="page">
 	<span class="eyebrow">
-		{season.name} · {season.roundsPerWeek} rounds a week · season ends {date(season.deadline)} 23:59
-		Helsinki time
+		{season.name} · {season.roundsPerWeek} rounds a week · season ends {date(season.deadline)} 23:59 Helsinki
+		time
 	</span>
 	<h1>Schedule</h1>
 
@@ -878,7 +943,9 @@ export const load: PageServerLoad = ({ params, locals, url }) => {
 				{#if data.groups.length > 1}
 					<a href={q('group', null)} aria-current={!data.group ? 'true' : undefined}>All groups</a>
 					{#each data.groups as g (g.n)}
-						<a href={q('group', g.n)} aria-current={data.group === g.n ? 'true' : undefined}>{g.label}</a>
+						<a href={q('group', g.n)} aria-current={data.group === g.n ? 'true' : undefined}
+							>{g.label}</a
+						>
 					{/each}
 				{/if}
 				{#if data.user}
@@ -906,7 +973,8 @@ export const load: PageServerLoad = ({ params, locals, url }) => {
 					{#if s.hasMine}<span class="pb-badge pb-badge-rank">Your match</span>{/if}
 					<span class="muted small grow-left">
 						<span class="pb-num">{s.done}/{s.total}</span> reported{#if s.flagged}
-							· {s.flagged} flagged{/if}{#if s.voids} · {s.voids} void{/if}
+							· {s.flagged} flagged{/if}{#if s.voids}
+							· {s.voids} void{/if}
 					</span>
 				</summary>
 				<div class="cards">
@@ -1015,6 +1083,7 @@ git commit -m "feat: schedule page with weeks, overdue and filters"
 ### Task 7: Player page
 
 **Files:**
+
 - Create: `src/routes/seasons/[slug]/players/[id]/+page.server.ts`, `+page.svelte`
 
 - [ ] **Step 1: `+page.server.ts`**
@@ -1034,7 +1103,10 @@ export const load: PageServerLoad = ({ params, locals }) => {
 	const player = list.find((e) => e.playerId === params.id) ?? error(404, 'Player not found');
 	const ctx = cardContext(season, list, locals.user?.id ?? null);
 	const ms = playerMatches(season.id, player.playerId);
-	const cards = ms.map((m) => ({ week: weekOf(m.round, season.roundsPerWeek), card: matchCard(m, ctx) }));
+	const cards = ms.map((m) => ({
+		week: weekOf(m.round, season.roundsPerWeek),
+		card: matchCard(m, ctx)
+	}));
 	const counted = legendMatches(ms, ctx.dropped);
 	const standing = groupStandings(season, list).find((g) => g.group === player.group);
 	const rank = standing?.rows.findIndex((r) => r.playerId === player.playerId) ?? -1;
@@ -1044,9 +1116,14 @@ export const load: PageServerLoad = ({ params, locals }) => {
 		player,
 		row: rank >= 0 ? standing!.rows[rank] : null,
 		rank: rank + 1,
-		dice: { won: counted.filter((m) => m.diceWinnerId === player.playerId).length, of: counted.length },
+		dice: {
+			won: counted.filter((m) => m.diceWinnerId === player.playerId).length,
+			of: counted.length
+		},
 		thisWeek: cards
-			.filter((c) => c.card.status === 'overdue' || (c.week === ctx.week && c.card.status === 'scheduled'))
+			.filter(
+				(c) => c.card.status === 'overdue' || (c.week === ctx.week && c.card.status === 'scheduled')
+			)
 			.map((c) => c.card),
 		matches: cards.map((c) => c.card),
 		legends: playerLegends(counted, player.playerId)
@@ -1127,7 +1204,9 @@ export const load: PageServerLoad = ({ params, locals }) => {
 	</section>
 
 	<section>
-		<h2>Legends <a class="small" href="/seasons/{season.slug}/legends">All legends this season</a></h2>
+		<h2>
+			Legends <a class="small" href="/seasons/{season.slug}/legends">All legends this season</a>
+		</h2>
 		{#if data.legends.playedAs.length}
 			<div class="grid-2">
 				{#each [['Played as', 'Legend', data.legends.playedAs], ['Against', 'Opponent legend', data.legends.against]] as const as [title, col, rows] (title)}
@@ -1201,6 +1280,7 @@ git commit -m "feat: player page with this week and legend record"
 ### Task 8: Legends page
 
 **Files:**
+
 - Create: `src/routes/seasons/[slug]/legends/+page.server.ts`, `+page.svelte`
 
 - [ ] **Step 1: `+page.server.ts`**
@@ -1282,7 +1362,9 @@ export const load: PageServerLoad = ({ params, locals, url }) => {
 <div class="page">
 	<span class="eyebrow">{season.name}</span>
 	<h1>Legends</h1>
-	<p class="muted">Win rates show once a legend has 5+ matches. Mirror matches count as picks, not wins.</p>
+	<p class="muted">
+		Win rates show once a legend has 5+ matches. Mirror matches count as picks, not wins.
+	</p>
 
 	{#if !data.rows.length}
 		<div class="status">
@@ -1295,7 +1377,14 @@ export const load: PageServerLoad = ({ params, locals, url }) => {
 				<thead>
 					<tr>
 						{#each COLS as [key, label] (label)}
-							<th class={key !== 'legend' && 'pb-num'} aria-sort={key === data.sort ? (key === 'legend' ? 'ascending' : 'descending') : undefined}>
+							<th
+								class={key !== 'legend' && 'pb-num'}
+								aria-sort={key === data.sort
+									? key === 'legend'
+										? 'ascending'
+										: 'descending'
+									: undefined}
+							>
 								{#if key}<a href={href(key, data.open)}>{label}</a>{:else}{label}{/if}
 							</th>
 						{/each}
@@ -1305,7 +1394,10 @@ export const load: PageServerLoad = ({ params, locals, url }) => {
 					{#each data.rows as r (r.key)}
 						<tr>
 							<th scope="row">
-								<a href={href(data.sort, data.open === r.key ? null : r.key)} aria-expanded={data.open === r.key}>
+								<a
+									href={href(data.sort, data.open === r.key ? null : r.key)}
+									aria-expanded={data.open === r.key}
+								>
 									{r.key}
 								</a>
 							</th>
@@ -1336,15 +1428,18 @@ export const load: PageServerLoad = ({ params, locals, url }) => {
 			</table>
 		</div>
 		<p class="muted small">
-			{data.rows.reduce((s, r) => s + r.picks, 0)} picks from {data.matches} reported matches. Void
-			matches and deadline double losses are left out. W–D–L leaves out mirror matches.
+			{data.rows.reduce((s, r) => s + r.picks, 0)} picks from {data.matches} reported matches. Void matches
+			and deadline double losses are left out. W–D–L leaves out mirror matches.
 		</p>
 	{/if}
 
 	{#if data.notPicked.length}
 		<details>
 			<summary>Not picked yet · {data.notPicked.length}</summary>
-			<p>{#each data.notPicked as l (l)}<span class="pb-badge">{l}</span> {/each}</p>
+			<p>
+				{#each data.notPicked as l (l)}<span class="pb-badge">{l}</span>
+				{/each}
+			</p>
 		</details>
 	{/if}
 </div>
@@ -1364,6 +1459,7 @@ git commit -m "feat: season legends page"
 ### Task 9: Archive
 
 **Files:**
+
 - Create: `src/routes/seasons/+page.server.ts`, `src/routes/seasons/+page.svelte`
 
 - [ ] **Step 1: `+page.server.ts`**
@@ -1424,7 +1520,9 @@ export const load: PageServerLoad = () => ({
 							<strong class="winner">{s.winners.join(' · ')}</strong>
 						</div>
 					{/if}
-					<span class={['pb-badge', s.status !== 'finished' && 'pb-badge-live']}>{STATUS_LABEL[s.status]}</span>
+					<span class={['pb-badge', s.status !== 'finished' && 'pb-badge-live']}
+						>{STATUS_LABEL[s.status]}</span
+					>
 				</li>
 			{/each}
 		</ul>
@@ -1481,6 +1579,7 @@ git commit -m "feat: season archive"
 ### Task 10: Audit page
 
 **Files:**
+
 - Modify: `src/lib/server/matches.ts`
 - Create: `src/routes/seasons/[slug]/audit/+page.server.ts`, `+page.svelte`
 
@@ -1520,7 +1619,13 @@ import { publicSeason, seasonEntries } from '#lib/server/seasons.ts';
 import type { PageServerLoad } from './$types';
 
 type Change = Partial<Report> & { flagReason?: string };
-const LABEL: Record<string, string> = { report: 'Report', flag: 'Flag', edit: 'Edit', resolve: 'Resolve', drop: 'Drop' };
+const LABEL: Record<string, string> = {
+	report: 'Report',
+	flag: 'Flag',
+	edit: 'Edit',
+	resolve: 'Resolve',
+	drop: 'Drop'
+};
 
 export const load: PageServerLoad = ({ params, locals, url }) => {
 	const season = publicSeason(params.slug, locals.user);
@@ -1570,7 +1675,12 @@ export const load: PageServerLoad = ({ params, locals, url }) => {
 
 	let { data }: PageProps = $props();
 	const season = $derived(data.season);
-	const TONE: Record<string, string> = { flag: 'pb-badge-rank', edit: 'pb-badge-win', resolve: 'pb-badge-win', drop: 'pb-badge-live' };
+	const TONE: Record<string, string> = {
+		flag: 'pb-badge-rank',
+		edit: 'pb-badge-win',
+		resolve: 'pb-badge-win',
+		drop: 'pb-badge-live'
+	};
 </script>
 
 <svelte:head>
