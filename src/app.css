@@ -334,12 +334,6 @@ a:hover {
 	background: var(--surface);
 }
 
-/* pb-dialog is width: 100% plus padding; without border-box it runs off a phone screen. */
-dialog.pb-dialog {
-	box-sizing: border-box;
-	max-width: min(480px, calc(100vw - 32px));
-}
-
 /* Phones. Desktop header markup stays as it is; phones get the menu and the tab bar instead. */
 .site-nav .desk {
 	display: contents;
