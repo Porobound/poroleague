@@ -157,7 +157,8 @@ export function pairingsPost(
 		value: pairs
 			.filter((p) => p.group === group)
 			.map((p) => `<@${p.p1Id}> vs <@${p.p2Id}>`)
-			.join('\n\n')
+			.join('\n'),
+		inline: true
 	});
 	return {
 		// <url> keeps Discord from adding a preview card for the link.

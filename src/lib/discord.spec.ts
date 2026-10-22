@@ -167,8 +167,8 @@ describe('pairingsPost', () => {
 	it('lays out one embed per round with a field per group', () => {
 		expect(body.embeds!.map((e) => e.title)).toEqual(['Round 5', 'Round 6']);
 		expect(body.embeds![0].fields).toEqual([
-			{ name: 'Group A', value: '<@1> vs <@2>' },
-			{ name: 'Group B', value: '<@3> vs <@4>' }
+			{ name: 'Group A', value: '<@1> vs <@2>', inline: true },
+			{ name: 'Group B', value: '<@3> vs <@4>', inline: true }
 		]);
 		expect(body.embeds!.every((e) => !e.url)).toBe(true);
 	});
