@@ -109,7 +109,7 @@ Designs come from Claude Design as HTML. Integration rule: **extract, don't past
 
 ## Env vars
 
-`DATABASE_URL`, `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `DISCORD_REDIRECT_URI`, `GUILD_ID`, `ORGANIZER_ROLE_ID`, `WEBHOOK_RESULTS_URL`, `WEBHOOK_ORGANIZERS_URL`, `WEBHOOK_PAIRINGS_URL`, `BOT_TOKEN`, `ORIGIN` (adapter-node).
+`DATABASE_URL`, `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `DISCORD_REDIRECT_URI`, `GUILD_ID`, `ORGANIZER_ROLE_ID`, `WEBHOOK_RESULTS_URL`, `WEBHOOK_ORGANIZERS_URL`, `WEBHOOK_PAIRINGS_URL`, `BOT_TOKEN`, `ORIGIN` (adapter-node), `TUNNEL_TOKEN` (compose, cloudflared).
 
 ## Open items
 
@@ -126,6 +126,6 @@ Designs come from Claude Design as HTML. Integration rule: **extract, don't past
 5. **Standings & pages** — standings, schedule, player page (incl. per-legend record), legends page, archive, audit page.
 6. **Admin** — organizer edits, drops, flag resolution, deadline/finalize, tiebreak ranks, weekly pairings post.
 7. **Deploy** — Dockerfile, compose with cloudflared, GH Actions → GHCR, backup cron.
-8. **Bot API** — service-token JSON endpoints (when bot work starts).
+8. **Bot API** — service-token JSON endpoints. Deferred to the Backlog milestone until a bot exists; its needs decide the endpoints.
 
 Each plan is written when the previous one lands, against the real code.

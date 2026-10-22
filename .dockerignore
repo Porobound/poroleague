@@ -1,0 +1,14 @@
+.git
+.github
+.svelte-kit
+.vscode
+build
+node_modules
+data
+backups
+docs
+*.db
+*.db-journal
+.env
+.env.*
+!.env.example
