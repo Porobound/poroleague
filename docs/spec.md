@@ -72,7 +72,7 @@ Not in UI: managing organizers (Discord role), legend list (config file), messag
 - `/seasons/[slug]/admin` — organizer tools
 - Report form: score, both legends, dice-roll winner.
 
-Career stats across seasons: **deferred**.
+Career stats across seasons: **deferred**. Wanted: from any player page, see that player's other seasons (finish, points, W-D-L per season, linking to that season's player page) and career totals (W-D-L, game-win %, legends across all seasons) on `/players/[id]`. Design pending (Player board "Past seasons" aside is a start).
 
 ## Discord integration
 
