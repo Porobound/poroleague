@@ -7,20 +7,23 @@
 		sides,
 		dice = null,
 		status,
-		note = ''
+		note = '',
+		link
 	}: {
 		head: string;
 		sides: [Side, Side];
 		dice?: 0 | 1 | null;
-		status: 'scheduled' | 'reported' | 'flagged' | 'void';
+		status: 'scheduled' | 'reported' | 'flagged' | 'void' | 'overdue';
 		note?: string;
+		link?: { href: string; label: string };
 	} = $props();
 
 	const BADGE = {
 		scheduled: ['', 'Scheduled'],
 		reported: ['', 'Final'],
 		flagged: ['pb-badge-rank', 'Flagged'],
-		void: ['', 'Void']
+		void: ['', 'Void'],
+		overdue: ['pb-badge-rank', 'Overdue']
 	} as const;
 	const winner = $derived.by(() => {
 		const [a, b] = sides.map((s) => s.games);
@@ -63,7 +66,10 @@
 			<span class="pb-match-score">{s.games ?? '–'}</span>
 		</div>
 	{/each}
-	{#if note}
-		<div class="pb-match-foot"><span class="pb-match-note">{note}</span></div>
+	{#if note || link}
+		<div class="pb-match-foot">
+			<span class="pb-match-note">{note}</span>
+			{#if link}<a href={link.href}>{link.label}</a>{/if}
+		</div>
 	{/if}
 </article>
