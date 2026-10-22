@@ -42,7 +42,7 @@ const EDITABLE: Record<SeasonStatus, SeasonField[]> = {
 	draft: FIELDS,
 	signup: ['name', 'startDate', 'roundsPerWeek', 'deadline', 'topCutSize'],
 	groups: ['name', 'startDate', 'roundsPerWeek', 'deadline', 'topCutSize'],
-	play: ['name', 'deadline'],
+	play: ['name', 'deadline', 'topCutSize'],
 	finished: []
 };
 

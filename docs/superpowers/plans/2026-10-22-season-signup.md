@@ -19,7 +19,7 @@
 - Admin entry point is `/admin` (season list + "New season" form). Per-season admin is `/seasons/[slug]/admin` with three pages: Season (settings + phase buttons), Players, Groups. Overview/Matches pages come with Plans 4 and 6.
 - Closing signup draws the groups immediately (status `signup → groups`), as in the design: "Groups were drawn at random."
 - Group count stays automatic (1 if < 16, else 2). Moving a player switches them to the other group.
-- Editable fields per status: draft = all; signup/groups = all but slug; play = name + deadline; finished = none.
+- Editable fields per status: draft = all; signup/groups = all but slug; play = name + deadline + top cut (it only moves the standings line, so it stays editable until the season finishes); finished = none.
 - `/`: the newest non-draft season if it isn't finished → redirect to it; otherwise, if a draft exists → "Next season coming soon"; otherwise the newest finished season; otherwise the empty state. (This fixes the spec's "newest is a draft" rule, which would hide a running season while the next one is being set up.)
 - Draft seasons 404 for everyone except organizers.
 - Confirmations use `ConfirmButton` (design's ConfirmDialog on native `<dialog>`: focus trap, Esc and backdrop for free). Success messages show inline (`.status`, `role="status"`) instead of the design's Toast.

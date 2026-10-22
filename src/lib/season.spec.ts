@@ -77,13 +77,19 @@ describe('parseSeasonForm', () => {
 			topCutSize: 4
 		};
 		const result = parseSeasonForm(
-			form({ name: 'Autumn', slug: 'hacked', roundsPerWeek: '4', deadline: '2026-12-27' }),
+			form({
+				name: 'Autumn',
+				slug: 'hacked',
+				roundsPerWeek: '4',
+				deadline: '2026-12-27',
+				topCutSize: '6'
+			}),
 			current,
 			editableFields('play')
 		);
 		expect(result).toEqual({
 			ok: true,
-			values: { ...current, name: 'Autumn', deadline: '2026-12-27' }
+			values: { ...current, name: 'Autumn', deadline: '2026-12-27', topCutSize: 6 }
 		});
 	});
 });
@@ -91,7 +97,7 @@ describe('parseSeasonForm', () => {
 describe('editableFields', () => {
 	it('narrows as the season progresses', () => {
 		expect(editableFields('signup')).not.toContain('slug');
-		expect(editableFields('play')).toEqual(['name', 'deadline']);
+		expect(editableFields('play')).toEqual(['name', 'deadline', 'topCutSize']);
 		expect(editableFields('finished')).toEqual([]);
 	});
 });
