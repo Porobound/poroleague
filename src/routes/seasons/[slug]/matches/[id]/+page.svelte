@@ -171,6 +171,15 @@
 					: ''}
 		/>
 
+		{#if m.flaggedBy && m.flagReason}
+			<figure class="flag-reason">
+				<blockquote>{m.flagReason}</blockquote>
+				<figcaption class="muted">
+					{flagger.id === me ? 'Your' : `${flagger.displayName}'s`} reason for the flag
+				</figcaption>
+			</figure>
+		{/if}
+
 		{#if data.mode === 'flag'}
 			<div class="actions">
 				<ConfirmButton
@@ -236,6 +245,18 @@
 		display: flex;
 		align-items: center;
 		gap: 10px;
+	}
+	.flag-reason {
+		margin: 0;
+		border-left: 3px solid var(--signal);
+		padding: 4px 0 4px 16px;
+	}
+	.flag-reason blockquote {
+		margin: 0 0 4px;
+		white-space: pre-wrap;
+	}
+	.flag-reason figcaption {
+		font-size: 13px;
 	}
 	.report .actions {
 		border-top: 1px solid var(--line);
