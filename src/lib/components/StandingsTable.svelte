@@ -16,12 +16,12 @@
 		<tr>
 			<th class="pb-num">#</th>
 			<th>Player</th>
-			<th class="pb-num">P</th>
-			<th class="pb-num pb-opt">W</th>
-			<th class="pb-num pb-opt">D</th>
-			<th class="pb-num pb-opt">L</th>
-			<th class="pb-num">GW%</th>
-			<th class="pb-num">Pts</th>
+			<th class="pb-num"><abbr title="Matches played">M</abbr></th>
+			<th class="pb-num pb-opt"><abbr title="Wins">W</abbr></th>
+			<th class="pb-num pb-opt"><abbr title="Draws">D</abbr></th>
+			<th class="pb-num pb-opt"><abbr title="Losses">L</abbr></th>
+			<th class="pb-num"><abbr title="Game-win %">GW%</abbr></th>
+			<th class="pb-num"><abbr title="Points">Pts</abbr></th>
 		</tr>
 	</thead>
 	<tbody>
