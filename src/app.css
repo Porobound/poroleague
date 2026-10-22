@@ -323,3 +323,7 @@ a:hover {
 .panel .pb-match {
 	background: var(--surface);
 }
+/* Striped rows help track wide rows of numbers. :where keeps it weaker than your own row (.is-me). */
+.pb-table :where(tbody tr:nth-child(even)) > * {
+	background: color-mix(in srgb, var(--frost) 40%, transparent);
+}
