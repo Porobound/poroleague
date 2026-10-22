@@ -1,0 +1,18 @@
+services:
+  app:
+    image: ghcr.io/porobound/poroleague:latest
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: /data/poroleague.db
+    volumes:
+      - ./data:/data
+
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN}
+    depends_on:
+      - app
