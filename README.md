@@ -15,8 +15,10 @@ League website for the Porobound community's Riftbound TCG league. Players log i
 | 2. Shell & auth      | Done: app shell, Discord login, sessions              |
 | 3. Season & signup   | Done: create season, signup, group draw, schedule     |
 | 4. Reporting         | Done: report, flag, audit rows, Discord posts         |
-| 5. Standings & pages | Next                                                  |
-| 6–8                  | Admin, deploy, bot API                                |
+| 5. Standings & pages | Done: standings, schedule, legends, player pages      |
+| 6. Admin             | Done: overview, players, groups, results, finalize    |
+| 7. Deploy            | Done: Docker image, compose + cloudflared, backups    |
+| 8. Bot API           | Next                                                  |
 
 ## Stack
 
@@ -131,6 +133,9 @@ Your test server has one real player: you. These dev-only scripts fill in the re
 | `ORGANIZER_ROLE_ID`      | Discord role that makes someone an organizer              |
 | `WEBHOOK_RESULTS_URL`    | Discord webhook for reported results (empty = off)        |
 | `WEBHOOK_ORGANIZERS_URL` | Discord webhook for flags (empty = off)                   |
+| `WEBHOOK_PAIRINGS_URL`   | Discord webhook for weekly pairings (empty = off)         |
+| `ORIGIN`                 | Production only: public URL, e.g. `https://<domain>`      |
+| `TUNNEL_TOKEN`           | Production only: Cloudflare Tunnel token (compose)        |
 
 Declare new variables in `src/env.ts` and add them to `.env.example`.
 
@@ -164,8 +169,37 @@ src/
   routes/              pages and endpoints (auth/ = OAuth, login/ = refusal pages, admin/, seasons/, players/ = career)
   hooks.server.ts      session cookie → locals.user
 drizzle/               SQL migrations (commit these)
-scripts/               dev-only data helpers
+scripts/               migrate.ts (container start), backup.sh (host cron), dev-only data helpers
+Dockerfile, compose.yaml  production image and host stack
 docs/                  spec, plans
+```
+
+## Deploy
+
+Every push to `main` builds `ghcr.io/porobound/poroleague` (`latest` and the commit SHA). The host runs it with Docker Compose next to a `cloudflared` tunnel, so no ports are open. The container applies migrations on start, then serves on port 3000.
+
+### First-time host setup
+
+1. `docker login ghcr.io` with a GitHub token that has `read:packages` (only while the package is private).
+2. Make a directory, e.g. `/opt/poroleague`, and copy in `compose.yaml` and `scripts/backup.sh`.
+3. `mkdir data && sudo chown 1000:1000 data`. The app runs as uid 1000 and keeps the database in `data/poroleague.db`.
+4. In Cloudflare **Zero Trust → Networks → Tunnels**, create a tunnel, copy its token, and add a public hostname pointing to `http://app:3000`.
+5. Write `.env` with the production values: every variable from `.env.example`, plus `ORIGIN=https://<domain>` and `TUNNEL_TOKEN`. Use the production Discord application, with `DISCORD_REDIRECT_URI=https://<domain>/auth/callback` (set the same redirect in the developer portal). `DATABASE_URL` is set by compose and can stay as is.
+6. `docker compose up -d`.
+7. Backups need `sqlite3` on the host. Add to the host's crontab: `0 4 * * * /opt/poroleague/scripts/backup.sh`. It writes `backups/poroleague-<date>.db` and keeps 14 days. Copying them off the box (Proxmox backup, rclone) is up to the host.
+
+### Update
+
+```sh
+docker compose pull && docker compose up -d
+```
+
+### Restore
+
+```sh
+docker compose stop app
+cp backups/poroleague-<date>.db data/poroleague.db
+docker compose start app
 ```
 
 ## Contributing
