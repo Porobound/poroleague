@@ -167,7 +167,11 @@ export const actions: Actions = {
 		const p = weekPairings(season);
 		if (!p) return fail(409, { message: 'No rounds left to post.' });
 		postPairings(
-			p.byRound.map((r) => pairingsPost(`${season.name} · Week ${p.week}`, r.round, r.pairs))
+			pairingsPost(
+				`${season.name} · Week ${p.week}`,
+				`${event.url.origin}/seasons/${season.slug}/schedule`,
+				p.byRound
+			)
 		);
 		return { message: `Week ${p.week} pairings posted in Discord.` };
 	},

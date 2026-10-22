@@ -26,8 +26,4 @@ const embed = (e: Embed): WebhookBody => ({ embeds: [e], allowed_mentions: { par
 export const postResult = (e: Embed) => void post(WEBHOOK_RESULTS_URL, embed(e));
 export const postToOrganizers = (e: Embed) => void post(WEBHOOK_ORGANIZERS_URL, embed(e));
 export const pairingsEnabled = () => !!WEBHOOK_PAIRINGS_URL;
-// In order, one message per round.
-export const postPairings = (bodies: WebhookBody[]) =>
-	void (async () => {
-		for (const b of bodies) await post(WEBHOOK_PAIRINGS_URL, b);
-	})();
+export const postPairings = (body: WebhookBody) => void post(WEBHOOK_PAIRINGS_URL, body);

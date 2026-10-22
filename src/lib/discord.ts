@@ -54,9 +54,9 @@ export const escapeMd = (s: string) => s.replace(/[\\*_~`|<>[\]()#-]/g, '\\$&');
 export type Embed = {
 	title: string;
 	url?: string;
-	description: string;
+	description?: string;
 	color: number;
-	fields?: { name: string; value: string }[];
+	fields?: { name: string; value: string; inline?: boolean }[];
 	footer: { text: string };
 	timestamp: string;
 };
@@ -142,18 +142,39 @@ export type WebhookBody = {
 	allowed_mentions: { parse: []; users?: string[] };
 };
 export type Pairing = { group: number | null; p1Id: string; p2Id: string };
+export type PairingRound = { round: number; pairs: Pairing[] };
 
-// Mentions only ping from `content`, and only the users listed, so nothing else can be pinged.
-export function pairingsPost(title: string, round: number, pairs: Pairing[]): WebhookBody {
-	const lines = pairs.map(
-		(p) => `${p.group ? `${groupName(p.group)}: ` : ''}<@${p.p1Id}> vs <@${p.p2Id}>`
-	);
+const snowflake = (id: string) => /^\d+$/.test(id);
+
+// One message per week. Mentions only ping from `content`, so it lists each paired player once;
+// the embeds lay out the rounds (mentions there show as names without pinging).
+export function pairingsPost(
+	title: string,
+	url: string,
+	rounds: PairingRound[],
+	at = new Date()
+): WebhookBody {
+	const ids = [...new Set(rounds.flatMap((r) => r.pairs.flatMap((p) => [p.p1Id, p.p2Id])))];
+	const field = (pairs: Pairing[], group: number | null) => ({
+		name: group ? groupName(group) : 'Matches',
+		value: pairs
+			.filter((p) => p.group === group)
+			.map((p) => `<@${p.p1Id}> vs <@${p.p2Id}>`)
+			.join('\n'),
+		inline: true
+	});
 	return {
-		content: [`**${escapeMd(title)} · Round ${round}**`, ...lines].join('\n'),
-		// Discord rejects the whole message if a listed id isn't a snowflake (dev players are "dev-N").
-		allowed_mentions: {
-			parse: [],
-			users: [...new Set(pairs.flatMap((p) => [p.p1Id, p.p2Id]))].filter((id) => /^\d+$/.test(id))
-		}
+		content: `**${escapeMd(title)}**\n${ids.map((id) => `<@${id}>`).join(' ')}`,
+		embeds: rounds.map((r, i) => ({
+			title: `Round ${r.round}`,
+			// Discord merges embeds that share a url, so only the first links out.
+			url: i === 0 ? url : undefined,
+			color: ACCENT,
+			fields: [...new Set(r.pairs.map((p) => p.group))].map((g) => field(r.pairs, g)),
+			footer: { text: title },
+			timestamp: at.toISOString()
+		})),
+		// Only these users can be pinged; a non-snowflake id (dev players) would 400 the whole message.
+		allowed_mentions: { parse: [], users: ids.filter(snowflake) }
 	};
 }

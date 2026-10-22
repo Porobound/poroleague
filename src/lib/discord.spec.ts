@@ -148,18 +148,30 @@ describe('organizer posts', () => {
 });
 
 describe('pairingsPost', () => {
-	it('pings exactly the paired players, one line per match', () => {
-		const body = pairingsPost('Autumn *26* · Week 3', 5, [
-			{ group: 1, p1Id: '1', p2Id: '2' },
-			{ group: 2, p1Id: '3', p2Id: '4' }
-		]);
-		expect(body.content).toBe(
-			'**Autumn \\*26\\* · Week 3 · Round 5**\nGroup A: <@1> vs <@2>\nGroup B: <@3> vs <@4>'
-		);
+	const rounds = [
+		{
+			round: 5,
+			pairs: [
+				{ group: 1, p1Id: '1', p2Id: '2' },
+				{ group: 2, p1Id: '3', p2Id: '4' }
+			]
+		},
+		{ round: 6, pairs: [{ group: 1, p1Id: '1', p2Id: 'dev-2' }] }
+	];
+	const body = pairingsPost('Autumn *26* · Week 3', 'http://x/schedule', rounds);
+
+	it('pings each paired player once from content, and nobody else', () => {
+		expect(body.content).toBe('**Autumn \\*26\\* · Week 3**\n<@1> <@2> <@3> <@4> <@dev-2>');
+		// Discord rejects the whole message for a non-snowflake id, so dev players are left out.
 		expect(body.allowed_mentions).toEqual({ parse: [], users: ['1', '2', '3', '4'] });
 	});
-	it('leaves non-Discord ids out of the ping list', () => {
-		const body = pairingsPost('S', 1, [{ group: null, p1Id: '1', p2Id: 'dev-2' }]);
-		expect(body.allowed_mentions.users).toEqual(['1']);
+	it('lays out one embed per round with a field per group', () => {
+		expect(body.embeds!.map((e) => e.title)).toEqual(['Round 5', 'Round 6']);
+		expect(body.embeds![0].fields).toEqual([
+			{ name: 'Group A', value: '<@1> vs <@2>', inline: true },
+			{ name: 'Group B', value: '<@3> vs <@4>', inline: true }
+		]);
+		// Discord merges embeds that share a url, so only the first links out.
+		expect(body.embeds!.map((e) => e.url)).toEqual(['http://x/schedule', undefined]);
 	});
 });
