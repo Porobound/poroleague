@@ -319,3 +319,7 @@ a:hover {
 .pb-match.is-mine {
 	border-color: var(--accent);
 }
+/* Cards are raised on the page; inside a raised panel they sit a step down so they don't blend in. */
+.panel .pb-match {
+	background: var(--surface);
+}
