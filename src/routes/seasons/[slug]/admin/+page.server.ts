@@ -1,4 +1,5 @@
 import { fail, redirect } from '@sveltejs/kit';
+import { seasonDeletedEmbed } from '#lib/discord.ts';
 import { editableFields, parseSeasonForm, seasonFields } from '#lib/season.ts';
 import { organizerAction } from '#lib/server/auth.ts';
 import {
@@ -12,6 +13,7 @@ import {
 	slugTaken,
 	updateSeason
 } from '#lib/server/seasons.ts';
+import { postToOrganizers } from '#lib/server/webhooks.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ parent }) => {
@@ -70,6 +72,7 @@ export const actions: Actions = {
 		if (hasResults && typed !== season.slug)
 			return fail(400, { message: `Type ${season.slug} to delete a season that has matches.` });
 		deleteSeason(season, user.id);
+		postToOrganizers(seasonDeletedEmbed(season.name, user.displayName));
 		redirect(303, '/admin');
 	}
 };
