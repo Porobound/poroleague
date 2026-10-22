@@ -234,3 +234,7 @@ a:hover {
 .narrow {
 	max-width: 760px;
 }
+/* Wide tables scroll inside their panel on phones. */
+.standings {
+	overflow-x: auto;
+}

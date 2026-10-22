@@ -2,6 +2,7 @@
 	import { page } from '$app/state';
 	import Avatar from '#lib/components/Avatar.svelte';
 	import ConfirmButton from '#lib/components/ConfirmButton.svelte';
+	import StandingsTable from '#lib/components/StandingsTable.svelte';
 	import { date } from '#lib/format.ts';
 	import { groupName, STATUS_LABEL } from '#lib/season.ts';
 	import type { PageProps } from './$types';
@@ -30,7 +31,9 @@
 
 	{#if data.myMatches.length}
 		<section class="panel">
-			<h2>Your matches</h2>
+			<h2>
+				Your matches <a class="small" href="/seasons/{season.slug}/players/{user?.id}">Your page</a>
+			</h2>
 			<ul class="player-list">
 				{#each data.myMatches as m (m.id)}
 					{@const opp = m.p1Id === user?.id ? m.p2Id : m.p1Id}
@@ -99,21 +102,40 @@
 	{/if}
 
 	{#if data.groups.length}
+		<p class="muted small">
+			Win 3 · Draw 1 · Loss 0. Ties break on points, then head-to-head, then game-win %, then an
+			organizer decision.
+		</p>
 		<div class="grid-2">
-			{#each data.groups as group, i (i)}
-				<section class="panel">
-					<h2>{groupName(i + 1)}</h2>
-					<ul class="player-list">
-						{#each group as e (e.playerId)}
-							<li>
-								<Avatar name={e.displayName} src={e.avatar} />
-								<span class="grow">{e.displayName}</span>
-							</li>
-						{/each}
-					</ul>
+			{#each data.groups as g (g.group)}
+				<section class="panel standings">
+					<h2>{groupName(g.group)}</h2>
+					<span class="muted small">
+						{g.size} players · {g.rounds} rounds{g.dropped.length
+							? ` · ${g.dropped.length} dropped`
+							: ''}
+					</span>
+					<StandingsTable
+						rows={g.rows}
+						cut={season.topCutSize ?? 0}
+						slug={season.slug}
+						me={user?.id}
+					/>
+					{#if g.dropped.length}
+						<p class="muted small">
+							Dropped: {g.dropped.map((e) => e.displayName).join(', ')}. Their matches are void and
+							left out of standings.
+						</p>
+					{/if}
 				</section>
 			{/each}
 		</div>
+		<p class="small">
+			{#if season.topCutSize}<span class="muted"
+					>Dashed line: top {season.topCutSize} per group (top cut comes later).</span
+				>{/if}
+			<a href="/seasons/{season.slug}/audit">Audit log</a>
+		</p>
 	{:else if data.entries.length}
 		<section>
 			<h2>Players</h2>
