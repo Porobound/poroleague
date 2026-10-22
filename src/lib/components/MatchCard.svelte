@@ -15,6 +15,7 @@
 		status,
 		note = '',
 		link,
+		flag = null,
 		mine = false
 	}: {
 		head: string;
@@ -23,6 +24,7 @@
 		status: 'scheduled' | 'reported' | 'flagged' | 'void' | 'overdue';
 		note?: string;
 		link?: { href: string; label: string };
+		flag?: { by: string; reason: string } | null;
 		mine?: boolean;
 	} = $props();
 
@@ -74,6 +76,12 @@
 			<span class="pb-match-score">{s.games ?? '–'}</span>
 		</div>
 	{/each}
+	{#if flag}
+		<figure class="pb-flag-reason">
+			<figcaption>Flagged by {flag.by}</figcaption>
+			<blockquote>{flag.reason}</blockquote>
+		</figure>
+	{/if}
 	{#if note || link}
 		<div class="pb-match-foot">
 			<span class="pb-match-note">{note}</span>

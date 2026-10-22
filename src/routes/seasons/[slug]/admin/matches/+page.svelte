@@ -1,6 +1,6 @@
 <script lang="ts">
-	import ConfirmButton from '#lib/components/ConfirmButton.svelte';
-	import ResultFields from '#lib/components/ResultFields.svelte';
+	import Avatar from '#lib/components/Avatar.svelte';
+	import ResultActions from '#lib/components/ResultActions.svelte';
 	import { groupName } from '#lib/season.ts';
 	import type { PageProps } from './$types';
 
@@ -19,6 +19,10 @@
 		flagged: ['pb-badge-rank', 'Flagged'],
 		void: ['', 'Void']
 	} as const;
+	const badge = (r: (typeof data.rows)[number]) =>
+		r.status === 'reported' && r.entered
+			? (['pb-badge-win', 'Entered by org'] as const)
+			: BADGE[r.status];
 </script>
 
 <svelte:head>
@@ -58,63 +62,38 @@
 				</thead>
 				<tbody>
 					{#each data.rows as r (r.id)}
+						{@const [a, b] = r.card.sides}
 						<tr>
 							<td class="pb-num">R{r.round}</td>
-							<td>{r.group ? groupName(r.group) : ''}</td>
-							<td
-								><div class="match">
-									<a href="/seasons/{data.season.slug}/matches/{r.id}">{r.p1.name} vs {r.p2.name}</a
-									>
-									{#if r.legends}<span class="muted small">{r.legends}</span>{/if}
-									{#if r.flag}<span class="small">“{r.flag.reason}” · {r.flag.by}</span>{/if}
-								</div></td
-							>
-							<td class="pb-num">{r.score}</td>
-							<td><span class={['pb-badge', BADGE[r.status][0]]}>{BADGE[r.status][1]}</span></td>
-							<td
-								><div class="row-actions">
-									{#if data.canEdit && r.status !== 'void'}
-										<ConfirmButton
-											action="?/edit"
-											small
-											variant={r.flag ? 'primary' : 'secondary'}
-											fields={{ matchId: String(r.id) }}
-											label={r.reported ? 'Edit result' : 'Enter result'}
-											title={r.flag
-												? 'Change this result?'
-												: r.reported
-													? 'Edit this result?'
-													: 'Enter result as organizer?'}
-											confirmLabel="Save result"
+							<td>{r.group ? groupName(r.group).slice(-1) : ''}</td>
+							<td>
+								<div class="match">
+									<span class="names">
+										<span class="pb-player"
+											><Avatar name={a.name} src={a.avatar} size={20} /><span class="pb-player-name"
+												>{a.name}</span
+											></span
 										>
-											<p>
-												{r.p1.name} vs {r.p2.name}, round {r.round}.
-												{r.flag
-													? "The new result replaces the reported one and resolves the flag; it can't be flagged again. Posted in the organizer channel"
-													: r.reported
-														? 'The new result replaces the reported one. Posted in the organizer channel'
-														: 'Use this when the match was played but never reported. Posted in the results channel'}
-												and logged in the public audit log.
-											</p>
-											<ResultFields p1={r.p1} p2={r.p2} values={r.values} />
-										</ConfirmButton>
-										{#if r.flag}
-											<ConfirmButton
-												action="?/keep"
-												small
-												variant="ghost"
-												fields={{ matchId: String(r.id) }}
-												label="Keep as reported"
-												title="Keep the result as reported?"
-												confirmLabel="Keep result"
-											>
-												The flag is resolved and the reported score stands. It can't be flagged
-												again. Posted in the organizer channel and logged in the public audit log.
-											</ConfirmButton>
-										{/if}
+										<a class="muted" href="/seasons/{data.season.slug}/matches/{r.id}">vs</a>
+										<span class="pb-player"
+											><Avatar name={b.name} src={b.avatar} size={20} /><span class="pb-player-name"
+												>{b.name}</span
+											></span
+										>
+									</span>
+									{#if r.reported}<span class="muted small">{a.legend} · {b.legend}</span>{/if}
+									{#if r.flag}<span class="small">“{r.flag.reason}” · {r.flag.by}</span>{/if}
+								</div>
+							</td>
+							<td class="pb-num">{r.reported ? `${a.games}–${b.games}` : '–'}</td>
+							<td><span class={['pb-badge', badge(r)[0]]}>{badge(r)[1]}</span></td>
+							<td>
+								<div class="row-actions">
+									{#if data.canEdit && r.status !== 'void'}
+										<ResultActions row={r} query="status={data.filter}" />
 									{/if}
-								</div></td
-							>
+								</div>
+							</td>
 						</tr>
 					{/each}
 				</tbody>
@@ -130,6 +109,12 @@
 		display: flex;
 		flex-direction: column;
 		gap: 2px;
+	}
+	.names {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 4px 8px;
 	}
 	.row-actions {
 		display: flex;

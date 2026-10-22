@@ -11,6 +11,7 @@
 		fields = {},
 		inForm = false,
 		confirmDisabled = false,
+		disabled = false,
 		children
 	}: {
 		action?: string;
@@ -23,6 +24,7 @@
 		// Inside another form: confirming submits that form (after its own validation passes).
 		inForm?: boolean;
 		confirmDisabled?: boolean;
+		disabled?: boolean;
 		children?: Snippet;
 	} = $props();
 
@@ -33,6 +35,7 @@
 <button
 	type="button"
 	class={['pb-btn', `pb-btn-${variant}`, small && 'pb-btn-sm']}
+	{disabled}
 	onclick={(e) => {
 		if (!inForm || e.currentTarget.form?.reportValidity()) dialog?.showModal();
 	}}>{label}</button
@@ -63,8 +66,11 @@
 	dialog:not([open]) {
 		display: none;
 	}
+	/* Dialogs can live in table cells and button rows: don't inherit their nowrap or alignment. */
 	dialog {
 		margin: auto;
+		white-space: normal;
+		text-align: left;
 	}
 	dialog::backdrop {
 		background: rgba(5, 8, 12, 0.72);

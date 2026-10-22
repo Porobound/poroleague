@@ -2,6 +2,7 @@ import { and, asc, desc, eq, inArray, isNotNull, or } from 'drizzle-orm';
 import type { MatchPost } from '#lib/discord.ts';
 import type { Report } from '#lib/league/report.ts';
 import { isVoid } from '#lib/league/status.ts';
+import { cardContext, matchCard } from '#lib/matchCard.ts';
 import { db } from '#lib/server/db/index.ts';
 import { audit, entries, matches, players } from '#lib/server/db/schema.ts';
 import { groupName } from '#lib/season.ts';
@@ -207,3 +208,38 @@ export const seasonAudit = (seasonId: number) =>
 		.where(eq(audit.seasonId, seasonId))
 		.orderBy(desc(audit.id))
 		.all();
+
+// Rows for the organizer's match tools: card props, open flag, and the edit form's pre-fill.
+export function adminRows(
+	season: Parameters<typeof cardContext>[0],
+	people: Parameters<typeof cardContext>[1],
+	ms: Match[]
+) {
+	const ctx = cardContext(season, people, null);
+	const name = (id: string) => ctx.people.get(id)?.displayName ?? 'Unknown';
+	return ms.map((m) => {
+		const { status, props } = matchCard(m, ctx);
+		return {
+			id: m.id,
+			round: m.round,
+			group: m.group,
+			status,
+			card: props,
+			reported: !!m.reportedBy,
+			// An organizer entered it (players only report their own matches).
+			entered: !!m.reportedBy && m.reportedBy !== m.p1Id && m.reportedBy !== m.p2Id,
+			p1: { id: m.p1Id, name: name(m.p1Id) },
+			p2: { id: m.p2Id, name: name(m.p2Id) },
+			flag: status === 'flagged' ? { by: name(m.flaggedBy!), reason: m.flagReason ?? '' } : null,
+			// ponytail: lastLegend is 2 queries per unreported match; fine at league size (~150 matches).
+			values: {
+				p1Games: m.p1Games?.toString() ?? '',
+				p2Games: m.p2Games?.toString() ?? '',
+				p1Legend: m.p1Legend ?? lastLegend(m.p1Id) ?? '',
+				p2Legend: m.p2Legend ?? lastLegend(m.p2Id) ?? '',
+				dice: m.diceWinnerId ?? ''
+			}
+		};
+	});
+}
+export type AdminRow = ReturnType<typeof adminRows>[number];
