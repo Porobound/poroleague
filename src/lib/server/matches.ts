@@ -104,3 +104,24 @@ export function flagMatch(m: Match, actorId: string, reason: string) {
 			.run();
 	});
 }
+
+export const seasonAudit = (seasonId: number) =>
+	db
+		.select({
+			id: audit.id,
+			action: audit.action,
+			before: audit.before,
+			after: audit.after,
+			createdAt: audit.createdAt,
+			actor: players.displayName,
+			group: matches.group,
+			round: matches.round,
+			p1Id: matches.p1Id,
+			p2Id: matches.p2Id
+		})
+		.from(audit)
+		.innerJoin(players, eq(audit.actorId, players.id))
+		.leftJoin(matches, eq(audit.matchId, matches.id))
+		.where(eq(audit.seasonId, seasonId))
+		.orderBy(desc(audit.id))
+		.all();
