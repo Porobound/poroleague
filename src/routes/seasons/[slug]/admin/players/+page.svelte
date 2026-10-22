@@ -78,6 +78,20 @@
 										standings. Their opponents' results from those matches stop counting. Posted in the
 										organizer channel and logged in the public audit log.
 									</ConfirmButton>
+								{:else if e.canCancel}
+									<ConfirmButton
+										action="?/cancelDrop"
+										variant="secondary"
+										small
+										fields={{ playerId: e.playerId }}
+										label="Cancel drop"
+										title="Cancel {e.displayName}'s drop?"
+										confirmLabel="Cancel drop"
+									>
+										For fixing a mistaken drop, up to a day after it. Their {e.matches} matches count
+										again, with any results reported before the drop, and unplayed ones can be reported.
+										Posted in the organizer channel and logged in the public audit log.
+									</ConfirmButton>
 								{/if}
 							</td>
 						</tr>
@@ -113,7 +127,7 @@
 </div>
 
 <style>
-	.is-dropped {
+	.is-dropped td:not(:last-child) {
 		opacity: 0.6;
 	}
 </style>

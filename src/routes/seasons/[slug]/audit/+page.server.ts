@@ -5,13 +5,19 @@ import { seasonAudit } from '#lib/server/matches.ts';
 import { publicSeason, seasonEntries } from '#lib/server/seasons.ts';
 import type { PageServerLoad } from './$types';
 
-type Change = Partial<Report> & { flagReason?: string; dropped?: string; order?: string[] };
+type Change = Partial<Report> & {
+	flagReason?: string;
+	dropped?: string;
+	undropped?: string;
+	order?: string[];
+};
 const LABEL: Record<string, string> = {
 	report: 'Report',
 	flag: 'Flag',
 	edit: 'Edit',
 	resolve: 'Resolve',
 	drop: 'Drop',
+	undrop: 'Drop cancelled',
 	tiebreak: 'Tiebreak',
 	finalize: 'Finalize'
 };
@@ -46,6 +52,9 @@ export const load: PageServerLoad = ({ params, locals, url }) => {
 					change,
 					after?.flagReason ? `“${after.flagReason}”` : '',
 					after?.dropped ? `Dropped ${name(after.dropped)}; their matches are void` : '',
+					after?.undropped
+						? `Cancelled ${name(after.undropped)}'s drop; their matches count again`
+						: '',
 					after?.order ? `Order: ${after.order.map(name).join(', ')}` : '',
 					r.action === 'finalize' ? 'Season finalized' : ''
 				]

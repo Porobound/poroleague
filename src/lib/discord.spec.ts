@@ -144,6 +144,15 @@ describe('organizer posts', () => {
 			'\\*x\\* dropped'
 		);
 		expect(seasonDeletedEmbed('S_1', 'Org').title).toBe('Season deleted: S\\_1');
+		const undo = dropEmbed({
+			player: '*x*',
+			by: 'Org',
+			where: 'S',
+			url: 'http://x',
+			cancelled: true
+		});
+		expect(undo.title).toBe('Drop cancelled: \\*x\\*');
+		expect(undo.description).toBe('By Org. Their matches count again.');
 	});
 });
 

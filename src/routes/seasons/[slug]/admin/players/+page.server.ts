@@ -3,6 +3,8 @@ import { dropEmbed } from '#lib/discord.ts';
 import { organizerAction } from '#lib/server/auth.ts';
 import { seasonMatches } from '#lib/server/matches.ts';
 import {
+	canCancelDrop,
+	cancelDrop,
 	dropPlayer,
 	getSeason,
 	groupStandings,
@@ -26,7 +28,8 @@ export const load: PageServerLoad = async ({ parent }) => {
 			return {
 				...e,
 				record: r ? { played: r.played, wdl: `${r.wins}–${r.draws}–${r.losses}` } : null,
-				matches: ms.filter((m) => m.p1Id === e.playerId || m.p2Id === e.playerId).length
+				matches: ms.filter((m) => m.p1Id === e.playerId || m.p2Id === e.playerId).length,
+				canCancel: season.status === 'play' && e.dropped && canCancelDrop(season.id, e.playerId)
 			};
 		})
 	};
@@ -62,5 +65,27 @@ export const actions: Actions = {
 			})
 		);
 		return { message: `${entry.displayName} dropped. Their matches are void.` };
+	},
+
+	cancelDrop: async (event) => {
+		const user = await organizerAction(event);
+		const playerId = String((await event.request.formData()).get('playerId'));
+		const season = getSeason(event.params.slug, user);
+		const entry = seasonEntries(season.id).find((e) => e.playerId === playerId);
+		if (season.status !== 'play' || !entry?.dropped || !canCancelDrop(season.id, playerId))
+			return fail(409, {
+				message: 'A drop can only be cancelled within a day, while the season is in play.'
+			});
+		cancelDrop(season.id, playerId, user.id);
+		postToOrganizers(
+			dropEmbed({
+				player: entry.displayName,
+				by: user.displayName,
+				where: season.name,
+				url: `${event.url.origin}/seasons/${season.slug}/players/${playerId}`,
+				cancelled: true
+			})
+		);
+		return { message: `${entry.displayName}'s drop is cancelled. Their matches count again.` };
 	}
 };
