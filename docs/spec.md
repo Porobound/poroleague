@@ -114,7 +114,6 @@ Designs come from Claude Design as HTML. Integration rule: **extract, don't past
 ## Open items
 
 - Domain (needed for Discord OAuth app redirect URI in prod; dev uses `http://localhost:5173`).
-- Real Riftbound legend list — `src/lib/legends.ts` starts with ~30 placeholder LoL champion names.
 - Top-cut size X; top-cut feature; career stats.
 - Design nits (non-blocking): drop "Leave as double loss" button; season name needn't lock; organizer edit dialog must cover legends + dice, not just score; timezone label from `Intl` (EET/EEST), not hardcoded "EET"; player header "Discord server nickname" leftover copy.
 

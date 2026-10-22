@@ -219,6 +219,20 @@ cp backups/poroleague-<date>.db data/poroleague.db
 docker compose start app
 ```
 
+## Updating legends
+
+New Riftbound sets come out about every quarter. When one does, add its legends to `src/lib/legends.ts`:
+
+1. Open [the legend list on Piltover Archive](https://piltoverarchive.com/cards?types=legend&rarities=rare) and find the new set's legends.
+2. Add each one by champion name, keeping the list in A–Z order. If a champion gets a second legend, give both entries the community nickname, like `Master Yi (PG)` and `Master Yi (XP)`. That renames the existing entry, so see below.
+3. Run `npm run check` and `npx vitest run`, then open a PR.
+
+Each match stores the legend's name as text. So never remove a legend that has been picked, and when you rename one, rename its old picks in the database too. Otherwise its stats start from zero. On the server, with the app stopped:
+
+```sh
+sqlite3 data/poroleague.db "UPDATE matches SET p1_legend = 'Jinx (A)' WHERE p1_legend = 'Jinx'; UPDATE matches SET p2_legend = 'Jinx (A)' WHERE p2_legend = 'Jinx';"
+```
+
 ## Contributing
 
 - `main` is protected: open a PR, get one approval, squash or rebase merge.
