@@ -134,8 +134,9 @@ Your test server has one real player: you. These dev-only scripts fill in the re
 | `WEBHOOK_RESULTS_URL`    | Discord webhook for reported results (empty = off)        |
 | `WEBHOOK_ORGANIZERS_URL` | Discord webhook for flags (empty = off)                   |
 | `WEBHOOK_PAIRINGS_URL`   | Discord webhook for weekly pairings (empty = off)         |
-| `ORIGIN`                 | Production only: public URL, e.g. `https://<domain>`      |
-| `TUNNEL_TOKEN`           | Production only: Cloudflare Tunnel token (compose)        |
+| `ORIGIN`                 | Servers only: public URL, e.g. `https://<domain>`         |
+| `TUNNEL_TOKEN`           | Servers only: Cloudflare Tunnel token (compose)           |
+| `IMAGE_TAG`              | Servers only: image tag (empty = `latest`, `dev`, a SHA)  |
 
 Declare new variables in `src/env.ts` and add them to `.env.example`.
 
@@ -170,7 +171,9 @@ src/
   hooks.server.ts      session cookie → locals.user
 drizzle/               SQL migrations (commit these)
 scripts/               migrate.ts (container start), backup.sh (host cron), dev-only data helpers
-Dockerfile, compose.yaml  production image and host stack
+Dockerfile             server image
+compose.yaml           host stack: app + cloudflared
+.github/workflows/     CI: lint, check, tests; image to GHCR from main and dev
 docs/                  spec, plans
 ```
 
@@ -219,5 +222,6 @@ docker compose start app
 ## Contributing
 
 - `main` is protected: open a PR, get one approval, squash or rebase merge.
+- CI runs `npm run lint`, `npm run check` and `npx vitest run` on every PR. Run `npm run format` before pushing.
 - League rules live only in `src/lib/league/`, and routes call them. Every result change writes an audit row.
 - See [`CLAUDE.md`](CLAUDE.md) for code conventions (`#lib/…ts` imports, env vars, styling).
