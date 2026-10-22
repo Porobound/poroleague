@@ -40,7 +40,7 @@
 	});
 </script>
 
-<article class={['pb-match', `pb-match-${status}`, mine && 'is-mine']}>
+<article class={['pb-match', `pb-match-${status}`, mine && 'pb-match-mine']}>
 	<div class="pb-match-head">
 		<span>{head}</span>
 		<span class={['pb-badge', BADGE[status][0]]}>{BADGE[status][1]}</span>
