@@ -6,7 +6,9 @@ Public name: **Poroleague** (the league site). **Porobound** is the private Disc
 
 `draft → signup → groups → play → finished`
 
-1. **draft** — organizer creates season: name, slug, start date, rounds per week (default 2), season deadline, top-cut size X.
+Only one season can be running (signup, groups or play) at a time; drafts and finished seasons are unlimited.
+
+1. **draft** — organizer creates season: name, slug, start date, rounds per week (default 2), season deadline, top-cut size X (editable until the season finishes, since it only moves the line in the standings).
 2. **signup** — any member of the Discord guild can join until an organizer closes signup. Players can withdraw while signup is open; organizers can remove a signup.
 3. **groups** — group count is automatic (1 if < 16 signups, else 2); organizer draws random groups, previews, swaps players, locks. Uneven sizes allowed (25 → 13 + 12). Locking generates the round-robin schedule (circle method, byes on odd counts).
 4. **play** — weeks of `roundsPerWeek` rounds (12-player group: 11 rounds ≈ 6 weeks). A match past its week shows as **overdue** (derived, no stored state); it still reports normally. Season deadline is hard: player reporting closes at the deadline. All dates/deadlines are in the league timezone (`LEAGUE_TZ = Europe/Helsinki`, config constant); deadline = 23:59 local on the deadline date.
@@ -36,25 +38,26 @@ Top cut (top X per group, cross-seeded A1 vs B4 …, single elim, Bo3, online, s
 
 - Discord OAuth, scopes `identify guilds.members.read`. Hand-rolled (~60 lines), no auth library.
 - At login: `GET /users/@me/guilds/{GUILD_ID}/member` with the user's token. 404 → not a guild member → login refused. Porobound is private: the refusal page offers no invite link, only "try again" (wrong Discord account) and browsing without login. Response gives server nickname (display name, fallback global name) and roles.
-- Organizer = has `ORGANIZER_ROLE_ID`. Stored in session; **rechecked on every `/admin` action** (one API call) so revocation is immediate.
+- Organizer = has `ORGANIZER_ROLE_ID`. Stored in session; **re-checked with Discord at most once a minute** on admin pages and actions (the member endpoint is heavily rate-limited), so a role change applies within a minute without re-login. If Discord refuses (429) or fails, the last known role is kept.
 - Sessions in SQLite, ~7-day expiry. Display name refreshed each login.
 - Organizers may play; edits to their own matches are allowed and visible in the audit log.
 
 ## Organizer powers (`/admin` per season)
 
-| Phase  | Actions                                                                            |
-| ------ | ---------------------------------------------------------------------------------- |
-| Setup  | Create season, edit settings                                                       |
-| Signup | Open/close signup, remove signup                                                   |
-| Groups | Draw, swap in preview, lock (generates schedule)                                   |
-| Play   | Edit any result, resolve flags, mark player dropped, post week pairings to Discord |
-| End    | Enter unplayed results, set tiebreak ranks, finalize season                        |
+| Phase  | Actions                                                                                                                                 |
+| ------ | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Setup  | Create season, edit settings, delete season (soft: hidden, data kept, `deletedBy`/`deletedAt` recorded; typed slug once it has matches) |
+| Signup | Open/close signup (closing draws the groups), remove signup                                                                             |
+| Groups | Redraw, move player between groups, reopen signup (clears the draw), lock (generates schedule)                                          |
+| Play   | Edit any result, resolve flags, mark player dropped, post week pairings to Discord                                                      |
+| End    | Enter unplayed results, set tiebreak ranks, finalize season                                                                             |
 
 Not in UI: managing organizers (Discord role), legend list (config file), messaging (Discord).
 
 ## Pages (all public; login only for actions)
 
-- `/` — current season overview; if the newest season is a draft, a "next season coming soon" page; no seasons at all → empty state
+- `/` — the newest non-draft season if it's still running (redirect); else "next season coming soon" if a draft exists; else the newest finished season; no seasons → empty state
+- `/admin` — organizers: season list, create season
 - `/seasons` — archive
 - `/seasons/[slug]` — groups + standings
 - `/seasons/[slug]/schedule` — rounds and results

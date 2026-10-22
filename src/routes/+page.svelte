@@ -8,18 +8,20 @@
 	<title>Poroleague</title>
 </svelte:head>
 
-{#if data.season}
-	<section class="hero">
-		<span class="pb-badge">{data.season.status}</span>
-		<h1>{data.season.name}</h1>
-	</section>
-{:else}
-	<section class="hero">
+<section class="hero">
+	{#if data.comingSoon}
+		<span class="pb-badge">Coming soon</span>
+		<h1>The next season is on its way.</h1>
+		<p>It's being set up now. Signup will be announced in the Porobound Discord.</p>
+	{:else}
 		<span class="pb-badge">No season yet</span>
 		<h1>The herd is gathering.</h1>
 		<p>The first season hasn't been set up yet. It will be announced in the Porobound Discord.</p>
-	</section>
-{/if}
+	{/if}
+	{#if data.user?.isOrganizer}
+		<a class="pb-btn pb-btn-secondary" href="/admin">Go to admin</a>
+	{/if}
+</section>
 
 <style>
 	.hero {

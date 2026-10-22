@@ -40,3 +40,7 @@ export function validateSession(token: string) {
 export function deleteSession(id: string) {
 	db.delete(sessions).where(eq(sessions.id, id)).run();
 }
+
+export function setOrganizer(id: string, isOrganizer: boolean) {
+	db.update(sessions).set({ isOrganizer }).where(eq(sessions.id, id)).run();
+}
