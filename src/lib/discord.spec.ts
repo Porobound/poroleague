@@ -161,16 +161,15 @@ describe('pairingsPost', () => {
 	const body = pairingsPost('Autumn *26* · Week 3', 'http://x/schedule', rounds);
 
 	it('pings nobody', () => {
-		expect(body.content).toBe('**Autumn \\*26\\* · Week 3**');
+		expect(body.content).toBe('**Autumn \\*26\\* · Week 3**\n[Full schedule](<http://x/schedule>)');
 		expect(body.allowed_mentions).toEqual({ parse: [] });
 	});
 	it('lays out one embed per round with a field per group', () => {
 		expect(body.embeds!.map((e) => e.title)).toEqual(['Round 5', 'Round 6']);
 		expect(body.embeds![0].fields).toEqual([
-			{ name: 'Group A', value: '<@1> vs <@2>', inline: true },
-			{ name: 'Group B', value: '<@3> vs <@4>', inline: true }
+			{ name: 'Group A', value: '<@1> vs <@2>' },
+			{ name: 'Group B', value: '<@3> vs <@4>' }
 		]);
-		// Discord merges embeds that share a url, so only the first links out.
-		expect(body.embeds!.map((e) => e.url)).toEqual(['http://x/schedule', undefined]);
+		expect(body.embeds!.every((e) => !e.url)).toBe(true);
 	});
 });

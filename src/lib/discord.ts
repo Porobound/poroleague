@@ -157,15 +157,13 @@ export function pairingsPost(
 		value: pairs
 			.filter((p) => p.group === group)
 			.map((p) => `<@${p.p1Id}> vs <@${p.p2Id}>`)
-			.join('\n'),
-		inline: true
+			.join('\n\n')
 	});
 	return {
-		content: `**${escapeMd(title)}**`,
-		embeds: rounds.map((r, i) => ({
+		// <url> keeps Discord from adding a preview card for the link.
+		content: `**${escapeMd(title)}**\n[Full schedule](<${url}>)`,
+		embeds: rounds.map((r) => ({
 			title: `Round ${r.round}`,
-			// Discord merges embeds that share a url, so only the first links out.
-			url: i === 0 ? url : undefined,
 			color: ACCENT,
 			fields: [...new Set(r.pairs.map((p) => p.group))].map((g) => field(r.pairs, g)),
 			footer: { text: title },
