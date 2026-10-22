@@ -2,6 +2,7 @@
 	import { page } from '$app/state';
 	import Avatar from '#lib/components/Avatar.svelte';
 	import ConfirmButton from '#lib/components/ConfirmButton.svelte';
+	import { date } from '#lib/format.ts';
 	import { groupName, STATUS_LABEL } from '#lib/season.ts';
 	import type { PageProps } from './$types';
 
@@ -9,14 +10,6 @@
 	const season = $derived(data.season);
 	const user = $derived(data.user);
 	const nameOf = $derived(new Map(data.entries.map((e) => [e.playerId, e.displayName])));
-	const date = (d: string | null) =>
-		d
-			? new Date(`${d}T12:00:00Z`).toLocaleDateString('en-GB', {
-					day: 'numeric',
-					month: 'short',
-					year: 'numeric'
-				})
-			: '';
 </script>
 
 <svelte:head>

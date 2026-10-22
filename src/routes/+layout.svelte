@@ -6,6 +6,8 @@
 	import type { LayoutProps } from './$types';
 
 	let { data, children }: LayoutProps = $props();
+	const slug = $derived(page.params.slug);
+	const here = (href: string) => (page.url.pathname === href ? 'page' : undefined);
 	const returnTo = $derived(page.url.pathname.startsWith('/login') ? '/' : page.url.pathname);
 </script>
 
@@ -16,6 +18,16 @@
 <header class="site-header">
 	<nav aria-label="Main" class="container site-nav">
 		<a href="/" class="brand">Poroleague</a>
+		{#if slug}
+			{#each [['', 'Season'], ['/schedule', 'Schedule'], ['/legends', 'Legends']] as [path, label] (path)}
+				<a
+					href="/seasons/{slug}{path}"
+					class="nav-link"
+					aria-current={here(`/seasons/${slug}${path}`)}>{label}</a
+				>
+			{/each}
+		{/if}
+		<a href="/seasons" class="nav-link" aria-current={here('/seasons')}>Archive</a>
 		{#if data.user}
 			{#if data.user.isOrganizer}
 				<a href="/admin" class="nav-link">Admin</a>

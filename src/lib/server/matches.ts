@@ -36,6 +36,14 @@ export const playerMatches = (seasonId: number, playerId: string) =>
 		.orderBy(asc(matches.round))
 		.all();
 
+export const seasonMatches = (seasonId: number) =>
+	db
+		.select()
+		.from(matches)
+		.where(eq(matches.seasonId, seasonId))
+		.orderBy(asc(matches.group), asc(matches.round), asc(matches.id))
+		.all();
+
 // A match is void once either player is dropped (spec: Drops).
 export const isVoided = (m: Match) =>
 	!!db
