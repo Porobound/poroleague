@@ -69,6 +69,23 @@
 	<title>{data.p1.displayName} vs {data.p2.displayName} · {data.season.name} · Poroleague</title>
 </svelte:head>
 
+<div class="back-bar">
+	<a href="/seasons/{data.season.slug}" aria-label="Back to the season"
+		><svg
+			width="24"
+			height="24"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			stroke-width="2"
+			stroke-linecap="round"
+			stroke-linejoin="round"
+			aria-hidden="true"><path d="M15 6l-6 6 6 6" /></svg
+		></a
+	>
+	<span>{data.mode === 'report' ? 'Add result' : 'Match'}</span>
+</div>
+
 <div class="page narrow">
 	<div>
 		<span class="eyebrow">{head} · Bo3</span>
@@ -125,9 +142,9 @@
 					</div>
 				{/each}
 			</div>
-			{#if errors.score || (live && !live.ok && live.errors.score)}
+			{#if errors.score || (changes && live && !live.ok && live.errors.score)}
 				<p class="pb-hint is-error" role="alert">
-					{errors.score || (live && !live.ok && live.errors.score)}
+					{errors.score || (changes && live && !live.ok && live.errors.score)}
 				</p>
 			{/if}
 
@@ -147,7 +164,7 @@
 			</fieldset>
 			{#if errors.dice}<p class="pb-hint is-error" role="alert">{errors.dice}</p>{/if}
 
-			<div class="actions">
+			<div class="actions action-bar">
 				<ConfirmButton
 					inForm
 					label="Add result"
@@ -163,7 +180,7 @@
 						organizer fixes it.
 					</p>
 				</ConfirmButton>
-				<a href="/seasons/{data.season.slug}" class="muted">Cancel</a>
+				<a href="/seasons/{data.season.slug}" class="muted cancel">Cancel</a>
 			</div>
 		</form>
 	{:else}
@@ -190,7 +207,7 @@
 		{/if}
 
 		{#if data.mode === 'flag'}
-			<div class="actions">
+			<div class="actions action-bar">
 				<ConfirmButton
 					action="?/flag"
 					variant="secondary"
@@ -272,5 +289,43 @@
 	.report .actions {
 		border-top: 1px solid var(--line);
 		padding-top: 24px;
+	}
+	@media (max-width: 640px) {
+		.report {
+			padding: 16px;
+			gap: 20px;
+		}
+		.report .grid-2 {
+			grid-template-columns: minmax(0, 1fr);
+			gap: 12px;
+		}
+		.side {
+			padding: 16px;
+		}
+		.side .opts {
+			display: grid;
+			grid-template-columns: repeat(3, minmax(0, 1fr));
+		}
+		.side .opts legend {
+			grid-column: 1 / -1;
+		}
+		.report > .opts {
+			display: grid;
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+		.report > .opts legend {
+			grid-column: 1 / -1;
+		}
+		.opt {
+			min-height: 48px;
+			min-width: 0;
+		}
+		.report .actions {
+			border-top: 0;
+			padding-top: 12px;
+		}
+		.cancel {
+			display: none;
+		}
 	}
 </style>
