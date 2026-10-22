@@ -3,11 +3,12 @@ import { and, asc, count, desc, eq, inArray, isNull, ne, sql } from 'drizzle-orm
 import { defaultGroupCount, splitGroups } from '#lib/league/groups.ts';
 import { buildSchedule } from '#lib/league/schedule.ts';
 import { standings } from '#lib/league/standings.ts';
-import { reportingClosed } from '#lib/league/time.ts';
-import type { SeasonFields, SeasonStatus } from '#lib/season.ts';
+import { currentWeek, reportingClosed, roundsOfWeek, weekOf } from '#lib/league/time.ts';
+import { seasonFields, seasonPhases, type SeasonFields, type SeasonStatus } from '#lib/season.ts';
 import { db } from '#lib/server/db/index.ts';
 import { audit, entries, matches, players, seasons } from '#lib/server/db/schema.ts';
-import { clearTiebreaks, seasonMatches, type Match } from '#lib/server/matches.ts';
+import { droppedIds } from '#lib/league/status.ts';
+import { clearTiebreaks, playerMatches, seasonMatches, type Match } from '#lib/server/matches.ts';
 
 export type Season = typeof seasons.$inferSelect;
 
@@ -78,8 +79,26 @@ export function createSeason(values: SeasonFields) {
 	db.insert(seasons).values(values).run();
 }
 
-export function updateSeason(id: number, values: SeasonFields) {
-	db.update(seasons).set(values).where(eq(seasons.id, id)).run();
+// Changes to a public season are audited; a draft is private and edited freely.
+const AUDITED = ['name', 'startDate', 'roundsPerWeek', 'deadline', 'topCutSize'] as const;
+export function updateSeason(season: Season, values: SeasonFields, actorId: string) {
+	// Compare form-shaped values, so a NULL column the form fills with a default isn't a change.
+	const before = seasonFields(season);
+	const changed = AUDITED.filter((k) => before[k] !== values[k]);
+	db.transaction((tx) => {
+		tx.update(seasons).set(values).where(eq(seasons.id, season.id)).run();
+		if (season.status === 'draft' || !changed.length) return;
+		const pick = (o: SeasonFields) => Object.fromEntries(changed.map((k) => [k, o[k]]));
+		tx.insert(audit)
+			.values({
+				seasonId: season.id,
+				actorId,
+				action: 'season',
+				before: pick(before),
+				after: pick(values)
+			})
+			.run();
+	});
 }
 
 export function setStatus(id: number, status: SeasonStatus) {
@@ -233,6 +252,23 @@ export function groupStandings(
 }
 export type GroupStanding = ReturnType<typeof groupStandings>[number];
 
+// Where the season stands this week, for the phase bar and the week headline.
+export function seasonProgress(season: Season, groups: GroupStanding[], now = new Date()) {
+	const closed = reportingClosed(season.deadline, now);
+	const week = currentWeek(season.startDate, now);
+	const maxRound = Math.max(0, ...groups.map((g) => g.rounds));
+	const weeks = weekOf(maxRound, season.roundsPerWeek);
+	const rounds = roundsOfWeek(week, season.roundsPerWeek, maxRound);
+	const sizes = groups.map((g) => g.size);
+	return {
+		closed,
+		week,
+		weeks,
+		rounds,
+		phases: seasonPhases(season, { week, weeks, rounds, groups: sizes, closed })
+	};
+}
+
 // The header links your name to your player page: the season being viewed if you're in it,
 // else your newest season.
 export function myPlayerPage(playerId: string, slug?: string) {
@@ -246,3 +282,43 @@ export function myPlayerPage(playerId: string, slug?: string) {
 		.get();
 	return s ? `/seasons/${s.slug}/players/${playerId}` : null;
 }
+
+// Every public season a player entered, newest first, with their final or current place.
+// ponytail: standings per season; fine for a handful of seasons a year.
+export function playerSeasons(playerId: string) {
+	return db
+		.select({ season: seasons })
+		.from(entries)
+		.innerJoin(seasons, eq(entries.seasonId, seasons.id))
+		.where(and(eq(entries.playerId, playerId), ne(seasons.status, 'draft'), live))
+		.orderBy(desc(seasons.id))
+		.all()
+		.map(({ season }) => {
+			const list = seasonEntries(season.id);
+			const me = list.find((e) => e.playerId === playerId)!;
+			const g = groupStandings(season, list).find((g) => g.group === me.group);
+			const i = g?.rows.findIndex((r) => r.playerId === playerId) ?? -1;
+			return {
+				season,
+				me,
+				row: g && i >= 0 ? g.rows[i] : null,
+				rank: i + 1,
+				size: g?.size ?? 0,
+				matches: playerMatches(season.id, playerId),
+				dropped: droppedIds(list)
+			};
+		});
+}
+export type PlayerSeason = ReturnType<typeof playerSeasons>[number];
+
+// One line per season for the player and career pages.
+export const seasonHistory = (list: PlayerSeason[]) =>
+	list.map(({ season, me, row, rank, size }) => ({
+		slug: season.slug,
+		name: season.name,
+		group: me.group,
+		dropped: me.dropped,
+		place: row?.played ? `#${rank} of ${size}` : '—',
+		points: row?.played ? `${row.points} pts` : '—',
+		record: row?.played ? `${row.wins}–${row.draws}–${row.losses}` : '—'
+	}));

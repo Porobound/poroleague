@@ -25,6 +25,6 @@ export const actions: Actions = {
 				}
 			});
 		createSeason(parsed.values);
-		redirect(303, `/seasons/${parsed.values.slug}/admin`);
+		redirect(303, `/seasons/${parsed.values.slug}/admin/season`);
 	}
 };

@@ -3,7 +3,13 @@ import { legendMatches, playerLegends } from '#lib/league/legendStats.ts';
 import { weekOf } from '#lib/league/time.ts';
 import { cardContext, matchCard } from '#lib/matchCard.ts';
 import { playerMatches } from '#lib/server/matches.ts';
-import { groupStandings, publicSeason, seasonEntries } from '#lib/server/seasons.ts';
+import {
+	groupStandings,
+	playerSeasons,
+	publicSeason,
+	seasonEntries,
+	seasonHistory
+} from '#lib/server/seasons.ts';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = ({ params, locals }) => {
@@ -35,6 +41,7 @@ export const load: PageServerLoad = ({ params, locals }) => {
 			)
 			.map((c) => c.card),
 		matches: cards.map((c) => c.card),
-		legends: playerLegends(counted, player.playerId)
+		legends: playerLegends(counted, player.playerId),
+		history: seasonHistory(playerSeasons(player.playerId))
 	};
 };

@@ -18,7 +18,7 @@
 	<h1>{status === 'groups' ? 'Group draw preview' : 'Groups'}</h1>
 
 	{#if form?.message}
-		<p class="status" role="status">{form.message}</p>
+		<p class="pb-notice" role="status">{form.message}</p>
 	{/if}
 
 	{#if status === 'draft' || status === 'signup'}
@@ -60,7 +60,7 @@
 				</ConfirmButton>
 			</div>
 		{:else}
-			<p class="status" role="status">Groups are locked and the schedule is ready.</p>
+			<p class="pb-notice" role="status">Groups are locked and the schedule is ready.</p>
 		{/if}
 
 		<div class="grid-2">

@@ -161,7 +161,7 @@ src/
   lib/server/          DB, sessions, seasons, matches, Discord HTTP calls and webhooks (server-only)
   lib/styles/          design-system CSS snapshot (pb- classes)
   lib/components/      Svelte components
-  routes/              pages and endpoints (auth/ = OAuth, login/ = refusal pages, admin/, seasons/)
+  routes/              pages and endpoints (auth/ = OAuth, login/ = refusal pages, admin/, seasons/, players/ = career)
   hooks.server.ts      session cookie → locals.user
 drizzle/               SQL migrations (commit these)
 scripts/               dev-only data helpers

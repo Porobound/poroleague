@@ -30,6 +30,9 @@
 
 	const id = $props.id();
 	let dialog = $state<HTMLDialogElement>();
+	// In a form, the dialog's submit button is the form's default button; while the dialog is
+	// closed it stays disabled so pressing Enter in a field can't save past the confirmation.
+	let open = $state(false);
 </script>
 
 <button
@@ -37,11 +40,19 @@
 	class={['pb-btn', `pb-btn-${variant}`, small && 'pb-btn-sm']}
 	{disabled}
 	onclick={(e) => {
-		if (!inForm || e.currentTarget.form?.reportValidity()) dialog?.showModal();
+		if (!inForm || e.currentTarget.form?.reportValidity()) {
+			open = true;
+			dialog?.showModal();
+		}
 	}}>{label}</button
 >
 
-<dialog bind:this={dialog} class="pb-dialog" aria-labelledby="{id}-title">
+<dialog
+	bind:this={dialog}
+	class="pb-dialog"
+	aria-labelledby="{id}-title"
+	onclose={() => (open = false)}
+>
 	<svelte:element
 		this={inForm ? 'div' : 'form'}
 		class="body"
@@ -56,7 +67,9 @@
 			<button type="button" class="pb-btn pb-btn-secondary" onclick={() => dialog?.close()}
 				>Cancel</button
 			>
-			<button class="pb-btn pb-btn-primary" disabled={confirmDisabled}>{confirmLabel}</button>
+			<button class="pb-btn pb-btn-primary" disabled={confirmDisabled || (inForm && !open)}
+				>{confirmLabel}</button
+			>
 		</div>
 	</svelte:element>
 </dialog>

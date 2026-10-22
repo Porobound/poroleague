@@ -4,6 +4,7 @@
 	import ConfirmButton from '#lib/components/ConfirmButton.svelte';
 	import StandingsTable from '#lib/components/StandingsTable.svelte';
 	import MatchCard from '#lib/components/MatchCard.svelte';
+	import PhaseBar from '#lib/components/PhaseBar.svelte';
 	import { date, day, tzName } from '#lib/format.ts';
 	import { groupName, STATUS_LABEL } from '#lib/season.ts';
 	import type { PageProps } from './$types';
@@ -13,6 +14,12 @@
 	const user = $derived(data.user);
 	const roundsText = ([a, b]: [number, number]) =>
 		a === b ? `round ${a}` : b === a + 1 ? `rounds ${a} and ${b}` : `rounds ${a}–${b}`;
+	const AVATARS = 12;
+	const fresh = $derived(data.groups.every((g) => g.rows.every((r) => !r.played)));
+	// Every match of this week is reported; flagged, void or overdue ones keep the cards showing.
+	const allDone = $derived(
+		data.myWeek.length > 0 && data.myWeek.every((c) => c.status === 'reported')
+	);
 </script>
 
 <svelte:head>
@@ -46,6 +53,32 @@
 			{:else if season.status === 'finished'}
 				<span class="pb-badge">{season.name}</span>
 				<h1>Final standings.</h1>
+			{:else if season.status === 'signup'}
+				<span class="pb-badge pb-badge-live">Signup open</span>
+				<h1>Join the herd for {season.name}.</h1>
+				<p class="lede">
+					Open to everyone in the Porobound Discord. Signup stays open until an organizer closes it.
+					Then we draw groups and play {season.roundsPerWeek} rounds a week, one Bo3 each, until the deadline.
+				</p>
+				<ul class="tiles">
+					<li>
+						<strong>Round-robin groups</strong>
+						<span>One group, or two random groups if about 16 or more sign up.</span>
+					</li>
+					<li>
+						<strong>Play on your schedule</strong>
+						<span
+							>{season.roundsPerWeek} rounds a week. Arrange each match with your opponent; each week
+							ends at 23:59{season.deadline ? ` ${tzName(season.deadline)}` : ''}.</span
+						>
+					</li>
+					<li>
+						<strong>Report it yourself</strong>
+						<span
+							>Either player reports. Something off? Either of you can flag it for an organizer.</span
+						>
+					</li>
+				</ul>
 			{:else}
 				<span class="eyebrow">{STATUS_LABEL[season.status]}</span>
 				<h1>{season.name}</h1>
@@ -65,26 +98,11 @@
 		{/if}
 	</section>
 	{#if season.status !== 'draft'}
-		<ol class="pb-phase" aria-label="Season progress">
-			{#each data.phases as p (p.label)}
-				<li
-					class={[
-						'pb-phase-step',
-						p.state === 'done' && 'is-done',
-						p.state === 'current' && 'is-current'
-					]}
-					aria-current={p.state === 'current' ? 'step' : undefined}
-				>
-					<span class="pb-phase-bar"></span>
-					<span class="pb-phase-label">{p.label}</span>
-					<span class="pb-phase-detail">{p.detail}</span>
-				</li>
-			{/each}
-		</ol>
+		<PhaseBar phases={data.phases} />
 	{/if}
 
 	{#if form?.message}
-		<p class="status" role="status">{form.message}</p>
+		<p class="pb-notice" role="status">{form.message}</p>
 	{/if}
 
 	{#if data.signedUp && season.status === 'play'}
@@ -93,19 +111,37 @@
 				<h2>Your matches this week</h2>
 				<a href="/seasons/{season.slug}/players/{user?.id}">Your page</a>
 			</div>
-			{#if data.myWeek.length}
+			{#if allDone}
+				<div class="empty">
+					<strong>All done for this week</strong>
+					<span>Your matches this week are reported.</span>
+					<a href="/seasons/{season.slug}/players/{user?.id}">See your results</a>
+				</div>
+			{:else if data.myWeek.length}
 				<div class="cards">
 					{#each data.myWeek as c (c.id)}<MatchCard {...c.props} />{/each}
 				</div>
 			{:else if !data.myByes.length}
-				<p class="muted">No matches for you this week.</p>
+				<p class="empty">No matches for you this week.</p>
 			{/if}
-			{#each data.myByes as r (r)}<p class="muted small">Bye in round {r}</p>{/each}
+			{#if data.myByes.length}
+				<div class="empty">
+					<strong
+						>You have a bye in round{data.myByes.length > 1 ? 's' : ''}
+						{data.myByes.join(' and ')}</strong
+					>
+					<span>
+						Your group has an odd number of players, so one player sits out each round. Byes aren't
+						matches: no points either way.
+					</span>
+					<a href="/seasons/{season.slug}/schedule">See the schedule</a>
+				</div>
+			{/if}
 		</section>
 	{/if}
 
 	{#if season.status === 'draft'}
-		<p class="status">
+		<p class="pb-notice">
 			Draft: only organizers can see this page. <a href="/seasons/{season.slug}/admin">Open admin</a
 			>
 		</p>
@@ -113,10 +149,18 @@
 		<section class="panel signup">
 			<span class="eyebrow">Signed up so far</span>
 			<span class="count">{data.entries.length}</span>
-			<p class="muted">
-				Open to everyone in the Porobound Discord until an organizer closes signup. 16 or more
-				players makes two groups.
-			</p>
+			<span class="muted small">16 or more makes two groups</span>
+			{#if data.entries.length}
+				<div class="avatars">
+					{#each data.entries.slice(0, AVATARS) as e (e.playerId)}
+						<span title={e.displayName}><Avatar name={e.displayName} src={e.avatar} /></span>
+					{/each}
+					{#if data.entries.length > AVATARS}
+						<span class="muted small">+{data.entries.length - AVATARS} more</span>
+					{/if}
+				</div>
+			{/if}
+			<hr />
 			{#if !user}
 				<a
 					class="pb-btn pb-btn-primary"
@@ -145,14 +189,20 @@
 			{/if}
 		</section>
 	{:else if season.status === 'groups'}
-		<p class="status">Signup is closed. Groups are being drawn; the schedule follows shortly.</p>
+		<p class="pb-notice">Signup is closed. Groups are being drawn; the schedule follows shortly.</p>
 	{/if}
 
 	{#if data.groups.length}
-		<p class="muted small">
-			Win 3 · Draw 1 · Loss 0. Ties break on points, then head-to-head, then game-win %, then an
-			organizer decision.
-		</p>
+		<h2 class="standings-h">Groups &amp; standings</h2>
+		{#if fresh}
+			<p class="note">
+				<strong>No results yet.</strong>
+				<span class="muted"
+					>Everyone starts on 0 points, so players are listed alphabetically for now. The tables
+					sort themselves as soon as the first results are reported.</span
+				>
+			</p>
+		{/if}
 		<div class="grid-2">
 			{#each data.groups as g (g.group)}
 				<section class="panel standings">
@@ -178,6 +228,10 @@
 				</section>
 			{/each}
 		</div>
+		<p class="muted small">
+			Win 3 · Draw 1 · Loss 0. Ties break on points, then head-to-head, then game-win %, then an
+			organizer decision.
+		</p>
 		<p class="small">
 			{#if season.topCutSize}<span class="muted"
 					>Dashed line: top {season.topCutSize} per group (top cut comes later).</span
@@ -208,6 +262,39 @@
 	}
 	.signup p {
 		margin: 0;
+	}
+	.signup hr {
+		align-self: stretch;
+		margin: 8px 0 0;
+		border: 0;
+		border-top: 1px solid var(--line);
+	}
+	.avatars {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 6px;
+	}
+	.tiles {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		align-self: stretch;
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+		gap: 16px;
+	}
+	.tiles li {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		border-top: 2px solid var(--line);
+		padding-top: 12px;
+	}
+	.tiles span {
+		font-size: 13px;
+		line-height: 18px;
+		color: var(--ink-muted);
 	}
 	.hero {
 		display: flex;
@@ -266,9 +353,16 @@
 			font-size: 36px;
 			line-height: 40px;
 		}
-		.pb-phase {
-			grid-auto-flow: row;
-		}
+	}
+	.standings-h {
+		margin: 0;
+	}
+	.note {
+		margin: 0;
+		background: var(--surface-raised);
+		border: 1px solid var(--line);
+		border-radius: var(--radius-md);
+		padding: 14px 16px;
 	}
 	.count {
 		font: 500 40px/44px var(--font-mono);

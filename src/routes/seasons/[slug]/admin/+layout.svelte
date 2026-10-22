@@ -5,10 +5,11 @@
 	let { data, children }: LayoutProps = $props();
 	const base = $derived(`/seasons/${data.season.slug}/admin`);
 	const links = $derived([
-		{ href: base, label: 'Season' },
+		{ href: base, label: 'Overview' },
 		{ href: `${base}/players`, label: 'Players' },
 		{ href: `${base}/groups`, label: 'Groups' },
-		{ href: `${base}/matches`, label: 'Matches' }
+		{ href: `${base}/matches`, label: 'Matches' },
+		{ href: `${base}/season`, label: 'Season' }
 	]);
 </script>
 

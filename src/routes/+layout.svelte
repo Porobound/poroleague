@@ -10,7 +10,7 @@
 	const slug = $derived(
 		(page.data.season as { status: string } | undefined)?.status === 'draft'
 			? undefined
-			: page.params.slug
+			: data.navSlug
 	);
 	const here = (href: string) => (page.url.pathname === href ? 'page' : undefined);
 	const returnTo = $derived(page.url.pathname.startsWith('/login') ? '/' : page.url.pathname);

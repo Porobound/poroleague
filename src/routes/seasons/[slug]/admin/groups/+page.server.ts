@@ -47,7 +47,7 @@ export const actions: Actions = {
 		if (!season)
 			return fail(409, { message: 'Groups are locked, so signup can no longer be reopened.' });
 		reopenSignup(season.id);
-		redirect(303, `/seasons/${season.slug}/admin`);
+		redirect(303, `/seasons/${season.slug}/admin/season`);
 	},
 
 	lock: async (event) => {
