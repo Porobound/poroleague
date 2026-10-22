@@ -1,5 +1,5 @@
 import { matchMode } from '#lib/league/report.ts';
-import { isOverdue, isVoid } from '#lib/league/status.ts';
+import { droppedIds, isOverdue, isVoid } from '#lib/league/status.ts';
 import { currentWeek, reportingClosed } from '#lib/league/time.ts';
 import { groupName } from '#lib/season.ts';
 
@@ -39,7 +39,7 @@ export function cardContext(
 		season,
 		viewerId,
 		people: new Map(people.map((p) => [p.playerId, p])),
-		dropped: new Set(people.filter((p) => p.dropped).map((p) => p.playerId)),
+		dropped: droppedIds(people),
 		week: currentWeek(season.startDate, now),
 		closed: reportingClosed(season.deadline, now)
 	};

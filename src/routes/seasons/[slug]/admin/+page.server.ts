@@ -1,6 +1,6 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { pairingsPost, seasonDeletedEmbed } from '#lib/discord.ts';
-import { isVoid } from '#lib/league/status.ts';
+import { droppedIds, isVoid } from '#lib/league/status.ts';
 import { currentWeek, reportingClosed, roundsOfWeek } from '#lib/league/time.ts';
 import { editableFields, parseSeasonForm, seasonFields } from '#lib/season.ts';
 import { organizerAction } from '#lib/server/auth.ts';
@@ -24,23 +24,26 @@ import {
 import { pairingsEnabled, postPairings, postToOrganizers } from '#lib/server/webhooks.ts';
 import type { Actions, PageServerLoad } from './$types';
 
+// One read of the season's entries and matches, shared by every helper below.
+const seasonData = (seasonId: number) => {
+	const list = seasonEntries(seasonId);
+	const all = seasonMatches(seasonId);
+	const dropped = droppedIds(list);
+	return { list, all, live: all.filter((m) => !isVoid(m, dropped)) };
+};
+type SeasonData = ReturnType<typeof seasonData>;
+
 // This week's non-void matches by round (week 1 before the start date); null once reporting closed.
-function weekPairings(season: Season, now = new Date()) {
+function weekPairings(season: Season, { all, live }: SeasonData, now = new Date()) {
 	if (reportingClosed(season.deadline, now)) return null;
-	const dropped = new Set(
-		seasonEntries(season.id)
-			.filter((e) => e.dropped)
-			.map((e) => e.playerId)
-	);
-	const ms = seasonMatches(season.id);
 	const week = Math.max(1, currentWeek(season.startDate, now));
-	const rounds = roundsOfWeek(week, season.roundsPerWeek, Math.max(0, ...ms.map((m) => m.round)));
+	const rounds = roundsOfWeek(week, season.roundsPerWeek, Math.max(0, ...all.map((m) => m.round)));
 	if (!rounds) return null;
 	const byRound = Array.from({ length: rounds[1] - rounds[0] + 1 }, (_, i) => rounds[0] + i)
 		.map((round) => ({
 			round,
-			pairs: ms
-				.filter((m) => m.round === round && !isVoid(m, dropped))
+			pairs: live
+				.filter((m) => m.round === round)
 				.map((m) => ({ group: m.group, p1Id: m.p1Id, p2Id: m.p2Id }))
 		}))
 		.filter((r) => r.pairs.length);
@@ -49,10 +52,7 @@ function weekPairings(season: Season, now = new Date()) {
 }
 
 // End of season opens at the deadline, or earlier once every live match is reported.
-function endState(season: Season, now = new Date()) {
-	const list = seasonEntries(season.id);
-	const dropped = new Set(list.filter((e) => e.dropped).map((e) => e.playerId));
-	const live = seasonMatches(season.id).filter((m) => !isVoid(m, dropped));
+function endState(season: Season, { list, all, live }: SeasonData, now = new Date()) {
 	const closed = reportingClosed(season.deadline, now);
 	const unplayed = live.filter((m) => !m.reportedBy).length;
 	const openFlags = live.filter((m) => m.flaggedBy && !m.flagResolvedAt).length;
@@ -72,7 +72,7 @@ function endState(season: Season, now = new Date()) {
 		return m?.reportedBy ? `drew ${m.p1Games}–${m.p2Games}` : 'not played';
 	};
 	const ties = ending
-		? groupStandings(season, list).flatMap((g) => {
+		? groupStandings(season, list, all).flatMap((g) => {
 				const byKey = new Map<string, Tie>();
 				g.rows.forEach((r, i) => {
 					if (!r.tie) return;
@@ -99,20 +99,20 @@ function endState(season: Season, now = new Date()) {
 
 export const load: PageServerLoad = async ({ parent }) => {
 	const { season } = await parent();
+	const d = season.status === 'play' ? seasonData(season.id) : null;
 	return {
 		running: season.status === 'draft' ? (runningSeason(season.id) ?? null) : null,
-		entryCount: seasonEntries(season.id).length,
+		entryCount: d?.list.length ?? seasonEntries(season.id).length,
 		matchCount: matchCount(season.id),
-		pairings: season.status === 'play' ? weekPairings(season) : null,
-		end: season.status === 'play' ? endState(season) : null,
-		flags:
-			season.status === 'play'
-				? adminRows(
-						season,
-						seasonEntries(season.id),
-						seasonMatches(season.id).filter((m) => m.flaggedBy && !m.flagResolvedAt)
-					).filter((r) => r.status === 'flagged')
-				: []
+		pairings: d && weekPairings(season, d),
+		end: d && endState(season, d),
+		flags: d
+			? adminRows(
+					season,
+					d.list,
+					d.live.filter((m) => m.flaggedBy && !m.flagResolvedAt)
+				)
+			: []
 	};
 };
 
@@ -164,7 +164,7 @@ export const actions: Actions = {
 		if (season.status !== 'play') return fail(409, { message: 'The season is not in play.' });
 		if (!pairingsEnabled())
 			return fail(409, { message: 'Set WEBHOOK_PAIRINGS_URL to post pairings.' });
-		const p = weekPairings(season);
+		const p = weekPairings(season, seasonData(season.id));
 		if (!p) return fail(409, { message: 'No rounds left to post.' });
 		postPairings(
 			pairingsPost(
@@ -180,9 +180,11 @@ export const actions: Actions = {
 		const user = await organizerAction(event);
 		const ids = String((await event.request.formData()).get('order') ?? '').split(',');
 		const season = getSeason(event.params.slug, user);
-		if (season.status !== 'play' || !endState(season).ending)
+		if (season.status !== 'play') return fail(409, { message: 'The season is not in play.' });
+		const d = seasonData(season.id);
+		if (!endState(season, d).ending)
 			return fail(409, { message: 'Ties are settled at the end of the season.' });
-		const rows = groupStandings(season, seasonEntries(season.id)).flatMap((g) => g.rows);
+		const rows = groupStandings(season, d.list, d.all).flatMap((g) => g.rows);
 		const key = rows.find((r) => r.playerId === ids[0])?.tie;
 		const cluster = rows.filter((r) => key && r.tie === key).map((r) => r.playerId);
 		if (
@@ -200,7 +202,7 @@ export const actions: Actions = {
 		const user = await organizerAction(event);
 		const season = getSeason(event.params.slug, user);
 		if (season.status !== 'play') return fail(409, { message: 'The season is not in play.' });
-		if (!endState(season).ready)
+		if (!endState(season, seasonData(season.id)).ready)
 			return fail(409, { message: 'Resolve the flags and order the ties before finalizing.' });
 		finalizeSeason(season.id, user.id);
 		return { message: `${season.name} is finalized and in the archive.` };

@@ -7,7 +7,7 @@ import { reportingClosed } from '#lib/league/time.ts';
 import type { SeasonFields, SeasonStatus } from '#lib/season.ts';
 import { db } from '#lib/server/db/index.ts';
 import { audit, entries, matches, players, seasons } from '#lib/server/db/schema.ts';
-import { seasonMatches } from '#lib/server/matches.ts';
+import { clearTiebreaks, seasonMatches, type Match } from '#lib/server/matches.ts';
 
 export type Season = typeof seasons.$inferSelect;
 
@@ -122,6 +122,7 @@ export function dropPlayer(seasonId: number, playerId: string, actorId: string) 
 			.set({ dropped: true })
 			.where(and(eq(entries.seasonId, seasonId), eq(entries.playerId, playerId)))
 			.run();
+		clearTiebreaks(tx, seasonId);
 		tx.insert(audit)
 			.values({ seasonId, actorId, action: 'drop', after: { dropped: playerId } })
 			.run();
@@ -135,6 +136,7 @@ export function cancelDrop(seasonId: number, playerId: string, actorId: string) 
 			.set({ dropped: false })
 			.where(and(eq(entries.seasonId, seasonId), eq(entries.playerId, playerId)))
 			.run();
+		clearTiebreaks(tx, seasonId);
 		tx.insert(audit)
 			.values({ seasonId, actorId, action: 'undrop', after: { undropped: playerId } })
 			.run();
@@ -201,8 +203,11 @@ export function lockGroups(seasonId: number) {
 	});
 }
 
-export function groupStandings(season: Season, list: SeasonEntry[]) {
-	const all = seasonMatches(season.id);
+export function groupStandings(
+	season: Season,
+	list: SeasonEntry[],
+	all: Match[] = seasonMatches(season.id)
+) {
 	const closed = reportingClosed(season.deadline, new Date());
 	return groupsOf(list).map((g, i) => {
 		const by = new Map(g.map((e) => [e.playerId, e]));

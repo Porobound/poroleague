@@ -14,7 +14,8 @@ import {
 	resultOf,
 	saveReport
 } from '#lib/server/matches.ts';
-import { getSeason } from '#lib/server/seasons.ts';
+import { cardContext, matchCard } from '#lib/matchCard.ts';
+import { getSeason, seasonEntries } from '#lib/server/seasons.ts';
 import { postResult, postToOrganizers } from '#lib/server/webhooks.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -41,9 +42,12 @@ function context({ params, locals }: Event) {
 export const load: PageServerLoad = (event) => {
 	const { season, match, mode, closed, voided } = context(event);
 	const [p1, p2] = matchPlayers(match);
+	const viewer = event.locals.user?.id ?? null;
 	return {
 		season,
 		match,
+		// Same status rule as every match card.
+		status: matchCard(match, cardContext(season, seasonEntries(season.id), viewer)).status,
 		mode,
 		closed,
 		voided,

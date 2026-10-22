@@ -170,13 +170,7 @@
 		<MatchCard
 			{head}
 			{...saved}
-			status={data.voided
-				? 'void'
-				: m.flaggedBy && !m.flagResolvedAt
-					? 'flagged'
-					: m.reportedBy
-						? 'reported'
-						: 'scheduled'}
+			status={data.status}
 			note={m.flagResolvedAt
 				? 'Flag resolved by an organizer · final'
 				: m.flaggedBy

@@ -10,6 +10,13 @@ import { groupName } from '#lib/season.ts';
 export type Match = typeof matches.$inferSelect;
 export type Player = typeof players.$inferSelect;
 
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+// Organizer tie ranks only order the ties of the standings they were set on, so any result change
+// clears them and the organizer confirms the order again.
+export const clearTiebreaks = (tx: Tx, seasonId: number) =>
+	tx.update(entries).set({ tiebreak: null }).where(eq(entries.seasonId, seasonId)).run();
+
 export const getMatch = (seasonId: number, id: number) =>
 	db
 		.select()
@@ -89,6 +96,7 @@ export function saveReport(m: Match, actorId: string, values: Report) {
 			.set({ ...values, reportedBy: actorId, reportedAt: new Date() })
 			.where(eq(matches.id, m.id))
 			.run();
+		clearTiebreaks(tx, m.seasonId);
 		tx.insert(audit)
 			.values({ seasonId: m.seasonId, matchId: m.id, actorId, action: 'report', after: values })
 			.run();
@@ -138,6 +146,7 @@ export function organizerEdit(m: Match, actorId: string, values: Report) {
 			})
 			.where(eq(matches.id, m.id))
 			.run();
+		clearTiebreaks(tx, m.seasonId);
 		tx.insert(audit)
 			.values({
 				seasonId: m.seasonId,
