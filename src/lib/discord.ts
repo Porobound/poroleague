@@ -150,6 +150,10 @@ export function pairingsPost(title: string, round: number, pairs: Pairing[]): We
 	);
 	return {
 		content: [`**${escapeMd(title)} · Round ${round}**`, ...lines].join('\n'),
-		allowed_mentions: { parse: [], users: [...new Set(pairs.flatMap((p) => [p.p1Id, p.p2Id]))] }
+		// Discord rejects the whole message if a listed id isn't a snowflake (dev players are "dev-N").
+		allowed_mentions: {
+			parse: [],
+			users: [...new Set(pairs.flatMap((p) => [p.p1Id, p.p2Id]))].filter((id) => /^\d+$/.test(id))
+		}
 	};
 }

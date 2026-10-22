@@ -14,7 +14,7 @@ async function post(url: string, body: WebhookBody) {
 			headers: { 'content-type': 'application/json' },
 			body: JSON.stringify(body)
 		});
-		if (!res.ok) console.error(`Discord webhook failed: ${res.status}`);
+		if (!res.ok) console.error(`Discord webhook failed: ${res.status} ${await res.text()}`);
 	} catch (e) {
 		console.error(e);
 	}

@@ -158,4 +158,8 @@ describe('pairingsPost', () => {
 		);
 		expect(body.allowed_mentions).toEqual({ parse: [], users: ['1', '2', '3', '4'] });
 	});
+	it('leaves non-Discord ids out of the ping list', () => {
+		const body = pairingsPost('S', 1, [{ group: null, p1Id: '1', p2Id: 'dev-2' }]);
+		expect(body.allowed_mentions.users).toEqual(['1']);
+	});
 });
