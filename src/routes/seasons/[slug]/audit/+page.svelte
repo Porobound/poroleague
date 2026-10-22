@@ -7,7 +7,9 @@
 		flag: 'pb-badge-rank',
 		edit: 'pb-badge-win',
 		resolve: 'pb-badge-win',
-		drop: 'pb-badge-live'
+		drop: 'pb-badge-live',
+		tiebreak: 'pb-badge-win',
+		finalize: 'pb-badge-win'
 	};
 </script>
 

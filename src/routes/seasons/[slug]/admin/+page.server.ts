@@ -8,11 +8,14 @@ import { seasonMatches } from '#lib/server/matches.ts';
 import {
 	deleteSeason,
 	drawGroups,
+	finalizeSeason,
 	getSeason,
+	groupStandings,
 	matchCount,
 	runningSeason,
 	seasonEntries,
 	setStatus,
+	setTiebreaks,
 	slugTaken,
 	updateSeason,
 	type Season
@@ -43,13 +46,45 @@ function weekPairings(season: Season, now = new Date()) {
 	return { week, rounds, byRound, count: byRound.reduce((n, r) => n + r.pairs.length, 0) };
 }
 
+// End of season opens at the deadline, or earlier once every live match is reported.
+function endState(season: Season, now = new Date()) {
+	const list = seasonEntries(season.id);
+	const dropped = new Set(list.filter((e) => e.dropped).map((e) => e.playerId));
+	const live = seasonMatches(season.id).filter((m) => !isVoid(m, dropped));
+	const closed = reportingClosed(season.deadline, now);
+	const unplayed = live.filter((m) => !m.reportedBy).length;
+	const openFlags = live.filter((m) => m.flaggedBy && !m.flagResolvedAt).length;
+	const ending = closed || unplayed === 0;
+	type Tie = {
+		group: number;
+		resolved: boolean;
+		players: { playerId: string; name: string; place: number }[];
+	};
+	const ties = ending
+		? groupStandings(season, list).flatMap((g) => {
+				const byKey = new Map<string, Tie>();
+				g.rows.forEach((r, i) => {
+					if (!r.tie) return;
+					const t = byKey.get(r.tie) ?? { group: g.group, resolved: true, players: [] };
+					t.players.push({ playerId: r.playerId, name: r.name, place: i + 1 });
+					if (r.unresolvedTie) t.resolved = false;
+					byKey.set(r.tie, t);
+				});
+				return [...byKey.values()];
+			})
+		: [];
+	const ready = ending && !openFlags && ties.every((t) => t.resolved);
+	return { closed, unplayed, openFlags, ending, ties, ready };
+}
+
 export const load: PageServerLoad = async ({ parent }) => {
 	const { season } = await parent();
 	return {
 		running: season.status === 'draft' ? (runningSeason(season.id) ?? null) : null,
 		entryCount: seasonEntries(season.id).length,
 		matchCount: matchCount(season.id),
-		pairings: season.status === 'play' ? weekPairings(season) : null
+		pairings: season.status === 'play' ? weekPairings(season) : null,
+		end: season.status === 'play' ? endState(season) : null
 	};
 };
 
@@ -104,6 +139,35 @@ export const actions: Actions = {
 			p.byRound.map((r) => pairingsPost(`${season.name} · Week ${p.week}`, r.round, r.pairs))
 		);
 		return { message: `Week ${p.week} pairings posted in Discord.` };
+	},
+
+	tiebreak: async (event) => {
+		const user = await organizerAction(event);
+		const ids = String((await event.request.formData()).get('order') ?? '').split(',');
+		const season = getSeason(event.params.slug, user);
+		if (season.status !== 'play') return fail(409, { message: 'The season is not in play.' });
+		const rows = groupStandings(season, seasonEntries(season.id)).flatMap((g) => g.rows);
+		const key = rows.find((r) => r.playerId === ids[0])?.tie;
+		const cluster = rows.filter((r) => key && r.tie === key).map((r) => r.playerId);
+		if (
+			!key ||
+			new Set(ids).size !== ids.length ||
+			cluster.length !== ids.length ||
+			!ids.every((id) => cluster.includes(id))
+		)
+			return fail(400, { message: 'Those players are no longer tied. Reload and try again.' });
+		setTiebreaks(season.id, ids, user.id);
+		return { message: 'Tiebreak order saved.' };
+	},
+
+	finalize: async (event) => {
+		const user = await organizerAction(event);
+		const season = getSeason(event.params.slug, user);
+		if (season.status !== 'play') return fail(409, { message: 'The season is not in play.' });
+		if (!endState(season).ready)
+			return fail(409, { message: 'Resolve the flags and order the ties before finalizing.' });
+		finalizeSeason(season.id, user.id);
+		return { message: `${season.name} is finalized and in the archive.` };
 	},
 
 	delete: async (event) => {

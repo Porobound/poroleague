@@ -1,12 +1,19 @@
 <script lang="ts">
 	import SeasonForm from '#lib/components/SeasonForm.svelte';
 	import ConfirmButton from '#lib/components/ConfirmButton.svelte';
-	import { editableFields, seasonFields, STATUS_LABEL } from '#lib/season.ts';
+	import { date } from '#lib/format.ts';
+	import { editableFields, groupName, seasonFields, STATUS_LABEL } from '#lib/season.ts';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
 	const season = $derived(data.season);
 	const hasResults = $derived(season.status === 'play' || season.status === 'finished');
+	const matchesUrl = $derived(`/seasons/${season.slug}/admin/matches`);
+	const swap = (players: { playerId: string }[], i: number, j: number) => {
+		const ids = players.map((p) => p.playerId);
+		[ids[i], ids[j]] = [ids[j], ids[i]];
+		return ids.join(',');
+	};
 </script>
 
 <svelte:head>
@@ -41,6 +48,110 @@
 				: `rounds ${p.rounds[0]}–${p.rounds[1]}`} in the pairings channel and pings every player in them.
 			It can't be unsent from here.
 		</ConfirmButton>
+	{/if}
+
+	{#if data.end}
+		{@const e = data.end}
+		{#if e.openFlags && !e.ending}
+			<p class="status" role="status">
+				<a href="{matchesUrl}?status=flagged"
+					>{e.openFlags} flagged result{e.openFlags === 1 ? '' : 's'}</a
+				> waiting for you.
+			</p>
+		{/if}
+		{#if e.ending}
+			<section class="panel end">
+				<h2>End of season</h2>
+				<p class="muted">
+					{e.closed
+						? `The deadline passed on ${date(season.deadline)}. Reporting is closed.`
+						: 'Every match is reported.'} Settle what's left, then finalize.
+				</p>
+
+				<h3>1. Unplayed matches</h3>
+				<p>
+					{#if e.unplayed}
+						{e.unplayed} unplayed: each is a double loss unless you
+						<a href="{matchesUrl}?status=unplayed">enter the result</a>.
+					{:else}
+						None left.
+					{/if}
+				</p>
+
+				<h3>2. Flagged results</h3>
+				<p>
+					{#if e.openFlags}
+						<a href="{matchesUrl}?status=flagged">{e.openFlags} open</a>: edit or keep each one.
+					{:else}
+						None open.
+					{/if}
+				</p>
+
+				<h3>3. Unresolved ties</h3>
+				{#each e.ties as t (t.players.map((p) => p.playerId).join())}
+					<div class="tie">
+						<p>
+							<strong>{groupName(t.group)}</strong> · places {t.players[0].place}–{t.players.at(-1)
+								?.place} ·
+							<span class="muted"
+								>{t.resolved ? 'Order set' : 'Tied on points, head-to-head and game-win %'}</span
+							>
+						</p>
+						<ol class="player-list">
+							{#each t.players as p, i (p.playerId)}
+								<li>
+									<span class="pb-num">{p.place}</span>
+									<span class="grow">{p.name}</span>
+									{#if i > 0}
+										<form method="POST" action="?/tiebreak">
+											<input type="hidden" name="order" value={swap(t.players, i, i - 1)} />
+											<button class="pb-btn pb-btn-ghost pb-btn-sm" aria-label="Move {p.name} up"
+												>↑</button
+											>
+										</form>
+									{/if}
+									{#if i < t.players.length - 1}
+										<form method="POST" action="?/tiebreak">
+											<input type="hidden" name="order" value={swap(t.players, i, i + 1)} />
+											<button class="pb-btn pb-btn-ghost pb-btn-sm" aria-label="Move {p.name} down"
+												>↓</button
+											>
+										</form>
+									{/if}
+								</li>
+							{/each}
+						</ol>
+						{#if !t.resolved}
+							<form method="POST" action="?/tiebreak">
+								<input
+									type="hidden"
+									name="order"
+									value={t.players.map((p) => p.playerId).join(',')}
+								/>
+								<button class="pb-btn pb-btn-secondary pb-btn-sm">Keep this order</button>
+							</form>
+						{/if}
+					</div>
+				{:else}
+					<p>None.</p>
+				{/each}
+
+				<h3>4. Finalize</h3>
+				{#if e.ready}
+					<ConfirmButton
+						action="?/finalize"
+						label="Finalize season"
+						title="Finalize {season.name}?"
+						confirmLabel="Finalize season"
+					>
+						Standings freeze and can't be changed after this. The season moves to the archive.
+						Finalizing is logged in the public audit log.
+					</ConfirmButton>
+				{:else}
+					<p class="muted">Resolve the flags and order the ties first.</p>
+				{/if}
+			</section>
+		{/if}
 	{/if}
 
 	{#if season.status === 'draft' && data.running}
@@ -119,6 +230,24 @@
 </div>
 
 <style>
+	.end {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 12px;
+	}
+	.end h3 {
+		margin: 12px 0 0;
+	}
+	.end p {
+		margin: 0;
+	}
+	.tie {
+		align-self: stretch;
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
 	.danger {
 		border-top: 1px solid var(--line);
 		padding-top: 24px;
