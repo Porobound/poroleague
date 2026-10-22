@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { editableFields, NEW_SEASON, parseSeasonForm, slugify, type SeasonFields } from './season';
+import {
+	editableFields,
+	NEW_SEASON,
+	parseSeasonForm,
+	seasonPhases,
+	slugify,
+	type SeasonFields
+} from './season';
 
 const form = (o: Record<string, string>) => {
 	const f = new FormData();
@@ -99,5 +106,43 @@ describe('editableFields', () => {
 		expect(editableFields('signup')).not.toContain('slug');
 		expect(editableFields('play')).toEqual(['name', 'deadline', 'topCutSize']);
 		expect(editableFields('finished')).toEqual([]);
+	});
+});
+
+describe('seasonPhases', () => {
+	const play = {
+		week: 3,
+		weeks: 6,
+		rounds: [5, 6] as [number, number],
+		groups: [12, 12],
+		closed: false
+	};
+	const view = (ps: ReturnType<typeof seasonPhases>) => ps.map((p) => `${p.state}:${p.detail}`);
+
+	it('marks the weekly rounds current during play', () => {
+		expect(view(seasonPhases({ status: 'play', deadline: '2026-11-15' }, play))).toEqual([
+			'done:Done',
+			'done:Closed',
+			'done:2 groups of 12',
+			'current:Week 3 of 6 · rounds 5–6',
+			'todo:15 Nov 2026',
+			'todo:Coming later'
+		]);
+	});
+	it('moves to the deadline once reporting closes, and is done when finished', () => {
+		const closed = { ...play, closed: true, groups: [13, 12] };
+		expect(
+			view(seasonPhases({ status: 'play', deadline: '2026-11-15' }, closed)).slice(2, 5)
+		).toEqual(['done:2 groups (13 + 12)', 'done:Done', 'current:15 Nov 2026']);
+		expect(
+			seasonPhases({ status: 'finished', deadline: '2026-11-15' }, closed).map((p) => p.state)
+		).toEqual(['done', 'done', 'done', 'done', 'done', 'todo']);
+	});
+	it('shows signup open before any groups exist', () => {
+		const none = { week: 0, weeks: 0, rounds: null, groups: [], closed: false };
+		expect(view(seasonPhases({ status: 'signup', deadline: null }, none)).slice(1, 3)).toEqual([
+			'current:Open',
+			'todo:After signup'
+		]);
 	});
 });

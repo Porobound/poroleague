@@ -2,21 +2,17 @@
 	import { page } from '$app/state';
 	import Avatar from '#lib/components/Avatar.svelte';
 	import ConfirmButton from '#lib/components/ConfirmButton.svelte';
+	import StandingsTable from '#lib/components/StandingsTable.svelte';
+	import MatchCard from '#lib/components/MatchCard.svelte';
+	import { date, day, tzName } from '#lib/format.ts';
 	import { groupName, STATUS_LABEL } from '#lib/season.ts';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
 	const season = $derived(data.season);
 	const user = $derived(data.user);
-	const nameOf = $derived(new Map(data.entries.map((e) => [e.playerId, e.displayName])));
-	const date = (d: string | null) =>
-		d
-			? new Date(`${d}T12:00:00Z`).toLocaleDateString('en-GB', {
-					day: 'numeric',
-					month: 'short',
-					year: 'numeric'
-				})
-			: '';
+	const roundsText = ([a, b]: [number, number]) =>
+		a === b ? `round ${a}` : b === a + 1 ? `rounds ${a} and ${b}` : `rounds ${a}–${b}`;
 </script>
 
 <svelte:head>
@@ -24,40 +20,87 @@
 </svelte:head>
 
 <div class="page">
-	<span class="eyebrow">{STATUS_LABEL[season.status]}</span>
-	<h1>{season.name}</h1>
-	<p class="muted">
-		Starts {date(season.startDate)} · season deadline {date(season.deadline)}, 23:59 Helsinki time ·
-		{season.roundsPerWeek} rounds a week
-	</p>
+	<section class="hero">
+		<div class="hero-text">
+			{#if season.status === 'play'}
+				<span class="pb-badge">{season.name}</span>
+				{#if data.closed}
+					<h1>Reporting is closed.</h1>
+					<p class="lede">Organizers are entering the last results and breaking any ties.</p>
+				{:else if data.week < 1}
+					<h1>Starts {date(season.startDate)}.</h1>
+					<p class="lede">The schedule is out. Week 1 opens on the start date.</p>
+				{:else if data.rounds && data.weekEnds}
+					<h1>Week {data.week} is up.</h1>
+					<p class="lede">
+						This week: {roundsText(data.rounds)}. Aim to play your matches by {day(data.weekEnds)}
+						and report each one here. Need more time? Agree a later date with your opponent. Only matches
+						still unplayed when the season ends count as a double loss.
+					</p>
+				{:else}
+					<h1>All rounds are out.</h1>
+					<p class="lede">
+						Report anything left before the deadline. Unplayed matches count as a double loss.
+					</p>
+				{/if}
+			{:else if season.status === 'finished'}
+				<span class="pb-badge">{season.name}</span>
+				<h1>Final standings.</h1>
+			{:else}
+				<span class="eyebrow">{STATUS_LABEL[season.status]}</span>
+				<h1>{season.name}</h1>
+				<p class="muted">
+					Starts {date(season.startDate)} · {season.roundsPerWeek} rounds a week
+				</p>
+			{/if}
+		</div>
+		{#if season.deadline}
+			<div class="panel deadline">
+				<span class="eyebrow">Season deadline</span>
+				<span class="deadline-date">{date(season.deadline)} · 23:59 {tzName(season.deadline)}</span>
+				{#if season.status !== 'finished'}
+					<span class="muted small">Anything unplayed by then is a double loss.</span>
+				{/if}
+			</div>
+		{/if}
+	</section>
+	{#if season.status !== 'draft'}
+		<ol class="pb-phase" aria-label="Season progress">
+			{#each data.phases as p (p.label)}
+				<li
+					class={[
+						'pb-phase-step',
+						p.state === 'done' && 'is-done',
+						p.state === 'current' && 'is-current'
+					]}
+					aria-current={p.state === 'current' ? 'step' : undefined}
+				>
+					<span class="pb-phase-bar"></span>
+					<span class="pb-phase-label">{p.label}</span>
+					<span class="pb-phase-detail">{p.detail}</span>
+				</li>
+			{/each}
+		</ol>
+	{/if}
 
 	{#if form?.message}
 		<p class="status" role="status">{form.message}</p>
 	{/if}
 
-	{#if data.myMatches.length}
-		<section class="panel">
-			<h2>Your matches</h2>
-			<ul class="player-list">
-				{#each data.myMatches as m (m.id)}
-					{@const opp = m.p1Id === user?.id ? m.p2Id : m.p1Id}
-					{@const mine = m.p1Id === user?.id ? [m.p1Games, m.p2Games] : [m.p2Games, m.p1Games]}
-					<li>
-						<span class="muted">Round {m.round}</span>
-						<span class="grow">vs {nameOf.get(opp)}</span>
-						{#if m.flaggedBy}<span class="pb-badge pb-badge-rank">Flagged</span>{/if}
-						{#if m.reportedBy}
-							<span class="pb-num">{mine[0]}-{mine[1]}</span>
-							<a href="/seasons/{season.slug}/matches/{m.id}">View</a>
-						{:else}
-							<a
-								class="pb-btn pb-btn-primary pb-btn-sm"
-								href="/seasons/{season.slug}/matches/{m.id}">Report</a
-							>
-						{/if}
-					</li>
-				{/each}
-			</ul>
+	{#if data.signedUp && season.status === 'play'}
+		<section>
+			<div class="section-head">
+				<h2>Your matches this week</h2>
+				<a href="/seasons/{season.slug}/players/{user?.id}">Your page</a>
+			</div>
+			{#if data.myWeek.length}
+				<div class="cards">
+					{#each data.myWeek as c (c.id)}<MatchCard {...c.props} />{/each}
+				</div>
+			{:else if !data.myByes.length}
+				<p class="muted">No matches for you this week.</p>
+			{/if}
+			{#each data.myByes as r (r)}<p class="muted small">Bye in round {r}</p>{/each}
 		</section>
 	{/if}
 
@@ -106,21 +149,41 @@
 	{/if}
 
 	{#if data.groups.length}
+		<p class="muted small">
+			Win 3 · Draw 1 · Loss 0. Ties break on points, then head-to-head, then game-win %, then an
+			organizer decision.
+		</p>
 		<div class="grid-2">
-			{#each data.groups as group, i (i)}
-				<section class="panel">
-					<h2>{groupName(i + 1)}</h2>
-					<ul class="player-list">
-						{#each group as e (e.playerId)}
-							<li>
-								<Avatar name={e.displayName} src={e.avatar} />
-								<span class="grow">{e.displayName}</span>
-							</li>
-						{/each}
-					</ul>
+			{#each data.groups as g (g.group)}
+				<section class="panel standings">
+					<h2>{groupName(g.group)}</h2>
+					<span class="muted small">
+						{g.size} players · {g.rounds} rounds{g.dropped.length
+							? ` · ${g.dropped.length} dropped`
+							: ''}
+					</span>
+					<StandingsTable
+						rows={g.rows}
+						cut={season.topCutSize ?? 0}
+						slug={season.slug}
+						me={user?.id}
+						showTies={data.showTies}
+					/>
+					{#if g.dropped.length}
+						<p class="muted small">
+							Dropped: {g.dropped.map((e) => e.displayName).join(', ')}. Their matches are void and
+							left out of standings.
+						</p>
+					{/if}
 				</section>
 			{/each}
 		</div>
+		<p class="small">
+			{#if season.topCutSize}<span class="muted"
+					>Dashed line: top {season.topCutSize} per group (top cut comes later).</span
+				>{/if}
+			<a href="/seasons/{season.slug}/audit">Audit log</a>
+		</p>
 	{:else if data.entries.length}
 		<section>
 			<h2>Players</h2>
@@ -145,6 +208,67 @@
 	}
 	.signup p {
 		margin: 0;
+	}
+	.hero {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 24px;
+		align-items: flex-end;
+		justify-content: space-between;
+	}
+	.hero-text {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 12px;
+		flex: 1 1 520px;
+		min-width: 0;
+	}
+	.hero h1 {
+		margin: 0;
+		font: 700 56px/60px var(--font-display);
+		letter-spacing: -0.02em;
+	}
+	.hero p {
+		margin: 0;
+	}
+	.lede {
+		max-width: 600px;
+		font-size: 18px;
+		line-height: 28px;
+		color: var(--ink-muted);
+	}
+	.deadline {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		min-width: 240px;
+		padding: 16px 20px;
+	}
+	.deadline .small {
+		max-width: 240px;
+	}
+	.deadline-date {
+		font: 400 20px/24px var(--font-mono);
+		color: var(--signal);
+	}
+	.section-head {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 16px;
+	}
+	.section-head h2 {
+		margin: 0;
+	}
+	@media (max-width: 600px) {
+		.hero h1 {
+			font-size: 36px;
+			line-height: 40px;
+		}
+		.pb-phase {
+			grid-auto-flow: row;
+		}
 	}
 	.count {
 		font: 500 40px/44px var(--font-mono);

@@ -1,10 +1,13 @@
 import { error } from '@sveltejs/kit';
-import { and, asc, count, desc, eq, inArray, isNull, ne } from 'drizzle-orm';
+import { and, asc, count, desc, eq, inArray, isNull, ne, sql } from 'drizzle-orm';
 import { defaultGroupCount, splitGroups } from '#lib/league/groups.ts';
 import { buildSchedule } from '#lib/league/schedule.ts';
+import { standings } from '#lib/league/standings.ts';
+import { reportingClosed } from '#lib/league/time.ts';
 import type { SeasonFields, SeasonStatus } from '#lib/season.ts';
 import { db } from '#lib/server/db/index.ts';
 import { entries, matches, players, seasons } from '#lib/server/db/schema.ts';
+import { seasonMatches } from '#lib/server/matches.ts';
 
 export type Season = typeof seasons.$inferSelect;
 
@@ -19,6 +22,13 @@ export function getSeason(slug: string, viewer: App.Locals['user']): Season {
 		.get();
 	if (!season || (season.status === 'draft' && !viewer?.isOrganizer))
 		error(404, 'Season not found');
+	return season;
+}
+
+// Season sub-pages have nothing to show for a draft; only the season page previews drafts.
+export function publicSeason(slug: string, viewer: App.Locals['user']): Season {
+	const season = getSeason(slug, viewer);
+	if (season.status === 'draft') error(404, 'Season not found');
 	return season;
 }
 
@@ -82,7 +92,9 @@ export function seasonEntries(seasonId: number) {
 			playerId: players.id,
 			displayName: players.displayName,
 			avatar: players.avatar,
-			group: entries.group
+			group: entries.group,
+			dropped: entries.dropped,
+			tiebreak: entries.tiebreak
 		})
 		.from(entries)
 		.innerJoin(players, eq(entries.playerId, players.id))
@@ -141,4 +153,45 @@ export function lockGroups(seasonId: number) {
 			.run();
 		tx.update(seasons).set({ status: 'play' }).where(eq(seasons.id, seasonId)).run();
 	});
+}
+
+export function groupStandings(season: Season, list: SeasonEntry[]) {
+	const all = seasonMatches(season.id);
+	const closed = reportingClosed(season.deadline, new Date());
+	return groupsOf(list).map((g, i) => {
+		const by = new Map(g.map((e) => [e.playerId, e]));
+		const ms = all.filter((m) => m.group === i + 1);
+		const results = ms.map((m) => ({
+			p1: m.p1Id,
+			p2: m.p2Id,
+			p1Games: m.p1Games,
+			p2Games: m.p2Games
+		}));
+		return {
+			group: i + 1,
+			size: g.length,
+			rounds: Math.max(0, ...ms.map((m) => m.round)),
+			dropped: g.filter((e) => e.dropped),
+			rows: standings(g, results, closed).map((r) => ({
+				...r,
+				name: by.get(r.playerId)!.displayName,
+				avatar: by.get(r.playerId)!.avatar
+			}))
+		};
+	});
+}
+export type GroupStanding = ReturnType<typeof groupStandings>[number];
+
+// The header links your name to your player page: the season being viewed if you're in it,
+// else your newest season.
+export function myPlayerPage(playerId: string, slug?: string) {
+	const s = db
+		.select({ slug: seasons.slug })
+		.from(entries)
+		.innerJoin(seasons, eq(entries.seasonId, seasons.id))
+		.where(and(eq(entries.playerId, playerId), ne(seasons.status, 'draft'), live))
+		.orderBy(desc(sql`${seasons.slug} = ${slug ?? ''}`), desc(seasons.id))
+		.limit(1)
+		.get();
+	return s ? `/seasons/${s.slug}/players/${playerId}` : null;
 }

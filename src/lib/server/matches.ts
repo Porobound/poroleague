@@ -1,5 +1,6 @@
 import { and, asc, desc, eq, inArray, isNotNull, or } from 'drizzle-orm';
 import type { Report } from '#lib/league/report.ts';
+import { isVoid } from '#lib/league/status.ts';
 import { db } from '#lib/server/db/index.ts';
 import { audit, entries, matches, players } from '#lib/server/db/schema.ts';
 
@@ -36,19 +37,32 @@ export const playerMatches = (seasonId: number, playerId: string) =>
 		.orderBy(asc(matches.round))
 		.all();
 
-// A match is void once either player is dropped (spec: Drops).
+export const seasonMatches = (seasonId: number) =>
+	db
+		.select()
+		.from(matches)
+		.where(eq(matches.seasonId, seasonId))
+		.orderBy(asc(matches.group), asc(matches.round), asc(matches.id))
+		.all();
+
 export const isVoided = (m: Match) =>
-	!!db
-		.select({ playerId: entries.playerId })
-		.from(entries)
-		.where(
-			and(
-				eq(entries.seasonId, m.seasonId),
-				inArray(entries.playerId, [m.p1Id, m.p2Id]),
-				eq(entries.dropped, true)
-			)
+	isVoid(
+		m,
+		new Set(
+			db
+				.select({ playerId: entries.playerId })
+				.from(entries)
+				.where(
+					and(
+						eq(entries.seasonId, m.seasonId),
+						inArray(entries.playerId, [m.p1Id, m.p2Id]),
+						eq(entries.dropped, true)
+					)
+				)
+				.all()
+				.map((e) => e.playerId)
 		)
-		.get();
+	);
 
 // Pre-fills the report form: the legend the player last reported with, in any season.
 export function lastLegend(playerId: string): string | null {
@@ -96,3 +110,24 @@ export function flagMatch(m: Match, actorId: string, reason: string) {
 			.run();
 	});
 }
+
+export const seasonAudit = (seasonId: number) =>
+	db
+		.select({
+			id: audit.id,
+			action: audit.action,
+			before: audit.before,
+			after: audit.after,
+			createdAt: audit.createdAt,
+			actor: players.displayName,
+			group: matches.group,
+			round: matches.round,
+			p1Id: matches.p1Id,
+			p2Id: matches.p2Id
+		})
+		.from(audit)
+		.innerJoin(players, eq(audit.actorId, players.id))
+		.leftJoin(matches, eq(audit.matchId, matches.id))
+		.where(eq(audit.seasonId, seasonId))
+		.orderBy(desc(audit.id))
+		.all();

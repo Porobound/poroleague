@@ -68,11 +68,11 @@ Not in UI: managing organizers (Discord role), legend list (config file), messag
 - `/seasons/[slug]/players/[id]` — player page: this season's matches, per-legend record ("played as": W-D-L + game-win % per legend; "against": W-D-L vs each opponent legend), "report" buttons, "who do I play this week"
 - `/seasons/[slug]/legends` — season legend stats: picks, players, W-D-L, match/game win % per legend; win % hidden under 5 non-mirror matches; click a legend → players who used it with their record
 - `/seasons/[slug]/audit` — audit log
-- Legend stats (both pages): void (dropped) matches and deadline double losses excluded; mirror matches count as picks, not in win %.
+- Legend stats (both pages): void (dropped) matches and deadline double losses excluded. Legends page: mirror matches count as picks, not in W-D-L or win %. Player page: mirrors count as normal results.
 - `/seasons/[slug]/admin` — organizer tools
 - Report form: score, both legends, dice-roll winner.
 
-Career stats across seasons: **deferred**.
+Career stats across seasons: **deferred**. Wanted: from any player page, see that player's other seasons (finish, points, W-D-L per season, linking to that season's player page) and career totals (W-D-L, game-win %, legends across all seasons) on `/players/[id]`. Design pending (Player board "Past seasons" aside is a start).
 
 ## Discord integration
 

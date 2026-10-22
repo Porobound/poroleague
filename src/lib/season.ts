@@ -1,3 +1,4 @@
+import { date } from '#lib/format.ts';
 export type SeasonStatus = 'draft' | 'signup' | 'groups' | 'play' | 'finished';
 export type SeasonFields = {
 	name: string;
@@ -130,4 +131,56 @@ export function parseSeasonForm(
 			topCutSize
 		}
 	};
+}
+
+export type Phase = { label: string; detail: string; state: 'done' | 'current' | 'todo' };
+export type PhaseContext = {
+	week: number;
+	weeks: number;
+	rounds: [number, number] | null; // this week's first and last round
+	groups: number[]; // group sizes
+	closed: boolean; // past the season deadline
+};
+
+const groupsLabel = (sizes: number[]) =>
+	sizes.every((n) => n === sizes[0])
+		? `${sizes.length} group${sizes.length > 1 ? 's' : ''} of ${sizes[0]}`
+		: `${sizes.length} groups (${sizes.join(' + ')})`;
+
+function roundsDetail(c: PhaseContext) {
+	if (c.week < 1) return 'Not started';
+	if (c.week > c.weeks || !c.rounds) return 'All rounds out';
+	const [a, b] = c.rounds;
+	return `Week ${c.week} of ${c.weeks} · ${a === b ? `round ${a}` : `rounds ${a}–${b}`}`;
+}
+
+// The season page's phase bar. Finished seasons have no current step; top cut is always to come.
+export function seasonPhases(
+	s: { status: SeasonStatus; deadline: string | null },
+	c: PhaseContext
+): Phase[] {
+	const current = {
+		draft: 0,
+		signup: 1,
+		groups: 2,
+		play: c.closed ? 4 : 3,
+		finished: 5
+	}[s.status];
+	const after = (i: number) => current > i;
+	const steps: [string, string][] = [
+		['Draft', after(0) ? 'Done' : 'Being set up'],
+		['Signup', after(1) ? 'Closed' : current === 1 ? 'Open' : 'Not open yet'],
+		[
+			'Groups',
+			c.groups.length ? groupsLabel(c.groups) : current === 2 ? 'Drawing' : 'After signup'
+		],
+		['Weekly rounds', after(3) ? 'Done' : current === 3 ? roundsDetail(c) : ''],
+		['Deadline', date(s.deadline)],
+		['Top cut', 'Coming later']
+	];
+	return steps.map(([label, detail], i) => ({
+		label,
+		detail,
+		state: i === 5 ? 'todo' : i < current ? 'done' : i === current ? 'current' : 'todo'
+	}));
 }
