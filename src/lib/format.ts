@@ -21,3 +21,18 @@ const whenFmt = new Intl.DateTimeFormat('en-GB', {
 	timeZoneName: 'short'
 });
 export const when = (d: Date) => whenFmt.format(d);
+
+// "Sun 8 Nov" for a league date.
+export const day = (d: string) =>
+	new Date(`${d}T12:00:00Z`).toLocaleDateString('en-GB', {
+		weekday: 'short',
+		day: 'numeric',
+		month: 'short',
+		timeZone: 'UTC'
+	});
+
+// EET or EEST, whichever applies in Helsinki on that date.
+export const tzName = (d: string) =>
+	new Intl.DateTimeFormat('en-GB', { timeZone: LEAGUE_TZ, timeZoneName: 'short' })
+		.formatToParts(new Date(`${d}T12:00:00Z`))
+		.find((p) => p.type === 'timeZoneName')?.value ?? '';

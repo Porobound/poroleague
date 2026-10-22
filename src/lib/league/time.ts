@@ -18,3 +18,6 @@ export const weekOf = (round: number, roundsPerWeek: number) => Math.ceil(round 
 // Week 1 starts on the start date (league time); 0 before the season starts.
 export const currentWeek = (startDate: string | null, now: Date) =>
 	startDate ? Math.max(0, Math.floor(daysBetween(startDate, leagueDate(now)) / 7) + 1) : 0;
+
+export const addDays = (d: string, n: number) =>
+	new Date(Date.parse(`${d}T12:00:00Z`) + n * DAY).toISOString().slice(0, 10);
