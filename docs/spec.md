@@ -127,5 +127,6 @@ Designs come from Claude Design as HTML. Integration rule: **extract, don't past
 6. **Admin** — organizer edits, drops, flag resolution, deadline/finalize, tiebreak ranks, weekly pairings post.
 7. **Deploy** — Dockerfile, compose with cloudflared, GH Actions → GHCR, backup cron.
 8. **Bot API** — service-token JSON endpoints. Deferred to the Backlog milestone until a bot exists; its needs decide the endpoints.
+9. **Mobile sweep** — phone layouts for every view, phone checker script. `docs/superpowers/plans/2026-10-22-mobile.md`
 
 Each plan is written when the previous one lands, against the real code.

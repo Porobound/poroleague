@@ -52,4 +52,52 @@
 	.loss {
 		color: var(--brand);
 	}
+	/* Phones: each season is a two-line row, season and group left, place and record right. */
+	@media (max-width: 640px) {
+		table,
+		tbody {
+			display: block;
+		}
+		thead {
+			display: none;
+		}
+		tbody tr {
+			display: grid;
+			grid-template-columns: minmax(0, 1fr) auto auto;
+			gap: 2px 6px;
+			padding: 12px 0;
+			border-bottom: 1px solid var(--line);
+			background: none;
+		}
+		tbody tr:last-child {
+			border-bottom: 0;
+		}
+		.pb-table tbody tr > * {
+			display: block;
+			padding: 0;
+			border: 0;
+			background: none;
+		}
+		th[scope='row'] {
+			grid-area: 1 / 1;
+		}
+		td:nth-child(2) {
+			grid-area: 2 / 1;
+			font-size: 13px;
+			color: var(--ink-muted);
+		}
+		td:nth-child(3) {
+			grid-area: 1 / 2 / 2 / 4;
+			text-align: right;
+		}
+		td:nth-child(4),
+		td:nth-child(5) {
+			grid-row: 2;
+			font-size: 13px;
+			color: var(--ink-muted);
+		}
+		td:nth-child(5)::before {
+			content: '· ';
+		}
+	}
 </style>

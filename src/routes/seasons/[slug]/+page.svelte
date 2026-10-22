@@ -161,32 +161,34 @@
 				</div>
 			{/if}
 			<hr />
-			{#if !user}
-				<a
-					class="pb-btn pb-btn-primary"
-					href="/auth/login?returnTo={encodeURIComponent(page.url.pathname)}"
-					data-sveltekit-reload>Log in with Discord to sign up</a
-				>
-			{:else if data.signedUp}
-				<p>
-					<span class="pb-badge pb-badge-win">You're in</span> Signed up as
-					<strong>{user.displayName}</strong>. You can withdraw until signup closes.
-				</p>
-				<ConfirmButton
-					action="?/withdraw"
-					variant="secondary"
-					label="Withdraw"
-					title="Withdraw from {season.name}?"
-					confirmLabel="Withdraw"
-				>
-					You'll be taken off the signup list. You can sign up again while signup is open.
-				</ConfirmButton>
-			{:else}
-				<p>You'll play as <strong>{user.displayName}</strong>, your nickname on the server.</p>
-				<form method="POST" action="?/join">
-					<button class="pb-btn pb-btn-primary">Sign up for {season.name}</button>
-				</form>
-			{/if}
+			<div class="signup-action action-bar">
+				{#if !user}
+					<a
+						class="pb-btn pb-btn-primary"
+						href="/auth/login?returnTo={encodeURIComponent(page.url.pathname)}"
+						data-sveltekit-reload>Log in with Discord to sign up</a
+					>
+				{:else if data.signedUp}
+					<p>
+						<span class="pb-badge pb-badge-win">You're in</span> Signed up as
+						<strong>{user.displayName}</strong>. You can withdraw until signup closes.
+					</p>
+					<ConfirmButton
+						action="?/withdraw"
+						variant="secondary"
+						label="Withdraw"
+						title="Withdraw from {season.name}?"
+						confirmLabel="Withdraw"
+					>
+						You'll be taken off the signup list. You can sign up again while signup is open.
+					</ConfirmButton>
+				{:else}
+					<p>You'll play as <strong>{user.displayName}</strong>, your nickname on the server.</p>
+					<form method="POST" action="?/join">
+						<button class="pb-btn pb-btn-primary">Sign up for {season.name}</button>
+					</form>
+				{/if}
+			</div>
 		</section>
 	{:else if season.status === 'groups'}
 		<p class="pb-notice">Signup is closed. Groups are being drawn; the schedule follows shortly.</p>
@@ -203,30 +205,43 @@
 				>
 			</p>
 		{/if}
-		<div class="grid-2">
-			{#each data.groups as g (g.group)}
-				<section class="panel standings">
-					<h2>{groupName(g.group)}</h2>
-					<span class="muted small">
-						{g.size} players · {g.rounds} rounds{g.dropped.length
-							? ` · ${g.dropped.length} dropped`
-							: ''}
-					</span>
-					<StandingsTable
-						rows={g.rows}
-						cut={season.topCutSize ?? 0}
-						slug={season.slug}
-						me={user?.id}
-						showTies={data.showTies}
-					/>
-					{#if g.dropped.length}
-						<p class="muted small">
-							Dropped: {g.dropped.map((e) => e.displayName).join(', ')}. Their matches are void and
-							left out of standings.
-						</p>
-					{/if}
-				</section>
-			{/each}
+		<div class="groups">
+			{#if data.groups.length > 1}
+				<div class="group-switch" role="radiogroup" aria-label="Group">
+					{#each data.groups as g, i (g.group)}
+						<label
+							><input type="radio" name="group" value={g.group} checked={i === 0} />{groupName(
+								g.group
+							)}</label
+						>
+					{/each}
+				</div>
+			{/if}
+			<div class="grid-2">
+				{#each data.groups as g (g.group)}
+					<section class="panel standings" data-group={g.group}>
+						<h2>{groupName(g.group)}</h2>
+						<span class="muted small">
+							{g.size} players · {g.rounds} rounds{g.dropped.length
+								? ` · ${g.dropped.length} dropped`
+								: ''}
+						</span>
+						<StandingsTable
+							rows={g.rows}
+							cut={season.topCutSize ?? 0}
+							slug={season.slug}
+							me={user?.id}
+							showTies={data.showTies}
+						/>
+						{#if g.dropped.length}
+							<p class="muted small">
+								Dropped: {g.dropped.map((e) => e.displayName).join(', ')}. Their matches are void
+								and left out of standings.
+							</p>
+						{/if}
+					</section>
+				{/each}
+			</div>
 		</div>
 		<p class="muted small">
 			Win 3 · Draw 1 · Loss 0. Ties break on points, then head-to-head, then game-win %, then an
@@ -261,6 +276,15 @@
 		max-width: 480px;
 	}
 	.signup p {
+		margin: 0;
+	}
+	.signup-action {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 12px;
+	}
+	.signup-action p {
 		margin: 0;
 	}
 	.signup hr {
@@ -348,10 +372,29 @@
 	.section-head h2 {
 		margin: 0;
 	}
-	@media (max-width: 600px) {
+	@media (max-width: 640px) {
 		.hero h1 {
-			font-size: 36px;
-			line-height: 40px;
+			font-size: 30px;
+			line-height: 34px;
+		}
+		.lede {
+			font-size: 15px;
+			line-height: 22px;
+		}
+		.deadline {
+			min-width: 0;
+			padding: 12px 16px;
+			gap: 2px;
+		}
+		.deadline .small {
+			max-width: none;
+		}
+		.deadline-date {
+			font-size: 17px;
+			line-height: 22px;
+		}
+		.signup-action {
+			align-items: stretch;
 		}
 	}
 	.standings-h {

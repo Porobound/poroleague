@@ -333,3 +333,426 @@ a:hover {
 .panel .pb-match {
 	background: var(--surface);
 }
+
+/* Phones. Desktop header markup stays as it is; phones get the menu and the tab bar instead. */
+.site-nav .desk {
+	display: contents;
+}
+.site-nav .phone,
+.tab-bar,
+.group-switch,
+.back-bar {
+	display: none;
+}
+@media (max-width: 640px) {
+	.site-nav {
+		padding-block: 12px;
+	}
+	.site-nav .desk {
+		display: none;
+	}
+	.site-nav .phone {
+		display: flex;
+	}
+	.brand {
+		font-size: 22px;
+	}
+	.me-menu {
+		position: relative;
+	}
+	.me-menu summary {
+		min-height: 44px;
+		list-style: none;
+		cursor: pointer;
+	}
+	.me-menu summary::-webkit-details-marker {
+		display: none;
+	}
+	.me-items {
+		position: absolute;
+		right: 0;
+		top: calc(100% + 8px);
+		z-index: 20;
+		min-width: 180px;
+		display: flex;
+		flex-direction: column;
+		background: var(--surface-raised);
+		border: 1px solid var(--line);
+		border-radius: var(--radius-md);
+		padding: 4px;
+	}
+	.me-items a,
+	.me-items button {
+		all: unset;
+		box-sizing: border-box;
+		display: flex;
+		align-items: center;
+		min-height: 44px;
+		padding: 0 12px;
+		border-radius: var(--radius-sm);
+		color: var(--ink);
+		font: 500 15px/20px var(--font-sans);
+		cursor: pointer;
+	}
+	.me-items form {
+		display: contents;
+	}
+	.me-items a:hover,
+	.me-items button:hover {
+		background: var(--frost);
+	}
+	.me-items a:focus-visible,
+	.me-items button:focus-visible {
+		outline: 2px solid var(--accent);
+	}
+
+	.tab-bar {
+		display: grid;
+		grid-auto-flow: column;
+		grid-auto-columns: minmax(0, 1fr);
+		position: fixed;
+		inset: auto 0 0;
+		z-index: 10;
+		border-top: 1px solid var(--line);
+		background: var(--surface-raised);
+		padding-bottom: env(safe-area-inset-bottom);
+	}
+	.tab-bar a {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 4px;
+		padding: 10px 0 14px;
+		color: var(--ink-muted);
+		text-decoration: none;
+		font: 500 12px/16px var(--font-sans);
+	}
+	.tab-bar a[aria-current='page'] {
+		color: var(--ink);
+		font-weight: 600;
+	}
+	main.container {
+		padding-bottom: calc(72px + env(safe-area-inset-bottom));
+	}
+	/* Pages with their own bottom bar or back header don't show the tabs (as on the boards). */
+	body:has(.action-bar, .back-bar) .tab-bar {
+		display: none;
+	}
+	body:has(.back-bar) .site-header {
+		display: none;
+	}
+
+	.page {
+		padding-block: 20px 32px;
+		gap: 20px;
+	}
+	.page h1 {
+		font-size: 28px;
+		line-height: 34px;
+	}
+	.cards {
+		grid-template-columns: minmax(0, 1fr);
+	}
+	.pb-match {
+		min-width: 0;
+	}
+	/* The card's View / Report link is its main action: a 44px target without growing the footer. */
+	.pb-match-foot a {
+		display: inline-flex;
+		align-items: center;
+		min-height: 44px;
+		margin-block: -10px;
+		padding-inline: 12px;
+		margin-inline-end: -12px;
+	}
+	.pb-btn {
+		min-height: 44px;
+	}
+
+	.panel {
+		padding: 16px;
+	}
+	.round summary {
+		min-height: 44px;
+	}
+
+	.seg a {
+		display: inline-flex;
+		align-items: center;
+		min-height: 40px;
+		box-sizing: border-box;
+	}
+
+	/* Schedule: weeks as one scrolling row of chips, filters as a grid. */
+	.seg.weeks {
+		flex-wrap: nowrap;
+		gap: 8px;
+		margin-inline: calc(-1 * var(--space-4));
+		padding: 0 var(--space-4);
+		background: none;
+		border: 0;
+		border-radius: 0;
+		scrollbar-width: none;
+	}
+	.seg.weeks a {
+		flex: none;
+		display: inline-flex;
+		align-items: center;
+		min-height: 44px;
+		padding: 0 16px;
+		border: 1px solid var(--line);
+		border-radius: var(--radius-pill);
+	}
+	.seg.weeks a[aria-current] {
+		border-color: var(--accent);
+	}
+	.seg.filters {
+		display: flex;
+		flex-wrap: wrap;
+		width: 100%;
+		box-sizing: border-box;
+	}
+	.seg.filters a {
+		flex: 1 1 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		min-height: 40px;
+		padding: 0 8px;
+	}
+	.seg.filters .mine {
+		flex-basis: 100%;
+	}
+	.toolbar {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	/* Audit tables become two-line entries: who and when, then type and what. */
+	.audit-table,
+	.audit-table tbody {
+		display: block;
+	}
+	.audit-table thead {
+		display: none;
+	}
+	.audit-table tbody tr {
+		display: grid;
+		grid-template-columns: auto minmax(0, 1fr) auto;
+		align-items: baseline;
+		gap: 4px 10px;
+		padding: 12px 0;
+		border-bottom: 1px solid var(--line);
+	}
+	.audit-table tbody tr:last-child {
+		border-bottom: 0;
+	}
+	.pb-table.audit-table tbody tr > * {
+		display: block;
+		padding: 0;
+		border: 0;
+		background: none;
+	}
+	.audit-table .who {
+		grid-area: 1 / 1 / 2 / 3;
+		font-weight: 600;
+	}
+	.audit-table .when {
+		grid-area: 1 / 3;
+		font-size: 13px;
+		color: var(--ink-muted);
+	}
+	.audit-table .type {
+		grid-area: 2 / 1;
+	}
+	.audit-table .what {
+		grid-area: 2 / 2 / 3 / 4;
+		font-size: 14px;
+		line-height: 20px;
+	}
+	.audit-table .type ~ .what {
+		grid-column: 2 / 4;
+	}
+	.audit-table tr:not(:has(.type)) .what {
+		grid-column: 1 / 4;
+	}
+
+	/* Login problem pages: full-width buttons, as on the boards. */
+	.message-card {
+		margin: 24px auto;
+		padding: 20px;
+	}
+	.message-card .actions {
+		align-self: stretch;
+		flex-direction: column;
+	}
+	.message-card .actions .pb-btn {
+		box-sizing: border-box;
+		width: 100%;
+		justify-content: center;
+		min-height: 48px;
+	}
+
+	/* Admin: the side nav becomes one scrolling row of chips above the page. */
+	.admin {
+		gap: 16px;
+		padding-block: 16px 32px;
+	}
+	.admin-nav {
+		flex: 1 1 100%;
+		flex-direction: row;
+		gap: 8px;
+		overflow-x: auto;
+		margin-inline: calc(-1 * var(--space-4));
+		padding: 0 var(--space-4);
+		scrollbar-width: none;
+	}
+	.admin-nav .eyebrow {
+		display: none;
+	}
+	.admin-nav a {
+		flex: none;
+		display: inline-flex;
+		align-items: center;
+		min-height: 44px;
+		padding: 0 16px;
+		border: 1px solid var(--line);
+		border-radius: var(--radius-pill);
+		white-space: nowrap;
+	}
+	.admin-nav a[aria-current='page'] {
+		border-color: var(--accent);
+	}
+
+	/* Back-arrow header (replaces the site header) and a sticky bar for the page's main action. */
+	.back-bar {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		margin-inline: calc(-1 * var(--space-4));
+		padding: 12px 16px;
+		border-bottom: 1px solid var(--line);
+	}
+	.back-bar a {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 44px;
+		height: 44px;
+		margin-left: -10px;
+		color: var(--ink);
+	}
+	.back-bar span {
+		font: 600 16px/22px var(--font-sans);
+	}
+	.action-bar {
+		position: fixed;
+		inset: auto 0 0;
+		z-index: 10;
+		display: flex;
+		flex-direction: column;
+		align-items: stretch;
+		gap: 8px;
+		margin: 0;
+		padding: 12px 16px calc(20px + env(safe-area-inset-bottom));
+		border-top: 1px solid var(--line);
+		background: var(--surface-raised);
+		text-align: center;
+		font-size: 14px;
+	}
+	.action-bar .pb-btn {
+		box-sizing: border-box;
+		width: 100%;
+		min-height: 48px;
+		justify-content: center;
+	}
+	body:has(.action-bar) main.container {
+		padding-bottom: calc(140px + env(safe-area-inset-bottom));
+	}
+
+	/* The design system's pb-phase-vertical and pb-table-compact, applied on phones. */
+	.pb-phase {
+		grid-auto-flow: row;
+		grid-auto-columns: auto;
+		gap: 0;
+	}
+	.pb-phase .pb-phase-step {
+		display: grid;
+		grid-template-columns: 4px auto 1fr;
+		align-items: baseline;
+		column-gap: 12px;
+		padding: 6px 0;
+	}
+	.pb-phase .pb-phase-bar {
+		width: 4px;
+		height: auto;
+		align-self: stretch;
+		grid-row: 1;
+	}
+	.pb-phase .pb-phase-detail {
+		text-align: right;
+	}
+	.standings .pb-table .pb-opt {
+		display: none;
+	}
+	.standings .pb-table {
+		font-size: 14px;
+	}
+	.standings .pb-table td,
+	.standings .pb-table th {
+		padding-left: 8px;
+		padding-right: 8px;
+	}
+	/* Names get room; a table that's still too wide scrolls inside its panel. */
+	.standings .pb-player-cell {
+		min-width: 130px;
+	}
+
+	/* Season page: one group at a time behind a switcher. */
+	.group-switch {
+		display: grid;
+		grid-auto-flow: column;
+		grid-auto-columns: minmax(0, 1fr);
+		gap: 4px;
+		margin-bottom: 10px;
+		background: var(--surface-raised);
+		border: 1px solid var(--line);
+		border-radius: var(--radius-md);
+		padding: 4px;
+	}
+	.group-switch label {
+		position: relative;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		min-height: 44px;
+		border-radius: var(--radius-sm);
+		color: var(--ink-muted);
+		font: 500 14px/20px var(--font-sans);
+		cursor: pointer;
+	}
+	.group-switch input {
+		position: absolute;
+		opacity: 0;
+		width: 1px;
+		height: 1px;
+	}
+	.group-switch label:has(input:checked) {
+		background: var(--frost);
+		color: var(--ink);
+		font-weight: 600;
+	}
+	.group-switch label:has(input:focus-visible) {
+		outline: 2px solid var(--accent);
+	}
+	.groups:has(.group-switch) .standings > h2 {
+		display: none;
+	}
+	/* ponytail: one rule per group number, covers up to four groups. */
+	.groups:has(.group-switch input[value='1']:checked) [data-group]:not([data-group='1']),
+	.groups:has(.group-switch input[value='2']:checked) [data-group]:not([data-group='2']),
+	.groups:has(.group-switch input[value='3']:checked) [data-group]:not([data-group='3']),
+	.groups:has(.group-switch input[value='4']:checked) [data-group]:not([data-group='4']) {
+		display: none;
+	}
+}

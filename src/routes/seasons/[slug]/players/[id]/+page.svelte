@@ -19,7 +19,7 @@
 <div class="page">
 	<section class="player-head">
 		<Avatar name={player.displayName} src={player.avatar} size={72} />
-		<div>
+		<div class="head-text">
 			<div class="name-row">
 				<h1>{player.displayName}</h1>
 				<a href="/players/{player.playerId}">Career</a>
@@ -114,5 +114,14 @@
 		flex-wrap: wrap;
 		gap: 8px;
 		align-items: center;
+	}
+	.head-text {
+		flex: 1 1 200px;
+		min-width: 0;
+	}
+	@media (max-width: 640px) {
+		.player-head {
+			gap: 14px;
+		}
 	}
 </style>

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { centerCurrent } from '#lib/attach.ts';
 	import MatchCard from '#lib/components/MatchCard.svelte';
 	import { date, tzName } from '#lib/format.ts';
 	import type { PageProps } from './$types';
@@ -30,14 +31,14 @@
 		<p class="empty">The schedule appears once the groups are locked.</p>
 	{:else}
 		<div class="toolbar">
-			<nav aria-label="Weeks" class="seg">
+			<nav aria-label="Weeks" class="seg weeks" {@attach centerCurrent}>
 				{#each data.weeks as w (w.n)}
 					<a href={q('week', w.n)} aria-current={w.n === data.week ? 'true' : undefined}>
 						{w.label}{w.n === data.currentWeek ? ' (now)' : ''}
 					</a>
 				{/each}
 			</nav>
-			<div class="seg" role="group" aria-label="Filter">
+			<div class="seg filters" role="group" aria-label="Filter">
 				{#if data.groups.length > 1}
 					<a href={q('group', null)} aria-current={!data.group ? 'true' : undefined}>All groups</a>
 					{#each data.groups as g (g.n)}
@@ -47,7 +48,11 @@
 					{/each}
 				{/if}
 				{#if data.user}
-					<a href={q('mine', data.mine ? null : '1')} aria-current={data.mine ? 'true' : undefined}>
+					<a
+						href={q('mine', data.mine ? null : '1')}
+						class="mine"
+						aria-current={data.mine ? 'true' : undefined}
+					>
 						Only my matches
 					</a>
 				{/if}
