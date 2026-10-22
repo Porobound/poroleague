@@ -27,7 +27,7 @@
 	<h1>Schedule</h1>
 
 	{#if !data.weeks.length}
-		<p class="status">The schedule appears once the groups are locked.</p>
+		<p class="empty">The schedule appears once the groups are locked.</p>
 	{:else}
 		<div class="toolbar">
 			<nav aria-label="Weeks" class="seg">
@@ -67,6 +67,16 @@
 		{#each shown as s (s.title)}
 			<details class="panel round" open>
 				<summary>
+					<svg class="pb-disclosure-chev" viewBox="0 0 24 24" aria-hidden="true">
+						<path
+							d="M9 6l6 6-6 6"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						/>
+					</svg>
 					<h2>{s.title}</h2>
 					<span class="muted small grow-left">
 						<span class="pb-num">{s.done}/{s.total}</span> reported{#if s.flagged}
@@ -79,7 +89,7 @@
 				</div>
 			</details>
 		{:else}
-			<p class="status">No matches for you in this view.</p>
+			<p class="empty">No matches for you in this view.</p>
 		{/each}
 	{/if}
 </div>

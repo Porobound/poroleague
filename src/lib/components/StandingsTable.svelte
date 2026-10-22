@@ -16,6 +16,8 @@
 		me?: string | null;
 		showTies?: boolean;
 	} = $props();
+	// Nobody has played: rows are still in name order, so show no ranks or cut line yet.
+	const fresh = $derived(rows.every((r) => !r.played));
 </script>
 
 <table class="pb-table">
@@ -33,8 +35,13 @@
 	</thead>
 	<tbody>
 		{#each rows as r, i (r.playerId)}
-			<tr class={[r.playerId === me && 'is-me', i + 1 === cut && i + 1 < rows.length && 'is-cut']}>
-				<td class={['pb-rank', i === 0 && r.played > 0 && 'is-podium']}>{i + 1}</td>
+			<tr
+				class={[
+					r.playerId === me && 'is-me',
+					!fresh && i + 1 === cut && i + 1 < rows.length && 'is-cut'
+				]}
+			>
+				<td class={['pb-rank', i === 0 && r.played > 0 && 'is-podium']}>{fresh ? '–' : i + 1}</td>
 				<td class="pb-player-cell">
 					<a class="pb-player" href="/seasons/{slug}/players/{r.playerId}">
 						<Avatar name={r.name} src={r.avatar} size={24} />
