@@ -466,6 +466,58 @@ dialog.pb-dialog {
 		min-height: 44px;
 	}
 
+	.panel {
+		padding: 16px;
+	}
+	.round summary {
+		min-height: 44px;
+	}
+
+	/* Schedule: weeks as one scrolling row of chips, filters as a grid. */
+	.seg.weeks {
+		flex-wrap: nowrap;
+		gap: 8px;
+		margin-inline: calc(-1 * var(--space-4));
+		padding: 0 var(--space-4);
+		background: none;
+		border: 0;
+		border-radius: 0;
+		scrollbar-width: none;
+	}
+	.seg.weeks a {
+		flex: none;
+		display: inline-flex;
+		align-items: center;
+		min-height: 44px;
+		padding: 0 16px;
+		border: 1px solid var(--line);
+		border-radius: var(--radius-pill);
+	}
+	.seg.weeks a[aria-current] {
+		border-color: var(--accent);
+	}
+	.seg.filters {
+		display: flex;
+		flex-wrap: wrap;
+		width: 100%;
+		box-sizing: border-box;
+	}
+	.seg.filters a {
+		flex: 1 1 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		min-height: 40px;
+		padding: 0 8px;
+	}
+	.seg.filters .mine {
+		flex-basis: 100%;
+	}
+	.toolbar {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
 	/* Back-arrow header (replaces the site header) and a sticky bar for the page's main action. */
 	.back-bar {
 		display: flex;

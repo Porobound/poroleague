@@ -13,6 +13,11 @@
 		return `?${u}`;
 	};
 	const shown = $derived(data.sections.filter((s) => s.cards.length));
+	// On phones the week chips scroll sideways; start with the selected week in view.
+	const centerCurrent = (el: HTMLElement) => {
+		const cur = el.querySelector<HTMLElement>('[aria-current]');
+		if (cur) el.scrollLeft = cur.offsetLeft - (el.clientWidth - cur.offsetWidth) / 2;
+	};
 </script>
 
 <svelte:head>
@@ -30,14 +35,14 @@
 		<p class="empty">The schedule appears once the groups are locked.</p>
 	{:else}
 		<div class="toolbar">
-			<nav aria-label="Weeks" class="seg">
+			<nav aria-label="Weeks" class="seg weeks" {@attach centerCurrent}>
 				{#each data.weeks as w (w.n)}
 					<a href={q('week', w.n)} aria-current={w.n === data.week ? 'true' : undefined}>
 						{w.label}{w.n === data.currentWeek ? ' (now)' : ''}
 					</a>
 				{/each}
 			</nav>
-			<div class="seg" role="group" aria-label="Filter">
+			<div class="seg filters" role="group" aria-label="Filter">
 				{#if data.groups.length > 1}
 					<a href={q('group', null)} aria-current={!data.group ? 'true' : undefined}>All groups</a>
 					{#each data.groups as g (g.n)}
@@ -47,7 +52,11 @@
 					{/each}
 				{/if}
 				{#if data.user}
-					<a href={q('mine', data.mine ? null : '1')} aria-current={data.mine ? 'true' : undefined}>
+					<a
+						href={q('mine', data.mine ? null : '1')}
+						class="mine"
+						aria-current={data.mine ? 'true' : undefined}
+					>
 						Only my matches
 					</a>
 				{/if}
