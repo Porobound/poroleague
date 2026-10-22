@@ -37,7 +37,7 @@
 			{/each}
 		</ul>
 	{:else}
-		<p class="status">No seasons yet. The first one shows up here once signup opens.</p>
+		<p class="empty">No seasons yet. The first one shows up here once signup opens.</p>
 	{/if}
 </div>
 

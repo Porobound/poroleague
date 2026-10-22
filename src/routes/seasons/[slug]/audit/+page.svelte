@@ -49,7 +49,7 @@
 			</table>
 		</div>
 	{:else}
-		<p class="status">Nothing logged yet.</p>
+		<p class="empty">Nothing logged yet.</p>
 	{/if}
 </div>
 

@@ -76,7 +76,7 @@
 	</div>
 
 	{#if form?.message}
-		<p class={['status', form && 'error' in form && 'is-error']} role="status">
+		<p class={['pb-notice', form && 'error' in form && 'pb-notice-error']} role="status">
 			{form.message}
 		</p>
 	{/if}
