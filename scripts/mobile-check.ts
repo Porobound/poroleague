@@ -175,10 +175,11 @@ try {
 			const file = `${role}${path.replaceAll('/', '_')}.png`;
 			writeFileSync(join(out, file), Buffer.from(shot.data, 'base64'));
 			const r = result.value as { scroll: boolean; outer: string[]; small: string[] };
-			failed ||= r.scroll;
+			// Fixed bars don't widen the page, so something cut off counts too.
+			failed ||= r.scroll || r.outer.length > 0;
 			report.push({ role, path, file, ...r });
 			console.log(
-				`${r.scroll ? 'SCROLL' : 'ok    '} ${String(r.small.length).padStart(2)} small  ${role.padEnd(9)} ${path}`
+				`${r.scroll ? 'SCROLL' : r.outer.length ? 'EDGE  ' : 'ok    '} ${String(r.small.length).padStart(2)} small  ${role.padEnd(9)} ${path}`
 			);
 			for (const o of r.outer) console.log(`         past edge: ${o}`);
 		}

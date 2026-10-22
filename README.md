@@ -180,7 +180,7 @@ docs/                  spec, plans
 
 ## Checking phone layouts
 
-`scripts/mobile-check.ts` opens every page at 390 × 844 in headless Chrome as a visitor, a player and an organizer. It prints one line per page, saves a screenshot of each to `<out>`, and exits with 1 if any page scrolls sideways. Controls under 44 px tall are listed as warnings. Set `MOBILE_CHECK_SIZE=1280x900` to check desktop instead.
+`scripts/mobile-check.ts` opens every page at 390 × 844 in headless Chrome as a visitor, a player and an organizer. It prints one line per page, saves a screenshot of each to `<out>`, and exits with 1 if any page scrolls sideways (`SCROLL`) or has something cut off at the right edge (`EDGE`). Controls under 44 px tall are listed as warnings. Set `MOBILE_CHECK_SIZE=1280x900` to check desktop instead.
 
 It logs in by writing two fake sessions into the database, so always point it at a **copy** (it refuses `local.db`), served by a production preview outside your checkout:
 

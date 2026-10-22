@@ -555,6 +555,7 @@ dialog.pb-dialog {
 		font-size: 14px;
 	}
 	.action-bar .pb-btn {
+		box-sizing: border-box;
 		width: 100%;
 		min-height: 48px;
 		justify-content: center;
