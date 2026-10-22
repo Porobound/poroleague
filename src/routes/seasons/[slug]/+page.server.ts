@@ -1,5 +1,6 @@
 import { error, fail } from '@sveltejs/kit';
 import { currentRole, playerAction } from '#lib/server/auth.ts';
+import { playerMatches } from '#lib/server/matches.ts';
 import { addEntry, getSeason, groupsOf, removeEntry, seasonEntries } from '#lib/server/seasons.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -13,7 +14,11 @@ export const load: PageServerLoad = async (event) => {
 		season,
 		entries: list,
 		groups: season.status === 'play' || season.status === 'finished' ? groupsOf(list) : [],
-		signedUp: !!locals.user && list.some((e) => e.playerId === locals.user!.id)
+		signedUp: !!locals.user && list.some((e) => e.playerId === locals.user!.id),
+		myMatches:
+			locals.user && (season.status === 'play' || season.status === 'finished')
+				? playerMatches(season.id, locals.user.id)
+				: []
 	};
 };
 

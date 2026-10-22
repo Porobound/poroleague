@@ -1,0 +1,28 @@
+// Dev only: reports a match as the player who isn't you, so the flag flow can be tested.
+// Writes the audit row like the app does; posts nothing to Discord.
+import Database from 'better-sqlite3';
+
+process.loadEnvFile();
+const [id, me] = process.argv.slice(2);
+if (!id || !me) throw new Error('usage: npm run db:report-dev -- <match-id> <your-discord-id>');
+
+const db = new Database(process.env.DATABASE_URL!);
+const m = db.prepare('select * from matches where id = ?').get(Number(id)) as
+	| { id: number; season_id: number; p1_id: string; p2_id: string; reported_by: string | null }
+	| undefined;
+if (!m) throw new Error(`No match ${id}`);
+if (m.reported_by) throw new Error(`Match ${id} is already reported`);
+const other = m.p1_id === me ? m.p2_id : m.p2_id === me ? m.p1_id : null;
+if (!other) throw new Error(`${me} doesn't play match ${id}`);
+
+const after = { p1Games: 2, p2Games: 0, p1Legend: 'Jinx', p2Legend: 'Ahri', diceWinnerId: other };
+db.transaction(() => {
+	db.prepare(
+		`update matches set p1_games = 2, p2_games = 0, p1_legend = 'Jinx', p2_legend = 'Ahri',
+		 dice_winner_id = ?, reported_by = ?, reported_at = unixepoch() where id = ?`
+	).run(other, other, m.id);
+	db.prepare(
+		`insert into audit (season_id, match_id, actor_id, action, after) values (?, ?, ?, 'report', ?)`
+	).run(m.season_id, m.id, other, JSON.stringify(after));
+})();
+console.log(`Match ${id} reported 2-0 by ${other}.`);

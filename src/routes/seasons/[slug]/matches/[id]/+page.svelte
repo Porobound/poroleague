@@ -11,8 +11,7 @@
 	// The viewer's side comes first; form field names stay p1/p2.
 	const order = $derived(me === m.p2Id ? (['p2', 'p1'] as const) : (['p1', 'p2'] as const));
 	const player = (k: 'p1' | 'p2') => (k === 'p1' ? data.p1 : data.p2);
-	const name = (k: 'p1' | 'p2') =>
-		player(k).displayName + (player(k).id === me ? ' (you)' : '');
+	const name = (k: 'p1' | 'p2') => player(k).displayName + (player(k).id === me ? ' (you)' : '');
 	const opponent = $derived(player(order[1]).displayName);
 	const head = $derived(`${m.group ? `${groupName(m.group)} · ` : ''}Round ${m.round}`);
 	const values = $derived<Record<string, string>>(
@@ -26,9 +25,7 @@
 					dice: m.diceWinnerId ?? ''
 				}
 	);
-	const errors = $derived<Record<string, string>>(
-		(form && 'errors' in form && form.errors) || {}
-	);
+	const errors = $derived<Record<string, string>>((form && 'errors' in form && form.errors) || {});
 	const side = (k: 'p1' | 'p2') => ({
 		name: player(k).displayName,
 		avatar: player(k).avatar,
@@ -131,7 +128,13 @@
 			{head}
 			{sides}
 			{dice}
-			status={data.voided ? 'void' : m.flaggedBy ? 'flagged' : m.reportedBy ? 'reported' : 'scheduled'}
+			status={data.voided
+				? 'void'
+				: m.flaggedBy
+					? 'flagged'
+					: m.reportedBy
+						? 'reported'
+						: 'scheduled'}
 			note={m.flaggedBy
 				? `Flagged by ${flagger.id === me ? 'you' : flagger.displayName} · only organizers can change it now`
 				: m.reportedBy
@@ -156,8 +159,7 @@
 							name="reason"
 							maxlength="500"
 							required
-							placeholder="e.g. It was 1-2, not 0-2."
-						></textarea>
+							placeholder="e.g. It was 1-2, not 0-2."></textarea>
 					</label>
 				</ConfirmButton>
 				<span class="muted">Looks right? Nothing to do.</span>

@@ -56,10 +56,7 @@ export function lastLegend(playerId: string): string | null {
 		.select({ p1Id: matches.p1Id, p1Legend: matches.p1Legend, p2Legend: matches.p2Legend })
 		.from(matches)
 		.where(
-			and(
-				or(eq(matches.p1Id, playerId), eq(matches.p2Id, playerId)),
-				isNotNull(matches.reportedAt)
-			)
+			and(or(eq(matches.p1Id, playerId), eq(matches.p2Id, playerId)), isNotNull(matches.reportedAt))
 		)
 		.orderBy(desc(matches.reportedAt))
 		.limit(1)
