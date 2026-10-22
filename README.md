@@ -19,6 +19,7 @@ League website for the Porobound community's Riftbound TCG league. Players log i
 | 6. Admin             | Done: overview, players, groups, results, finalize    |
 | 7. Deploy            | Done: Docker image, compose + cloudflared, backups    |
 | 8. Bot API           | Later: when a Discord bot is being built (#8)         |
+| 9. Mobile sweep      | Done: phone layouts for every view, phone checker     |
 
 ## Stack
 
