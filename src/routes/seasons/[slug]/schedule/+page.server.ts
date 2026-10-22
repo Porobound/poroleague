@@ -10,7 +10,8 @@ export const load: PageServerLoad = ({ params, locals, url }) => {
 	const ctx = cardContext(season, seasonEntries(season.id), locals.user?.id ?? null);
 	const all = seasonMatches(season.id);
 	const rpw = season.roundsPerWeek;
-	const weeks = Math.max(0, ...all.map((m) => weekOf(m.round, rpw)));
+	const maxRound = Math.max(0, ...all.map((m) => m.round));
+	const weeks = weekOf(maxRound, rpw);
 	const asked = Number(url.searchParams.get('week'));
 	const week = Math.min(
 		weeks,
@@ -28,7 +29,7 @@ export const load: PageServerLoad = ({ params, locals, url }) => {
 	const sections = new Map<string, Card[]>();
 	for (const { m, card } of cards) {
 		if (weekOf(m.round, rpw) !== week) continue;
-		const title = `${m.group ? `${groupName(m.group)} · ` : ''}Round ${m.round}`;
+		const title = card.props.head;
 		sections.set(title, [...(sections.get(title) ?? []), card]);
 	}
 
@@ -38,13 +39,17 @@ export const load: PageServerLoad = ({ params, locals, url }) => {
 		currentWeek: ctx.week,
 		weeks: Array.from({ length: weeks }, (_, i) => {
 			const first = i * rpw + 1;
-			const last = Math.min((i + 1) * rpw, Math.max(...all.map((m) => m.round)));
+			const last = Math.min((i + 1) * rpw, maxRound);
 			return { n: i + 1, label: `Week ${i + 1} · R${first}${last > first ? `–${last}` : ''}` };
 		}),
 		groups: Array.from({ length: groups }, (_, i) => ({ n: i + 1, label: groupName(i + 1) })),
 		group,
 		mine,
-		overdue: cards.map((c) => c.card).filter((c) => c.status === 'overdue' && show(c)),
+		// Overdue matches sit in their own week's rounds too, so list them separately only on the current week.
+		overdue:
+			week === ctx.week
+				? cards.map((c) => c.card).filter((c) => c.status === 'overdue' && show(c))
+				: [],
 		sections: [...sections].map(([title, list]) => {
 			const count = (s: string) => list.filter((c) => c.status === s).length;
 			const voids = count('void');
@@ -54,8 +59,7 @@ export const load: PageServerLoad = ({ params, locals, url }) => {
 				done: count('reported') + count('flagged'),
 				flagged: count('flagged'),
 				voids,
-				hasMine: list.some((c) => c.mine),
-				cards: list.filter(show)
+				cards: list.filter(show).sort((a, b) => Number(b.mine) - Number(a.mine))
 			};
 		})
 	};

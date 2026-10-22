@@ -40,7 +40,8 @@
 			name: player(k).displayName,
 			avatar: player(k).avatar,
 			legend: k === 'p1' ? r.p1Legend : r.p2Legend,
-			games: k === 'p1' ? r.p1Games : r.p2Games
+			games: k === 'p1' ? r.p1Games : r.p2Games,
+			href: `/seasons/${data.season.slug}/players/${player(k).id}`
 		});
 		const diceSide = r.diceWinnerId === m.p1Id ? 'p1' : 'p2';
 		return {

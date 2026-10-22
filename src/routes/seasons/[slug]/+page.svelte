@@ -40,7 +40,9 @@
 					{@const mine = m.p1Id === user?.id ? [m.p1Games, m.p2Games] : [m.p2Games, m.p1Games]}
 					<li>
 						<span class="muted">Round {m.round}</span>
-						<span class="grow">vs {nameOf.get(opp)}</span>
+						<span class="grow"
+							>vs <a href="/seasons/{season.slug}/players/{opp}">{nameOf.get(opp)}</a></span
+						>
 						{#if m.flaggedBy}<span class="pb-badge pb-badge-rank">Flagged</span>{/if}
 						{#if m.reportedBy}
 							<span class="pb-num">{mine[0]}-{mine[1]}</span>

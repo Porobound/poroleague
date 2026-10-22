@@ -68,7 +68,6 @@
 			<details class="panel round" open>
 				<summary>
 					<h2>{s.title}</h2>
-					{#if s.hasMine}<span class="pb-badge pb-badge-rank">Your match</span>{/if}
 					<span class="muted small grow-left">
 						<span class="pb-num">{s.done}/{s.total}</span> reported{#if s.flagged}
 							· {s.flagged} flagged{/if}{#if s.voids}

@@ -6,7 +6,12 @@
 	import type { LayoutProps } from './$types';
 
 	let { data, children }: LayoutProps = $props();
-	const slug = $derived(page.params.slug);
+	// Season sub-pages 404 on drafts, so organizers previewing one get no links to them.
+	const slug = $derived(
+		(page.data.season as { status: string } | undefined)?.status === 'draft'
+			? undefined
+			: page.params.slug
+	);
 	const here = (href: string) => (page.url.pathname === href ? 'page' : undefined);
 	const returnTo = $derived(page.url.pathname.startsWith('/login') ? '/' : page.url.pathname);
 </script>

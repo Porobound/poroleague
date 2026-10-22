@@ -12,7 +12,11 @@ export const load: PageServerLoad = () => ({
 				...s,
 				players: list.length,
 				groups: new Set(list.map((e) => e.group).filter(Boolean)).size,
-				winners: groups.map((g) => g.rows[0]?.name).filter(Boolean)
+				// No winner while first place is an unresolved tie or nobody has played.
+				winners: groups
+					.map((g) => g.rows[0])
+					.filter((r) => r && r.played > 0 && !r.unresolvedTie)
+					.map((r) => r.name)
 			};
 		})
 });

@@ -316,3 +316,6 @@ a:hover {
 .stats strong {
 	font: 500 28px/32px var(--font-mono);
 }
+.pb-match.is-mine {
+	border-color: var(--accent);
+}

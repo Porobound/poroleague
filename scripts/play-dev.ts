@@ -80,13 +80,34 @@ db.transaction(() => {
 			flags++;
 		}
 	}
-	// ponytail: --drop only flips the flag; Plan 6's drop action adds its audit row and webhook.
-	if (args.includes('--drop'))
-		db.prepare(
-			`update entries set dropped = 1 where season_id = ? and player_id = (
-			 select player_id from entries where season_id = ? and player_id like 'dev-%'
-			 and dropped = 0 order by player_id desc limit 1)`
-		).run(season.id, season.id);
+	if (args.includes('--drop')) {
+		const victim = db
+			.prepare(
+				`select player_id as id from entries where season_id = ? and player_id like 'dev-%'
+				 and dropped = 0 order by player_id desc limit 1`
+			)
+			.get(season.id) as { id: string } | undefined;
+		// Drops are an organizer action; the first real player in the season stands in for one.
+		const actor = db
+			.prepare(
+				`select player_id as id from entries where season_id = ? and player_id not like 'dev-%' limit 1`
+			)
+			.get(season.id) as { id: string } | undefined;
+		if (victim) {
+			db.prepare('update entries set dropped = 1 where season_id = ? and player_id = ?').run(
+				season.id,
+				victim.id
+			);
+			log.run(
+				season.id,
+				null,
+				actor?.id ?? victim.id,
+				'drop',
+				null,
+				JSON.stringify({ dropped: victim.id })
+			);
+		}
+	}
 })();
 console.log(
 	`Reported ${played.length} of ${open.length} open dev matches (${flags} flagged)` +

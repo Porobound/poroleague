@@ -5,7 +5,7 @@ import { seasonAudit } from '#lib/server/matches.ts';
 import { publicSeason, seasonEntries } from '#lib/server/seasons.ts';
 import type { PageServerLoad } from './$types';
 
-type Change = Partial<Report> & { flagReason?: string };
+type Change = Partial<Report> & { flagReason?: string; dropped?: string };
 const LABEL: Record<string, string> = {
 	report: 'Report',
 	flag: 'Flag',
@@ -39,7 +39,12 @@ export const load: PageServerLoad = ({ params, locals, url }) => {
 				actor: r.actor,
 				action: r.action,
 				label: LABEL[r.action] ?? r.action,
-				what: [match, change, after?.flagReason ? `“${after.flagReason}”` : '']
+				what: [
+					match,
+					change,
+					after?.flagReason ? `“${after.flagReason}”` : '',
+					after?.dropped ? `Dropped ${name(after.dropped)}; their matches are void` : ''
+				]
 					.filter(Boolean)
 					.join(' · ')
 			};

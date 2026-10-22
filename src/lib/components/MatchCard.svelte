@@ -1,14 +1,21 @@
 <script lang="ts">
 	import Avatar from '#lib/components/Avatar.svelte';
 
-	type Side = { name: string; avatar: string | null; legend: string | null; games: number | null };
+	type Side = {
+		name: string;
+		avatar: string | null;
+		legend: string | null;
+		games: number | null;
+		href?: string;
+	};
 	let {
 		head,
 		sides,
 		dice = null,
 		status,
 		note = '',
-		link
+		link,
+		mine = false
 	}: {
 		head: string;
 		sides: [Side, Side];
@@ -16,6 +23,7 @@
 		status: 'scheduled' | 'reported' | 'flagged' | 'void' | 'overdue';
 		note?: string;
 		link?: { href: string; label: string };
+		mine?: boolean;
 	} = $props();
 
 	const BADGE = {
@@ -32,7 +40,7 @@
 	});
 </script>
 
-<article class={['pb-match', `pb-match-${status}`]}>
+<article class={['pb-match', `pb-match-${status}`, mine && 'is-mine']}>
 	<div class="pb-match-head">
 		<span>{head}</span>
 		<span class={['pb-badge', BADGE[status][0]]}>{BADGE[status][1]}</span>
@@ -42,7 +50,7 @@
 			<Avatar name={s.name} src={s.avatar} />
 			<span class="pb-match-name">
 				<span class="pb-match-nm">
-					{s.name}
+					{#if s.href}<a href={s.href}>{s.name}</a>{:else}{s.name}{/if}
 					{#if dice === i}
 						<svg class="pb-die" width="14" height="14" viewBox="0 0 14 14" role="img">
 							<title>Won the dice roll</title>
