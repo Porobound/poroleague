@@ -1,5 +1,5 @@
 import { error } from '@sveltejs/kit';
-import { and, asc, count, desc, eq, inArray, isNull, ne } from 'drizzle-orm';
+import { and, asc, count, desc, eq, inArray, isNull, ne, sql } from 'drizzle-orm';
 import { defaultGroupCount, splitGroups } from '#lib/league/groups.ts';
 import { buildSchedule } from '#lib/league/schedule.ts';
 import { standings } from '#lib/league/standings.ts';
@@ -181,3 +181,17 @@ export function groupStandings(season: Season, list: SeasonEntry[]) {
 	});
 }
 export type GroupStanding = ReturnType<typeof groupStandings>[number];
+
+// The header links your name to your player page: the season being viewed if you're in it,
+// else your newest season.
+export function myPlayerPage(playerId: string, slug?: string) {
+	const s = db
+		.select({ slug: seasons.slug })
+		.from(entries)
+		.innerJoin(seasons, eq(entries.seasonId, seasons.id))
+		.where(and(eq(entries.playerId, playerId), ne(seasons.status, 'draft'), live))
+		.orderBy(desc(sql`${seasons.slug} = ${slug ?? ''}`), desc(seasons.id))
+		.limit(1)
+		.get();
+	return s ? `/seasons/${s.slug}/players/${playerId}` : null;
+}

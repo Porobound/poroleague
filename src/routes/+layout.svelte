@@ -32,10 +32,15 @@
 			{#if data.user.isOrganizer}
 				<a href="/admin" class="nav-link">Admin</a>
 			{/if}
-			<span class="me">
+			<svelte:element
+				this={data.myPage ? 'a' : 'span'}
+				href={data.myPage}
+				class="me"
+				aria-current={data.myPage ? here(data.myPage) : undefined}
+			>
 				<Avatar name={data.user.displayName} src={data.user.avatar} />
 				{data.user.displayName}
-			</span>
+			</svelte:element>
 			<form method="POST" action="/auth/logout">
 				<button class="pb-btn pb-btn-ghost pb-btn-sm">Log out</button>
 			</form>
