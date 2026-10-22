@@ -339,7 +339,8 @@ a:hover {
 	display: contents;
 }
 .site-nav .phone,
-.tab-bar {
+.tab-bar,
+.group-switch {
 	display: none;
 }
 @media (max-width: 640px) {
@@ -456,5 +457,87 @@ a:hover {
 	}
 	.pb-btn {
 		min-height: 44px;
+	}
+
+	/* The design system's pb-phase-vertical and pb-table-compact, applied on phones. */
+	.pb-phase {
+		grid-auto-flow: row;
+		grid-auto-columns: auto;
+		gap: 0;
+	}
+	.pb-phase .pb-phase-step {
+		display: grid;
+		grid-template-columns: 4px auto 1fr;
+		align-items: baseline;
+		column-gap: 12px;
+		padding: 6px 0;
+	}
+	.pb-phase .pb-phase-bar {
+		width: 4px;
+		height: auto;
+		align-self: stretch;
+		grid-row: 1;
+	}
+	.pb-phase .pb-phase-detail {
+		text-align: right;
+	}
+	.standings .pb-table .pb-opt {
+		display: none;
+	}
+	.standings .pb-table {
+		font-size: 14px;
+	}
+	.standings .pb-table td,
+	.standings .pb-table th {
+		padding-left: 8px;
+		padding-right: 8px;
+	}
+
+	/* Season page: one group at a time behind a switcher. */
+	.group-switch {
+		display: grid;
+		grid-auto-flow: column;
+		grid-auto-columns: minmax(0, 1fr);
+		gap: 4px;
+		margin-bottom: 10px;
+		background: var(--surface-raised);
+		border: 1px solid var(--line);
+		border-radius: var(--radius-md);
+		padding: 4px;
+	}
+	.group-switch label {
+		position: relative;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		min-height: 44px;
+		border-radius: var(--radius-sm);
+		color: var(--ink-muted);
+		font: 500 14px/20px var(--font-sans);
+		cursor: pointer;
+	}
+	.group-switch input {
+		position: absolute;
+		opacity: 0;
+		width: 1px;
+		height: 1px;
+	}
+	.group-switch label:has(input:checked) {
+		background: var(--frost);
+		color: var(--ink);
+		font-weight: 600;
+	}
+	.group-switch label:has(input:focus-visible) {
+		outline: 2px solid var(--accent);
+	}
+	.groups:has(.group-switch) .standings > h2 {
+		display: none;
+	}
+	/* ponytail: one rule per group number, covers up to four groups. */
+	.groups:has(.group-switch input[value='1']:checked) [data-group]:not([data-group='1']),
+	.groups:has(.group-switch input[value='2']:checked) [data-group]:not([data-group='2']),
+	.groups:has(.group-switch input[value='3']:checked) [data-group]:not([data-group='3']),
+	.groups:has(.group-switch input[value='4']:checked) [data-group]:not([data-group='4']) {
+		display: none;
 	}
 }
