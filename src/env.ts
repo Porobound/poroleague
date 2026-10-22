@@ -8,5 +8,8 @@ export const variables = defineEnvVars({
 	GUILD_ID: { description: 'Porobound Discord server id.' },
 	ORGANIZER_ROLE_ID: { description: 'Discord role id of league organizers.' },
 	WEBHOOK_RESULTS_URL: { description: 'Discord webhook for the results channel. Empty = off.' },
-	WEBHOOK_ORGANIZERS_URL: { description: 'Discord webhook for the organizer channel. Empty = off.' }
+	WEBHOOK_ORGANIZERS_URL: {
+		description: 'Discord webhook for the organizer channel. Empty = off.'
+	},
+	WEBHOOK_PAIRINGS_URL: { description: 'Discord webhook for the pairings channel. Empty = off.' }
 });

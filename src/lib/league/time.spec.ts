@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { currentWeek, leagueDate, reportingClosed, weekOf } from './time';
+import { currentWeek, leagueDate, reportingClosed, roundsOfWeek, weekOf } from './time';
 
 describe('leagueDate', () => {
 	it('gives the calendar date in Helsinki', () => {
@@ -34,5 +34,14 @@ describe('weeks', () => {
 		expect(currentWeek('2026-11-02', new Date('2026-11-08T12:00:00Z'))).toBe(1);
 		expect(currentWeek('2026-11-02', new Date('2026-11-09T12:00:00Z'))).toBe(2);
 		expect(currentWeek(null, new Date())).toBe(0);
+	});
+});
+
+describe('roundsOfWeek', () => {
+	it("gives the week's rounds, capped at the last round", () => {
+		expect(roundsOfWeek(1, 2, 11)).toEqual([1, 2]);
+		expect(roundsOfWeek(6, 2, 11)).toEqual([11, 11]);
+		expect(roundsOfWeek(7, 2, 11)).toBeNull();
+		expect(roundsOfWeek(0, 2, 11)).toBeNull();
 	});
 });

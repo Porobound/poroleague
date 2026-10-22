@@ -6,8 +6,8 @@ import { standings } from '#lib/league/standings.ts';
 import { reportingClosed } from '#lib/league/time.ts';
 import type { SeasonFields, SeasonStatus } from '#lib/season.ts';
 import { db } from '#lib/server/db/index.ts';
-import { entries, matches, players, seasons } from '#lib/server/db/schema.ts';
-import { seasonMatches } from '#lib/server/matches.ts';
+import { audit, entries, matches, players, seasons } from '#lib/server/db/schema.ts';
+import { clearTiebreaks, seasonMatches, type Match } from '#lib/server/matches.ts';
 
 export type Season = typeof seasons.$inferSelect;
 
@@ -115,6 +115,54 @@ export function removeEntry(seasonId: number, playerId: string) {
 		.run();
 }
 
+// Voids every match of the player (derived from `dropped`); kept in the DB, out of the standings.
+export function dropPlayer(seasonId: number, playerId: string, actorId: string) {
+	db.transaction((tx) => {
+		tx.update(entries)
+			.set({ dropped: true })
+			.where(and(eq(entries.seasonId, seasonId), eq(entries.playerId, playerId)))
+			.run();
+		clearTiebreaks(tx, seasonId);
+		tx.insert(audit)
+			.values({ seasonId, actorId, action: 'drop', after: { dropped: playerId } })
+			.run();
+	});
+}
+
+// Fixes a mistaken drop: the player's matches count again.
+export function cancelDrop(seasonId: number, playerId: string, actorId: string) {
+	db.transaction((tx) => {
+		tx.update(entries)
+			.set({ dropped: false })
+			.where(and(eq(entries.seasonId, seasonId), eq(entries.playerId, playerId)))
+			.run();
+		clearTiebreaks(tx, seasonId);
+		tx.insert(audit)
+			.values({ seasonId, actorId, action: 'undrop', after: { undropped: playerId } })
+			.run();
+	});
+}
+
+export function setTiebreaks(seasonId: number, order: string[], actorId: string) {
+	db.transaction((tx) => {
+		order.forEach((playerId, i) =>
+			tx
+				.update(entries)
+				.set({ tiebreak: i + 1 })
+				.where(and(eq(entries.seasonId, seasonId), eq(entries.playerId, playerId)))
+				.run()
+		);
+		tx.insert(audit).values({ seasonId, actorId, action: 'tiebreak', after: { order } }).run();
+	});
+}
+
+export function finalizeSeason(seasonId: number, actorId: string) {
+	db.transaction((tx) => {
+		tx.update(seasons).set({ status: 'finished' }).where(eq(seasons.id, seasonId)).run();
+		tx.insert(audit).values({ seasonId, actorId, action: 'finalize' }).run();
+	});
+}
+
 export function setGroup(seasonId: number, playerId: string, group: number) {
 	db.update(entries)
 		.set({ group })
@@ -155,8 +203,11 @@ export function lockGroups(seasonId: number) {
 	});
 }
 
-export function groupStandings(season: Season, list: SeasonEntry[]) {
-	const all = seasonMatches(season.id);
+export function groupStandings(
+	season: Season,
+	list: SeasonEntry[],
+	all: Match[] = seasonMatches(season.id)
+) {
 	const closed = reportingClosed(season.deadline, new Date());
 	return groupsOf(list).map((g, i) => {
 		const by = new Map(g.map((e) => [e.playerId, e]));

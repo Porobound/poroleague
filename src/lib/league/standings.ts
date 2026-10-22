@@ -18,6 +18,7 @@ export type Row = {
 	gameLosses: number;
 	gwp: number;
 	unresolvedTie: boolean;
+	tie: string | null; // tied run's key, ignoring organizer ranks
 };
 
 const played = (m: MatchResult): m is MatchResult & { p1Games: number; p2Games: number } =>
@@ -38,7 +39,8 @@ export function standings(entries: Entry[], matches: MatchResult[], deadlinePass
 			gameWins: 0,
 			gameLosses: 0,
 			gwp: 0,
-			unresolvedTie: false
+			unresolvedTie: false,
+			tie: null
 		});
 	}
 
@@ -91,16 +93,17 @@ function breakTie(tied: Row[], matches: MatchResult[], entries: Map<string, Entr
 		h2h.set(m.p2, h2h.get(m.p2)! + pb);
 	}
 	const rank = (r: Row) => entries.get(r.playerId)!.tiebreak ?? Number.MAX_SAFE_INTEGER;
-	const cmp = (x: Row, y: Row) =>
-		h2h.get(y.playerId)! - h2h.get(x.playerId)! || y.gwp - x.gwp || rank(x) - rank(y);
+	const base = (x: Row, y: Row) => h2h.get(y.playerId)! - h2h.get(x.playerId)! || y.gwp - x.gwp;
+	const cmp = (x: Row, y: Row) => base(x, y) || rank(x) - rank(y);
 
 	const sorted = [...tied].sort(cmp);
 	for (let i = 0; i < sorted.length - 1; i++) {
 		const [x, y] = [sorted[i], sorted[i + 1]];
-		if (x.played > 0 && y.played > 0 && cmp(x, y) === 0) {
-			x.unresolvedTie = true;
-			y.unresolvedTie = true;
-		}
+		if (x.played === 0 || y.played === 0 || base(x, y) !== 0) continue;
+		y.tie = x.tie ??= x.playerId;
+		// A missing rank means nobody ordered this tie.
+		const unranked = (r: Row) => entries.get(r.playerId)!.tiebreak === null;
+		if (unranked(x) || unranked(y) || rank(x) === rank(y)) x.unresolvedTie = y.unresolvedTie = true;
 	}
 	return sorted;
 }

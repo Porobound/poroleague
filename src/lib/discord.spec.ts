@@ -1,11 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import {
 	authorizeUrl,
+	dropEmbed,
 	escapeMd,
 	flagEmbed,
+	organizerEditEmbed,
+	pairingsPost,
 	profileFromMember,
 	resultEmbed,
 	safeReturnTo,
+	seasonDeletedEmbed,
 	type GuildMember
 } from './discord';
 
@@ -115,5 +119,66 @@ describe('match embeds', () => {
 		expect(e.color).toBe(0xf2b33d);
 		expect(e.description).toBe('Alice 2–1 B\\*o\\*b (Jinx vs Ahri)');
 		expect(e.fields).toEqual([{ name: 'Reason', value: '> It was 1\\-2\n> not 2\\-1' }]);
+	});
+});
+
+describe('organizer posts', () => {
+	const post = {
+		p1: { id: '1', name: 'A*' },
+		p2: { id: '2', name: 'B' },
+		report: { p1Games: 2, p2Games: 1, p1Legend: 'Jinx', p2Legend: 'Ahri', diceWinnerId: '1' },
+		where: 'S · Group A · Round 1',
+		url: 'http://x/m/1',
+		at: new Date('2026-10-22T10:00:00Z')
+	};
+	it('says whether a flag was resolved and whether the result changed', () => {
+		const kept = organizerEditEmbed(post, 'Org_1', { resolves: true, kept: true });
+		expect(kept.title).toBe('Flag resolved by Org\\_1');
+		expect(kept.description).toBe('Kept as reported: A\\* 2–1 B (Jinx vs Ahri)');
+		expect(organizerEditEmbed(post, 'Org', { resolves: false, kept: false }).title).toBe(
+			'Result changed by Org'
+		);
+	});
+	it('escapes names in drop and deletion posts', () => {
+		expect(dropEmbed({ player: '*x*', by: 'Org', where: 'S', url: 'http://x' }).title).toBe(
+			'\\*x\\* dropped'
+		);
+		expect(seasonDeletedEmbed('S_1', 'Org').title).toBe('Season deleted: S\\_1');
+		const undo = dropEmbed({
+			player: '*x*',
+			by: 'Org',
+			where: 'S',
+			url: 'http://x',
+			cancelled: true
+		});
+		expect(undo.title).toBe('Drop cancelled: \\*x\\*');
+		expect(undo.description).toBe('By Org. Their matches count again.');
+	});
+});
+
+describe('pairingsPost', () => {
+	const rounds = [
+		{
+			round: 5,
+			pairs: [
+				{ group: 1, p1Id: '1', p2Id: '2' },
+				{ group: 2, p1Id: '3', p2Id: '4' }
+			]
+		},
+		{ round: 6, pairs: [{ group: 1, p1Id: '1', p2Id: 'dev-2' }] }
+	];
+	const body = pairingsPost('Autumn *26* · Week 3', 'http://x/schedule', rounds);
+
+	it('pings nobody', () => {
+		expect(body.content).toBe('**Autumn \\*26\\* · Week 3**\n[Full schedule](<http://x/schedule>)');
+		expect(body.allowed_mentions).toEqual({ parse: [] });
+	});
+	it('lays out one embed per round with a field per group', () => {
+		expect(body.embeds!.map((e) => e.title)).toEqual(['Round 5', 'Round 6']);
+		expect(body.embeds![0].fields).toEqual([
+			{ name: 'Group A', value: '<@1> vs <@2>', inline: true },
+			{ name: 'Group B', value: '<@3> vs <@4>', inline: true }
+		]);
+		expect(body.embeds!.every((e) => !e.url)).toBe(true);
 	});
 });

@@ -1,5 +1,8 @@
 import { weekOf } from './time';
 
+export const droppedIds = (people: { playerId: string; dropped: boolean }[]) =>
+	new Set(people.filter((p) => p.dropped).map((p) => p.playerId));
+
 // A match is void once either player is dropped (spec: Drops).
 export const isVoid = (m: { p1Id: string; p2Id: string }, dropped: Set<string>) =>
 	dropped.has(m.p1Id) || dropped.has(m.p2Id);

@@ -1,5 +1,5 @@
 import { matchMode } from '#lib/league/report.ts';
-import { isOverdue, isVoid } from '#lib/league/status.ts';
+import { droppedIds, isOverdue, isVoid } from '#lib/league/status.ts';
 import { currentWeek, reportingClosed } from '#lib/league/time.ts';
 import { groupName } from '#lib/season.ts';
 
@@ -16,6 +16,7 @@ export type CardMatch = {
 	diceWinnerId: string | null;
 	reportedBy: string | null;
 	flaggedBy: string | null;
+	flagResolvedAt: Date | null;
 };
 type Person = { playerId: string; displayName: string; avatar: string | null; dropped: boolean };
 type CardSeason = {
@@ -38,7 +39,7 @@ export function cardContext(
 		season,
 		viewerId,
 		people: new Map(people.map((p) => [p.playerId, p])),
-		dropped: new Set(people.filter((p) => p.dropped).map((p) => p.playerId)),
+		dropped: droppedIds(people),
 		week: currentWeek(season.startDate, now),
 		closed: reportingClosed(season.deadline, now)
 	};
@@ -57,7 +58,7 @@ export function matchCard(m: CardMatch, c: CardContext) {
 	});
 	const status: Status = voided
 		? 'void'
-		: m.flaggedBy
+		: m.flaggedBy && !m.flagResolvedAt
 			? 'flagged'
 			: m.reportedBy
 				? 'reported'

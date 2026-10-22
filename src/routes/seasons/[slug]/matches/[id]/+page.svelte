@@ -50,7 +50,10 @@
 		};
 	};
 	const saved = $derived(card(m));
-	const reporter = $derived(m.reportedBy === m.p1Id ? data.p1 : data.p2);
+	// An organizer can enter a result for a match they don't play in.
+	const reporter = $derived(
+		m.reportedBy === m.p1Id ? data.p1 : m.reportedBy === m.p2Id ? data.p2 : null
+	);
 	const flagger = $derived(m.flaggedBy === m.p1Id ? data.p1 : data.p2);
 
 	// Live read of the report form for the confirm dialog; `changes` re-runs it on every input.
@@ -167,18 +170,14 @@
 		<MatchCard
 			{head}
 			{...saved}
-			status={data.voided
-				? 'void'
+			status={data.status}
+			note={m.flagResolvedAt
+				? 'Flag resolved by an organizer · final'
 				: m.flaggedBy
-					? 'flagged'
+					? `Flagged by ${flagger.id === me ? 'you' : flagger.displayName} · only organizers can change it now`
 					: m.reportedBy
-						? 'reported'
-						: 'scheduled'}
-			note={m.flaggedBy
-				? `Flagged by ${flagger.id === me ? 'you' : flagger.displayName} · only organizers can change it now`
-				: m.reportedBy
-					? `Reported by ${reporter.id === me ? 'you' : reporter.displayName}`
-					: ''}
+						? `Reported by ${!reporter ? 'an organizer' : reporter.id === me ? 'you' : reporter.displayName}`
+						: ''}
 		/>
 
 		{#if m.flaggedBy && m.flagReason}
@@ -216,6 +215,8 @@
 				<span class="muted">Looks right? Nothing to do.</span>
 			</div>
 			{#if form && 'flagError' in form}<p class="pb-hint is-error">{form.flagError}</p>{/if}
+		{:else if data.mode === 'locked' && m.flagResolvedAt}
+			<p class="muted">An organizer reviewed the flag. The result is final.</p>
 		{:else if data.mode === 'locked' && m.flaggedBy === me}
 			<p class="muted">You flagged this result. An organizer is reviewing it.</p>
 		{:else if data.mode === 'locked'}

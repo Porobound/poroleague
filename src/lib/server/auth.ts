@@ -12,7 +12,7 @@ export function playerAction({ locals, url }: Ctx) {
 	return locals.user;
 }
 
-// pony// ponytail: in-memory, per process; entries die with the server. Move to the sessions table if we ever run more than one instance.
+// ponytail: in-memory, per process; entries die with the server. Move to the sessions table if we ever run more than one instance.
 const checkedAt = new Map<string, number>();
 const ROLE_CHECK_MS = 60_000;
 
