@@ -176,7 +176,7 @@ docs/                  spec, plans
 
 ## Deploy
 
-CI typechecks and tests every PR. Every push to `main` that passes builds `ghcr.io/porobound/poroleague` (`latest` and the commit SHA). The host runs it with Docker Compose next to a `cloudflared` tunnel, so no ports are open. The container applies migrations on start, then serves on port 3000.
+CI lints, typechecks and tests every PR. Every push to `main` that passes builds `ghcr.io/porobound/poroleague:latest`, and every push to the `dev` branch builds `:dev`. Both also get a tag with the commit SHA. The host runs it with Docker Compose next to a `cloudflared` tunnel, so no ports are open. The container applies migrations on start, then serves on port 3000.
 
 ### First-time host setup
 
@@ -193,6 +193,20 @@ CI typechecks and tests every PR. Every push to `main` that passes builds `ghcr.
 ```sh
 docker compose pull && docker compose up -d
 ```
+
+To roll back, set `IMAGE_TAG=<sha>` of the last good commit in `.env` and run the same two commands. Clear it to go back to `latest`.
+
+### Dev server
+
+Same setup in its own directory (e.g. `/opt/poroleague-dev`), with its own tunnel and hostname (e.g. `dev.<domain>`), and `IMAGE_TAG=dev` in `.env`. Point it at your **dev** Discord application and test server, never the real Porobound ones, and add `https://dev.<domain>/auth/callback` as a redirect in that application. Backups are optional. To start from demo data, copy a `local.db` to `data/poroleague.db` before the first `up`.
+
+To put any branch on it:
+
+```sh
+git push --force origin HEAD:dev
+```
+
+CI checks it and builds `:dev`. Then on the dev server: `docker compose pull && docker compose up -d`.
 
 ### Restore
 

@@ -2,7 +2,7 @@ name: ci
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
   pull_request:
   workflow_dispatch:
 
@@ -42,5 +42,5 @@ jobs:
           context: .
           push: true
           tags: |
-            ghcr.io/porobound/poroleague:latest
+            ghcr.io/porobound/poroleague:${{ github.ref_name == 'main' && 'latest' || 'dev' }}
             ghcr.io/porobound/poroleague:${{ github.sha }}

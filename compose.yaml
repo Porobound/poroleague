@@ -1,6 +1,7 @@
 services:
   app:
-    image: ghcr.io/porobound/poroleague:latest
+    # IMAGE_TAG in .env: dev for the dev server, a commit SHA to roll back.
+    image: ghcr.io/porobound/poroleague:${IMAGE_TAG:-latest}
     restart: unless-stopped
     env_file: .env
     environment:
