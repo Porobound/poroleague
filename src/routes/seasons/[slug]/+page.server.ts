@@ -1,7 +1,6 @@
 import { error, fail } from '@sveltejs/kit';
-import { addDays, reportingClosed, roundsOfWeek, weekOf } from '#lib/league/time.ts';
+import { addDays, weekOf } from '#lib/league/time.ts';
 import { cardContext, matchCard } from '#lib/matchCard.ts';
-import { seasonPhases } from '#lib/season.ts';
 import { currentRole, playerAction } from '#lib/server/auth.ts';
 import { playerMatches } from '#lib/server/matches.ts';
 import {
@@ -9,7 +8,8 @@ import {
 	getSeason,
 	groupStandings,
 	removeEntry,
-	seasonEntries
+	seasonEntries,
+	seasonProgress
 } from '#lib/server/seasons.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -21,11 +21,8 @@ export const load: PageServerLoad = async (event) => {
 	const list = seasonEntries(season.id);
 	const scheduled = season.status === 'play' || season.status === 'finished';
 	const groups = scheduled ? groupStandings(season, list) : [];
-	const closed = reportingClosed(season.deadline, new Date());
 	const ctx = cardContext(season, list, locals.user?.id ?? null);
-	const maxRound = Math.max(0, ...groups.map((g) => g.rounds));
-	const weeks = weekOf(maxRound, season.roundsPerWeek);
-	const rounds = roundsOfWeek(ctx.week, season.roundsPerWeek, maxRound);
+	const { closed, weeks, rounds, phases } = seasonProgress(season, groups);
 	// Week w runs from the start date + 7(w-1) days for 7 days, but never past the deadline.
 	const weekEnd =
 		season.startDate && ctx.week >= 1 ? addDays(season.startDate, ctx.week * 7 - 1) : null;
@@ -47,13 +44,7 @@ export const load: PageServerLoad = async (event) => {
 		weeks,
 		rounds,
 		weekEnds,
-		phases: seasonPhases(season, {
-			week: ctx.week,
-			weeks,
-			rounds,
-			groups: groups.map((g) => g.size),
-			closed
-		}),
+		phases,
 		signedUp,
 		// This week's matches plus anything overdue; the full list lives on the player page.
 		// Odd groups give someone a bye each round; say so, or a missing match looks like a bug.
