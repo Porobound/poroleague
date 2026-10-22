@@ -102,6 +102,10 @@ Your test server has one real player: you. These dev-only scripts fill in the re
    ```sh
    npm run db:report-dev -- <match-id> <your-discord-id>
    ```
+5. To fill the season with results (only dev-vs-dev matches, so yours stay open to report):
+   ```sh
+   npm run db:play-dev -- <season-slug> [share]   # share of the schedule to play, default 0.6; --drop drops a dev player
+   ```
 
 ### Troubleshooting
 
@@ -142,6 +146,7 @@ Declare new variables in `src/env.ts` and add them to `.env.example`.
 | `npm run db:studio`                          | Browse the database in the browser                     |
 | `npm run db:seed-dev -- <slug> [count]`      | Dev: sign up fake players                              |
 | `npm run db:report-dev -- <match> <you>`     | Dev: report a match as your opponent                   |
+| `npm run db:play-dev -- <slug> [share]`      | Dev: play out a season with fake results               |
 
 CSRF origin checks only run in production builds. Test cross-site POST behaviour with `build` + `preview`, not `dev`.
 
