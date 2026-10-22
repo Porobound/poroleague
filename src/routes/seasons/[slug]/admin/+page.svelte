@@ -27,6 +27,22 @@
 		<p class="status" role="status">Saved.</p>
 	{/if}
 
+	{#if data.pairings}
+		{@const p = data.pairings}
+		<ConfirmButton
+			action="?/postPairings"
+			variant="secondary"
+			label="Post week {p.week} pairings in Discord"
+			title="Post week {p.week} pairings in Discord?"
+			confirmLabel="Post pairings"
+		>
+			Posts the {p.count} pairings for {p.rounds[0] === p.rounds[1]
+				? `round ${p.rounds[0]}`
+				: `rounds ${p.rounds[0]}–${p.rounds[1]}`} in the pairings channel and pings every player in them.
+			It can't be unsent from here.
+		</ConfirmButton>
+	{/if}
+
 	{#if season.status === 'draft' && data.running}
 		<p class="muted">
 			<a href="/seasons/{data.running.slug}/admin">{data.running.name}</a> is still running. Only one
