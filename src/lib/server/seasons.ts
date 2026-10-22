@@ -6,7 +6,7 @@ import { standings } from '#lib/league/standings.ts';
 import { reportingClosed } from '#lib/league/time.ts';
 import type { SeasonFields, SeasonStatus } from '#lib/season.ts';
 import { db } from '#lib/server/db/index.ts';
-import { entries, matches, players, seasons } from '#lib/server/db/schema.ts';
+import { audit, entries, matches, players, seasons } from '#lib/server/db/schema.ts';
 import { seasonMatches } from '#lib/server/matches.ts';
 
 export type Season = typeof seasons.$inferSelect;
@@ -113,6 +113,19 @@ export function removeEntry(seasonId: number, playerId: string) {
 	db.delete(entries)
 		.where(and(eq(entries.seasonId, seasonId), eq(entries.playerId, playerId)))
 		.run();
+}
+
+// Voids every match of the player (derived from `dropped`); kept in the DB, out of the standings.
+export function dropPlayer(seasonId: number, playerId: string, actorId: string) {
+	db.transaction((tx) => {
+		tx.update(entries)
+			.set({ dropped: true })
+			.where(and(eq(entries.seasonId, seasonId), eq(entries.playerId, playerId)))
+			.run();
+		tx.insert(audit)
+			.values({ seasonId, actorId, action: 'drop', after: { dropped: playerId } })
+			.run();
+	});
 }
 
 export function setGroup(seasonId: number, playerId: string, group: number) {
