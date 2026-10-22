@@ -1,4 +1,5 @@
 import { matchPoints } from './score';
+import { isVoid } from './status';
 
 export type LegendMatch = {
 	p1Id: string;
@@ -31,8 +32,7 @@ export const legendMatches = <M extends Maybe>(ms: M[], dropped: Set<string>) =>
 			m.p2Games !== null &&
 			!!m.p1Legend &&
 			!!m.p2Legend &&
-			!dropped.has(m.p1Id!) &&
-			!dropped.has(m.p2Id!)
+			!isVoid({ p1Id: m.p1Id!, p2Id: m.p2Id! }, dropped)
 	);
 
 type Side = { playerId: string; legend: string; vs: string; won: number; lost: number };

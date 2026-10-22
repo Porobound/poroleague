@@ -1,5 +1,6 @@
 import { and, asc, desc, eq, inArray, isNotNull, or } from 'drizzle-orm';
 import type { Report } from '#lib/league/report.ts';
+import { isVoid } from '#lib/league/status.ts';
 import { db } from '#lib/server/db/index.ts';
 import { audit, entries, matches, players } from '#lib/server/db/schema.ts';
 
@@ -44,19 +45,24 @@ export const seasonMatches = (seasonId: number) =>
 		.orderBy(asc(matches.group), asc(matches.round), asc(matches.id))
 		.all();
 
-// A match is void once either player is dropped (spec: Drops).
 export const isVoided = (m: Match) =>
-	!!db
-		.select({ playerId: entries.playerId })
-		.from(entries)
-		.where(
-			and(
-				eq(entries.seasonId, m.seasonId),
-				inArray(entries.playerId, [m.p1Id, m.p2Id]),
-				eq(entries.dropped, true)
-			)
+	isVoid(
+		m,
+		new Set(
+			db
+				.select({ playerId: entries.playerId })
+				.from(entries)
+				.where(
+					and(
+						eq(entries.seasonId, m.seasonId),
+						inArray(entries.playerId, [m.p1Id, m.p2Id]),
+						eq(entries.dropped, true)
+					)
+				)
+				.all()
+				.map((e) => e.playerId)
 		)
-		.get();
+	);
 
 // Pre-fills the report form: the legend the player last reported with, in any season.
 export function lastLegend(playerId: string): string | null {

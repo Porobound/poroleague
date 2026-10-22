@@ -1,5 +1,6 @@
 import { matchMode } from '#lib/league/report.ts';
-import { currentWeek, reportingClosed, weekOf } from '#lib/league/time.ts';
+import { isOverdue, isVoid } from '#lib/league/status.ts';
+import { currentWeek, reportingClosed } from '#lib/league/time.ts';
 import { groupName } from '#lib/season.ts';
 
 export type CardMatch = {
@@ -45,8 +46,15 @@ export function cardContext(
 export type CardContext = ReturnType<typeof cardContext>;
 
 export function matchCard(m: CardMatch, c: CardContext) {
-	const voided = c.dropped.has(m.p1Id) || c.dropped.has(m.p2Id);
-	const overdue = !m.reportedBy && !voided && weekOf(m.round, c.season.roundsPerWeek) < c.week;
+	const voided = isVoid(m, c.dropped);
+	const inPlay = c.season.status === 'play';
+	const overdue = isOverdue(m, {
+		roundsPerWeek: c.season.roundsPerWeek,
+		week: c.week,
+		inPlay,
+		closed: c.closed,
+		voided
+	});
 	const status: Status = voided
 		? 'void'
 		: m.flaggedBy
@@ -61,11 +69,12 @@ export function matchCard(m: CardMatch, c: CardContext) {
 		name: person(id)?.displayName ?? 'Unknown',
 		avatar: person(id)?.avatar ?? null,
 		legend,
-		games
+		games,
+		href: `/seasons/${c.season.slug}/players/${id}`
 	});
 	const mode = matchMode(m, {
 		viewerId: c.viewerId,
-		inPlay: c.season.status === 'play',
+		inPlay,
 		closed: c.closed,
 		voided
 	});
@@ -81,6 +90,7 @@ export function matchCard(m: CardMatch, c: CardContext) {
 			],
 			dice: (m.diceWinnerId === m.p1Id ? 0 : m.diceWinnerId === m.p2Id ? 1 : null) as 0 | 1 | null,
 			status,
+			mine: m.p1Id === c.viewerId || m.p2Id === c.viewerId,
 			note: voided
 				? 'Void: a player dropped'
 				: m.reportedBy
