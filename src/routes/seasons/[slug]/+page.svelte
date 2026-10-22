@@ -8,6 +8,7 @@
 	let { data, form }: PageProps = $props();
 	const season = $derived(data.season);
 	const user = $derived(data.user);
+	const nameOf = $derived(new Map(data.entries.map((e) => [e.playerId, e.displayName])));
 	const date = (d: string | null) =>
 		d
 			? new Date(`${d}T12:00:00Z`).toLocaleDateString('en-GB', {
@@ -32,6 +33,32 @@
 
 	{#if form?.message}
 		<p class="status" role="status">{form.message}</p>
+	{/if}
+
+	{#if data.myMatches.length}
+		<section class="panel">
+			<h2>Your matches</h2>
+			<ul class="player-list">
+				{#each data.myMatches as m (m.id)}
+					{@const opp = m.p1Id === user?.id ? m.p2Id : m.p1Id}
+					{@const mine = m.p1Id === user?.id ? [m.p1Games, m.p2Games] : [m.p2Games, m.p1Games]}
+					<li>
+						<span class="muted">Round {m.round}</span>
+						<span class="grow">vs {nameOf.get(opp)}</span>
+						{#if m.flaggedBy}<span class="pb-badge pb-badge-rank">Flagged</span>{/if}
+						{#if m.reportedBy}
+							<span class="pb-num">{mine[0]}-{mine[1]}</span>
+							<a href="/seasons/{season.slug}/matches/{m.id}">View</a>
+						{:else}
+							<a
+								class="pb-btn pb-btn-primary pb-btn-sm"
+								href="/seasons/{season.slug}/matches/{m.id}">Report</a
+							>
+						{/if}
+					</li>
+				{/each}
+			</ul>
+		</section>
 	{/if}
 
 	{#if season.status === 'draft'}

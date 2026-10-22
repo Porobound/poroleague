@@ -6,5 +6,7 @@ export const variables = defineEnvVars({
 	DISCORD_CLIENT_SECRET: { description: 'Discord application client secret.' },
 	DISCORD_REDIRECT_URI: { description: 'OAuth redirect, e.g. http://localhost:5173/auth/callback' },
 	GUILD_ID: { description: 'Porobound Discord server id.' },
-	ORGANIZER_ROLE_ID: { description: 'Discord role id of league organizers.' }
+	ORGANIZER_ROLE_ID: { description: 'Discord role id of league organizers.' },
+	WEBHOOK_RESULTS_URL: { description: 'Discord webhook for the results channel. Empty = off.' },
+	WEBHOOK_ORGANIZERS_URL: { description: 'Discord webhook for the organizer channel. Empty = off.' }
 });

@@ -9,15 +9,20 @@
 		variant = 'primary',
 		small = false,
 		fields = {},
+		inForm = false,
+		confirmDisabled = false,
 		children
 	}: {
-		action: string;
+		action?: string;
 		label: string;
 		title: string;
 		confirmLabel: string;
 		variant?: 'primary' | 'secondary' | 'ghost';
 		small?: boolean;
 		fields?: Record<string, string>;
+		// Inside another form: confirming submits that form (after its own validation passes).
+		inForm?: boolean;
+		confirmDisabled?: boolean;
 		children?: Snippet;
 	} = $props();
 
@@ -28,11 +33,17 @@
 <button
 	type="button"
 	class={['pb-btn', `pb-btn-${variant}`, small && 'pb-btn-sm']}
-	onclick={() => dialog?.showModal()}>{label}</button
+	onclick={(e) => {
+		if (!inForm || e.currentTarget.form?.reportValidity()) dialog?.showModal();
+	}}>{label}</button
 >
 
 <dialog bind:this={dialog} class="pb-dialog" aria-labelledby="{id}-title">
-	<form method="POST" {action}>
+	<svelte:element
+		this={inForm ? 'div' : 'form'}
+		class="body"
+		{...inForm ? {} : { method: 'POST', action }}
+	>
 		{#each Object.entries(fields) as [name, value] (name)}
 			<input type="hidden" {name} {value} />
 		{/each}
@@ -42,9 +53,9 @@
 			<button type="button" class="pb-btn pb-btn-secondary" onclick={() => dialog?.close()}
 				>Cancel</button
 			>
-			<button class="pb-btn pb-btn-primary">{confirmLabel}</button>
+			<button class="pb-btn pb-btn-primary" disabled={confirmDisabled}>{confirmLabel}</button>
 		</div>
-	</form>
+	</svelte:element>
 </dialog>
 
 <style>
@@ -58,7 +69,7 @@
 	dialog::backdrop {
 		background: rgba(5, 8, 12, 0.72);
 	}
-	form {
+	.body {
 		display: contents;
 	}
 </style>
