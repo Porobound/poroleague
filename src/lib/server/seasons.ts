@@ -1,15 +1,22 @@
 import { error } from '@sveltejs/kit';
-import { and, asc, count, desc, eq, inArray, ne } from 'drizzle-orm';
+import { and, asc, count, desc, eq, inArray, isNull, ne } from 'drizzle-orm';
 import { defaultGroupCount, splitGroups } from '#lib/league/groups.ts';
 import { buildSchedule } from '#lib/league/schedule.ts';
 import type { SeasonFields, SeasonStatus } from '#lib/season.ts';
 import { db } from '#lib/server/db/index.ts';
-import { audit, entries, matches, players, seasons } from '#lib/server/db/schema.ts';
+import { entries, matches, players, seasons } from '#lib/server/db/schema.ts';
 
 export type Season = typeof seasons.$inferSelect;
 
+// Every season lookup goes through this so soft-deleted seasons never show up.
+const live = isNull(seasons.deletedAt);
+
 export function getSeason(slug: string, viewer: App.Locals['user']): Season {
-	const season = db.select().from(seasons).where(eq(seasons.slug, slug)).get();
+	const season = db
+		.select()
+		.from(seasons)
+		.where(and(eq(seasons.slug, slug), live))
+		.get();
 	if (!season || (season.status === 'draft' && !viewer?.isOrganizer))
 		error(404, 'Season not found');
 	return season;
@@ -20,28 +27,32 @@ export const runningSeason = (exceptId: number) =>
 	db
 		.select({ name: seasons.name, slug: seasons.slug })
 		.from(seasons)
-		.where(and(inArray(seasons.status, ['signup', 'groups', 'play']), ne(seasons.id, exceptId)))
+		.where(
+			and(inArray(seasons.status, ['signup', 'groups', 'play']), ne(seasons.id, exceptId), live)
+		)
 		.get();
 
 export const matchCount = (seasonId: number) =>
 	db.select({ n: count() }).from(matches).where(eq(matches.seasonId, seasonId)).get()!.n;
 
-export function deleteSeason(seasonId: number) {
-	db.transaction((tx) => {
-		tx.delete(audit).where(eq(audit.seasonId, seasonId)).run();
-		tx.delete(matches).where(eq(matches.seasonId, seasonId)).run();
-		tx.delete(entries).where(eq(entries.seasonId, seasonId)).run();
-		tx.delete(seasons).where(eq(seasons.id, seasonId)).run();
-	});
+// Soft delete: records who and when, and frees the slug ('~' can't appear in a real slug).
+export function deleteSeason(season: Season, deletedBy: string) {
+	db.update(seasons)
+		.set({ deletedAt: new Date(), deletedBy, slug: `${season.slug}~deleted-${season.id}` })
+		.where(eq(seasons.id, season.id))
+		.run();
 }
 
-export const allSeasons = () => db.select().from(seasons).orderBy(desc(seasons.id)).all();
+export const allSeasons = () =>
+	db.select().from(seasons).where(live).orderBy(desc(seasons.id)).all();
 
 export const latestSeason = (status: 'draft' | 'not-draft') =>
 	db
 		.select()
 		.from(seasons)
-		.where(status === 'draft' ? eq(seasons.status, 'draft') : ne(seasons.status, 'draft'))
+		.where(
+			and(status === 'draft' ? eq(seasons.status, 'draft') : ne(seasons.status, 'draft'), live)
+		)
 		.orderBy(desc(seasons.id))
 		.limit(1)
 		.get();

@@ -44,13 +44,13 @@ Top cut (top X per group, cross-seeded A1 vs B4 …, single elim, Bo3, online, s
 
 ## Organizer powers (`/admin` per season)
 
-| Phase  | Actions                                                                                        |
-| ------ | ---------------------------------------------------------------------------------------------- |
-| Setup  | Create season, edit settings, delete season (typed slug once it has matches)                   |
-| Signup | Open/close signup (closing draws the groups), remove signup                                    |
-| Groups | Redraw, move player between groups, reopen signup (clears the draw), lock (generates schedule) |
-| Play   | Edit any result, resolve flags, mark player dropped, post week pairings to Discord             |
-| End    | Enter unplayed results, set tiebreak ranks, finalize season                                    |
+| Phase  | Actions                                                                                                                                 |
+| ------ | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Setup  | Create season, edit settings, delete season (soft: hidden, data kept, `deletedBy`/`deletedAt` recorded; typed slug once it has matches) |
+| Signup | Open/close signup (closing draws the groups), remove signup                                                                             |
+| Groups | Redraw, move player between groups, reopen signup (clears the draw), lock (generates schedule)                                          |
+| Play   | Edit any result, resolve flags, mark player dropped, post week pairings to Discord                                                      |
+| End    | Enter unplayed results, set tiebreak ranks, finalize season                                                                             |
 
 Not in UI: managing organizers (Discord role), legend list (config file), messaging (Discord).
 

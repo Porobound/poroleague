@@ -71,9 +71,10 @@
 	<section class="danger">
 		<h2>Delete season</h2>
 		<p class="muted">
-			Removes the season for everyone: {data.entryCount} signups{data.matchCount
-				? ` and ${data.matchCount} matches with their results`
-				: ''}. This can't be undone.
+			Removes the season from the site for everyone, with its {data.entryCount} signups{data.matchCount
+				? ` and ${data.matchCount} matches`
+				: ''}. Your name and the time are recorded, and the data is kept so it can be restored from
+			the database if needed.
 		</p>
 		<ConfirmButton
 			action="?/delete"
@@ -82,9 +83,9 @@
 			title="Delete {season.name}?"
 			confirmLabel="Delete season"
 		>
-			This removes {season.name}, its {data.entryCount} signups{data.matchCount
+			{season.name} disappears from the site for everyone, with its {data.entryCount} signups{data.matchCount
 				? `, ${data.matchCount} matches and every reported result`
-				: ''}. It can't be undone.
+				: ''}. The deletion is recorded under your name.
 			{#if hasResults}
 				<label class="pb-field">
 					Type {season.slug} to confirm

@@ -69,7 +69,7 @@ export const actions: Actions = {
 		const typed = String((await event.request.formData()).get('confirmSlug') ?? '');
 		if (hasResults && typed !== season.slug)
 			return fail(400, { message: `Type ${season.slug} to delete a season that has matches.` });
-		deleteSeason(season.id);
+		deleteSeason(season, user.id);
 		redirect(303, '/admin');
 	}
 };

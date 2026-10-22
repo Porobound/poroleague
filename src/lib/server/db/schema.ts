@@ -33,7 +33,10 @@ export const seasons = sqliteTable('seasons', {
 	roundsPerWeek: integer('rounds_per_week').notNull().default(2),
 	deadline: text('deadline'), // ISO date
 	topCutSize: integer('top_cut_size'),
-	createdAt: createdAt()
+	createdAt: createdAt(),
+	// Soft delete: hidden everywhere, data kept, restorable by clearing these two columns (and the slug suffix).
+	deletedAt: integer('deleted_at', { mode: 'timestamp' }),
+	deletedBy: text('deleted_by').references(() => players.id)
 });
 
 export const entries = sqliteTable(
