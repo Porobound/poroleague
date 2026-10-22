@@ -1770,7 +1770,7 @@ git commit -m "feat(admin): players list, group draw preview, move, redraw, lock
 - Create: `scripts/seed-dev.ts`
 - Modify: `package.json`, `docs/spec.md`
 
-- [ ] **Step 1: Seed script**
+- [x] **Step 1: Seed script**
 
 Create `scripts/seed-dev.ts`:
 
@@ -1802,7 +1802,7 @@ In `package.json` `scripts`, add after `"db:studio"`:
 "db:seed-dev": "node scripts/seed-dev.ts"
 ```
 
-- [ ] **Step 2: End-to-end (organizer account, dev server running)**
+- [x] **Step 2: End-to-end (organizer account, dev server running)**
 
 1. `/admin` → create `Test Season` (start next Monday, deadline 6 weeks later) → lands on its admin page.
 2. Open signup → `/` redirects to `/seasons/test-season`; sign up yourself.
@@ -1814,7 +1814,7 @@ In `package.json` `scripts`, add after `"db:studio"`:
 8. Season page (public) shows both groups with members. Season admin form: only name and deadline editable.
 9. Organizer re-check: in Discord temporarily remove your organizer role, try "Save changes" → `/login/not-organizer`; restore the role and log in again.
 
-- [ ] **Step 3: Spec**
+- [x] **Step 3: Spec**
 
 In `docs/spec.md`, replace the `/` line under `## Pages` with:
 
@@ -1825,12 +1825,12 @@ In `docs/spec.md`, replace the `/` line under `## Pages` with:
 
 In `## Organizer powers`, change the Signup row to `Open/close signup (closing draws the groups), remove signup` and the Groups row to `Redraw, move player between groups, lock (generates schedule)`.
 
-- [ ] **Step 4: Full verification**
+- [x] **Step 4: Full verification**
 
 Run: `npm run check && npx vitest run && npm run build && npx prettier --check .`
 Expected: 0 errors; 7 test files, 30 tests; build succeeds; prettier clean.
 
-- [ ] **Step 5: Commit, push, PR (ask first)**
+- [x] **Step 5: Commit, push, PR (ask first)**
 
 ```sh
 git add scripts/seed-dev.ts package.json docs/spec.md docs/superpowers/plans/2026-10-22-season-signup.md
