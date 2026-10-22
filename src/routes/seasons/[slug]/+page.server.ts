@@ -35,6 +35,10 @@ export const load: PageServerLoad = async (event) => {
 		season.startDate && ctx.week >= 1 ? addDays(season.startDate, ctx.week * 7 - 1) : null;
 	const weekEnds =
 		weekEnd && season.deadline && season.deadline < weekEnd ? season.deadline : weekEnd;
+	const me = list.find((e) => e.playerId === locals.user?.id);
+	const mine = me && scheduled ? playerMatches(season.id, me.playerId) : [];
+	// A group's last round; a smaller group runs out of rounds before the bigger one.
+	const myRounds = groups.find((g) => g.group === me?.group)?.rounds ?? 0;
 	const signedUp = !!locals.user && list.some((e) => e.playerId === locals.user!.id);
 	return {
 		season,
@@ -56,9 +60,15 @@ export const load: PageServerLoad = async (event) => {
 		}),
 		signedUp,
 		// This week's matches plus anything overdue; the full list lives on the player page.
+		// Odd groups give someone a bye each round; say so, or a missing match looks like a bug.
+		myByes: rounds
+			? Array.from({ length: rounds[1] - rounds[0] + 1 }, (_, i) => rounds[0] + i).filter(
+					(r) => r <= myRounds && !mine.some((m) => m.round === r)
+				)
+			: [],
 		myWeek:
 			signedUp && scheduled
-				? playerMatches(season.id, locals.user!.id)
+				? mine
 						.map((m) => ({ m, card: matchCard(m, ctx) }))
 						.filter(
 							({ m, card }) =>

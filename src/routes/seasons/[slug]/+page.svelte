@@ -97,9 +97,10 @@
 				<div class="cards">
 					{#each data.myWeek as c (c.id)}<MatchCard {...c.props} />{/each}
 				</div>
-			{:else}
+			{:else if !data.myByes.length}
 				<p class="muted">No matches for you this week.</p>
 			{/if}
+			{#each data.myByes as r (r)}<p class="muted small">Bye in round {r}</p>{/each}
 		</section>
 	{/if}
 
