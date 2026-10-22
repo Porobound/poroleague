@@ -248,17 +248,6 @@
 	.intro p {
 		margin: 0;
 	}
-	.empty {
-		display: flex;
-		flex-direction: column;
-		gap: 8px;
-		border: 1px dashed var(--line);
-		border-radius: var(--radius-md);
-		padding: 40px 32px;
-	}
-	.empty strong {
-		font: 600 20px/26px var(--font-display);
-	}
 	.table-wrap {
 		background: var(--surface-raised);
 		border: 1px solid var(--line);

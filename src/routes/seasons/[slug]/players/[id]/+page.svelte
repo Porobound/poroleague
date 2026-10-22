@@ -1,8 +1,9 @@
 <script lang="ts">
 	import Avatar from '#lib/components/Avatar.svelte';
 	import MatchCard from '#lib/components/MatchCard.svelte';
+	import PlayerLegends from '#lib/components/PlayerLegends.svelte';
+	import SeasonHistory from '#lib/components/SeasonHistory.svelte';
 	import { pct } from '#lib/format.ts';
-	import { gameWinPct } from '#lib/league/legendStats.ts';
 	import { groupName } from '#lib/season.ts';
 	import type { PageProps } from './$types';
 
@@ -19,7 +20,10 @@
 	<section class="player-head">
 		<Avatar name={player.displayName} src={player.avatar} size={72} />
 		<div>
-			<h1>{player.displayName}</h1>
+			<div class="name-row">
+				<h1>{player.displayName}</h1>
+				<a href="/players/{player.playerId}">Career</a>
+			</div>
 			<div class="badges">
 				{#if player.group}<span class="pb-badge">{groupName(player.group)}</span>{/if}
 				{#if player.dropped}
@@ -72,35 +76,18 @@
 			Legends <a class="small" href="/seasons/{season.slug}/legends">All legends this season</a>
 		</h2>
 		{#if data.legends.playedAs.length}
-			<div class="grid-2">
-				{#each [['Played as', 'Legend', data.legends.playedAs], ['Against', 'Opponent legend', data.legends.against]] as const as [title, col, rows] (title)}
-					<div class="panel">
-						<table class="pb-table">
-							<caption><h3>{title}</h3></caption>
-							<thead>
-								<tr>
-									<th>{col}</th>
-									<th class="pb-num">M</th>
-									<th class="pb-num">W–D–L</th>
-									<th class="pb-num">GW%</th>
-								</tr>
-							</thead>
-							<tbody>
-								{#each rows as r (r.key)}
-									<tr>
-										<th scope="row">{r.key}</th>
-										<td class="pb-num">{r.picks}</td>
-										<td class="pb-num">{r.wins}–{r.draws}–{r.losses}</td>
-										<td class="pb-num">{pct(gameWinPct(r, 0))}</td>
-									</tr>
-								{/each}
-							</tbody>
-						</table>
-					</div>
-				{/each}
-			</div>
+			<PlayerLegends legends={data.legends} />
 		{:else}
-			<p class="status">No reported matches yet.</p>
+			<p class="empty">No reported matches yet.</p>
+		{/if}
+	</section>
+
+	<section>
+		<h2>Other seasons</h2>
+		{#if data.history.length > 1}
+			<SeasonHistory rows={data.history} playerId={player.playerId} current={season.slug} />
+		{:else}
+			<p class="muted">First season</p>
 		{/if}
 	</section>
 </div>
@@ -112,19 +99,20 @@
 		gap: 24px;
 		align-items: center;
 	}
-	.player-head h1 {
-		margin: 0 0 6px;
+	.name-row {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		gap: 4px 14px;
+		margin-bottom: 6px;
+	}
+	.name-row h1 {
+		margin: 0;
 	}
 	.badges {
 		display: flex;
 		flex-wrap: wrap;
 		gap: 8px;
 		align-items: center;
-	}
-	caption {
-		text-align: left;
-	}
-	caption h3 {
-		margin: 0 0 4px;
 	}
 </style>
