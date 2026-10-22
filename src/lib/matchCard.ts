@@ -90,7 +90,6 @@ export function matchCard(m: CardMatch, c: CardContext) {
 			],
 			dice: (m.diceWinnerId === m.p1Id ? 0 : m.diceWinnerId === m.p2Id ? 1 : null) as 0 | 1 | null,
 			status,
-			mine: m.p1Id === c.viewerId || m.p2Id === c.viewerId,
 			note: voided
 				? 'Void: a player dropped'
 				: m.reportedBy
