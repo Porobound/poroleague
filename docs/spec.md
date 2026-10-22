@@ -127,6 +127,6 @@ Designs come from Claude Design as HTML. Integration rule: **extract, don't past
 5. **Standings & pages** — standings, schedule, player page (incl. per-legend record), legends page, archive, audit page.
 6. **Admin** — organizer edits, drops, flag resolution, deadline/finalize, tiebreak ranks, weekly pairings post.
 7. **Deploy** — Dockerfile, compose with cloudflared, GH Actions → GHCR, backup cron.
-8. **Bot API** — service-token JSON endpoints (when bot work starts).
+8. **Bot API** — service-token JSON endpoints. Deferred to the Backlog milestone until a bot exists; its needs decide the endpoints.
 
 Each plan is written when the previous one lands, against the real code.
