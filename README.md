@@ -58,9 +58,9 @@ cp .env.example .env
 
 ### 4. Discord webhooks (optional)
 
-Results and flags are posted to Discord channels. To see them, make a webhook in **your test server**: **Edit Channel → Integrations → Webhooks → New Webhook → Copy Webhook URL**, and paste the **whole URL** (`https://discord.com/api/webhooks/<id>/<token>`, not just the ID). One channel for results, one for organizers (they can be the same channel).
+Results and flags are posted to Discord channels. To see them, make a webhook in **your test server**: **Edit Channel → Integrations → Webhooks → New Webhook → Copy Webhook URL**, and paste the **whole URL** (`https://discord.com/api/webhooks/<id>/<token>`, not just the ID). One channel for results, one for organizers, one for weekly pairings (they can be the same channel).
 
-To keep posting off, leave both empty, but keep the lines: `WEBHOOK_RESULTS_URL=` and `WEBHOOK_ORGANIZERS_URL=`.
+To keep posting off, leave them empty, but keep the lines: `WEBHOOK_RESULTS_URL=`, `WEBHOOK_ORGANIZERS_URL=` and `WEBHOOK_PAIRINGS_URL=`.
 
 ### 5. Fill in `.env`
 
@@ -73,6 +73,7 @@ GUILD_ID=<your test server, step 2>
 ORGANIZER_ROLE_ID=<your Organizer role, step 2>
 WEBHOOK_RESULTS_URL=<optional, step 4>
 WEBHOOK_ORGANIZERS_URL=<optional, step 4>
+WEBHOOK_PAIRINGS_URL=<optional, step 4>
 ```
 
 Every variable has to be present or the app refuses to start ("Value is missing"). Only the webhook ones may be empty.

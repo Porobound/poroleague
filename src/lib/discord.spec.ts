@@ -1,11 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import {
 	authorizeUrl,
+	dropEmbed,
 	escapeMd,
 	flagEmbed,
+	organizerEditEmbed,
+	pairingsPost,
 	profileFromMember,
 	resultEmbed,
 	safeReturnTo,
+	seasonDeletedEmbed,
 	type GuildMember
 } from './discord';
 
@@ -115,5 +119,43 @@ describe('match embeds', () => {
 		expect(e.color).toBe(0xf2b33d);
 		expect(e.description).toBe('Alice 2–1 B\\*o\\*b (Jinx vs Ahri)');
 		expect(e.fields).toEqual([{ name: 'Reason', value: '> It was 1\\-2\n> not 2\\-1' }]);
+	});
+});
+
+describe('organizer posts', () => {
+	const post = {
+		p1: { id: '1', name: 'A*' },
+		p2: { id: '2', name: 'B' },
+		report: { p1Games: 2, p2Games: 1, p1Legend: 'Jinx', p2Legend: 'Ahri', diceWinnerId: '1' },
+		where: 'S · Group A · Round 1',
+		url: 'http://x/m/1',
+		at: new Date('2026-10-22T10:00:00Z')
+	};
+	it('says whether a flag was resolved and whether the result changed', () => {
+		const kept = organizerEditEmbed(post, 'Org_1', { resolves: true, kept: true });
+		expect(kept.title).toBe('Flag resolved by Org\\_1');
+		expect(kept.description).toBe('Kept as reported: A\\* 2–1 B (Jinx vs Ahri)');
+		expect(organizerEditEmbed(post, 'Org', { resolves: false, kept: false }).title).toBe(
+			'Result changed by Org'
+		);
+	});
+	it('escapes names in drop and deletion posts', () => {
+		expect(dropEmbed({ player: '*x*', by: 'Org', where: 'S', url: 'http://x' }).title).toBe(
+			'\\*x\\* dropped'
+		);
+		expect(seasonDeletedEmbed('S_1', 'Org').title).toBe('Season deleted: S\\_1');
+	});
+});
+
+describe('pairingsPost', () => {
+	it('pings exactly the paired players, one line per match', () => {
+		const body = pairingsPost('Autumn *26* · Week 3', 5, [
+			{ group: 1, p1Id: '1', p2Id: '2' },
+			{ group: 2, p1Id: '3', p2Id: '4' }
+		]);
+		expect(body.content).toBe(
+			'**Autumn \\*26\\* · Week 3 · Round 5**\nGroup A: <@1> vs <@2>\nGroup B: <@3> vs <@4>'
+		);
+		expect(body.allowed_mentions).toEqual({ parse: [], users: ['1', '2', '3', '4'] });
 	});
 });

@@ -1,4 +1,5 @@
 import type { Report } from '#lib/league/report.ts';
+import { groupName } from '#lib/season.ts';
 
 export type DiscordUser = {
 	id: string;
@@ -52,7 +53,7 @@ export const escapeMd = (s: string) => s.replace(/[\\*_~`|<>[\]()#-]/g, '\\$&');
 
 export type Embed = {
 	title: string;
-	url: string;
+	url?: string;
 	description: string;
 	color: number;
 	fields?: { name: string; value: string }[];
@@ -97,5 +98,58 @@ export function flagEmbed(m: MatchPost, flagger: string, reason: string): Embed 
 		description: `${score(m)} (${m.report.p1Legend} vs ${m.report.p2Legend})`,
 		color: SIGNAL,
 		fields: [{ name: 'Reason', value: `> ${escapeMd(reason).replace(/\n/g, '\n> ')}` }]
+	};
+}
+
+export function organizerEditEmbed(
+	m: MatchPost,
+	by: string,
+	o: { resolves: boolean; kept: boolean }
+): Embed {
+	return {
+		title: `${o.resolves ? 'Flag resolved' : 'Result changed'} by ${escapeMd(by)}`,
+		...base(m),
+		description: `${o.kept ? 'Kept as reported' : 'New result'}: ${score(m)} (${m.report.p1Legend} vs ${m.report.p2Legend})`,
+		color: SIGNAL
+	};
+}
+
+export const dropEmbed = (o: {
+	player: string;
+	by: string;
+	where: string;
+	url: string;
+}): Embed => ({
+	title: `${escapeMd(o.player)} dropped`,
+	url: o.url,
+	description: `By ${escapeMd(o.by)}. All their matches are void.`,
+	color: SIGNAL,
+	footer: { text: o.where },
+	timestamp: new Date().toISOString()
+});
+
+export const seasonDeletedEmbed = (name: string, by: string): Embed => ({
+	title: `Season deleted: ${escapeMd(name)}`,
+	description: `By ${escapeMd(by)}. It's hidden from the site; the data is kept.`,
+	color: SIGNAL,
+	footer: { text: 'Poroleague admin' },
+	timestamp: new Date().toISOString()
+});
+
+export type WebhookBody = {
+	content?: string;
+	embeds?: Embed[];
+	allowed_mentions: { parse: []; users?: string[] };
+};
+export type Pairing = { group: number | null; p1Id: string; p2Id: string };
+
+// Mentions only ping from `content`, and only the users listed, so nothing else can be pinged.
+export function pairingsPost(title: string, round: number, pairs: Pairing[]): WebhookBody {
+	const lines = pairs.map(
+		(p) => `${p.group ? `${groupName(p.group)}: ` : ''}<@${p.p1Id}> vs <@${p.p2Id}>`
+	);
+	return {
+		content: [`**${escapeMd(title)} · Round ${round}**`, ...lines].join('\n'),
+		allowed_mentions: { parse: [], users: [...new Set(pairs.flatMap((p) => [p.p1Id, p.p2Id]))] }
 	};
 }
