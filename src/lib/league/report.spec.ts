@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { matchMode, parseReport, resultLine, type ModeContext } from './report';
+import { matchMode, parseReport, type ModeContext } from './report';
 
 const form = (o: Record<string, string>) => {
 	const f = new FormData();
@@ -84,14 +84,5 @@ describe('matchMode', () => {
 		expect(matchMode(unreported, ctx({ closed: true }))).toBe('view');
 		expect(matchMode(byA, ctx({ closed: true }))).toBe('flag');
 		expect(matchMode(byA, ctx({ closed: true, viewerId: 'b' }))).toBe('flag');
-	});
-});
-
-describe('resultLine', () => {
-	it('reads like the spec example', () => {
-		const r = { p1Games: 2, p2Games: 1, p1Legend: 'Jinx', p2Legend: 'Ahri', diceWinnerId: 'a' };
-		expect(resultLine({ id: 'a', name: 'Alice' }, { id: 'b', name: 'Bob' }, r)).toBe(
-			'Alice 2-1 Bob (Jinx vs Ahri, Alice won the roll)'
-		);
 	});
 });

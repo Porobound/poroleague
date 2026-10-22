@@ -2,7 +2,7 @@
 	import Avatar from '#lib/components/Avatar.svelte';
 	import ConfirmButton from '#lib/components/ConfirmButton.svelte';
 	import MatchCard from '#lib/components/MatchCard.svelte';
-	import { parseReport, resultLine } from '#lib/league/report.ts';
+	import { parseReport } from '#lib/league/report.ts';
 	import { groupName } from '#lib/season.ts';
 	import type { PageProps } from './$types';
 
@@ -27,17 +27,28 @@
 				}
 	);
 	const errors = $derived<Record<string, string>>((form && 'errors' in form && form.errors) || {});
-	const side = (k: 'p1' | 'p2') => ({
-		name: player(k).displayName,
-		avatar: player(k).avatar,
-		legend: k === 'p1' ? m.p1Legend : m.p2Legend,
-		games: k === 'p1' ? m.p1Games : m.p2Games
-	});
-	type Side = ReturnType<typeof side>;
-	const sides = $derived<[Side, Side]>([side(order[0]), side(order[1])]);
-	const dice = $derived(
-		m.diceWinnerId ? (order.indexOf(m.diceWinnerId === m.p1Id ? 'p1' : 'p2') as 0 | 1) : null
-	);
+	type Result = {
+		p1Games: number | null;
+		p2Games: number | null;
+		p1Legend: string | null;
+		p2Legend: string | null;
+		diceWinnerId: string | null;
+	};
+	// MatchCard props for a result (saved, or the live form), viewer's side first.
+	const card = (r: Result) => {
+		const side = (k: 'p1' | 'p2') => ({
+			name: player(k).displayName,
+			avatar: player(k).avatar,
+			legend: k === 'p1' ? r.p1Legend : r.p2Legend,
+			games: k === 'p1' ? r.p1Games : r.p2Games
+		});
+		const diceSide = r.diceWinnerId === m.p1Id ? 'p1' : 'p2';
+		return {
+			sides: [side(order[0]), side(order[1])] as [ReturnType<typeof side>, ReturnType<typeof side>],
+			dice: r.diceWinnerId ? (order.indexOf(diceSide) as 0 | 1) : null
+		};
+	};
+	const saved = $derived(card(m));
 	const reporter = $derived(m.reportedBy === m.p1Id ? data.p1 : data.p2);
 	const flagger = $derived(m.flaggedBy === m.p1Id ? data.p1 : data.p2);
 
@@ -48,7 +59,6 @@
 		void changes;
 		return reportForm ? parseReport(new FormData(reportForm), m.p1Id, m.p2Id) : null;
 	});
-	const named = (p: { id: string; displayName: string }) => ({ id: p.id, name: p.displayName });
 </script>
 
 <svelte:head>
@@ -142,7 +152,7 @@
 					confirmDisabled={!live?.ok}
 				>
 					{#if live?.ok}
-						<p><strong>{resultLine(named(data.p1), named(data.p2), live.values)}</strong></p>
+						<MatchCard {head} status="reported" {...card(live.values)} />
 					{/if}
 					<p>
 						You can't change it after saving. If something's off, you or {opponent} can flag it and an
@@ -155,8 +165,7 @@
 	{:else}
 		<MatchCard
 			{head}
-			{sides}
-			{dice}
+			{...saved}
 			status={data.voided
 				? 'void'
 				: m.flaggedBy

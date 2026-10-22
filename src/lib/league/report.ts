@@ -59,10 +59,3 @@ export function matchMode(m: ModeMatch, c: ModeContext): MatchMode {
 	if (!m.reportedBy) return c.closed ? 'view' : 'report';
 	return m.flaggedBy ? 'locked' : 'flag';
 }
-
-type Named = { id: string; name: string };
-
-export function resultLine(p1: Named, p2: Named, r: Report): string {
-	const dice = r.diceWinnerId === p1.id ? p1.name : p2.name;
-	return `${p1.name} ${r.p1Games}-${r.p2Games} ${p2.name} (${r.p1Legend} vs ${r.p2Legend}, ${dice} won the roll)`;
-}
