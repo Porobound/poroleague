@@ -202,7 +202,7 @@ To roll back, set `IMAGE_TAG=<sha>` of the last good commit in `.env` and run th
 
 ### Dev server
 
-Same setup in its own directory (e.g. `/opt/poroleague-dev`), with its own tunnel and hostname (e.g. `dev.<domain>`), and `IMAGE_TAG=dev` in `.env`. Point it at your **dev** Discord application and test server, never the real Porobound ones, and add `https://dev.<domain>/auth/callback` as a redirect in that application. Backups are optional. To start from demo data, copy a `local.db` to `data/poroleague.db` before the first `up`.
+Same setup in its own directory (e.g. `/opt/poroleague-dev`), with its own tunnel and hostname (e.g. `dev.<domain>`), and `IMAGE_TAG=dev` in `.env`. Point it at your **dev** Discord application and test server, never the real Porobound ones, and add `https://dev.<domain>/auth/callback` as a redirect in that application. Backups are optional. To start from demo data, copy a `local.db` to `data/poroleague.db` before the first `up`, then `chown 1000:1000 data/poroleague.db`. A root-owned database still serves pages but fails on the first write (login) with `attempt to write a readonly database`.
 
 To put any branch on it:
 
@@ -217,6 +217,7 @@ CI checks it and builds `:dev`. Then on the dev server: `docker compose pull && 
 ```sh
 docker compose stop app
 cp backups/poroleague-<date>.db data/poroleague.db
+chown 1000:1000 data/poroleague.db
 docker compose start app
 ```
 
