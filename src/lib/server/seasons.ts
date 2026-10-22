@@ -128,30 +128,7 @@ export function dropPlayer(seasonId: number, playerId: string, actorId: string) 
 	});
 }
 
-// A drop can be cancelled for a day, to fix a mistake; players rejoining isn't a feature.
-export const CANCEL_DROP_MS = 24 * 60 * 60 * 1000;
-
-// When the player's latest drop was logged.
-export const droppedAt = (seasonId: number, playerId: string) =>
-	db
-		.select({ at: audit.createdAt })
-		.from(audit)
-		.where(
-			and(
-				eq(audit.seasonId, seasonId),
-				eq(audit.action, 'drop'),
-				sql`json_extract(${audit.after}, '$.dropped') = ${playerId}`
-			)
-		)
-		.orderBy(desc(audit.id))
-		.limit(1)
-		.get()?.at ?? null;
-
-export const canCancelDrop = (seasonId: number, playerId: string, now = Date.now()) => {
-	const at = droppedAt(seasonId, playerId);
-	return !!at && now - at.getTime() < CANCEL_DROP_MS;
-};
-
+// Fixes a mistaken drop: the player's matches count again.
 export function cancelDrop(seasonId: number, playerId: string, actorId: string) {
 	db.transaction((tx) => {
 		tx.update(entries)

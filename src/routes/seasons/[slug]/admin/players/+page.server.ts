@@ -3,7 +3,6 @@ import { dropEmbed } from '#lib/discord.ts';
 import { organizerAction } from '#lib/server/auth.ts';
 import { seasonMatches } from '#lib/server/matches.ts';
 import {
-	canCancelDrop,
 	cancelDrop,
 	dropPlayer,
 	getSeason,
@@ -29,7 +28,7 @@ export const load: PageServerLoad = async ({ parent }) => {
 				...e,
 				record: r ? { played: r.played, wdl: `${r.wins}–${r.draws}–${r.losses}` } : null,
 				matches: ms.filter((m) => m.p1Id === e.playerId || m.p2Id === e.playerId).length,
-				canCancel: season.status === 'play' && e.dropped && canCancelDrop(season.id, e.playerId)
+				canCancel: season.status === 'play' && e.dropped
 			};
 		})
 	};
@@ -72,9 +71,9 @@ export const actions: Actions = {
 		const playerId = String((await event.request.formData()).get('playerId'));
 		const season = getSeason(event.params.slug, user);
 		const entry = seasonEntries(season.id).find((e) => e.playerId === playerId);
-		if (season.status !== 'play' || !entry?.dropped || !canCancelDrop(season.id, playerId))
+		if (season.status !== 'play' || !entry?.dropped)
 			return fail(409, {
-				message: 'A drop can only be cancelled within a day, while the season is in play.'
+				message: 'A drop can only be cancelled while the season is in play.'
 			});
 		cancelDrop(season.id, playerId, user.id);
 		postToOrganizers(

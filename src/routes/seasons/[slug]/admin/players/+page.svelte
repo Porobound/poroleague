@@ -88,9 +88,9 @@
 										title="Cancel {e.displayName}'s drop?"
 										confirmLabel="Cancel drop"
 									>
-										For fixing a mistaken drop, up to a day after it. Their {e.matches} matches count
-										again, with any results reported before the drop, and unplayed ones can be reported.
-										Posted in the organizer channel and logged in the public audit log.
+										For fixing a mistaken drop. Their {e.matches} matches count again, with any results
+										reported before the drop, and unplayed ones can be reported. Posted in the organizer
+										channel and logged in the public audit log.
 									</ConfirmButton>
 								{/if}
 							</td>
