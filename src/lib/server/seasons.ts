@@ -4,7 +4,7 @@ import { defaultGroupCount, splitGroups } from '#lib/league/groups.ts';
 import { buildSchedule } from '#lib/league/schedule.ts';
 import { standings } from '#lib/league/standings.ts';
 import { currentWeek, reportingClosed, roundsOfWeek, weekOf } from '#lib/league/time.ts';
-import { seasonPhases, type SeasonFields, type SeasonStatus } from '#lib/season.ts';
+import { seasonFields, seasonPhases, type SeasonFields, type SeasonStatus } from '#lib/season.ts';
 import { db } from '#lib/server/db/index.ts';
 import { audit, entries, matches, players, seasons } from '#lib/server/db/schema.ts';
 import { droppedIds } from '#lib/league/status.ts';
@@ -79,8 +79,26 @@ export function createSeason(values: SeasonFields) {
 	db.insert(seasons).values(values).run();
 }
 
-export function updateSeason(id: number, values: SeasonFields) {
-	db.update(seasons).set(values).where(eq(seasons.id, id)).run();
+// Changes to a public season are audited; a draft is private and edited freely.
+const AUDITED = ['name', 'startDate', 'roundsPerWeek', 'deadline', 'topCutSize'] as const;
+export function updateSeason(season: Season, values: SeasonFields, actorId: string) {
+	// Compare form-shaped values, so a NULL column the form fills with a default isn't a change.
+	const before = seasonFields(season);
+	const changed = AUDITED.filter((k) => before[k] !== values[k]);
+	db.transaction((tx) => {
+		tx.update(seasons).set(values).where(eq(seasons.id, season.id)).run();
+		if (season.status === 'draft' || !changed.length) return;
+		const pick = (o: SeasonFields) => Object.fromEntries(changed.map((k) => [k, o[k]]));
+		tx.insert(audit)
+			.values({
+				seasonId: season.id,
+				actorId,
+				action: 'season',
+				before: pick(before),
+				after: pick(values)
+			})
+			.run();
+	});
 }
 
 export function setStatus(id: number, status: SeasonStatus) {

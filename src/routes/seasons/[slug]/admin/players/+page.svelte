@@ -30,7 +30,7 @@
 	<p class="muted">{intro}</p>
 
 	{#if form?.message}
-		<p class="status" role="status">{form.message}</p>
+		<p class="pb-notice" role="status">{form.message}</p>
 	{/if}
 
 	{#if scheduled}

@@ -1,16 +1,20 @@
 <script lang="ts">
+	import ConfirmButton from '#lib/components/ConfirmButton.svelte';
 	import type { FieldErrors, SeasonField } from '#lib/season.ts';
 
 	let {
 		values,
 		errors = {},
 		editable,
-		submit
+		submit,
+		confirm = ''
 	}: {
 		values: Record<SeasonField, string | number>;
 		errors?: FieldErrors;
 		editable: SeasonField[];
 		submit: string;
+		// Set to ask before saving; the text goes in the dialog.
+		confirm?: string;
 	} = $props();
 
 	const fields: {
@@ -82,7 +86,15 @@
 		</label>
 	{/each}
 	{#if editable.length}
-		<div class="foot"><button class="pb-btn pb-btn-primary">{submit}</button></div>
+		<div class="foot">
+			{#if confirm}
+				<ConfirmButton inForm label={submit} title="Save season changes?" confirmLabel={submit}>
+					<p>{confirm}</p>
+				</ConfirmButton>
+			{:else}
+				<button class="pb-btn pb-btn-primary">{submit}</button>
+			{/if}
+		</div>
 	{/if}
 </div>
 

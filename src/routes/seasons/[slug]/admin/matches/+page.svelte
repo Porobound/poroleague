@@ -38,7 +38,7 @@
 	</p>
 
 	{#if form?.message}
-		<p class="status" role="status">{form.message}</p>
+		<p class="pb-notice" role="status">{form.message}</p>
 	{/if}
 
 	<div class="seg" role="group" aria-label="Filter by status">
@@ -100,7 +100,7 @@
 			</table>
 		</div>
 	{:else}
-		<p class="status">No matches here.</p>
+		<p class="empty">No matches here.</p>
 	{/if}
 </div>
 
