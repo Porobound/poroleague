@@ -1,10 +1,13 @@
-import { fail } from '@sveltejs/kit';
-import { playerAction } from '#lib/server/auth.ts';
+import { error, fail } from '@sveltejs/kit';
+import { currentRole, playerAction } from '#lib/server/auth.ts';
 import { addEntry, getSeason, groupsOf, removeEntry, seasonEntries } from '#lib/server/seasons.ts';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load: PageServerLoad = ({ params, locals }) => {
+export const load: PageServerLoad = async (event) => {
+	const { params, locals } = event;
 	const season = getSeason(params.slug, locals.user);
+	// getSeason only trusts the session flag; drafts also need the role re-checked with Discord.
+	if (season.status === 'draft' && !(await currentRole(event))) error(404, 'Season not found');
 	const list = seasonEntries(season.id);
 	return {
 		season,

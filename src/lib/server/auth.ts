@@ -18,7 +18,7 @@ const ROLE_CHECK_MS = 60_000;
 
 // Discord rate-limits the member endpoint hard (429 after a few calls), so the role is re-checked
 // at most once a minute per session; if Discord refuses or fails, the last known role is kept.
-async function currentRole({ locals, url }: Ctx): Promise<boolean> {
+export async function currentRole({ locals, url }: Ctx): Promise<boolean> {
 	if (!locals.user || !locals.session) redirect(303, loginUrl(url));
 	const { user, session } = locals;
 	if (Date.now() - (checkedAt.get(session.id) ?? 0) < ROLE_CHECK_MS) return user.isOrganizer;
