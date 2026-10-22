@@ -7,8 +7,15 @@
 		rows,
 		cut,
 		slug,
-		me = null
-	}: { rows: GroupStanding['rows']; cut: number; slug: string; me?: string | null } = $props();
+		me = null,
+		showTies = false
+	}: {
+		rows: GroupStanding['rows'];
+		cut: number;
+		slug: string;
+		me?: string | null;
+		showTies?: boolean;
+	} = $props();
 </script>
 
 <table class="pb-table">
@@ -32,7 +39,8 @@
 					<a class="pb-player" href="/seasons/{slug}/players/{r.playerId}">
 						<Avatar name={r.name} src={r.avatar} size={24} />
 						<span class="pb-player-name">{r.name}</span>
-						{#if r.unresolvedTie}<span class="pb-tie" title="Tied: an organizer decides">Tie</span
+						{#if showTies && r.unresolvedTie}<span class="pb-tie" title="Tied: an organizer decides"
+								>Tie</span
 							>{/if}
 					</a>
 				</td>

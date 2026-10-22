@@ -122,6 +122,7 @@
 						cut={season.topCutSize ?? 0}
 						slug={season.slug}
 						me={user?.id}
+						showTies={data.showTies}
 					/>
 					{#if g.dropped.length}
 						<p class="muted small">

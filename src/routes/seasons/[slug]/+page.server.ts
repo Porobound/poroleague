@@ -1,4 +1,5 @@
 import { error, fail } from '@sveltejs/kit';
+import { reportingClosed } from '#lib/league/time.ts';
 import { currentRole, playerAction } from '#lib/server/auth.ts';
 import { playerMatches } from '#lib/server/matches.ts';
 import {
@@ -21,6 +22,8 @@ export const load: PageServerLoad = async (event) => {
 		entries: list,
 		groups:
 			season.status === 'play' || season.status === 'finished' ? groupStandings(season, list) : [],
+		// Ties only need an organizer once results are in; mid-season they sort themselves out.
+		showTies: season.status === 'finished' || reportingClosed(season.deadline, new Date()),
 		signedUp: !!locals.user && list.some((e) => e.playerId === locals.user!.id),
 		myMatches:
 			locals.user && (season.status === 'play' || season.status === 'finished')
