@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { authorizeUrl, profileFromMember, safeReturnTo, type GuildMember } from './discord';
+import {
+	authorizeUrl,
+	escapeMd,
+	flagEmbed,
+	profileFromMember,
+	resultEmbed,
+	safeReturnTo,
+	type GuildMember
+} from './discord';
 
 const member = (over: Partial<GuildMember> = {}, user: Partial<GuildMember['user']> = {}) => ({
 	nick: null,
@@ -73,5 +81,39 @@ describe('safeReturnTo', () => {
 		]) {
 			expect(safeReturnTo(bad)).toBe('/');
 		}
+	});
+});
+
+describe('match embeds', () => {
+	const m = {
+		p1: { id: 'a', name: 'Alice' },
+		p2: { id: 'b', name: 'B*o*b' },
+		report: { p1Games: 2, p2Games: 1, p1Legend: 'Jinx', p2Legend: 'Ahri', diceWinnerId: 'b' },
+		where: 'Season 1 · Group A · Round 3',
+		url: 'https://league.test/seasons/s1/matches/7',
+		at: new Date('2026-10-22T12:00:00Z')
+	};
+
+	it('escapes Discord markdown in user text', () => {
+		expect(escapeMd('[x](http://evil) *b* <@1>')).toBe('\\[x\\]\\(http://evil\\) \\*b\\* \\<@1\\>');
+	});
+
+	it('posts a result with score, legends and dice winner', () => {
+		expect(resultEmbed(m)).toEqual({
+			title: 'Alice 2–1 B\\*o\\*b',
+			url: m.url,
+			description: 'Jinx vs Ahri · 🎲 B\\*o\\*b won the roll',
+			color: 0x4fd1b5,
+			footer: { text: m.where },
+			timestamp: '2026-10-22T12:00:00.000Z'
+		});
+	});
+
+	it('posts a flag with the reason quoted line by line', () => {
+		const e = flagEmbed(m, 'Alice', 'It was 1-2\nnot 2-1');
+		expect(e.title).toBe('Result flagged by Alice');
+		expect(e.color).toBe(0xf2b33d);
+		expect(e.description).toBe('Alice 2–1 B\\*o\\*b (Jinx vs Ahri)');
+		expect(e.fields).toEqual([{ name: 'Reason', value: '> It was 1\\-2\n> not 2\\-1' }]);
 	});
 });
