@@ -154,6 +154,7 @@ Declare new variables in `src/env.ts` and add them to `.env.example`.
 | `npm run db:seed-dev -- <slug> [count]`      | Dev: sign up fake players                              |
 | `npm run db:report-dev -- <match> <you>`     | Dev: report a match as your opponent                   |
 | `npm run db:play-dev -- <slug> [share]`      | Dev: play out a season with fake results               |
+| `npm run mobile-check -- <base> <db> <out>`  | Dev: check every page at phone width, with screenshots |
 
 CSRF origin checks only run in production builds. Test cross-site POST behaviour with `build` + `preview`, not `dev`.
 
@@ -176,6 +177,24 @@ compose.yaml           host stack: app + cloudflared
 .github/workflows/     CI: lint, check, tests; image to GHCR from main and dev
 docs/                  spec, plans
 ```
+
+## Checking phone layouts
+
+`scripts/mobile-check.ts` opens every page at 390 × 844 in headless Chrome as a visitor, a player and an organizer. It prints one line per page, saves a screenshot of each to `<out>`, and exits with 1 if any page scrolls sideways. Controls under 44 px tall are listed as warnings. Set `MOBILE_CHECK_SIZE=1280x900` to check desktop instead.
+
+It logs in by writing two fake sessions into the database, so always point it at a **copy** (it refuses `local.db`), served by a production preview outside your checkout:
+
+1. Copy the checkout somewhere else, without `node_modules`, `.svelte-kit`, `build`, `.env` and `*.db`. Give the copy its own `node_modules` directory of symlinks to each package in yours, **except `$app`**: SvelteKit writes the route types there, and a shared one overwrites your checkout's.
+2. In the copy: `cp .env.example .env`, and point `DATABASE_URL` at a copy of `local.db`. The checker also wants a season in signup:
+   ```sh
+   sqlite3 <db-copy> "insert into seasons (slug, name, status, rounds_per_week) select 'mobile-signup', 'Spring 2027', 'signup', 2 where not exists (select 1 from seasons where status = 'signup' and deleted_at is null)"
+   ```
+3. Build and serve it. The proxy variables make the organizer re-check fail to reach Discord, so the fake organizer session keeps its role:
+   ```sh
+   ./node_modules/.bin/vite build
+   NODE_USE_ENV_PROXY=1 HTTPS_PROXY=http://127.0.0.1:9 ./node_modules/.bin/vite preview --port 4199 --strictPort
+   ```
+4. From your checkout: `npm run mobile-check -- http://localhost:4199 <db-copy> <out-dir>`.
 
 ## Deploy
 
