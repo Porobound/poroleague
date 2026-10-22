@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import MatchCard from '#lib/components/MatchCard.svelte';
-	import { date } from '#lib/format.ts';
+	import { date, tzName } from '#lib/format.ts';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -21,8 +21,8 @@
 
 <div class="page">
 	<span class="eyebrow">
-		{season.name} · {season.roundsPerWeek} rounds a week · season ends {date(season.deadline)} 23:59 Helsinki
-		time
+		{season.name} · {season.roundsPerWeek} rounds a week · season ends {date(season.deadline)} 23:59
+		{season.deadline ? tzName(season.deadline) : ''}
 	</span>
 	<h1>Schedule</h1>
 
