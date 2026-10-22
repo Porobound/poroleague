@@ -29,12 +29,12 @@ Top cut (top X per group, cross-seeded A1 vs B4 …, single elim, Bo3, online, s
 ## Reporting & trust
 
 - Only signed-up, non-dropped players report, and only their own matches.
-- Reporter's result counts immediately.
-- Reporter may edit their report until the opponent flags it. Opponent never edits — only flags (with reason).
+- Reporter's result counts immediately. The report form asks for confirmation before saving.
+- A saved report is final: neither player edits it. Either player (the reporter included, for their own mistakes) flags it with a reason to have an organizer fix it.
 - After a flag: only organizers change the result. Organizer either edits the result or keeps it as reported; both resolve the flag (`flagResolvedBy`/`flagResolvedAt`). A resolved result can't be flagged again.
 - Every result change (report, edit, flag, organizer edit, drop) goes to a public audit log: who, what, when, before/after.
 - Either player may report an unreported match; the first report counts.
-- Reporting and editing close at the season deadline; flagging stays open until the season is finalized, so a last-minute report can still be disputed. A flag (resolved or not) locks the result for both players.
+- Reporting closes at the season deadline; flagging stays open until the season is finalized, so a last-minute report can still be disputed. A flag (resolved or not) locks the result for both players.
 - Void matches (a player dropped) can't be reported or flagged.
 - Match page: `/seasons/[slug]/matches/[id]` (report, edit, flag, read-only).
 
@@ -77,7 +77,7 @@ Career stats across seasons: **deferred**.
 ## Discord integration
 
 - **v1 (in site):** webhooks, URLs in env vars, one `fetch` per event.
-  - results channel: every reported result ("Alice 2-1 Bob (Jinx vs Ahri, Alice won the roll)"); edits post again prefixed "Edited:"
+  - results channel: every reported result ("Alice 2-1 Bob (Jinx vs Ahri, Alice won the roll)")
   - organizer channel: flags, drops
   - pairings channel: "Post week N pairings" button in admin (all rounds of that week), mentions each paired player (`<@id>`)
   - Every webhook post disables mentions (`allowed_mentions: none`), since names and flag reasons are user text; pairings (Plan 6) opt in to user mentions only.

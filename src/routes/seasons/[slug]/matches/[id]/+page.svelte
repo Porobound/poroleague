@@ -2,6 +2,7 @@
 	import Avatar from '#lib/components/Avatar.svelte';
 	import ConfirmButton from '#lib/components/ConfirmButton.svelte';
 	import MatchCard from '#lib/components/MatchCard.svelte';
+	import { parseReport, resultLine } from '#lib/league/report.ts';
 	import { groupName } from '#lib/season.ts';
 	import type { PageProps } from './$types';
 
@@ -39,6 +40,15 @@
 	);
 	const reporter = $derived(m.reportedBy === m.p1Id ? data.p1 : data.p2);
 	const flagger = $derived(m.flaggedBy === m.p1Id ? data.p1 : data.p2);
+
+	// Live read of the report form for the confirm dialog; `changes` re-runs it on every input.
+	let reportForm = $state<HTMLFormElement>();
+	let changes = $state(0);
+	const live = $derived.by(() => {
+		void changes;
+		return reportForm ? parseReport(new FormData(reportForm), m.p1Id, m.p2Id) : null;
+	});
+	const named = (p: { id: string; displayName: string }) => ({ id: p.id, name: p.displayName });
 </script>
 
 <svelte:head>
@@ -47,11 +57,8 @@
 
 <div class="page narrow">
 	<div>
-		<span class="eyebrow">{head} · Bo3{data.mode === 'edit' ? ' · edit your report' : ''}</span>
+		<span class="eyebrow">{head} · Bo3</span>
 		<h1>{player(order[0]).displayName} vs {opponent}</h1>
-		{#if data.mode === 'edit'}
-			<p class="muted">You can change this until {opponent} flags it.</p>
-		{/if}
 	</div>
 
 	{#if form?.message}
@@ -60,8 +67,14 @@
 		</p>
 	{/if}
 
-	{#if data.mode === 'report' || data.mode === 'edit'}
-		<form method="POST" action="?/report" class="panel report">
+	{#if data.mode === 'report'}
+		<form
+			method="POST"
+			action="?/report"
+			class="panel report"
+			bind:this={reportForm}
+			onchange={() => changes++}
+		>
 			<div class="grid-2">
 				{#each order as k (k)}
 					<div class="side">
@@ -98,7 +111,11 @@
 					</div>
 				{/each}
 			</div>
-			{#if errors.score}<p class="pb-hint is-error" role="alert">{errors.score}</p>{/if}
+			{#if errors.score || (live && !live.ok && live.errors.score)}
+				<p class="pb-hint is-error" role="alert">
+					{errors.score || (live && !live.ok && live.errors.score)}
+				</p>
+			{/if}
 
 			<fieldset class="opts">
 				<legend class="eyebrow">Who won the dice roll?</legend>
@@ -117,9 +134,21 @@
 			{#if errors.dice}<p class="pb-hint is-error" role="alert">{errors.dice}</p>{/if}
 
 			<div class="actions">
-				<button class="pb-btn pb-btn-primary"
-					>{data.mode === 'edit' ? 'Save changes' : 'Add result'}</button
+				<ConfirmButton
+					inForm
+					label="Add result"
+					title="Save this result?"
+					confirmLabel="Save result"
+					confirmDisabled={!live?.ok}
 				>
+					{#if live?.ok}
+						<p><strong>{resultLine(named(data.p1), named(data.p2), live.values)}</strong></p>
+					{/if}
+					<p>
+						You can't change it after saving. If something's off, you or {opponent} can flag it and an
+						organizer fixes it.
+					</p>
+				</ConfirmButton>
 				<a href="/seasons/{data.season.slug}" class="muted">Cancel</a>
 			</div>
 		</form>
@@ -151,7 +180,10 @@
 					title="Flag this result?"
 					confirmLabel="Flag result"
 				>
-					<p>An organizer will review it. After a flag, only organizers can change the result.</p>
+					<p>
+						{m.reportedBy === me ? 'Made a mistake? ' : ''}An organizer will review it and fix the
+						result if needed. After a flag, only organizers can change it.
+					</p>
 					<label class="pb-field">
 						What's wrong?
 						<textarea
@@ -165,16 +197,16 @@
 				<span class="muted">Looks right? Nothing to do.</span>
 			</div>
 			{#if form && 'flagError' in form}<p class="pb-hint is-error">{form.flagError}</p>{/if}
-		{:else if data.mode === 'locked' && m.reportedBy === me}
+		{:else if data.mode === 'locked' && m.flaggedBy === me}
+			<p class="muted">You flagged this result. An organizer is reviewing it.</p>
+		{:else if data.mode === 'locked'}
 			<section class="panel">
-				<h2>Your report is locked</h2>
+				<h2>Flagged</h2>
 				<p class="muted">
-					{flagger.displayName} flagged this result, so you can't edit it any more. An organizer will
-					review it and the decision is logged in the public audit log.
+					{flagger.displayName} flagged this result. An organizer will review it and the decision is logged
+					in the public audit log.
 				</p>
 			</section>
-		{:else if data.mode === 'locked'}
-			<p class="muted">You flagged this result. An organizer is reviewing it.</p>
 		{:else if data.voided}
 			<p class="muted">A player dropped out, so this match doesn't count.</p>
 		{:else if data.closed && data.season.status === 'play' && !m.reportedBy}

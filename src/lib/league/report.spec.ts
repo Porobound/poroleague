@@ -69,8 +69,8 @@ describe('matchMode', () => {
 		expect(matchMode(unreported, ctx({ inPlay: false }))).toBe('view');
 	});
 
-	it('lets the reporter edit and the opponent flag', () => {
-		expect(matchMode(byA, ctx())).toBe('edit');
+	it('makes a report final: either player can only flag it', () => {
+		expect(matchMode(byA, ctx())).toBe('flag');
 		expect(matchMode(byA, ctx({ viewerId: 'b' }))).toBe('flag');
 	});
 
@@ -80,9 +80,9 @@ describe('matchMode', () => {
 		expect(matchMode(flagged, ctx({ viewerId: 'b' }))).toBe('locked');
 	});
 
-	it('closes reporting and editing at the deadline, but not flagging', () => {
+	it('closes reporting at the deadline, but not flagging', () => {
 		expect(matchMode(unreported, ctx({ closed: true }))).toBe('view');
-		expect(matchMode(byA, ctx({ closed: true }))).toBe('view');
+		expect(matchMode(byA, ctx({ closed: true }))).toBe('flag');
 		expect(matchMode(byA, ctx({ closed: true, viewerId: 'b' }))).toBe('flag');
 	});
 });

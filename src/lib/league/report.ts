@@ -36,7 +36,7 @@ export function parseReport(form: FormData, p1Id: string, p2Id: string): ReportP
 	return Object.keys(errors).length ? { ok: false, errors } : { ok: true, values };
 }
 
-export type MatchMode = 'report' | 'edit' | 'flag' | 'locked' | 'view';
+export type MatchMode = 'report' | 'flag' | 'locked' | 'view';
 export type ModeMatch = {
 	p1Id: string;
 	p2Id: string;
@@ -50,15 +50,14 @@ export type ModeContext = {
 	voided: boolean; // a player was dropped
 };
 
-// What the viewer may do with a match. Flagging stays open after the deadline so a last-minute
-// report can still be disputed; a flag locks the result for good (only organizers change it).
+// What the viewer may do with a match. A saved report is final: either player flags it to have an
+// organizer fix it. Flagging stays open after the deadline so a last-minute report can still be
+// disputed; a flag locks the result for good (only organizers change it).
 export function matchMode(m: ModeMatch, c: ModeContext): MatchMode {
 	const playing = c.viewerId === m.p1Id || c.viewerId === m.p2Id;
 	if (!c.viewerId || !playing || !c.inPlay || c.voided) return 'view';
 	if (!m.reportedBy) return c.closed ? 'view' : 'report';
-	if (m.flaggedBy) return 'locked';
-	if (m.reportedBy === c.viewerId) return c.closed ? 'view' : 'edit';
-	return 'flag';
+	return m.flaggedBy ? 'locked' : 'flag';
 }
 
 type Named = { id: string; name: string };

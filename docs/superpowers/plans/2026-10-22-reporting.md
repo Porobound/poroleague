@@ -28,6 +28,8 @@
 - No `use:enhance`, no toast: same plain-form + inline `.status` pattern as Plan 3. Score buttons are native radios styled as the design's `.opt` chips, so the form works without JS.
 - Read-check-write in an action runs synchronously (better-sqlite3 is sync, no `await` in between), so two requests can't interleave inside it. Keep it that way; webhooks are posted after the write, not awaited.
 
+**Changed during execution:** reports are final. The owner pointed out that edit-until-flagged let a reporter quietly change a result after the opponent had seen it. Now neither player edits: either one (the reporter included, for their own mistakes) flags the result to have an organizer fix it. Edit mode and the `Edited:` webhook are gone. The report form confirms before saving (`ConfirmButton` gained `inForm` and `confirmDisabled`), and the dialog shows the result line.
+
 **Not in this plan:** audit log page, schedule, player page (Plan 5); organizer edits, flag resolution, drops, double losses (Plan 6); bot endpoints (Plan 8).
 
 ---

@@ -17,7 +17,8 @@ import type { Actions, PageServerLoad } from './$types';
 
 type Event = { params: { slug: string; id: string }; locals: App.Locals };
 
-// Everything an action re-checks, read in one go. No await between this and the write.
+// Everything an action checks, read in one go. Actions call it after awaiting the form, with no
+// await between this and the write, so two requests can't interleave.
 function context({ params, locals }: Event) {
 	const season = getSeason(params.slug, locals.user);
 	const id = Number(params.id);
@@ -58,40 +59,22 @@ export const load: PageServerLoad = (event) => {
 export const actions: Actions = {
 	report: async (event) => {
 		const user = playerAction(event);
-		const { match, mode } = context(event);
-		if (mode === 'locked')
-			return fail(409, {
-				error: true,
-				message: 'This result was flagged, so only organizers can change it.'
-			});
-		if (mode !== 'report' && mode !== 'edit')
-			return fail(409, { error: true, message: "You can't report this match (any more)." });
-
 		const form = await event.request.formData();
+		const { match, mode } = context(event);
+		if (mode !== 'report')
+			return fail(409, { error: true, message: 'This match is already reported or closed.' });
 		const parsed = parseReport(form, match.p1Id, match.p2Id);
 		if (!parsed.ok)
 			return fail(400, {
 				errors: parsed.errors,
 				values: Object.fromEntries(form) as Record<string, string>
 			});
-
-		// formData() awaited above: re-read so a flag that landed meanwhile still wins.
-		const fresh = context(event);
-		if (fresh.mode !== mode)
-			return fail(409, {
-				error: true,
-				message: 'This match changed while you were reporting. Check it again.'
-			});
-		const action = saveReport(fresh.match, user.id, parsed.values);
+		saveReport(match, user.id, parsed.values);
 		const [p1, p2] = matchPlayers(match);
-		const line = resultLine(named(p1), named(p2), parsed.values);
-		postResult(action === 'edit' ? `Edited: ${line}` : line);
+		postResult(resultLine(named(p1), named(p2), parsed.values));
 		const opponent = user.id === p1.id ? p2 : p1;
 		return {
-			message:
-				action === 'report'
-					? `Result added. ${opponent.displayName} can flag it if something's off.`
-					: 'Changes saved and logged in the audit log.'
+			message: `Result saved. If something's off, you or ${opponent.displayName} can flag it.`
 		};
 	},
 

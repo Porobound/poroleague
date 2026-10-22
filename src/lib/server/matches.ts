@@ -65,34 +65,17 @@ export function lastLegend(playerId: string): string | null {
 	return m.p1Id === playerId ? m.p1Legend : m.p2Legend;
 }
 
-const result = (m: Match) => ({
-	p1Games: m.p1Games,
-	p2Games: m.p2Games,
-	p1Legend: m.p1Legend,
-	p2Legend: m.p2Legend,
-	diceWinnerId: m.diceWinnerId
-});
-
-// First report or the reporter's edit; the result and its audit row are written together.
-export function saveReport(m: Match, actorId: string, values: Report): 'report' | 'edit' {
-	const action = m.reportedBy ? 'edit' : 'report';
+// A report is final (fixes go through a flag); the result and its audit row are written together.
+export function saveReport(m: Match, actorId: string, values: Report) {
 	db.transaction((tx) => {
 		tx.update(matches)
-			.set({ ...values, reportedBy: m.reportedBy ?? actorId, reportedAt: new Date() })
+			.set({ ...values, reportedBy: actorId, reportedAt: new Date() })
 			.where(eq(matches.id, m.id))
 			.run();
 		tx.insert(audit)
-			.values({
-				seasonId: m.seasonId,
-				matchId: m.id,
-				actorId,
-				action,
-				before: m.reportedBy ? result(m) : null,
-				after: values
-			})
+			.values({ seasonId: m.seasonId, matchId: m.id, actorId, action: 'report', after: values })
 			.run();
 	});
-	return action;
 }
 
 export function flagMatch(m: Match, actorId: string, reason: string) {
