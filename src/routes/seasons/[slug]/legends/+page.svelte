@@ -47,7 +47,8 @@
 										: 'descending'
 									: undefined}
 							>
-								{#if key}<a href={href(key, data.open)}>{label}</a>{:else}{label}{/if}
+								{#if key}<a href={href(key, data.open)} data-sveltekit-noscroll>{label}</a
+									>{:else}{label}{/if}
 							</th>
 						{/each}
 					</tr>
@@ -57,9 +58,21 @@
 						<tr>
 							<th scope="row">
 								<a
+									class="leg"
 									href={href(data.sort, data.open === r.key ? null : r.key)}
 									aria-expanded={data.open === r.key}
+									data-sveltekit-noscroll
 								>
+									<svg class="chev" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
+										<path
+											d="M9 6l6 6-6 6"
+											fill="none"
+											stroke="currentColor"
+											stroke-width="2"
+											stroke-linecap="round"
+											stroke-linejoin="round"
+										/>
+									</svg>
 									{r.key}
 								</a>
 							</th>
@@ -105,3 +118,26 @@
 		</details>
 	{/if}
 </div>
+
+<style>
+	/* Legend names open a row of players in place, so they read as a disclosure, not a link. */
+	.leg {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		color: var(--ink);
+		font-weight: 500;
+		text-decoration: none;
+	}
+	.chev {
+		color: var(--ink-muted);
+		transition: transform 0.15s;
+	}
+	.leg[aria-expanded='true'] .chev {
+		transform: rotate(90deg);
+	}
+	.leg:hover .chev,
+	.leg[aria-expanded='true'] .chev {
+		color: var(--ink);
+	}
+</style>
