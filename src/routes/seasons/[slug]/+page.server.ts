@@ -1,5 +1,5 @@
 import { error, fail } from '@sveltejs/kit';
-import { addDays, reportingClosed, weekOf } from '#lib/league/time.ts';
+import { addDays, reportingClosed, roundsOfWeek, weekOf } from '#lib/league/time.ts';
 import { cardContext, matchCard } from '#lib/matchCard.ts';
 import { seasonPhases } from '#lib/season.ts';
 import { currentRole, playerAction } from '#lib/server/auth.ts';
@@ -25,11 +25,7 @@ export const load: PageServerLoad = async (event) => {
 	const ctx = cardContext(season, list, locals.user?.id ?? null);
 	const maxRound = Math.max(0, ...groups.map((g) => g.rounds));
 	const weeks = weekOf(maxRound, season.roundsPerWeek);
-	const first = (ctx.week - 1) * season.roundsPerWeek + 1;
-	const rounds: [number, number] | null =
-		ctx.week >= 1 && first <= maxRound
-			? [first, Math.min(ctx.week * season.roundsPerWeek, maxRound)]
-			: null;
+	const rounds = roundsOfWeek(ctx.week, season.roundsPerWeek, maxRound);
 	// Week w runs from the start date + 7(w-1) days for 7 days, but never past the deadline.
 	const weekEnd =
 		season.startDate && ctx.week >= 1 ? addDays(season.startDate, ctx.week * 7 - 1) : null;

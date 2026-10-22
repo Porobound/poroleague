@@ -15,6 +15,14 @@ const daysBetween = (from: string, to: string) =>
 
 export const weekOf = (round: number, roundsPerWeek: number) => Math.ceil(round / roundsPerWeek);
 
+// A week's first and last round; null before week 1 or once the rounds run out.
+export function roundsOfWeek(week: number, roundsPerWeek: number, maxRound: number) {
+	const first = (week - 1) * roundsPerWeek + 1;
+	return week >= 1 && first <= maxRound
+		? ([first, Math.min(week * roundsPerWeek, maxRound)] as [number, number])
+		: null;
+}
+
 // Week 1 starts on the start date (league time); 0 before the season starts.
 export const currentWeek = (startDate: string | null, now: Date) =>
 	startDate ? Math.max(0, Math.floor(daysBetween(startDate, leagueDate(now)) / 7) + 1) : 0;
