@@ -35,14 +35,15 @@ function weekPairings(season: Season, now = new Date()) {
 	const week = Math.max(1, currentWeek(season.startDate, now));
 	const rounds = roundsOfWeek(week, season.roundsPerWeek, Math.max(0, ...ms.map((m) => m.round)));
 	if (!rounds) return null;
-	const byRound = Array.from({ length: rounds[1] - rounds[0] + 1 }, (_, i) => rounds[0] + i).map(
-		(round) => ({
+	const byRound = Array.from({ length: rounds[1] - rounds[0] + 1 }, (_, i) => rounds[0] + i)
+		.map((round) => ({
 			round,
 			pairs: ms
 				.filter((m) => m.round === round && !isVoid(m, dropped))
 				.map((m) => ({ group: m.group, p1Id: m.p1Id, p2Id: m.p2Id }))
-		})
-	);
+		}))
+		.filter((r) => r.pairs.length);
+	if (!byRound.length) return null;
 	return { week, rounds, byRound, count: byRound.reduce((n, r) => n + r.pairs.length, 0) };
 }
 
@@ -145,7 +146,8 @@ export const actions: Actions = {
 		const user = await organizerAction(event);
 		const ids = String((await event.request.formData()).get('order') ?? '').split(',');
 		const season = getSeason(event.params.slug, user);
-		if (season.status !== 'play') return fail(409, { message: 'The season is not in play.' });
+		if (season.status !== 'play' || !endState(season).ending)
+			return fail(409, { message: 'Ties are settled at the end of the season.' });
 		const rows = groupStandings(season, seasonEntries(season.id)).flatMap((g) => g.rows);
 		const key = rows.find((r) => r.playerId === ids[0])?.tie;
 		const cluster = rows.filter((r) => key && r.tie === key).map((r) => r.playerId);

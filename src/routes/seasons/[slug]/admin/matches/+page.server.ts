@@ -30,7 +30,7 @@ export const load: PageServerLoad = async ({ parent, url }) => {
 	const { season } = await parent();
 	const list = seasonEntries(season.id);
 	const ctx = cardContext(season, list, null);
-	const name = (id: string) => list.find((e) => e.playerId === id)?.displayName ?? 'Unknown';
+	const name = (id: string) => ctx.people.get(id)?.displayName ?? 'Unknown';
 	const f = url.searchParams.get('status') ?? '';
 	const filter: Filter = f in FILTERS ? (f as Filter) : 'all';
 	const rows = seasonMatches(season.id)
@@ -88,7 +88,7 @@ export const actions: Actions = {
 
 	keep: async (event) => {
 		const { user, season, match } = await target(event);
-		if (season.status !== 'play' || !match.flaggedBy || match.flagResolvedAt)
+		if (season.status !== 'play' || !match.flaggedBy || match.flagResolvedAt || isVoided(match))
 			return fail(409, { message: 'This result has no open flag.' });
 		keepResult(match, user.id);
 		postToOrganizers(

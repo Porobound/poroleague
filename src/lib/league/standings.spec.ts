@@ -94,6 +94,12 @@ describe('standings', () => {
 		expect(ranked.some((r) => r.unresolvedTie)).toBe(false);
 	});
 
+	it('a rank left over from an earlier tie does not settle a new one', () => {
+		const draw = [m('A', 1, 1, 'C')];
+		const rows = standings([entry('A', { tiebreak: 1 }), entry('C')], draw);
+		expect(rows.every((r) => r.unresolvedTie)).toBe(true);
+	});
+
 	it('before any results, nobody is flagged as tied', () => {
 		const rows = standings([entry('A'), entry('B'), entry('C')], [m('A', null, null, 'B')]);
 		expect(rows.some((r) => r.unresolvedTie)).toBe(false);

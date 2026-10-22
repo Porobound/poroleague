@@ -101,7 +101,10 @@ function breakTie(tied: Row[], matches: MatchResult[], entries: Map<string, Entr
 		const [x, y] = [sorted[i], sorted[i + 1]];
 		if (x.played === 0 || y.played === 0 || base(x, y) !== 0) continue;
 		y.tie = x.tie ??= x.playerId;
-		if (rank(x) === rank(y)) x.unresolvedTie = y.unresolvedTie = true;
+		// A missing rank means nobody ordered this tie (a rank may be left over from an earlier one).
+		// ponytail: two stale ranks from different old ties can still settle a new tie; clear ranks if that bites.
+		const unranked = (r: Row) => entries.get(r.playerId)!.tiebreak === null;
+		if (unranked(x) || unranked(y) || rank(x) === rank(y)) x.unresolvedTie = y.unresolvedTie = true;
 	}
 	return sorted;
 }
