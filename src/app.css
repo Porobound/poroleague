@@ -518,6 +518,71 @@ dialog.pb-dialog {
 		align-items: stretch;
 	}
 
+	/* Audit tables become two-line entries: who and when, then type and what. */
+	.audit-table,
+	.audit-table tbody {
+		display: block;
+	}
+	.audit-table thead {
+		display: none;
+	}
+	.audit-table tbody tr {
+		display: grid;
+		grid-template-columns: auto minmax(0, 1fr) auto;
+		align-items: baseline;
+		gap: 4px 10px;
+		padding: 12px 0;
+		border-bottom: 1px solid var(--line);
+	}
+	.audit-table tbody tr:last-child {
+		border-bottom: 0;
+	}
+	.pb-table.audit-table tbody tr > * {
+		display: block;
+		padding: 0;
+		border: 0;
+		background: none;
+	}
+	.audit-table .who {
+		grid-area: 1 / 1 / 2 / 3;
+		font-weight: 600;
+	}
+	.audit-table .when {
+		grid-area: 1 / 3;
+		font-size: 13px;
+		color: var(--ink-muted);
+	}
+	.audit-table .type {
+		grid-area: 2 / 1;
+	}
+	.audit-table .what {
+		grid-area: 2 / 2 / 3 / 4;
+		font-size: 14px;
+		line-height: 20px;
+	}
+	.audit-table .type ~ .what {
+		grid-column: 2 / 4;
+	}
+	.audit-table tr:not(:has(.type)) .what {
+		grid-column: 1 / 4;
+	}
+
+	/* Login problem pages: full-width buttons, as on the boards. */
+	.message-card {
+		margin: 24px auto;
+		padding: 20px;
+	}
+	.message-card .actions {
+		align-self: stretch;
+		flex-direction: column;
+	}
+	.message-card .actions .pb-btn {
+		box-sizing: border-box;
+		width: 100%;
+		justify-content: center;
+		min-height: 48px;
+	}
+
 	/* Back-arrow header (replaces the site header) and a sticky bar for the page's main action. */
 	.back-bar {
 		display: flex;
