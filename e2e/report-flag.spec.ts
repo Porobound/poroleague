@@ -25,6 +25,7 @@ test('report, flag, organizer fix', async ({ browser }) => {
 	const games = reporter.getByRole('group', { name: 'Games won' });
 	const add = reporter.getByRole('button', { name: 'Add result' });
 	await expect(add).toBeDisabled();
+	const scoreError = reporter.getByRole('alert').filter({ hasText: "That isn't a finished Bo3" });
 	await games.nth(0).getByLabel('2').check();
 	await games.nth(1).getByLabel('2').check();
 	await reporter.getByLabel('Legend').nth(0).selectOption('Ahri');
@@ -74,6 +75,10 @@ test('report, flag, organizer fix', async ({ browser }) => {
 	await reporter.reload();
 	await expect(reporter.getByText('Flag resolved by an organizer · final')).toBeVisible();
 	await expect(reporter.getByRole('article')).toHaveText(card(1, 2), { useInnerText: true });
+
+	// Match lists mark the resolved flag on that match only.
+	await reporter.goto(`/seasons/${slug}/schedule`);
+	await expect(reporter.getByRole('img', { name: 'Flag resolved by an organizer' })).toHaveCount(1);
 
 	// Every change is in the public audit log, newest first.
 	await reporter.goto(`/seasons/${slug}/audit`);
