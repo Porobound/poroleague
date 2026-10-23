@@ -14,11 +14,10 @@ export const load: PageServerLoad = ({ params, locals, url }) => {
 	const maxRound = Math.max(0, ...all.map((m) => m.round));
 	const weeks = weekOf(maxRound, rpw);
 	const shownWeeks = weekOf(season.publishedRound, rpw);
+	// The page opens on this week, or on the last published one while organizers are behind.
+	const home = Math.min(weeks, Math.max(1, Math.min(ctx.week, shownWeeks)));
 	const asked = Number(url.searchParams.get('week'));
-	const week = Math.min(
-		weeks,
-		Math.max(1, Number.isInteger(asked) && asked > 0 ? asked : Math.min(ctx.week, shownWeeks))
-	);
+	const week = Number.isInteger(asked) && asked > 0 ? Math.min(weeks, asked) : home;
 	const groups = Math.max(0, ...all.map((m) => m.group ?? 0));
 	const group = Number(url.searchParams.get('group')) || 0;
 	const mine = !!locals.user && url.searchParams.has('mine');
@@ -48,9 +47,9 @@ export const load: PageServerLoad = ({ params, locals, url }) => {
 		groups: Array.from({ length: groups }, (_, i) => ({ n: i + 1, label: groupName(i + 1) })),
 		group,
 		mine,
-		// Overdue matches sit in their own week's rounds too, so list them separately only on the current week.
+		// Overdue matches sit in their own week's rounds too, so list them separately only on the opening week.
 		overdue:
-			week === ctx.week
+			week === home
 				? cards.map((c) => c.card).filter((c) => c.status === 'overdue' && show(c))
 				: [],
 		sections: [...sections].map(([title, list]) => {

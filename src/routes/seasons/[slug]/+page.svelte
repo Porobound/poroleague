@@ -37,6 +37,11 @@
 				{:else if data.week < 1}
 					<h1>Starts {date(season.startDate)}.</h1>
 					<p class="lede">Pairings come out week by week. Week 1 opens on the start date.</p>
+				{:else if data.pending}
+					<h1>Week {data.week} pairings are coming.</h1>
+					<p class="lede">
+						They're posted here and in the pairings channel once organizers publish them.
+					</p>
 				{:else if data.rounds && data.weekEnds}
 					<h1>Week {data.week} is up.</h1>
 					<p class="lede">
