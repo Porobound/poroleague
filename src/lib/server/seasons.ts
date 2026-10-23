@@ -190,7 +190,9 @@ export function publishWeek(
 ) {
 	db.transaction((tx) => {
 		tx.update(seasons).set({ publishedRound: rounds[1] }).where(eq(seasons.id, seasonId)).run();
-		tx.insert(audit).values({ seasonId, actorId, action: 'publish', after: { week, rounds } }).run();
+		tx.insert(audit)
+			.values({ seasonId, actorId, action: 'publish', after: { week, rounds } })
+			.run();
 	});
 }
 

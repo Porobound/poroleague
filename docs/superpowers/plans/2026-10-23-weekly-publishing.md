@@ -26,27 +26,28 @@
 
 ## File structure
 
-| File | Responsibility |
-| --- | --- |
-| `src/lib/league/publish.ts` (new), `publish.spec.ts` (new) | Next rounds to publish; filter a match list to published rounds |
-| `src/lib/server/db/schema.ts`, `drizzle/0002_*.sql` (generated + backfill) | `published_round` column |
-| `src/lib/server/seasons.ts` | `publishWeek` (update + audit) |
-| `src/lib/server/seasonAdmin.ts` | `weekPairings` → `nextPairings` |
-| `src/lib/server/auditLog.ts` | "Publish" audit line |
-| `src/routes/seasons/[slug]/admin/+page.server.ts`, `+page.svelte` | Publish action and button |
-| `src/routes/seasons/[slug]/admin/matches/+page.server.ts`, `+page.svelte`, `src/lib/server/resultActions.ts` | Unpublished rows: no edits |
-| `src/routes/seasons/[slug]/+page.server.ts`, `+page.svelte` | Your matches this week: published only, "not out yet" notice |
-| `src/routes/seasons/[slug]/schedule/+page.server.ts`, `+page.svelte` | Published weeks only; empty state for the rest |
-| `src/routes/seasons/[slug]/players/[id]/+page.server.ts` | Published matches only |
-| `src/routes/seasons/[slug]/matches/[id]/+page.server.ts` | 404 for unpublished matches |
-| `scripts/play-dev.ts`, `scripts/mobile-check.ts` | Dev scripts only touch published matches |
-| `docs/spec.md`, `README.md` | Spec and status |
+| File                                                                                                         | Responsibility                                                  |
+| ------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------- |
+| `src/lib/league/publish.ts` (new), `publish.spec.ts` (new)                                                   | Next rounds to publish; filter a match list to published rounds |
+| `src/lib/server/db/schema.ts`, `drizzle/0002_*.sql` (generated + backfill)                                   | `published_round` column                                        |
+| `src/lib/server/seasons.ts`                                                                                  | `publishWeek` (update + audit)                                  |
+| `src/lib/server/seasonAdmin.ts`                                                                              | `weekPairings` → `nextPairings`                                 |
+| `src/lib/server/auditLog.ts`                                                                                 | "Publish" audit line                                            |
+| `src/routes/seasons/[slug]/admin/+page.server.ts`, `+page.svelte`                                            | Publish action and button                                       |
+| `src/routes/seasons/[slug]/admin/matches/+page.server.ts`, `+page.svelte`, `src/lib/server/resultActions.ts` | Unpublished rows: no edits                                      |
+| `src/routes/seasons/[slug]/+page.server.ts`, `+page.svelte`                                                  | Your matches this week: published only, "not out yet" notice    |
+| `src/routes/seasons/[slug]/schedule/+page.server.ts`, `+page.svelte`                                         | Published weeks only; empty state for the rest                  |
+| `src/routes/seasons/[slug]/players/[id]/+page.server.ts`                                                     | Published matches only                                          |
+| `src/routes/seasons/[slug]/matches/[id]/+page.server.ts`                                                     | 404 for unpublished matches                                     |
+| `scripts/play-dev.ts`, `scripts/mobile-check.ts`                                                             | Dev scripts only touch published matches                        |
+| `docs/spec.md`, `README.md`                                                                                  | Spec and status                                                 |
 
 ---
 
 ### Task 1: Pure publish rule
 
 **Files:**
+
 - Create: `src/lib/league/publish.ts`
 - Test: `src/lib/league/publish.spec.ts`
 
@@ -124,6 +125,7 @@ git commit -m "feat(league): next week to publish"
 ### Task 2: `published_round` column with backfill
 
 **Files:**
+
 - Modify: `src/lib/server/db/schema.ts` (seasons table, after `roundsPerWeek`)
 - Create: `drizzle/0002_*.sql` (generated), `drizzle/meta/*` (generated)
 
@@ -169,6 +171,7 @@ git commit -m "feat(db): seasons.published_round"
 ### Task 3: Publish action replaces the pairings post
 
 **Files:**
+
 - Modify: `src/lib/server/seasonAdmin.ts` (`weekPairings`)
 - Modify: `src/lib/server/seasons.ts` (add `publishWeek`)
 - Modify: `src/lib/server/auditLog.ts`
@@ -207,10 +210,17 @@ export function nextPairings(season: Season, { all, live }: SeasonData, now = ne
 Next to `finalizeSeason`:
 
 ```ts
-export function publishWeek(seasonId: number, week: number, rounds: [number, number], actorId: string) {
+export function publishWeek(
+	seasonId: number,
+	week: number,
+	rounds: [number, number],
+	actorId: string
+) {
 	db.transaction((tx) => {
 		tx.update(seasons).set({ publishedRound: rounds[1] }).where(eq(seasons.id, seasonId)).run();
-		tx.insert(audit).values({ seasonId, actorId, action: 'publish', after: { week, rounds } }).run();
+		tx.insert(audit)
+			.values({ seasonId, actorId, action: 'publish', after: { week, rounds } })
+			.run();
 	});
 }
 ```
@@ -220,14 +230,15 @@ export function publishWeek(seasonId: number, week: number, rounds: [number, num
 In `src/lib/server/auditLog.ts`: add `week?: number; rounds?: [number, number];` to `Change`, `publish: 'Publish'` to `LABEL`, and in the `what` list, after the `finalize` entry:
 
 ```ts
-					r.action === 'publish' && after?.rounds
-						? `Week ${after.week} published · R${after.rounds[0]}${after.rounds[1] > after.rounds[0] ? `–${after.rounds[1]}` : ''}`
-						: ''
+r.action === 'publish' && after?.rounds
+	? `Week ${after.week} published · R${after.rounds[0]}${after.rounds[1] > after.rounds[0] ? `–${after.rounds[1]}` : ''}`
+	: '';
 ```
 
 - [ ] **Step 4: Admin action and load**
 
 In `src/routes/seasons/[slug]/admin/+page.server.ts`:
+
 - import `nextPairings` instead of `weekPairings`, `publishWeek` from `#lib/server/seasons.ts` and `weekOf` from `#lib/league/time.ts`;
 - in `load`, replace `pairings:` with:
 
@@ -240,27 +251,27 @@ In `src/routes/seasons/[slug]/admin/+page.server.ts`:
 - replace the `postPairings` action with:
 
 ```ts
-	publish: async (event) => {
-		const user = await organizerAction(event);
-		const week = Number((await event.request.formData()).get('week'));
-		const season = getSeason(event.params.slug, user);
-		if (season.status !== 'play') return fail(409, { message: 'The season is not in play.' });
-		const p = nextPairings(season, seasonData(season.id));
-		// The form names its week, so a double submit can't publish the week after too.
-		if (!p || p.week !== week)
-			return fail(409, { message: 'That week is already published, or nothing is left to publish.' });
-		publishWeek(season.id, p.week, p.rounds, user.id);
-		const discord = pairingsEnabled() && p.count > 0;
-		if (discord)
-			postPairings(
-				pairingsPost(
-					`${season.name} · Week ${p.week}`,
-					`${event.url.origin}/seasons/${season.slug}/schedule`,
-					p.byRound
-				)
-			);
-		return { message: `Week ${p.week} published${discord ? ' and posted in Discord' : ''}.` };
-	}
+publish: async (event) => {
+	const user = await organizerAction(event);
+	const week = Number((await event.request.formData()).get('week'));
+	const season = getSeason(event.params.slug, user);
+	if (season.status !== 'play') return fail(409, { message: 'The season is not in play.' });
+	const p = nextPairings(season, seasonData(season.id));
+	// The form names its week, so a double submit can't publish the week after too.
+	if (!p || p.week !== week)
+		return fail(409, { message: 'That week is already published, or nothing is left to publish.' });
+	publishWeek(season.id, p.week, p.rounds, user.id);
+	const discord = pairingsEnabled() && p.count > 0;
+	if (discord)
+		postPairings(
+			pairingsPost(
+				`${season.name} · Week ${p.week}`,
+				`${event.url.origin}/seasons/${season.slug}/schedule`,
+				p.byRound
+			)
+		);
+	return { message: `Week ${p.week} published${discord ? ' and posted in Discord' : ''}.` };
+};
 ```
 
 - [ ] **Step 5: Button**
@@ -268,35 +279,35 @@ In `src/routes/seasons/[slug]/admin/+page.server.ts`:
 In `src/routes/seasons/[slug]/admin/+page.svelte`, replace the `ConfirmButton` block (lines 35–49) with:
 
 ```svelte
-		{#if data.pairings}
-			{@const p = data.pairings}
-			<ConfirmButton
-				action="?/publish"
-				variant="secondary"
-				label="Publish week {p.week}"
-				title="Publish week {p.week} pairings?"
-				confirmLabel="Publish"
-				fields={{ week: String(p.week) }}
-			>
-				Players see the {p.count} pairings for {p.rounds[0] === p.rounds[1]
-					? `round ${p.rounds[0]}`
-					: `rounds ${p.rounds[0]}–${p.rounds[1]}`} on the site{data.discord
-					? ", and they're posted in the pairings channel with each player's Discord name. Nobody is pinged"
-					: ''}. A published week can't be hidden again.
-			</ConfirmButton>
-		{/if}
+{#if data.pairings}
+	{@const p = data.pairings}
+	<ConfirmButton
+		action="?/publish"
+		variant="secondary"
+		label="Publish week {p.week}"
+		title="Publish week {p.week} pairings?"
+		confirmLabel="Publish"
+		fields={{ week: String(p.week) }}
+	>
+		Players see the {p.count} pairings for {p.rounds[0] === p.rounds[1]
+			? `round ${p.rounds[0]}`
+			: `rounds ${p.rounds[0]}–${p.rounds[1]}`} on the site{data.discord
+			? ", and they're posted in the pairings channel with each player's Discord name. Nobody is pinged"
+			: ''}. A published week can't be hidden again.
+	</ConfirmButton>
+{/if}
 ```
 
 and under `<PhaseBar phases={data.phases} />`, for a season in play:
 
 ```svelte
-	{#if season.status === 'play'}
-		<p class="muted">
-			{data.publishedWeeks
-				? `Players see ${data.publishedWeeks === 1 ? 'week 1' : `weeks 1–${data.publishedWeeks}`} of ${data.weeks}.`
-				: 'No weeks published yet. Players see no pairings until you publish week 1.'}
-		</p>
-	{/if}
+{#if season.status === 'play'}
+	<p class="muted">
+		{data.publishedWeeks
+			? `Players see ${data.publishedWeeks === 1 ? 'week 1' : `weeks 1–${data.publishedWeeks}`} of ${data.weeks}.`
+			: 'No weeks published yet. Players see no pairings until you publish week 1.'}
+	</p>
+{/if}
 ```
 
 - [ ] **Step 6: Check and commit**
@@ -313,6 +324,7 @@ git commit -m "feat(admin): publish week replaces post pairings"
 ### Task 4: Public pages show published weeks only
 
 **Files:**
+
 - Modify: `src/routes/seasons/[slug]/matches/[id]/+page.server.ts` (`context`)
 - Modify: `src/routes/seasons/[slug]/schedule/+page.server.ts`, `+page.svelte`
 - Modify: `src/routes/seasons/[slug]/+page.server.ts`, `+page.svelte`
@@ -323,8 +335,8 @@ git commit -m "feat(admin): publish week replaces post pairings"
 In `context()`:
 
 ```ts
-	// Unpublished pairings stay secret, organizers included; they have Admin → Matches.
-	if (!match || match.round > season.publishedRound) error(404, 'Match not found');
+// Unpublished pairings stay secret, organizers included; they have Admin → Matches.
+if (!match || match.round > season.publishedRound) error(404, 'Match not found');
 ```
 
 This also blocks reporting and flagging them, since both actions go through `context()`.
@@ -348,11 +360,11 @@ In the schedule loader, import `published` from `#lib/league/publish.ts`. Keep `
 and return `published: shownWeeks`. In `+page.svelte`, before `{#each shown as s (s.title)}`:
 
 ```svelte
-		{#if data.week > data.published}
-			<p class="empty">Week {data.week} pairings aren't out yet. They're posted week by week.</p>
-		{:else}
-			...existing {#each shown}...{:else}...{/each}
-		{/if}
+{#if data.week > data.published}
+	<p class="empty">Week {data.week} pairings aren't out yet. They're posted week by week.</p>
+{:else}
+	...existing {#each shown}...{:else}...{/each}
+{/if}
 ```
 
 - [ ] **Step 3: Season page**
@@ -360,7 +372,8 @@ and return `published: shownWeeks`. In `+page.svelte`, before `{#each shown as s
 In `src/routes/seasons/[slug]/+page.server.ts`, import `published` and:
 
 ```ts
-	const mine = me && scheduled ? published(playerMatches(season.id, me.playerId), season.publishedRound) : [];
+const mine =
+	me && scheduled ? published(playerMatches(season.id, me.playerId), season.publishedRound) : [];
 ```
 
 In `myByes`, add `r <= season.publishedRound &&` to the filter, and return:
@@ -386,7 +399,7 @@ In the hero, change the `data.week < 1` lede to: `Pairings come out week by week
 In `src/routes/seasons/[slug]/players/[id]/+page.server.ts`:
 
 ```ts
-	const ms = published(playerMatches(season.id, player.playerId), season.publishedRound);
+const ms = published(playerMatches(season.id, player.playerId), season.publishedRound);
 ```
 
 - [ ] **Step 5: Check, test, commit**
@@ -403,6 +416,7 @@ git commit -m "feat: players see published weeks only"
 ### Task 5: Organizers can't enter results for unpublished matches
 
 **Files:**
+
 - Modify: `src/lib/server/resultActions.ts` (`editResult`)
 - Modify: `src/routes/seasons/[slug]/admin/matches/+page.server.ts`, `+page.svelte`
 
@@ -411,8 +425,8 @@ git commit -m "feat: players see published weeks only"
 In `editResult`, after the void check:
 
 ```ts
-	if (match.round > season.publishedRound)
-		return fail(409, { message: 'Publish this week before entering results.' });
+if (match.round > season.publishedRound)
+	return fail(409, { message: 'Publish this week before entering results.' });
 ```
 
 - [ ] **Step 2: Matches page**
@@ -442,6 +456,7 @@ git commit -m "feat(admin): no results for unpublished matches"
 ### Task 6: Dev scripts, docs, smoke test
 
 **Files:**
+
 - Modify: `scripts/play-dev.ts`, `scripts/mobile-check.ts`
 - Modify: `docs/spec.md`, `README.md`
 
@@ -452,6 +467,7 @@ git commit -m "feat(admin): no results for unpublished matches"
 - [ ] **Step 2: Spec**
 
 `docs/spec.md`:
+
 - line 56 (Play row): "post week pairings to Discord" → "publish the next week (players see it; posted to Discord when the webhook is set)".
 - line 82: the pairings bullet becomes: "pairings channel: posted by "Publish week N" in admin (all rounds of that week) when `WEBHOOK_PAIRINGS_URL` is set: one message, an embed per round, …".
 - Add under the scheduling rules: "Weeks are published one at a time by an organizer (`seasons.published_round`). Players, organizers on public pages and the bot API see only published rounds; Admin → Matches shows all. Published weeks can't be hidden again. No results for unpublished matches."
@@ -467,6 +483,7 @@ Expected: 0 errors, all tests pass, prettier clean (run `npm run format` on touc
 - [ ] **Step 4: Smoke test (owner's :5173, not a second dev server)**
 
 On a season in play with `published_round = 0` (lock groups on a fresh dev season):
+
 1. As a player: season page says pairings aren't out; the schedule's week 1 shows the empty state; `/seasons/<slug>/matches/<id>` of a round-1 match is 404.
 2. As an organizer: Admin shows "No weeks published yet" and "Publish week 1"; Admin → Matches shows "Unpublished" rows.
 3. Publish week 1: message "Week 1 published…", the audit log shows "Week 1 published · R1–2", the player sees week 1 cards and can open/report them; week 2 is still the empty state.

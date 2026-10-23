@@ -11,7 +11,7 @@ Only one season can be running (signup, groups or play) at a time; drafts and fi
 1. **draft** — organizer creates season: name, slug, start date, rounds per week (default 2), season deadline, top-cut size X (editable until the season finishes, since it only moves the line in the standings).
 2. **signup** — any member of the Discord guild can join until an organizer closes signup. Players can withdraw while signup is open; organizers can remove a signup.
 3. **groups** — group count is automatic (1 if < 16 signups, else 2); organizer draws random groups, previews, swaps players, locks. Uneven sizes allowed (25 → 13 + 12). Locking generates the round-robin schedule (circle method, byes on odd counts).
-4. **play** — weeks of `roundsPerWeek` rounds (12-player group: 11 rounds ≈ 6 weeks). A match past its week shows as **overdue** (derived, no stored state); it still reports normally. Season deadline is hard: player reporting closes at the deadline. All dates/deadlines are in the league timezone (`LEAGUE_TZ = Europe/Helsinki`, config constant); deadline = 23:59 local on the deadline date.
+4. **play** — weeks of `roundsPerWeek` rounds (12-player group: 11 rounds ≈ 6 weeks). A match past its week shows as **overdue** (derived, no stored state); it still reports normally. Weeks are **published** one at a time by an organizer (`seasons.published_round`, the last visible round): players, organizers on public pages and the bot API see only published rounds; Admin → Matches shows all and blocks results for unpublished ones. A published week can't be hidden again. Season deadline is hard: player reporting closes at the deadline. All dates/deadlines are in the league timezone (`LEAGUE_TZ = Europe/Helsinki`, config constant); deadline = 23:59 local on the deadline date.
 5. **finished** — organizer enters results for any unplayed matches (else double loss), breaks unresolved ties, finalizes.
 
 Top cut (top X per group, cross-seeded A1 vs B4 …, single elim, Bo3, online, same report flow) is **deferred**. Data model already carries `stage` + `round` for it.
@@ -53,7 +53,7 @@ Top cut (top X per group, cross-seeded A1 vs B4 …, single elim, Bo3, online, s
 | Setup  | Create season, edit settings, delete season (soft: hidden, data kept, `deletedBy`/`deletedAt` recorded; typed slug once it has matches) |
 | Signup | Open/close signup (closing draws the groups), remove signup                                                                             |
 | Groups | Redraw, move player between groups, reopen signup (clears the draw), lock (generates schedule)                                          |
-| Play   | Edit any result, resolve flags, mark player dropped, post week pairings to Discord                                                      |
+| Play   | Edit any result, resolve flags, mark player dropped, publish the next week (posted to Discord when the webhook is set)                  |
 | End    | Enter unplayed results, set tiebreak ranks, finalize season                                                                             |
 
 Not in UI: managing organizers (Discord role), legend list (config file), messaging (Discord).
@@ -79,7 +79,7 @@ Career stats across seasons: **deferred**. Wanted: from any player page, see tha
 - **v1 (in site):** webhooks, URLs in env vars, one `fetch` per event.
   - results channel: every reported result ("Alice 2-1 Bob (Jinx vs Ahri, Alice won the roll)")
   - organizer channel: flags, drops
-  - pairings channel: "Post week N pairings" button in admin (all rounds of that week): one message, an embed per round, players as `<@id>` mentions inside embeds (clickable names, no pings)
+  - pairings channel: posted by "Publish week N" in admin when `WEBHOOK_PAIRINGS_URL` is set (all rounds of that week): one message, an embed per round, players as `<@id>` mentions inside embeds (clickable names, no pings)
   - Every webhook post disables mentions (`allowed_mentions: none`), since names and flag reasons are user text; nothing pings, pairings included.
   - No DMs in v1: UI copy says "posted in Discord", never "notified".
 - **Bot (separate repo, later):** talks to the site only via its HTTP JSON endpoints with a service token (`BOT_TOKEN`). Site owns DB and all rules; bot never touches the DB. A bot `/report` calls the same endpoint as the web form, acting as the player.
@@ -124,9 +124,10 @@ Designs come from Claude Design as HTML. Integration rule: **extract, don't past
 3. **Season & signup** — create season, signup flow, group draw/lock, schedule generation.
 4. **Reporting** — report form, edit-until-flagged, flags, audit log, results webhook.
 5. **Standings & pages** — standings, schedule, player page (incl. per-legend record), legends page, archive, audit page.
-6. **Admin** — organizer edits, drops, flag resolution, deadline/finalize, tiebreak ranks, weekly pairings post.
+6. **Admin** — organizer edits, drops, flag resolution, deadline/finalize, tiebreak ranks, weekly publishing.
 7. **Deploy** — Dockerfile, compose with cloudflared, GH Actions → GHCR, backup cron.
 8. **Bot API** — service-token JSON endpoints. Deferred to the Backlog milestone until a bot exists; its needs decide the endpoints.
 9. **Mobile sweep** — phone layouts for every view, phone checker script. `docs/superpowers/plans/2026-10-22-mobile.md`
+10. **Weekly publishing** — organizers publish each week's pairings; players see published weeks only. `docs/superpowers/plans/2026-10-23-weekly-publishing.md`
 
 Each plan is written when the previous one lands, against the real code.
