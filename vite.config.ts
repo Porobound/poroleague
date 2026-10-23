@@ -15,12 +15,17 @@ export default defineConfig({
 	],
 	test: {
 		expect: { requireAssertions: true },
+		coverage: {
+			include: ['src/**/*.ts'],
+			exclude: ['src/**/*.spec.ts', 'src/lib/server/test/**']
+		},
 		projects: [
 			{
 				extends: './vite.config.ts',
 				test: {
 					name: 'server',
 					environment: 'node',
+					setupFiles: ['src/lib/server/test/setup.ts'],
 					include: ['src/**/*.{test,spec}.{js,ts}'],
 					exclude: ['src/**/*.svelte.{test,spec}.{js,ts}']
 				}
