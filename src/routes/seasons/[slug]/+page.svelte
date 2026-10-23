@@ -84,7 +84,7 @@
 			{/if}
 		</div>
 		{#if season.deadline}
-			<div class="panel deadline">
+			<div class={['panel deadline', season.status !== 'draft' && 'desk-block']}>
 				<span class="eyebrow">Season deadline</span>
 				<span class="deadline-date">{date(season.deadline)} · 23:59 {tzName(season.deadline)}</span>
 			</div>
@@ -377,8 +377,7 @@
 		display: none;
 	}
 	@media (max-width: 640px) {
-		.desk-block,
-		.deadline {
+		.desk-block {
 			display: none;
 		}
 		.stat {

@@ -21,7 +21,7 @@
 		name: SeasonField;
 		label: string;
 		type: string;
-		hint: string;
+		hint?: string;
 		min?: number;
 		max?: number;
 	}[] = [
@@ -37,14 +37,13 @@
 			type: 'text',
 			hint: 'Used in links: /seasons/<slug>. Leave empty to make it from the name.'
 		},
-		{ name: 'startDate', label: 'Start date', type: 'date', hint: '' },
+		{ name: 'startDate', label: 'Start date', type: 'date' },
 		{
 			name: 'roundsPerWeek',
 			label: 'Rounds per week',
 			type: 'number',
 			min: 1,
-			max: 4,
-			hint: ''
+			max: 4
 		},
 		{
 			name: 'deadline',
