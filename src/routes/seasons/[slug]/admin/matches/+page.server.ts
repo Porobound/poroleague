@@ -20,7 +20,12 @@ export const load: PageServerLoad = async ({ parent, url }) => {
 	const rows = adminRows(season, seasonEntries(season.id), seasonMatches(season.id)).filter((r) =>
 		FILTERS[filter](r.status)
 	);
-	return { rows, filter, canEdit: season.status === 'play' };
+	return {
+		rows,
+		filter,
+		canEdit: season.status === 'play',
+		publishedRound: season.publishedRound
+	};
 };
 
 export const actions: Actions = { edit: editResult, keep: keepFlag };
