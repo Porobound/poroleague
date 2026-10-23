@@ -46,6 +46,15 @@ export const seedOrganizer = () => write((db) => addPlayer(db, ORGANIZER, 'Org',
 export const seedPlayers = (key: SeasonKey, count: number) =>
 	write((db) => addPlayers(db, key, count));
 
+// Signs up players `from`…`to` of the flow to its season, as if they joined through the site.
+export const seedEntries = (key: SeasonKey, from: number, to: number) =>
+	write((db) => {
+		const add = db.prepare(
+			'insert into entries (season_id, player_id) select id, ? from seasons where slug = ?'
+		);
+		for (let n = from; n <= to; n++) add.run(player(key, n), SEASONS[key]);
+	});
+
 // Four players in a season in play, one group, the full round robin scheduled. Returns the match
 // ids in schedule order: round 1: 1v2, 3v4 · round 2: 1v3, 2v4 · round 3: 1v4, 2v3.
 export function seedSeason(key: SeasonKey, values: { publishedRound: number; deadline?: string }) {

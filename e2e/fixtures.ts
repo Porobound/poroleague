@@ -11,7 +11,8 @@ export const ORGANIZER = 'org';
 // Players are `<key>-1`, `<key>-2`…, named "<Key> 1", "<Key> 2"….
 export const SEASONS = {
 	visibility: 'e2e-visibility',
-	report: 'e2e-report'
+	report: 'e2e-report',
+	setup: 'e2e-setup'
 };
 export type SeasonKey = keyof typeof SEASONS;
 
@@ -41,7 +42,10 @@ export const as = (playerId: string) => ({
 
 export type Post = {
 	channel: 'results' | 'organizers' | 'pairings';
-	body: { embeds?: { title: string; description?: string }[]; content?: string };
+	body: {
+		content?: string;
+		embeds?: { title: string; description?: string; fields?: { name: string; value: string }[] }[];
+	};
 };
 // Everything the app has posted to the webhook listener so far.
 export const posts = async (channel: Post['channel']) =>
