@@ -200,6 +200,9 @@
 					<form method="POST" action="?/join">
 						<button class="pb-btn pb-btn-primary">Sign up for {season.name}</button>
 					</form>
+					<p class="muted small">
+						By signing up you agree to the <a href="/rules">league rules</a>.
+					</p>
 				{/if}
 			</div>
 		</section>
@@ -256,6 +259,7 @@
 			{#if season.topCutSize}<span class="muted">Top {season.topCutSize} go to the top cut.</span
 				>{/if}
 			<a href="/seasons/{season.slug}/audit">Audit log</a>
+			· <a href="/rules#4-points-and-standings">How standings work</a>
 		</p>
 	{:else if data.entries.length}
 		<section>

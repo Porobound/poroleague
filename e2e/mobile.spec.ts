@@ -39,6 +39,7 @@ test.use({
 const pages = () => ({
 	visitor: [
 		'/seasons',
+		'/rules',
 		s,
 		`${s}/schedule`,
 		`${s}/legends`,
