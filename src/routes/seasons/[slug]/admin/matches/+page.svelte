@@ -10,6 +10,7 @@
 		['unplayed', 'Unplayed & overdue'],
 		['reported', 'Reported'],
 		['flagged', 'Flagged'],
+		['resolved', 'Resolved'],
 		['void', 'Void']
 	] as const;
 	const BADGE = {
@@ -20,9 +21,13 @@
 		void: ['', 'Void']
 	} as const;
 	const badge = (r: (typeof data.rows)[number]) =>
-		r.status === 'reported' && r.entered
-			? (['pb-badge-win', 'Entered by org'] as const)
-			: BADGE[r.status];
+		r.status !== 'reported'
+			? BADGE[r.status]
+			: r.card.resolved
+				? (['pb-badge-win', 'Resolved'] as const)
+				: r.entered
+					? (['pb-badge-win', 'Entered by org'] as const)
+					: BADGE.reported;
 </script>
 
 <svelte:head>
