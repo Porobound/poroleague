@@ -42,7 +42,7 @@ const record = async (page: Page, n: number) => {
 };
 
 test('match filters, drop and cancel drop', async ({ page, browser }) => {
-	const before = { All: 6, 'Unplayed & overdue': 4, Reported: 1, Flagged: 1, Void: 0 };
+	const before = { All: 6, 'Unplayed & overdue': 4, Reported: 1, Flagged: 1, Resolved: 0, Void: 0 };
 	expect(await filtered(page)).toEqual(before);
 	await expect(await record(page, 3)).toHaveText('1–0–0');
 
@@ -59,6 +59,7 @@ test('match filters, drop and cancel drop', async ({ page, browser }) => {
 		'Unplayed & overdue': 2,
 		Reported: 1,
 		Flagged: 0,
+		Resolved: 0,
 		Void: 3
 	});
 	await expect(await record(page, 3)).toHaveText('0–0–0');

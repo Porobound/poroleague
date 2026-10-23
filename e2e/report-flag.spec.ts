@@ -83,6 +83,14 @@ test('report, flag, organizer fix', async ({ browser }) => {
 		.poll(() => titles('organizers'))
 		.toContain(`Flag resolved by Org | New result: ${p1} 1–2 ${p2} (Ahri vs Annie)`);
 
+	// The admin match list marks it resolved, and the Resolved filter shows only it.
+	await organizer.goto(`/seasons/${slug}/admin/matches`);
+	await organizer.getByRole('link', { name: 'Resolved' }).click();
+	const resolvedRows = organizer.getByRole('rowgroup').nth(1).getByRole('row');
+	await expect(resolvedRows).toHaveCount(1);
+	await expect(resolvedRows).toContainText(new RegExp(`${p1}\\s*vs\\s*${p2}`));
+	await expect(resolvedRows.getByText('Resolved', { exact: true })).toBeVisible();
+
 	// Players see the fixed result as final.
 	await reporter.reload();
 	await expect(reporter.getByText('Flag resolved by an organizer · final')).toBeVisible();
