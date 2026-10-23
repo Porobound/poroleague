@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { currentWeek, leagueDate, reportingClosed, roundsOfWeek, weekOf } from './time';
+import { addDays, currentWeek, leagueDate, reportingClosed, roundsOfWeek, weekOf } from './time';
 
 describe('leagueDate', () => {
 	it('gives the calendar date in Helsinki', () => {
@@ -43,5 +43,13 @@ describe('roundsOfWeek', () => {
 		expect(roundsOfWeek(6, 2, 11)).toEqual([11, 11]);
 		expect(roundsOfWeek(7, 2, 11)).toBeNull();
 		expect(roundsOfWeek(0, 2, 11)).toBeNull();
+	});
+});
+
+describe('addDays', () => {
+	it('steps whole calendar days across DST and month ends', () => {
+		expect(addDays('2026-03-28', 2)).toBe('2026-03-30');
+		expect(addDays('2026-10-31', 1)).toBe('2026-11-01');
+		expect(addDays('2026-01-07', -7)).toBe('2025-12-31');
 	});
 });
