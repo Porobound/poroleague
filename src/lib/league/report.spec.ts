@@ -30,7 +30,7 @@ describe('parseReport', () => {
 		]) {
 			const r = parseReport(form({ ...valid, p1Games, p2Games }), 'a', 'b');
 			expect(r.ok ? null : r.errors).toEqual({
-				score: 'That is not a finished Bo3. Check the numbers.'
+				score: "That isn't a finished Bo3."
 			});
 		}
 	});

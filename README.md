@@ -21,6 +21,7 @@ League website for the Porobound community's Riftbound TCG league. Players log i
 | 8. Bot API            | Later: when a Discord bot is being built (#8)         |
 | 9. Mobile sweep       | Done: phone layouts for every view, phone checker     |
 | 10. Weekly publishing | Done: players see a week once organizers publish it   |
+| 11. Design nits       | Done: copy cuts, compact phone season card            |
 
 ## Stack
 

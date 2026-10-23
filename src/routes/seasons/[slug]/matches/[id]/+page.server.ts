@@ -98,6 +98,6 @@ export const actions: Actions = {
 				reason
 			)
 		);
-		return { message: 'Flagged. An organizer will take a look.' };
+		return { message: 'Flagged. An organizer will check it.' };
 	}
 };

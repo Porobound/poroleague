@@ -23,6 +23,7 @@
 		{/each}
 		<a href="/seasons/{data.season.slug}">Public page ↗</a>
 		<a href="/seasons/{data.season.slug}/audit">Public audit log ↗</a>
+		<span class="muted small nav-note">Every organizer action is logged there.</span>
 		<a href="/admin">All seasons</a>
 	</nav>
 	<div class="admin-main">{@render children()}</div>

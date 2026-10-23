@@ -115,7 +115,6 @@ Designs come from Claude Design as HTML. Integration rule: **extract, don't past
 
 - Domain (needed for Discord OAuth app redirect URI in prod; dev uses `http://localhost:5173`).
 - Top-cut size X; top-cut feature; career stats.
-- Design nits (non-blocking): drop "Leave as double loss" button; season name needn't lock; organizer edit dialog must cover legends + dice, not just score; timezone label from `Intl` (EET/EEST), not hardcoded "EET"; player header "Discord server nickname" leftover copy.
 
 ## Plan roadmap
 
@@ -129,5 +128,6 @@ Designs come from Claude Design as HTML. Integration rule: **extract, don't past
 8. **Bot API** — service-token JSON endpoints. Deferred to the Backlog milestone until a bot exists; its needs decide the endpoints.
 9. **Mobile sweep** — phone layouts for every view, phone checker script. `docs/superpowers/plans/2026-10-22-mobile.md`
 10. **Weekly publishing** — organizers publish each week's pairings; players see published weeks only. `docs/superpowers/plans/2026-10-23-weekly-publishing.md`
+11. **Design nits** — copy cuts from the 2026-10-23 design pass, compact phone season card. `docs/superpowers/plans/2026-10-23-design-nits.md`
 
 Each plan is written when the previous one lands, against the real code.

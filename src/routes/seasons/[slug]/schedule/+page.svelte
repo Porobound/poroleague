@@ -62,7 +62,6 @@
 		{#if data.overdue.length}
 			<section class="overdue">
 				<h2>Overdue from earlier weeks</h2>
-				<p class="muted">Still playable until the season deadline.</p>
 				<div class="cards">
 					{#each data.overdue as c (c.id)}<MatchCard {...c.props} mine={c.mine} />{/each}
 				</div>

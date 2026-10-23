@@ -28,9 +28,7 @@
 	{/if}
 
 	<h2>New season</h2>
-	<p class="muted">
-		It starts as a draft that only organizers can see. Open signup when you're ready.
-	</p>
+	<p class="muted">Nothing is public until you open signup.</p>
 	<form method="POST" action="?/create" class="panel">
 		<SeasonForm
 			values={form?.raw ?? NEW_SEASON}

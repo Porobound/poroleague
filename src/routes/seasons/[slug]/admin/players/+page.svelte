@@ -11,10 +11,9 @@
 	const intro = $derived(
 		{
 			draft: 'Signup has not opened yet.',
-			signup:
-				'Everyone who signed up. You can remove someone while signup is open; 16 or more players makes two groups.',
+			signup: 'You can remove players while signup is open.',
 			groups: 'Signup is closed. Once groups are locked you can drop players.',
-			play: 'Dropping a player voids all their matches. They stay in the database but leave the standings.',
+			play: 'Dropping a player voids all their matches.',
 			finished: 'The season is finalized.'
 		}[status]
 	);
@@ -74,9 +73,7 @@
 										title="Drop {e.displayName}?"
 										confirmLabel="Drop player"
 									>
-										All {e.matches} of their matches are voided, played and unplayed, and they leave the
-										standings. Their opponents' results from those matches stop counting. Posted in the
-										organizer channel and logged in the public audit log.
+										All their matches are voided and they leave the standings.
 									</ConfirmButton>
 								{:else if e.canCancel}
 									<ConfirmButton
@@ -88,9 +85,7 @@
 										title="Cancel {e.displayName}'s drop?"
 										confirmLabel="Cancel drop"
 									>
-										For fixing a mistaken drop. Their {e.matches} matches count again, with any results
-										reported before the drop, and unplayed ones can be reported. Posted in the organizer
-										channel and logged in the public audit log.
+										Their {e.matches} matches count again, with any results reported before the drop.
 									</ConfirmButton>
 								{/if}
 							</td>
