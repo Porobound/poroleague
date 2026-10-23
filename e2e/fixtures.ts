@@ -12,7 +12,8 @@ export const ORGANIZER = 'org';
 export const SEASONS = {
 	visibility: 'e2e-visibility',
 	report: 'e2e-report',
-	setup: 'e2e-setup'
+	setup: 'e2e-setup',
+	finalize: 'e2e-finalize'
 };
 export type SeasonKey = keyof typeof SEASONS;
 

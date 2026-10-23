@@ -83,6 +83,18 @@ export function seedSeason(key: SeasonKey, values: { publishedRound: number; dea
 	return ids;
 }
 
+// A result reported by p1 (Ahri vs Annie, p1 won the roll), optionally flagged by p2.
+export const seedResult = (matchId: number, p1Games: number, p2Games: number, flag?: string) =>
+	write((db) =>
+		db
+			.prepare(
+				`update matches set p1_games = ?, p2_games = ?, p1_legend = 'Ahri', p2_legend = 'Annie',
+				 dice_winner_id = p1_id, reported_by = p1_id, reported_at = unixepoch(),
+				 flagged_by = iif(? is null, null, p2_id), flag_reason = ? where id = ?`
+			)
+			.run(p1Games, p2Games, flag ?? null, flag ?? null, matchId)
+	);
+
 // Soft-deletes the flow's season and frees its slug, as the site does, so the next flow can have a
 // running season of its own and a rerun after a failure can seed it again.
 const unlist = (db: Db, key: SeasonKey) =>
