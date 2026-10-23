@@ -1,4 +1,5 @@
 import { error, fail } from '@sveltejs/kit';
+import { published } from '#lib/league/publish.ts';
 import { addDays, weekOf } from '#lib/league/time.ts';
 import { cardContext, matchCard } from '#lib/matchCard.ts';
 import { currentRole, playerAction } from '#lib/server/auth.ts';
@@ -29,7 +30,8 @@ export const load: PageServerLoad = async (event) => {
 	const weekEnds =
 		weekEnd && season.deadline && season.deadline < weekEnd ? season.deadline : weekEnd;
 	const me = list.find((e) => e.playerId === locals.user?.id);
-	const mine = me && scheduled ? playerMatches(season.id, me.playerId) : [];
+	const mine =
+		me && scheduled ? published(playerMatches(season.id, me.playerId), season.publishedRound) : [];
 	// A group's last round; a smaller group runs out of rounds before the bigger one.
 	const myRounds = groups.find((g) => g.group === me?.group)?.rounds ?? 0;
 	const signedUp = !!locals.user && list.some((e) => e.playerId === locals.user!.id);
@@ -50,9 +52,11 @@ export const load: PageServerLoad = async (event) => {
 		// Odd groups give someone a bye each round; say so, or a missing match looks like a bug.
 		myByes: rounds
 			? Array.from({ length: rounds[1] - rounds[0] + 1 }, (_, i) => rounds[0] + i).filter(
-					(r) => r <= myRounds && !mine.some((m) => m.round === r)
+					(r) => r <= myRounds && r <= season.publishedRound && !mine.some((m) => m.round === r)
 				)
 			: [],
+		// This week has rounds players can't see yet.
+		pending: !!rounds && rounds[1] > season.publishedRound,
 		myWeek:
 			signedUp && scheduled
 				? mine

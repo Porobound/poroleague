@@ -1,3 +1,4 @@
+import { published } from '#lib/league/publish.ts';
 import { weekOf } from '#lib/league/time.ts';
 import { cardContext, matchCard, type Card } from '#lib/matchCard.ts';
 import { groupName } from '#lib/season.ts';
@@ -12,16 +13,17 @@ export const load: PageServerLoad = ({ params, locals, url }) => {
 	const rpw = season.roundsPerWeek;
 	const maxRound = Math.max(0, ...all.map((m) => m.round));
 	const weeks = weekOf(maxRound, rpw);
+	const shownWeeks = weekOf(season.publishedRound, rpw);
 	const asked = Number(url.searchParams.get('week'));
 	const week = Math.min(
 		weeks,
-		Math.max(1, Number.isInteger(asked) && asked > 0 ? asked : ctx.week)
+		Math.max(1, Number.isInteger(asked) && asked > 0 ? asked : Math.min(ctx.week, shownWeeks))
 	);
 	const groups = Math.max(0, ...all.map((m) => m.group ?? 0));
 	const group = Number(url.searchParams.get('group')) || 0;
 	const mine = !!locals.user && url.searchParams.has('mine');
 
-	const cards = all
+	const cards = published(all, season.publishedRound)
 		.filter((m) => !group || m.group === group)
 		.map((m) => ({ m, card: matchCard(m, ctx) }));
 	const show = (c: Card) => !mine || c.mine;
@@ -37,6 +39,7 @@ export const load: PageServerLoad = ({ params, locals, url }) => {
 		season,
 		week,
 		currentWeek: ctx.week,
+		published: shownWeeks,
 		weeks: Array.from({ length: weeks }, (_, i) => {
 			const first = i * rpw + 1;
 			const last = Math.min((i + 1) * rpw, maxRound);

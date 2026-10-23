@@ -27,7 +27,8 @@ function context({ params, locals }: Event) {
 	const season = getSeason(params.slug, locals.user);
 	const id = Number(params.id);
 	const match = Number.isInteger(id) ? getMatch(season.id, id) : undefined;
-	if (!match) error(404, 'Match not found');
+	// Unpublished pairings stay secret, organizers included; they have Admin → Matches.
+	if (!match || match.round > season.publishedRound) error(404, 'Match not found');
 	const closed = reportingClosed(season.deadline, new Date());
 	const voided = isVoided(match);
 	const mode = matchMode(match, {
