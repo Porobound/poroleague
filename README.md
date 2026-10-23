@@ -197,7 +197,7 @@ docs/                  spec, plans, rules (rendered at /rules)
 
 ## Deploy
 
-CI lints, typechecks and tests every PR. Every push to `main` that passes builds `ghcr.io/porobound/poroleague:latest`, and every push to the `dev` branch builds `:dev`. Both also get a tag with the commit SHA. The host runs it with Docker Compose next to a `cloudflared` tunnel, so no ports are open. The container applies migrations on start, then serves on port 3000.
+CI lints, typechecks, tests and builds the image on every PR (without pushing it). Every push to `main` that passes builds `ghcr.io/porobound/poroleague:latest`, and every push to the `dev` branch builds `:dev`. Both also get a tag with the commit SHA. The host runs it with Docker Compose next to a `cloudflared` tunnel, so no ports are open. The container applies migrations on start, then serves on port 3000.
 
 ### First-time host setup
 
