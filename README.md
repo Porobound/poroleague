@@ -187,8 +187,10 @@ docs/                  spec, plans
 
 `npm run test:e2e` runs the Playwright tests in `e2e/` in your installed Google Chrome (no browser download). It builds the app, migrates and seeds a throwaway database in the system temp dir (`e2e/seed.ts`, fixed data from `e2e/fixtures.ts`), serves it with `vite preview` on :4317, runs the tests and deletes the database. It never opens `local.db` and leaves `npm run dev` on :5173 alone, so it's safe to run while you develop.
 
-- Every env variable comes from `playwright.config.ts`, not `.env`. Webhooks are off and Discord is unreachable (dead proxy), so fake organizer sessions keep their role.
-- Logins are session rows written by the seed; a test picks one with `test.use({ storageState })`.
+- Every env variable comes from `playwright.config.ts`, not `.env`. Discord is unreachable (dead proxy), so fake organizer sessions keep their role; the `ECONNREFUSED 127.0.0.1:9` lines in the output are that role check failing, as intended.
+- Webhooks post to a listener on :4318 (`e2e/global.ts`) instead of Discord. Tests read what was posted with `posts(channel)` from `e2e/fixtures.ts`.
+- Each flow gets its own seeded season (`SEASONS` in `e2e/fixtures.ts`), so flows don't see each other's writes. Tests run one at a time.
+- Every seeded player, plus the organizer `org`, has a session. Log in with `test.use(as(id))`, or `browser.newPage(as(id))` when a test needs several people.
 - Select by role, label and text, never by CSS class.
 - CI runs it as a separate `e2e` job on PRs.
 

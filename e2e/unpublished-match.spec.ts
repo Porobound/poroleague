@@ -1,25 +1,16 @@
 import { expect, test, type Page } from '@playwright/test';
-import { PUBLISHED_MATCH, SLUG, TOKENS, UNPUBLISHED_MATCH } from './fixtures.ts';
+import { ORGANIZER, SEASONS, as, player } from './fixtures.ts';
 
-for (const role of ['player', 'organizer'] as const) {
+const { slug, first } = SEASONS.visibility;
+const PUBLISHED = first; // round 1
+const UNPUBLISHED = first + 2; // round 2
+
+for (const [role, id] of [
+	['player', player('visibility', 1)],
+	['organizer', ORGANIZER]
+] as const) {
 	test.describe(role, () => {
-		test.use({
-			storageState: {
-				cookies: [
-					{
-						name: 'session',
-						value: TOKENS[role],
-						domain: 'localhost',
-						path: '/',
-						expires: -1,
-						httpOnly: true,
-						secure: false,
-						sameSite: 'Lax'
-					}
-				],
-				origins: []
-			}
-		});
+		test.use(as(id));
 
 		// Without this a dead session would pass the 404 test as a visitor.
 		const loggedIn = async (page: Page) => {
@@ -30,7 +21,7 @@ for (const role of ['player', 'organizer'] as const) {
 		};
 
 		test('unpublished match is a 404', async ({ page }) => {
-			const res = await page.goto(`/seasons/${SLUG}/matches/${UNPUBLISHED_MATCH}`);
+			const res = await page.goto(`/seasons/${slug}/matches/${UNPUBLISHED}`);
 			expect(res?.status()).toBe(404);
 			await expect(page.getByRole('heading', { name: '404' })).toBeVisible();
 			await expect(page.getByText('Match not found')).toBeVisible();
@@ -38,10 +29,10 @@ for (const role of ['player', 'organizer'] as const) {
 		});
 
 		test('published match opens', async ({ page }) => {
-			const res = await page.goto(`/seasons/${SLUG}/matches/${PUBLISHED_MATCH}`);
+			const res = await page.goto(`/seasons/${slug}/matches/${PUBLISHED}`);
 			expect(res?.status()).toBe(200);
 			await expect(
-				page.getByRole('heading', { level: 1, name: /Player \d vs Player \d/ })
+				page.getByRole('heading', { level: 1, name: /Visibility \d vs Visibility \d/ })
 			).toBeVisible();
 			await loggedIn(page);
 		});
