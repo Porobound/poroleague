@@ -9,6 +9,9 @@ const titles = async (channel: 'results' | 'organizers') =>
 	(await posts(channel)).flatMap(
 		(b) => b.embeds?.map((e) => `${e.title} | ${e.description}`) ?? []
 	);
+// The reporter's card, their side first: names, legends and games won.
+const card = (a: number, b: number) =>
+	new RegExp(`${p1}\\nAhri\\n${a}\\n.*${p2}\\nAnnie\\n${b}`, 's');
 
 test.beforeAll(() => {
 	[match] = seedSeason('report', { publishedRound: 3 });
@@ -28,7 +31,7 @@ test('report, flag, organizer fix', async ({ browser }) => {
 	await reporter.getByRole('button', { name: 'Add result' }).click();
 	await reporter.getByRole('dialog').getByRole('button', { name: 'Save result' }).click();
 	await expect(reporter.getByRole('status')).toContainText('Result saved');
-	await expect(reporter.getByText('Final')).toBeVisible();
+	await expect(reporter.getByRole('article')).toHaveText(card(2, 1), { useInnerText: true });
 	await expect(reporter.getByText('Reported by you')).toBeVisible();
 	await expect
 		.poll(() => titles('results'))
@@ -66,4 +69,13 @@ test('report, flag, organizer fix', async ({ browser }) => {
 	// Players see the fixed result as final.
 	await reporter.reload();
 	await expect(reporter.getByText('Flag resolved by an organizer · final')).toBeVisible();
+	await expect(reporter.getByRole('article')).toHaveText(card(1, 2), { useInnerText: true });
+
+	// Every change is in the public audit log, newest first.
+	await reporter.goto(`/seasons/${slug}/audit`);
+	await expect(reporter.getByRole('rowgroup').nth(1).getByRole('row')).toHaveText([
+		/Org\s*Edit/,
+		new RegExp(`${p2}\\s*Flag.*It was 1-2, not 2-1.`),
+		new RegExp(`${p1}\\s*Report`)
+	]);
 });
