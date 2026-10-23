@@ -17,7 +17,9 @@ export const SEASONS = {
 	csrf: 'e2e-csrf',
 	mobile: 'e2e-mobile',
 	mobileSignup: 'e2e-mobile-signup',
-	mobileDraft: 'e2e-mobile-draft'
+	mobileDraft: 'e2e-mobile-draft',
+	legends: 'e2e-legends',
+	drops: 'e2e-drops'
 };
 export type SeasonKey = keyof typeof SEASONS;
 
