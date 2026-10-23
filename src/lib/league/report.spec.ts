@@ -16,21 +16,21 @@ describe('parseReport', () => {
 		});
 	});
 
-	it('accepts a 1-1 draw', () => {
+	it('accepts a 1-1 draw and a match called at 1-0', () => {
 		expect(parseReport(form({ ...valid, p1Games: '1', p2Games: '1' }), 'a', 'b').ok).toBe(true);
+		expect(parseReport(form({ ...valid, p1Games: '1', p2Games: '0' }), 'a', 'b').ok).toBe(true);
 	});
 
-	it('rejects scores that are not a finished Bo3, and missing scores', () => {
+	it('rejects impossible Bo3 scores, and missing scores', () => {
 		for (const [p1Games, p2Games] of [
 			['2', '2'],
 			['0', '0'],
-			['1', '0'],
 			['3', '0'],
 			['', '2']
 		]) {
 			const r = parseReport(form({ ...valid, p1Games, p2Games }), 'a', 'b');
 			expect(r.ok ? null : r.errors).toEqual({
-				score: "That isn't a finished Bo3."
+				score: "That isn't a possible Bo3 result."
 			});
 		}
 	});

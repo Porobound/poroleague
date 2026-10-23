@@ -1,4 +1,4 @@
-const VALID = new Set(['2-0', '2-1', '1-1', '0-2', '1-2']);
+const VALID = new Set(['2-0', '2-1', '1-0', '1-1', '0-1', '0-2', '1-2']);
 
 export function isValidScore(a: number, b: number): boolean {
 	return VALID.has(`${a}-${b}`);

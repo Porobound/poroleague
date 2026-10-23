@@ -27,7 +27,7 @@ export function parseReport(form: FormData, p1Id: string, p2Id: string): ReportP
 	};
 
 	const errors: ReportErrors = {};
-	if (!g1 || !g2 || !isValidScore(p1Games, p2Games)) errors.score = "That isn't a finished Bo3.";
+	if (!g1 || !g2 || !isValidScore(p1Games, p2Games)) errors.score = "That isn't a possible Bo3 result.";
 	if (!LEGEND_SET.has(values.p1Legend)) errors.p1Legend = 'Pick a legend.';
 	if (!LEGEND_SET.has(values.p2Legend)) errors.p2Legend = 'Pick a legend.';
 	if (values.diceWinnerId !== p1Id && values.diceWinnerId !== p2Id)

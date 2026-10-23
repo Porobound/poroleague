@@ -27,6 +27,7 @@ Draft v0.1. Items marked **[TBD]** are not decided yet.
 - **Legends.** Each player plays one legend for the whole match. You can switch legends between matches.
 - **Decks.** No decklists. Play any legal deck you like, and change it between matches, but not between games.
 - **Draws.** If the match ends 1-1, for example when your agreed time runs out, it is a draw.
+- **Ending early.** If the match ends at 1-0, because your agreed time runs out or you both agree to stop, the player ahead wins the match. Report it as 1-0.
 - Game rules, deck construction and banned cards follow the official Riftbound rules.
 
 ## 4. Points and standings
@@ -79,4 +80,3 @@ Not rules yet. These may change how later seasons work, and will be decided befo
 
 - Top cut: how many players per group qualify, when it's played, and prizes.
 - No-show policy: when organizers award a win instead of a double loss.
-- What's reported if the agreed time runs out before 1-1 (e.g. at 1-0).
