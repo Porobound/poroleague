@@ -13,10 +13,9 @@ export const seasonData = (seasonId: number) => {
 };
 export type SeasonData = ReturnType<typeof seasonData>;
 
-// The next week to publish and its non-void matches by round; null once everything is out or
-// reporting closed.
-export function nextPairings(season: Season, { all, live }: SeasonData, now = new Date()) {
-	if (reportingClosed(season.deadline, now)) return null;
+// The next week to publish and its non-void matches by round; null once everything is out.
+// Allowed after the deadline too, so organizers can still publish a late week and enter its results.
+export function nextPairings(season: Season, { all, live }: SeasonData) {
 	const next = nextPublish(
 		season.publishedRound,
 		season.roundsPerWeek,

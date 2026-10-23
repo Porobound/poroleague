@@ -1,6 +1,7 @@
 import { error } from '@sveltejs/kit';
 import { and, asc, count, desc, eq, inArray, isNull, ne, sql } from 'drizzle-orm';
 import { defaultGroupCount, splitGroups } from '#lib/league/groups.ts';
+import { published } from '#lib/league/publish.ts';
 import { buildSchedule } from '#lib/league/schedule.ts';
 import { standings } from '#lib/league/standings.ts';
 import { currentWeek, reportingClosed, roundsOfWeek, weekOf } from '#lib/league/time.ts';
@@ -318,7 +319,7 @@ export function playerSeasons(playerId: string) {
 				row: g && i >= 0 ? g.rows[i] : null,
 				rank: i + 1,
 				size: g?.size ?? 0,
-				matches: playerMatches(season.id, playerId),
+				matches: published(playerMatches(season.id, playerId), season.publishedRound),
 				dropped: droppedIds(list)
 			};
 		});
