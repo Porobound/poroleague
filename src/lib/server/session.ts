@@ -7,6 +7,8 @@ export const SESSION_COOKIE = 'session';
 export const SESSION_TTL_SECONDS = 7 * 24 * 60 * 60;
 
 // The cookie holds a random token; the DB only stores its hash, so a leaked DB can't be replayed as cookies.
+// The Discord access token is stored plain on purpose: read-only scopes (identify, guilds.members.read),
+// ~7-day lifetime, no refresh token kept. Encrypt it if wider scopes or refresh tokens ever land.
 const hash = (token: string) => createHash('sha256').update(token).digest('hex');
 
 export function createSession(

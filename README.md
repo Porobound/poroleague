@@ -234,10 +234,13 @@ CI checks it and builds `:dev`. Then on the dev server: `docker compose pull && 
 
 ```sh
 docker compose stop app
+rm -f data/poroleague.db-wal data/poroleague.db-shm
 cp backups/poroleague-<date>.db data/poroleague.db
 chown 1000:1000 data/poroleague.db
 docker compose start app
 ```
+
+The database runs in WAL mode: delete its `-wal` and `-shm` files before copying a backup over it, or SQLite replays the old log onto the restored file.
 
 ## Updating the rules
 

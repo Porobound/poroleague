@@ -24,6 +24,8 @@ vite.config.ts.timestamp-*
 # SQLite
 *.db
 *.db-journal
+*.db-wal
+*.db-shm
 
 # Deploy
 /data

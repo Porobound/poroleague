@@ -1,4 +1,7 @@
-import { expect, it } from 'vitest';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { expect, it, vi } from 'vitest';
 import { DATABASE_URL } from '$app/env/private';
 import { db } from '#lib/server/db/index.ts';
 import { seasons } from '#lib/server/db/schema.ts';
@@ -17,4 +20,15 @@ it('starts each test empty', () => {
 
 it('blocks real network calls', async () => {
 	await expect(fetch('https://discord.com')).rejects.toThrow('stub it');
+});
+
+it('opens file databases in WAL mode', async () => {
+	const dir = mkdtempSync(join(tmpdir(), 'poroleague-'));
+	vi.resetModules();
+	vi.doMock('$app/env/private', () => ({ DATABASE_URL: join(dir, 'wal.db') }));
+	const { db: fileDb } = await import('#lib/server/db/index.ts');
+	expect(fileDb.$client.pragma('journal_mode', { simple: true })).toBe('wal');
+	fileDb.$client.close();
+	vi.doUnmock('$app/env/private');
+	rmSync(dir, { recursive: true });
 });
