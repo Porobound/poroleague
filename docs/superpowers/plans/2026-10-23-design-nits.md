@@ -24,21 +24,21 @@
 
 ## File structure
 
-| File | Change |
-| --- | --- |
-| `src/routes/seasons/[slug]/admin/+layout.svelte` | Audit-log note in the admin nav |
-| `src/lib/components/ResultActions.svelte` | Edit/enter/keep dialog copy |
-| `src/routes/seasons/[slug]/admin/+page.svelte` | Publish dialog copy |
-| `src/routes/seasons/[slug]/admin/matches/+page.svelte` | Intro |
-| `src/routes/seasons/[slug]/admin/players/+page.svelte` | Intros, drop and remove dialogs |
-| `src/routes/seasons/[slug]/admin/season/+page.svelte` | Lock note, end-of-season copy, dialogs |
-| `src/routes/seasons/[slug]/admin/groups/+page.svelte` | Intro, lock dialog, locked notice |
-| `src/lib/components/SeasonForm.svelte`, `src/routes/admin/+page.svelte` | Field hints, new-season intro |
-| `src/routes/seasons/[slug]/+page.svelte` | Hero, signup, my matches, standings copy; phone stat card |
-| `src/routes/seasons/[slug]/matches/[id]/+page.svelte`, `+page.server.ts` | Report and flag copy |
-| `src/lib/league/report.ts`, `report.spec.ts` | Bo3 error |
-| `src/routes/seasons/[slug]/schedule/+page.svelte`, `src/routes/+page.svelte`, `src/routes/login/*/+page.svelte` | Small cuts |
-| `docs/spec.md` | Open items |
+| File                                                                                                            | Change                                                    |
+| --------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| `src/routes/seasons/[slug]/admin/+layout.svelte`                                                                | Audit-log note in the admin nav                           |
+| `src/lib/components/ResultActions.svelte`                                                                       | Edit/enter/keep dialog copy                               |
+| `src/routes/seasons/[slug]/admin/+page.svelte`                                                                  | Publish dialog copy                                       |
+| `src/routes/seasons/[slug]/admin/matches/+page.svelte`                                                          | Intro                                                     |
+| `src/routes/seasons/[slug]/admin/players/+page.svelte`                                                          | Intros, drop and remove dialogs                           |
+| `src/routes/seasons/[slug]/admin/season/+page.svelte`                                                           | Lock note, end-of-season copy, dialogs                    |
+| `src/routes/seasons/[slug]/admin/groups/+page.svelte`                                                           | Intro, lock dialog, locked notice                         |
+| `src/lib/components/SeasonForm.svelte`, `src/routes/admin/+page.svelte`                                         | Field hints, new-season intro                             |
+| `src/routes/seasons/[slug]/+page.svelte`                                                                        | Hero, signup, my matches, standings copy; phone stat card |
+| `src/routes/seasons/[slug]/matches/[id]/+page.svelte`, `+page.server.ts`                                        | Report and flag copy                                      |
+| `src/lib/league/report.ts`, `report.spec.ts`                                                                    | Bo3 error                                                 |
+| `src/routes/seasons/[slug]/schedule/+page.svelte`, `src/routes/+page.svelte`, `src/routes/login/*/+page.svelte` | Small cuts                                                |
+| `docs/spec.md`                                                                                                  | Open items                                                |
 
 ---
 
@@ -51,7 +51,7 @@
 In `src/routes/seasons/[slug]/admin/+layout.svelte`, right after the `Public audit log ↗` link (line 25):
 
 ```svelte
-		<span class="muted small nav-note">Every organizer action is logged there.</span>
+<span class="muted small nav-note">Every organizer action is logged there.</span>
 ```
 
 with, in its `<style>`: `.nav-note { padding: 4px 12px 0; line-height: 16px; }`. On phones the admin nav is a row of chips (Plan 9); hide the note there: `@media (max-width: 640px) { .nav-note { display: none; } }`.
@@ -61,14 +61,14 @@ with, in its `<style>`: `.nav-note { padding: 4px 12px 0; line-height: 16px; }`.
 Replace the edit dialog's `<p>` (lines 24–32) with:
 
 ```svelte
-	<p>
-		{r.p1.name} vs {r.p2.name}, round {r.round}.
-		{r.flag
-			? "This replaces the reported result. It can't be flagged again."
-			: r.reported
-				? 'This replaces the reported result.'
-				: 'For a match that was played but never reported.'}
-	</p>
+<p>
+	{r.p1.name} vs {r.p2.name}, round {r.round}.
+	{r.flag
+		? "This replaces the reported result. It can't be flagged again."
+		: r.reported
+			? 'This replaces the reported result.'
+			: 'For a match that was played but never reported.'}
+</p>
 ```
 
 and the keep dialog's body (lines 45–46) with: `The reported score stands. It can't be flagged again.`
@@ -76,11 +76,11 @@ and the keep dialog's body (lines 45–46) with: `The reported score stands. It 
 - [ ] **Step 3: Publish dialog** (`admin/+page.svelte`, Plan 10's `ConfirmButton` body)
 
 ```svelte
-				Players see the {p.count} pairings for {p.rounds[0] === p.rounds[1]
-					? `round ${p.rounds[0]}`
-					: `rounds ${p.rounds[0]}–${p.rounds[1]}`}{data.discord
-					? ', and they’re posted in the pairings channel. Nobody is pinged'
-					: ''}. It can't be undone.
+Players see the {p.count} pairings for {p.rounds[0] === p.rounds[1]
+	? `round ${p.rounds[0]}`
+	: `rounds ${p.rounds[0]}–${p.rounds[1]}`}{data.discord
+	? ', and they’re posted in the pairings channel. Nobody is pinged'
+	: ''}. It can't be undone.
 ```
 
 - [ ] **Step 4: Matches, players**
@@ -94,9 +94,9 @@ and the keep dialog's body (lines 45–46) with: `The reported score stands. It 
 - End of season `<p>` (lines 50–54) →
 
 ```svelte
-					{e.closed && season.deadline
-						? `Reporting closed on ${date(season.deadline)} at 23:59 ${tzName(season.deadline)}.`
-						: 'Every match is reported.'}
+{e.closed && season.deadline
+	? `Reporting closed on ${date(season.deadline)} at 23:59 ${tzName(season.deadline)}.`
+	: 'Every match is reported.'}
 ```
 
 - Unplayed (line 68 paragraph) → `Unplayed matches are <strong>double losses</strong> unless you enter a result.`
@@ -136,13 +136,17 @@ In `src/lib/league/report.spec.ts`, change the expected message to `"That isn't 
 - In-play lede (lines 42–46):
 
 ```svelte
-					<p class="lede">
-						This week: {roundsText(data.rounds)}. Play your matches by {day(data.weekEnds)} and report
-						them here.<span class="desk"> Unplayed matches count as a double loss at the end of the season.</span>
-					</p>
+<p class="lede">
+	This week: {roundsText(data.rounds)}. Play your matches by {day(data.weekEnds)} and report them here.<span
+		class="desk"
+	>
+		Unplayed matches count as a double loss at the end of the season.</span
+	>
+</p>
 ```
 
-  with `.desk` hidden in the page's 640 px media query (`.desk { display: none; }`).
+with `.desk` hidden in the page's 640 px media query (`.desk { display: none; }`).
+
 - Signup lede (line 60) → `Open to everyone in the Porobound Discord. One Bo3 per round, until the deadline.`
 - Signup list: groups item (line 66) → `One group, or two if 16 or more sign up.`; "Play on your schedule" item → `<strong>{season.roundsPerWeek} rounds a week</strong><span>Deadlines are 23:59{season.deadline ? ` ${tzName(season.deadline)}` : ''}.</span>`; remove the "Report it yourself" `<li>`.
 - Signed-up box (line 174) → `… <strong>{user.displayName}</strong>. You can withdraw until groups are drawn.`; withdraw dialog (line 183) → `You can sign up again while signup is open.`; remove the "You'll play as … your nickname on the server" `<p>` (line 186) and the "16 or more makes two groups" hint (line 152).
@@ -182,32 +186,32 @@ git commit -m "copy: cut explanations on public pages"
 After the hero `</section>`, before `<PhaseBar>`:
 
 ```svelte
-	{#if season.status !== 'draft'}
-		{@const now =
-			data.phases.find((p) => p.state === 'current') ??
-			data.phases.findLast((p) => p.state === 'done')}
-		<div class="panel stat">
-			{#if now}
-				<div class="stat-head">
-					<strong>{now.label}</strong>
-					<span class="muted small">{now.detail}</span>
-				</div>
-			{/if}
-			<div class="segs" aria-hidden="true">
-				{#each data.phases as p (p.label)}<span class="seg-{p.state}"></span>{/each}
+{#if season.status !== 'draft'}
+	{@const now =
+		data.phases.find((p) => p.state === 'current') ??
+		data.phases.findLast((p) => p.state === 'done')}
+	<div class="panel stat">
+		{#if now}
+			<div class="stat-head">
+				<strong>{now.label}</strong>
+				<span class="muted small">{now.detail}</span>
 			</div>
-			{#if season.deadline}
-				<span class="stat-end"
-					>{season.status === 'finished' || data.closed ? 'Season ended' : 'Season ends'}
-					{date(season.deadline)} · 23:59 {tzName(season.deadline)}</span
-				>
-			{/if}
-			<details class="steps">
-				<summary>All steps</summary>
-				<PhaseBar phases={data.phases} />
-			</details>
+		{/if}
+		<div class="segs" aria-hidden="true">
+			{#each data.phases as p (p.label)}<span class="seg-{p.state}"></span>{/each}
 		</div>
-	{/if}
+		{#if season.deadline}
+			<span class="stat-end"
+				>{season.status === 'finished' || data.closed ? 'Season ended' : 'Season ends'}
+				{date(season.deadline)} · 23:59 {tzName(season.deadline)}</span
+			>
+		{/if}
+		<details class="steps">
+			<summary>All steps</summary>
+			<PhaseBar phases={data.phases} />
+		</details>
+	</div>
+{/if}
 ```
 
 and give the existing `<PhaseBar>` and the `.deadline` panel a `desk-block` class (wrap the PhaseBar in `<div class="desk-block">`).
@@ -215,60 +219,60 @@ and give the existing `<PhaseBar>` and the `.deadline` panel a `desk-block` clas
 - [ ] **Step 2: Styles**
 
 ```css
-	.stat {
+.stat {
+	display: none;
+}
+@media (max-width: 640px) {
+	.desk-block,
+	.deadline {
 		display: none;
 	}
-	@media (max-width: 640px) {
-		.desk-block,
-		.deadline {
-			display: none;
-		}
-		.stat {
-			display: flex;
-			flex-direction: column;
-			gap: 8px;
-			padding: 12px 16px;
-		}
-		.stat-head {
-			display: flex;
-			justify-content: space-between;
-			align-items: baseline;
-			gap: 12px;
-		}
-		.segs {
-			display: grid;
-			grid-auto-flow: column;
-			grid-auto-columns: minmax(0, 1fr);
-			gap: 4px;
-		}
-		.segs span {
-			height: 4px;
-			border-radius: var(--radius-pill);
-			background: var(--line);
-		}
-		.segs .seg-done {
-			background: var(--accent);
-		}
-		.segs .seg-current {
-			background: var(--brand);
-		}
-		.stat-end {
-			font: 13px/18px var(--font-mono);
-			color: var(--signal);
-		}
-		.steps > summary {
-			cursor: pointer;
-			font-size: 13px;
-			color: var(--accent);
-			min-height: 32px;
-			display: inline-flex;
-			align-items: center;
-		}
-		.hero h1 {
-			font-size: 28px;
-			line-height: 32px;
-		}
+	.stat {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+		padding: 12px 16px;
 	}
+	.stat-head {
+		display: flex;
+		justify-content: space-between;
+		align-items: baseline;
+		gap: 12px;
+	}
+	.segs {
+		display: grid;
+		grid-auto-flow: column;
+		grid-auto-columns: minmax(0, 1fr);
+		gap: 4px;
+	}
+	.segs span {
+		height: 4px;
+		border-radius: var(--radius-pill);
+		background: var(--line);
+	}
+	.segs .seg-done {
+		background: var(--accent);
+	}
+	.segs .seg-current {
+		background: var(--brand);
+	}
+	.stat-end {
+		font: 13px/18px var(--font-mono);
+		color: var(--signal);
+	}
+	.steps > summary {
+		cursor: pointer;
+		font-size: 13px;
+		color: var(--accent);
+		min-height: 32px;
+		display: inline-flex;
+		align-items: center;
+	}
+	.hero h1 {
+		font-size: 28px;
+		line-height: 32px;
+	}
+}
 ```
 
 Remove the now-dead `.deadline` phone rules (lines ~384–388) and change the existing phone `.hero h1` 30/34 values to the ones above. In `src/app.css`'s phone block, the page's main padding/gap goes to 16px if it's larger (board: `padding: 16px; gap: 16px`).
