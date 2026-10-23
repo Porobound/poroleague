@@ -27,7 +27,9 @@ test('report, flag, organizer fix', async ({ browser }) => {
 	await expect(add).toBeDisabled();
 	const scoreError = reporter.getByRole('alert').filter({ hasText: "That isn't a finished Bo3" });
 	await games.nth(0).getByLabel('2').check();
+	await expect(scoreError).toHaveCount(0); // waits for the other side
 	await games.nth(1).getByLabel('2').check();
+	await expect(scoreError).toBeVisible();
 	await reporter.getByLabel('Legend').nth(0).selectOption('Ahri');
 	await reporter.getByLabel('Legend').nth(1).selectOption('Annie');
 	await reporter.getByRole('group', { name: 'Who won the dice roll?' }).getByLabel(p2).check();
