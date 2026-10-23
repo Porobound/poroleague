@@ -26,8 +26,8 @@
 	{:else}
 		{#if status === 'groups'}
 			<p class="muted">
-				Groups were drawn at random. Move players if needed, then lock. Locking generates the
-				round-robin schedule and can't be undone.
+				Drawn at random. Move players if needed, then lock. Locking builds the schedule and can't be
+				undone.
 			</p>
 			<div class="actions">
 				<ConfirmButton
@@ -45,8 +45,7 @@
 					title="Lock groups and generate the schedule?"
 					confirmLabel="Lock groups"
 				>
-					You can't move players between groups after this. Dropping a player later voids their
-					matches instead.
+					You can't move players between groups after this.
 				</ConfirmButton>
 				<ConfirmButton
 					action="?/reopenSignup"
@@ -60,7 +59,10 @@
 				</ConfirmButton>
 			</div>
 		{:else}
-			<p class="pb-notice" role="status">Groups are locked and the schedule is ready.</p>
+			<p class="pb-notice" role="status">
+				Groups locked.{#if status === 'play' && !data.season.publishedRound}
+					Publish week 1 from the <a href="/seasons/{data.season.slug}/admin">overview</a>.{/if}
+			</p>
 		{/if}
 
 		<div class="grid-2">

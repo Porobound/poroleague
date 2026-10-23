@@ -37,20 +37,20 @@
 			type: 'text',
 			hint: 'Used in links: /seasons/<slug>. Leave empty to make it from the name.'
 		},
-		{ name: 'startDate', label: 'Start date', type: 'date', hint: 'Week 1 starts on this day.' },
+		{ name: 'startDate', label: 'Start date', type: 'date', hint: '' },
 		{
 			name: 'roundsPerWeek',
 			label: 'Rounds per week',
 			type: 'number',
 			min: 1,
 			max: 4,
-			hint: 'A 12-player group plays 11 rounds, about 6 weeks at 2 a week.'
+			hint: ''
 		},
 		{
 			name: 'deadline',
 			label: 'Season deadline',
 			type: 'date',
-			hint: 'Ends 23:59 Helsinki time. Unplayed matches after this are double losses unless you enter a result.'
+			hint: 'Ends 23:59 Helsinki time.'
 		},
 		{
 			name: 'topCutSize',
@@ -58,7 +58,7 @@
 			type: 'number',
 			min: 0,
 			max: 16,
-			hint: 'Marked in standings; the top cut itself comes later.'
+			hint: 'The top cut itself comes later.'
 		}
 	];
 </script>
@@ -80,8 +80,8 @@
 			/>
 			{#if errors[f.name]}
 				<span class="pb-hint is-error">{errors[f.name]}</span>
-			{:else}
-				<span class="pb-hint">{locked ? 'Locked at this stage of the season.' : f.hint}</span>
+			{:else if !locked && f.hint}
+				<span class="pb-hint">{f.hint}</span>
 			{/if}
 		</label>
 	{/each}

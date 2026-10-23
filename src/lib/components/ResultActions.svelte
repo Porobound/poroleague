@@ -24,11 +24,10 @@
 	<p>
 		{r.p1.name} vs {r.p2.name}, round {r.round}.
 		{r.flag
-			? "The new result replaces the reported one and resolves the flag; it can't be flagged again. Posted in the organizer channel"
+			? "This replaces the reported result. It can't be flagged again."
 			: r.reported
-				? 'The new result replaces the reported one. Posted in the organizer channel'
-				: 'Use this when the match was played but never reported. Posted in the results channel'}
-		and logged in the public audit log.
+				? 'This replaces the reported result.'
+				: 'For a match that was played but never reported.'}
 	</p>
 	<ResultFields p1={r.p1} p2={r.p2} values={r.values} />
 </ConfirmButton>
@@ -42,7 +41,6 @@
 		title="Keep the result as reported?"
 		confirmLabel="Keep result"
 	>
-		The flag is resolved and the reported score stands. It can't be flagged again. Posted in the
-		organizer channel and logged in the public audit log.
+		The reported score stands. It can't be flagged again.
 	</ConfirmButton>
 {/if}

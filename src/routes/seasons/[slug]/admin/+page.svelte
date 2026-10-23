@@ -44,9 +44,9 @@
 			>
 				Players see the {p.count} pairings for {p.rounds[0] === p.rounds[1]
 					? `round ${p.rounds[0]}`
-					: `rounds ${p.rounds[0]}–${p.rounds[1]}`} on the site{data.discord
-					? ", and they're posted in the pairings channel with each player's Discord name. Nobody is pinged"
-					: ''}. A published week can't be hidden again.
+					: `rounds ${p.rounds[0]}–${p.rounds[1]}`}{data.discord
+					? ", and they're posted in the pairings channel. Nobody is pinged"
+					: ''}. It can't be undone.
 			</ConfirmButton>
 		{/if}
 	</div>

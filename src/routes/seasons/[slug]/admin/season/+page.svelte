@@ -30,8 +30,7 @@
 	<h1>{season.name}</h1>
 	{#if season.status === 'play'}
 		<p class="lock-note">
-			Groups are locked and the schedule is built, so the slug, start date and rounds per week can't
-			change now. <strong>The name, deadline and top cut still can.</strong>
+			Groups are locked, so slug, start date and rounds per week can't change.
 		</p>
 	{/if}
 
@@ -49,8 +48,8 @@
 				<h2 id="end-h">End of season</h2>
 				<p class="muted">
 					{e.closed && season.deadline
-						? `The deadline passed on ${date(season.deadline)} at 23:59 ${tzName(season.deadline)}. Reporting is closed.`
-						: 'Every match is reported.'} Settle what's left, then finalize.
+						? `Reporting closed on ${date(season.deadline)} at 23:59 ${tzName(season.deadline)}.`
+						: 'Every match is reported.'}
 				</p>
 			</div>
 
@@ -65,9 +64,8 @@
 					>
 				</div>
 				<p class="muted">
-					Each one is a <strong>double loss</strong> by default: both players get a loss and 0
-					points. If the players did play and just never reported,
-					<a href="{matchesUrl}?status=unplayed">enter the result</a> instead.
+					Unplayed matches are <strong>double losses</strong> unless you
+					<a href="{matchesUrl}?status=unplayed">enter a result</a>.
 				</p>
 			</section>
 
@@ -98,10 +96,7 @@
 					>
 				</div>
 				{#if e.ties.length}
-					<p class="muted">
-						Points, head-to-head and game-win % couldn't separate these players. Put them in order,
-						then confirm.
-					</p>
+					<p class="muted">Put tied players in order.</p>
 					<div class="ties">
 						{#each e.ties as t (t.players.map((p) => p.playerId).join())}
 							{@const all = t.players.length === 2 ? 'both' : 'all'}
@@ -191,8 +186,7 @@
 						confirmLabel="Finalize season"
 						disabled={!e.ready}
 					>
-						Standings freeze and can't be changed after this. The season moves to the archive.
-						Finalizing is logged in the public audit log.
+						Standings freeze and the season moves to the archive.
 					</ConfirmButton>
 				</div>
 			</section>
@@ -211,8 +205,7 @@
 			title="Open signup for {season.name}?"
 			confirmLabel="Open signup"
 		>
-			The season goes public and anyone in the Porobound Discord can sign up until you close signup.
-			You can still edit the dates and top cut until groups are locked.
+			Anyone in the Porobound Discord can sign up.
 		</ConfirmButton>
 	{:else if season.status === 'groups'}
 		<p class="muted">
@@ -237,9 +230,7 @@
 			errors={form && 'errors' in form ? form.errors : undefined}
 			editable={editableFields(season.status)}
 			submit="Save changes"
-			confirm={season.status === 'draft'
-				? ''
-				: `Changes are logged in the public audit log.${season.deadline ? ' A new deadline decides which unplayed matches become double losses.' : ''}`}
+			confirm={season.status === 'draft' ? '' : 'Players see the changes right away.'}
 		/>
 	</form>
 

@@ -32,9 +32,7 @@
 <div class="page">
 	<h1>Matches</h1>
 	<p class="muted">
-		Enter results for overdue or unplayed matches and settle flags. A match turns Overdue by itself
-		once its week has passed; players can still report it. Anything still unplayed at the deadline
-		is a double loss unless you enter a result.
+		Overdue matches can still be reported. Unplayed ones become double losses at the deadline.
 	</p>
 
 	{#if form?.message}

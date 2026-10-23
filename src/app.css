@@ -191,6 +191,10 @@ a:hover {
 	color: var(--ink);
 	font-weight: 600;
 }
+.nav-note {
+	padding: 4px 12px 0;
+	line-height: 16px;
+}
 .admin-main {
 	flex: 999 1 640px;
 	min-width: 0;
@@ -607,7 +611,8 @@ a:hover {
 		padding: 0 var(--space-4);
 		scrollbar-width: none;
 	}
-	.admin-nav .eyebrow {
+	.admin-nav .eyebrow,
+	.nav-note {
 		display: none;
 	}
 	.admin-nav a {
