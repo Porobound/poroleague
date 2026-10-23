@@ -91,7 +91,31 @@
 		{/if}
 	</section>
 	{#if season.status !== 'draft'}
-		<PhaseBar phases={data.phases} />
+		{@const now =
+			data.phases.find((p) => p.state === 'current') ??
+			data.phases.findLast((p) => p.state === 'done')}
+		<div class="desk-block"><PhaseBar phases={data.phases} /></div>
+		<div class="panel stat">
+			{#if now}
+				<div class="stat-head">
+					<strong>{now.label}</strong>
+					<span class="muted small">{now.detail}</span>
+				</div>
+			{/if}
+			<div class="segs" aria-hidden="true">
+				{#each data.phases as p (p.label)}<span class="seg-{p.state}"></span>{/each}
+			</div>
+			{#if season.deadline}
+				<span class="stat-end"
+					>{season.status === 'finished' || data.closed ? 'Season ended' : 'Season ends'}
+					{date(season.deadline)} · 23:59 {tzName(season.deadline)}</span
+				>
+			{/if}
+			<details class="steps">
+				<summary>All steps</summary>
+				<PhaseBar phases={data.phases} />
+			</details>
+		</div>
 	{/if}
 
 	{#if form?.message}
@@ -349,26 +373,65 @@
 	.section-head h2 {
 		margin: 0;
 	}
+	.stat {
+		display: none;
+	}
 	@media (max-width: 640px) {
+		.desk-block,
+		.deadline {
+			display: none;
+		}
+		.stat {
+			display: flex;
+			flex-direction: column;
+			gap: 8px;
+			padding: 12px 16px;
+		}
+		.stat-head {
+			display: flex;
+			justify-content: space-between;
+			align-items: baseline;
+			gap: 12px;
+		}
+		.segs {
+			display: grid;
+			grid-auto-flow: column;
+			grid-auto-columns: minmax(0, 1fr);
+			gap: 4px;
+		}
+		.segs span {
+			height: 4px;
+			border-radius: var(--radius-pill);
+			background: var(--line);
+		}
+		.segs .seg-done {
+			background: var(--accent);
+		}
+		.segs .seg-current {
+			background: var(--brand);
+		}
+		.stat-end {
+			font: 13px/18px var(--font-mono);
+			color: var(--signal);
+		}
+		.steps > summary {
+			cursor: pointer;
+			font-size: 13px;
+			color: var(--accent);
+			min-height: 32px;
+			display: inline-flex;
+			align-items: center;
+		}
 		.hero h1 {
-			font-size: 30px;
-			line-height: 34px;
+			font-size: 28px;
+			line-height: 32px;
 		}
 		.lede {
 			font-size: 15px;
 			line-height: 22px;
 		}
-		.deadline {
-			min-width: 0;
-			padding: 12px 16px;
-			gap: 2px;
-		}
 		.desk {
 			display: none;
-		}
-		.deadline-date {
-			font-size: 17px;
-			line-height: 22px;
 		}
 		.signup-action {
 			align-items: stretch;
