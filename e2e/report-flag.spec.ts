@@ -25,6 +25,12 @@ test('report, flag, organizer fix', async ({ browser }) => {
 	const games = reporter.getByRole('group', { name: 'Games won' });
 	const add = reporter.getByRole('button', { name: 'Add result' });
 	await expect(add).toBeDisabled();
+	// 0, 1 and 2 sit on one row, apart.
+	const boxes = await Promise.all(
+		['0', '1', '2'].map(async (n) => (await games.nth(0).getByText(n, { exact: true }).boundingBox())!)
+	);
+	expect(new Set(boxes.map((b) => Math.round(b.y))).size).toBe(1);
+	expect(boxes[0].x + boxes[0].width).toBeLessThan(boxes[1].x);
 	const scoreError = reporter.getByRole('alert').filter({ hasText: "That isn't a finished Bo3" });
 	await games.nth(0).getByLabel('2').check();
 	await expect(scoreError).toHaveCount(0); // waits for the other side

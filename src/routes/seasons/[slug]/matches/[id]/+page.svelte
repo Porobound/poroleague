@@ -273,6 +273,16 @@
 		padding: 20px;
 		background: var(--surface);
 	}
+	.side .opts {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
+	.side .opts legend {
+		grid-column: 1 / -1;
+	}
+	.side .opt {
+		min-width: 0;
+	}
 	.who-row {
 		display: flex;
 		align-items: center;
@@ -305,13 +315,6 @@
 		}
 		.side {
 			padding: 16px;
-		}
-		.side .opts {
-			display: grid;
-			grid-template-columns: repeat(3, minmax(0, 1fr));
-		}
-		.side .opts legend {
-			grid-column: 1 / -1;
 		}
 		.report > .opts {
 			display: grid;
