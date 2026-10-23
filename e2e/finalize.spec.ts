@@ -13,7 +13,7 @@ test.beforeAll(() => {
 		deadline: '2026-01-01'
 	});
 	seedResult(m12, 1, 1);
-	seedResult(m34, 2, 0, 'Wrong score.');
+	seedResult(m34, 2, 0, { flag: 'Wrong score.' });
 	seedResult(m13, 2, 0);
 	seedResult(m24, 2, 0);
 	seedResult(m14, 2, 0);
