@@ -65,4 +65,11 @@ test('tiebreak and finalize', async ({ page }) => {
 		.filter({ has: page.getByRole('link', { name: 'E2E finalize' }) });
 	await expect(card).toContainText('Finished');
 	await expect(card).toContainText(p2);
+
+	// The flag decision, the tiebreak and the finalize are in the audit log, newest first.
+	await page.goto(`/seasons/${slug}/audit`);
+	const rows = page.getByRole('rowgroup').nth(1).getByRole('row');
+	await expect(rows.nth(0)).toHaveText(/Org\s*Finalize/);
+	await expect(rows.nth(1)).toHaveText(new RegExp(`Org\\s*Tiebreak.*Order: ${p2}, ${p1}`));
+	await expect(rows.nth(2)).toHaveText(/Org\s*Resolve/);
 });

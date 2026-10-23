@@ -68,16 +68,25 @@ export const seedEntries = (key: SeasonKey, from: number, to: number) =>
 
 // Four players in a season in play, one group, the full round robin scheduled. Returns the match
 // ids in schedule order: round 1: 1v2, 3v4 · round 2: 1v3, 2v4 · round 3: 1v4, 2v3.
-export function seedSeason(key: SeasonKey, values: { publishedRound: number; deadline?: string }) {
+export function seedSeason(
+	key: SeasonKey,
+	values: { publishedRound: number; startDate?: string; deadline?: string }
+) {
 	const ids: number[] = [];
 	write((db) => {
 		unlist(db, key);
 		addPlayers(db, key, 4);
 		const { id } = db
 			.prepare(
-				"insert into seasons (slug, name, status, published_round, deadline) values (?, ?, 'play', ?, ?) returning id"
+				"insert into seasons (slug, name, status, published_round, start_date, deadline) values (?, ?, 'play', ?, ?, ?) returning id"
 			)
-			.get(SEASONS[key], `E2E ${key}`, values.publishedRound, values.deadline ?? null) as {
+			.get(
+				SEASONS[key],
+				`E2E ${key}`,
+				values.publishedRound,
+				values.startDate ?? null,
+				values.deadline ?? null
+			) as {
 			id: number;
 		};
 		for (let n = 1; n <= 4; n++)
@@ -94,22 +103,36 @@ export function seedSeason(key: SeasonKey, values: { publishedRound: number; dea
 	return ids;
 }
 
-// A result reported by p1 (Ahri vs Annie, p1 won the roll), optionally flagged by p2.
+// A result reported by p1 (Ahri vs Annie, p1 won the roll), optionally flagged by p2, with the
+// audit rows the site would write.
 export const seedResult = (matchId: number, p1Games: number, p2Games: number, flag?: string) =>
-	write((db) =>
-		db
-			.prepare(
-				`update matches set p1_games = ?, p2_games = ?, p1_legend = 'Ahri', p2_legend = 'Annie',
-				 dice_winner_id = p1_id, reported_by = p1_id, reported_at = unixepoch(),
-				 flagged_by = iif(? is null, null, p2_id), flag_reason = ? where id = ?`
-			)
-			.run(p1Games, p2Games, flag ?? null, flag ?? null, matchId)
-	);
+	write((db) => {
+		db.prepare(
+			`update matches set p1_games = ?, p2_games = ?, p1_legend = 'Ahri', p2_legend = 'Annie',
+			 dice_winner_id = p1_id, reported_by = p1_id, reported_at = unixepoch(),
+			 flagged_by = iif(? is null, null, p2_id), flag_reason = ? where id = ?`
+		).run(p1Games, p2Games, flag ?? null, flag ?? null, matchId);
+		const log = db.prepare(
+			`insert into audit (season_id, match_id, actor_id, action, after)
+			 select season_id, id, iif(@action = 'report', p1_id, p2_id), @action, iif(@action = 'report',
+			   json_object('p1Games', p1_games, 'p2Games', p2_games, 'p1Legend', p1_legend,
+			     'p2Legend', p2_legend, 'diceWinnerId', dice_winner_id),
+			   json_object('flagReason', flag_reason))
+			 from matches where id = @id`
+		);
+		log.run({ action: 'report', id: matchId });
+		if (flag) log.run({ action: 'flag', id: matchId });
+	});
 
-// Soft-deletes the flow's season and frees its slug, as the site does, so the next flow can have a
-// running season of its own and a rerun after a failure can seed it again.
+export const renamePlayer = (id: string, name: string) =>
+	write((db) => db.prepare('update players set display_name = ? where id = ?').run(name, id));
+
+// Soft-deletes the flow's season and frees its slug, as deleteSeason does, so the next flow can
+// have a running season of its own and a rerun after a failure can seed it again.
 const unlist = (db: Db, key: SeasonKey) =>
 	db
-		.prepare("update seasons set deleted_at = unixepoch(), slug = slug || '~' || id where slug = ?")
-		.run(SEASONS[key]);
+		.prepare(
+			"update seasons set deleted_at = unixepoch(), deleted_by = ?, slug = slug || '~deleted-' || id where slug = ?"
+		)
+		.run(ORGANIZER, SEASONS[key]);
 export const removeSeason = (key: SeasonKey) => write((db) => unlist(db, key));

@@ -1,20 +1,31 @@
 // Every page at phone width, as a visitor, a player and an organizer: fails on sideways scroll or
 // anything cut off at the right edge. Controls under 44 px tall are warnings, logged per page.
-import { expect, test } from '@playwright/test';
-import { removeSeason, seedEmptySeason, seedResult, seedSeason } from './db.ts';
+import { expect, test, type Page } from '@playwright/test';
+import { removeSeason, renamePlayer, seedEmptySeason, seedResult, seedSeason } from './db.ts';
 import { ORGANIZER, SEASONS, as, player } from './fixtures.ts';
 
 const W = 390;
 const s = `/seasons/${SEASONS.mobile}`;
 const me = player('mobile', 1);
+const day = (offset: number) =>
+	new Date(Date.now() + offset * 86_400_000).toISOString().slice(0, 10);
 let open: number;
 let reported: number;
+let flagged: number;
 
+// A season a week in, with a long name, a reported result and a flagged one, plus a draft (a
+// draft can exist next to a running season; a season in signup can't, see the last test).
 test.beforeAll(() => {
-	const ids = seedSeason('mobile', { publishedRound: 3 });
-	[reported, , open] = ids; // Mobile 1's round 1 and round 2 matches
+	const ids = seedSeason('mobile', { publishedRound: 3, startDate: day(-7), deadline: day(30) });
+	[reported, , open, flagged] = ids; // Mobile 1's round 1 and 2 matches; Mobile 2 vs 4
+	renamePlayer(player('mobile', 2), 'Bartholomew Featherstonehaugh-Villanueva');
 	seedResult(reported, 2, 1);
-	seedEmptySeason('mobileSignup', 'signup');
+	seedResult(
+		flagged,
+		0,
+		2,
+		'We played 2-1 but the second game was conceded after a misclick, so this needs a look.'
+	);
 	seedEmptySeason('mobileDraft', 'draft');
 });
 test.afterAll(() => {
@@ -38,7 +49,7 @@ const pages = () => ({
 		`${s}/players/${me}`,
 		`/players/${me}`,
 		`${s}/matches/${reported}`,
-		`/seasons/${SEASONS.mobileSignup}`,
+		`${s}/matches/${flagged}`,
 		'/login/not-member',
 		'/login/failed'
 	],
@@ -48,17 +59,18 @@ const pages = () => ({
 		`${s}/players/${me}`,
 		`${s}/matches/${open}`,
 		`${s}/matches/${reported}`,
-		`/seasons/${SEASONS.mobileSignup}`,
 		'/login/not-organizer'
 	],
 	organizer: [
+		'/admin',
 		`${s}/admin`,
 		`${s}/admin/players`,
 		`${s}/admin/groups`,
 		`${s}/admin/matches`,
 		`${s}/admin/season`,
 		`/seasons/${SEASONS.mobileDraft}/admin/season`,
-		`${s}/matches/${reported}`
+		`${s}/matches/${reported}`,
+		`${s}/matches/${flagged}`
 	]
 });
 
@@ -97,28 +109,36 @@ function probe(W: number) {
 	};
 }
 
+const fits = (page: Page, who: string, path: string) =>
+	test.step(`${who} ${path}`, async () => {
+		const res = await page.goto(path);
+		expect.soft(res?.ok(), 'page loads').toBe(true);
+		const r = await page.evaluate(probe, W);
+		expect.soft(r.scroll, 'scrolls sideways').toBe(false);
+		expect.soft(r.outer, 'cut off at the right edge').toEqual([]);
+		if (r.small.length) {
+			test
+				.info()
+				.annotations.push({ type: 'small', description: `${path}: ${r.small.join(', ')}` });
+			console.log(`${r.small.length} small  ${who.padEnd(9)} ${path}\n  ${r.small.join('\n  ')}`);
+		}
+	});
+
 for (const role of ['visitor', 'player', 'organizer'] as const) {
 	test.describe(role, () => {
 		if (role !== 'visitor') test.use(as(role === 'player' ? me : ORGANIZER));
 		// Paths need the seeded ids, so each role is one test that checks every page.
 		test('pages fit a phone', async ({ page }) => {
-			for (const path of pages()[role]) {
-				await test.step(path, async () => {
-					const res = await page.goto(path);
-					expect(res?.ok()).toBe(true);
-					const r = await page.evaluate(probe, W);
-					expect.soft(r.scroll, 'scrolls sideways').toBe(false);
-					expect.soft(r.outer, 'cut off at the right edge').toEqual([]);
-					if (r.small.length) {
-						test
-							.info()
-							.annotations.push({ type: 'small', description: `${path}: ${r.small.join(', ')}` });
-						console.log(
-							`${r.small.length} small  ${role.padEnd(9)} ${path}\n  ${r.small.join('\n  ')}`
-						);
-					}
-				});
-			}
+			for (const path of pages()[role]) await fits(page, role, path);
 		});
 	});
 }
+
+// Runs last: only one season can be running, so the season in play makes way for one in signup.
+test('signup page fits a phone', async ({ page, browser }) => {
+	removeSeason('mobile');
+	seedEmptySeason('mobileSignup', 'signup');
+	const path = `/seasons/${SEASONS.mobileSignup}`;
+	await fits(page, 'visitor', path);
+	await fits(await browser.newPage(as(me)), 'player', path);
+});
