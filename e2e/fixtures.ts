@@ -10,6 +10,7 @@ export const ORGANIZER = 'org';
 // Each flow gets its own season and players (`e2e/db.ts`), so flows never see each other's writes.
 // Players are `<key>-1`, `<key>-2`…, named "<Key> 1", "<Key> 2"….
 export const SEASONS = {
+	rules: 'e2e-rules',
 	visibility: 'e2e-visibility',
 	report: 'e2e-report',
 	setup: 'e2e-setup',

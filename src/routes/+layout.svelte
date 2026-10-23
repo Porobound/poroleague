@@ -72,6 +72,7 @@
 				{/each}
 			{/if}
 			<a href="/seasons" class="nav-link" aria-current={here('/seasons')}>Archive</a>
+			<a href="/rules" class="nav-link" aria-current={here('/rules')}>Rules</a>
 			{#if data.user}
 				{#if data.user.isOrganizer}
 					<a href="/admin" class="nav-link">Admin</a>

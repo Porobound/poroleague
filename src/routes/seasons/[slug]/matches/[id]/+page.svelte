@@ -175,7 +175,10 @@
 					{#if live?.ok}
 						<MatchCard {head} status="reported" {...card(live.values)} />
 					{/if}
-					<p>Reports are final. If something's off, either of you can flag it.</p>
+					<p>
+						Reports are final. If something's off, either of you can flag it.
+						<a href="/rules#5-reporting-results" target="_blank">Reporting rules</a>
+					</p>
 				</ConfirmButton>
 				<a href="/seasons/{data.season.slug}" class="muted cancel">Cancel</a>
 			</div>
@@ -212,7 +215,10 @@
 					title="Flag this result?"
 					confirmLabel="Flag result"
 				>
-					<p>Only organizers can change the result after a flag.</p>
+					<p>
+						Only organizers can change the result after a flag.
+						<a href="/rules#5-reporting-results" target="_blank">Reporting rules</a>
+					</p>
 					<label class="pb-field">
 						What's wrong?
 						<textarea
