@@ -15,6 +15,7 @@ export default defineConfig({
 	],
 	test: {
 		expect: { requireAssertions: true },
+		restoreMocks: true,
 		coverage: {
 			include: ['src/**/*.ts'],
 			exclude: ['src/**/*.spec.ts', 'src/lib/server/test/**']

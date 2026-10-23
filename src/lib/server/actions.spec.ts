@@ -5,18 +5,27 @@ import { actions as matchActions } from '../../routes/seasons/[slug]/matches/[id
 import { actions as adminActions } from '../../routes/seasons/[slug]/admin/+page.server.ts';
 import { actions as seasonActions } from '../../routes/seasons/[slug]/admin/season/+page.server.ts';
 import { actions as groupActions } from '../../routes/seasons/[slug]/admin/groups/+page.server.ts';
+import { actions as playerActions } from '../../routes/seasons/[slug]/admin/players/+page.server.ts';
+import { actions as createActions } from '../../routes/admin/+page.server.ts';
 import { db } from '#lib/server/db/index.ts';
 import { entries, matches, players, seasons } from '#lib/server/db/schema.ts';
 import { flagMatch, saveReport } from '#lib/server/matches.ts';
 import { groupStandings, seasonEntries, type Season } from '#lib/server/seasons.ts';
 import { seedEntries, seedMatch, seedPlayers, seedSeason } from '#lib/server/test/seed.ts';
 
-// The Discord role check has its own tests (auth.spec.ts); here every organizer is one.
-vi.mock('#lib/server/auth.ts', async (original) => ({
-	...(await original<typeof import('#lib/server/auth.ts')>()),
-	organizerAction: async ({ locals }: { locals: App.Locals }) => locals.user!,
-	organizerPage: async ({ locals }: { locals: App.Locals }) => locals.user!
-}));
+// The Discord re-check has its own tests (auth.spec.ts); here the session's role is trusted.
+vi.mock('#lib/server/auth.ts', async (original) => {
+	const { redirect } = await import('@sveltejs/kit');
+	const organizer = async ({ locals }: { locals: App.Locals }) => {
+		if (!locals.user?.isOrganizer) redirect(303, '/login/not-organizer');
+		return locals.user;
+	};
+	return {
+		...(await original<typeof import('#lib/server/auth.ts')>()),
+		organizerAction: organizer,
+		organizerPage: organizer
+	};
+});
 
 type User = NonNullable<App.Locals['user']>;
 const as = (id: string, isOrganizer = false): User => ({
@@ -140,6 +149,9 @@ describe('player flag', () => {
 		expect(await status(flag(m1, as('p2'), '   '))).toBe(400);
 		expect(await status(flag(m1, as('p2'), 'x'.repeat(501)))).toBe(400);
 		expect(get(m1).flaggedBy).toBeNull();
+		expect((await outcome(flag(m1, as('p2'), 'x'.repeat(500)))).returned).toMatchObject({
+			message: expect.any(String)
+		});
 	});
 
 	it('flags a reported match once, and only for its players', async () => {
@@ -295,5 +307,45 @@ describe('groups', () => {
 		expect((await outcome(lock())).redirect).toBe('/seasons/s1/admin/groups');
 		expect(db.select().from(seasons).get()!.status).toBe('play');
 		expect(db.select().from(matches).all().length).toBe(3);
+	});
+});
+
+describe('organizer actions', () => {
+	const all = Object.entries({
+		admin: adminActions,
+		season: seasonActions,
+		groups: groupActions,
+		players: playerActions,
+		create: createActions
+	}).flatMap(([page, actions]) =>
+		Object.entries(actions).map(([name, action]) => [`${page}.${name}`, action!] as const)
+	);
+
+	it.each(all)('%s turns away a plain player and changes nothing', async (_, action) => {
+		const before = [
+			db.select().from(seasons).all(),
+			db.select().from(matches).all(),
+			db.select().from(entries).all()
+		];
+		const form = {
+			matchId: String(m1),
+			playerId: 'p2',
+			week: '2',
+			order: 'p1,p2,p3',
+			confirmSlug: 's1',
+			slug: 'x',
+			name: 'X',
+			group: '1',
+			...result,
+			dice: 'p1'
+		};
+		expect((await outcome(action(event({ slug: 's1' }, as('p1'), form)))).redirect).toBe(
+			'/login/not-organizer'
+		);
+		expect([
+			db.select().from(seasons).all(),
+			db.select().from(matches).all(),
+			db.select().from(entries).all()
+		]).toEqual(before);
 	});
 });

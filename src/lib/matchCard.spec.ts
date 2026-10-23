@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cardContext, matchCard, type CardMatch } from './matchCard';
+import { cardContext, matchCard, type CardMatch } from '#lib/matchCard.ts';
 
 const people = ['p1', 'p2', 'p3'].map((id, i) => ({
 	playerId: id,
