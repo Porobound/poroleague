@@ -15,7 +15,7 @@ SvelteKit (adapter-node) · TypeScript · SQLite via Drizzle (better-sqlite3) ·
 
 - `npm run dev` — dev server
 - `npm run check` — typecheck
-- `npx vitest run` — unit tests
+- `npx vitest run` — unit tests · `npm run test:coverage` — with coverage
 - `npm run db:generate` / `npm run db:migrate` — migrations
 
 ## Rules
@@ -24,6 +24,7 @@ SvelteKit (adapter-node) · TypeScript · SQLite via Drizzle (better-sqlite3) ·
 
 - League rules stay pure in `src/lib/league/`; routes and the future bot API call them, never reimplement.
 - Every result change writes an `audit` row.
+- Tests: `src/lib/server/test/setup.ts` mocks `$app/env/private` (in-memory DB, no webhooks) and wipes every table before each test; seed with `src/lib/server/test/seed.ts`. Without the mock, vitest reads the real `.env`.
 - Design from Claude Design HTML: extract tokens into `src/app.css` and components — don't paste raw HTML.
 - Import app code as `#lib/<path>.ts` (extension required); there is no `$lib`.
 - Env vars: declare in `src/env.ts`, import from `$app/env/private`.
