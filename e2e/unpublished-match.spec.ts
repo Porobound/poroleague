@@ -29,8 +29,12 @@ for (const [role, id] of [
 		test('unpublished match is a 404', async ({ page }) => {
 			const res = await page.goto(`/seasons/${slug}/matches/${unpublished}`);
 			expect(res?.status()).toBe(404);
-			await expect(page.getByRole('heading', { name: '404' })).toBeVisible();
-			await expect(page.getByText('Match not found')).toBeVisible();
+			await expect(page.getByRole('heading', { name: 'Match not found' })).toBeVisible();
+			await expect(page.getByText('Error 404')).toBeVisible();
+			await expect(page.getByRole('link', { name: 'Back to the season' })).toHaveAttribute(
+				'href',
+				`/seasons/${slug}`
+			);
 			await loggedIn(page);
 		});
 
@@ -44,3 +48,11 @@ for (const [role, id] of [
 		});
 	});
 }
+
+// A missing season can't link back to itself.
+test('missing season links to all seasons', async ({ page }) => {
+	const res = await page.goto('/seasons/no-such-season/schedule');
+	expect(res?.status()).toBe(404);
+	await expect(page.getByRole('heading', { name: 'Season not found' })).toBeVisible();
+	await expect(page.getByRole('link', { name: 'All seasons' })).toHaveAttribute('href', '/seasons');
+});
