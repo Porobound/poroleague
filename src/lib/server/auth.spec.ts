@@ -5,6 +5,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ORGANIZER_ROLE_ID } from '$app/env/private';
 import { handle } from '../../hooks.server.ts';
 import { GET as callback } from '../../routes/auth/callback/+server.ts';
+import { GET as loginGET } from '../../routes/auth/login/+server.ts';
+import { POST as logoutPOST } from '../../routes/auth/logout/+server.ts';
 import { currentRole, organizerPage } from '#lib/server/auth.ts';
 import { db } from '#lib/server/db/index.ts';
 import { players, sessions } from '#lib/server/db/schema.ts';
@@ -256,5 +258,51 @@ describe('OAuth callback', () => {
 		expect(validateSession(cookies.set_.get(SESSION_COOKIE)!.value)!.session.isOrganizer).toBe(
 			false
 		);
+	});
+});
+
+describe('login and logout', () => {
+	const start = (returnTo: string) => {
+		const cookies = cookieJar();
+		const url = new URL(`http://localhost/auth/login?returnTo=${encodeURIComponent(returnTo)}`);
+		return { cookies, go: redirectTo(() => loginGET({ url, cookies } as never)) };
+	};
+
+	it('login sets a short-lived state and a same-site returnTo, then goes to Discord', async () => {
+		const { cookies, go } = start('/seasons/s1?week=2');
+		const to = new URL(await go);
+		expect(to.origin).toBe('https://discord.com');
+		const state = cookies.set_.get('oauth_state')!;
+		expect(to.searchParams.get('state')).toBe(state.value);
+		expect(state.value.length).toBeGreaterThanOrEqual(20);
+		expect(state.opts).toMatchObject({ httpOnly: true, path: '/', sameSite: 'lax', maxAge: 600 });
+		expect(cookies.set_.get('return_to')).toMatchObject({
+			value: '/seasons/s1?week=2',
+			opts: { httpOnly: true }
+		});
+		expect(start('//evil.example').cookies.set_.get('return_to')?.value).toBe('/');
+	});
+
+	it('each login gets a fresh state', async () => {
+		const [a, b] = [start('/'), start('/')];
+		await Promise.all([a.go, b.go]);
+		expect(a.cookies.set_.get('oauth_state')!.value).not.toBe(
+			b.cookies.set_.get('oauth_state')!.value
+		);
+	});
+
+	it('logout deletes the session row and the cookie', async () => {
+		const ctx = login(true);
+		const cookies = cookieJar({ [SESSION_COOKIE]: 'tok' });
+		const to = await redirectTo(() => logoutPOST({ cookies, locals: ctx.locals } as never));
+		expect(to).toBe('/');
+		expect(db.select().from(sessions).all()).toEqual([]);
+		expect(cookies.deleted.get(SESSION_COOKIE)).toEqual({ path: '/' });
+	});
+
+	it('logout without a session still clears the cookie', async () => {
+		const cookies = cookieJar({ [SESSION_COOKIE]: 'stale' });
+		await redirectTo(() => logoutPOST({ cookies, locals: { user: null, session: null } } as never));
+		expect(cookies.deleted.get(SESSION_COOKIE)).toEqual({ path: '/' });
 	});
 });

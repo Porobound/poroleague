@@ -7,6 +7,7 @@ import { actions as seasonActions } from '../../routes/seasons/[slug]/admin/seas
 import { actions as groupActions } from '../../routes/seasons/[slug]/admin/groups/+page.server.ts';
 import { actions as playerActions } from '../../routes/seasons/[slug]/admin/players/+page.server.ts';
 import { actions as createActions } from '../../routes/admin/+page.server.ts';
+import { actions as seasonPageActions } from '../../routes/seasons/[slug]/+page.server.ts';
 import { db } from '#lib/server/db/index.ts';
 import { entries, matches, players, seasons } from '#lib/server/db/schema.ts';
 import { flagMatch, saveReport } from '#lib/server/matches.ts';
@@ -347,5 +348,77 @@ describe('organizer actions', () => {
 			db.select().from(matches).all(),
 			db.select().from(entries).all()
 		]).toEqual(before);
+	});
+});
+
+describe('player signup', () => {
+	const entered = (id: string) =>
+		db
+			.select()
+			.from(entries)
+			.all()
+			.filter((e) => e.playerId === id).length;
+	const join = (user: User | null, slug = 's1') => seasonPageActions.join!(event({ slug }, user));
+	const withdraw = (user: User | null, slug = 's1') =>
+		seasonPageActions.withdraw!(event({ slug }, user));
+
+	it('joins and withdraws during signup, safely twice', async () => {
+		setSeason({ status: 'signup' });
+		db.insert(players).values({ id: 'p4', displayName: 'p4' }).run();
+		await join(as('p4'));
+		await join(as('p4'));
+		expect(entered('p4')).toBe(1);
+		await withdraw(as('p4'));
+		expect((await outcome(withdraw(as('p4')))).returned).toMatchObject({
+			message: expect.any(String)
+		});
+		expect(entered('p4')).toBe(0);
+	});
+
+	it('is closed outside signup', async () => {
+		expect(await status(join(as('p4')))).toBe(409);
+		expect(await status(withdraw(as('p1')))).toBe(409);
+		expect(entered('p1')).toBe(1);
+	});
+
+	it('needs a login, and drafts stay hidden', async () => {
+		setSeason({ status: 'signup' });
+		expect((await outcome(join(null))).redirect).toMatch(/^\/auth\/login/);
+		seedSeason({ slug: 'd', status: 'draft' });
+		expect((await outcome(join(as('p1'), 'd'))).error).toBe(404);
+	});
+});
+
+describe('admin players', () => {
+	const run = (name: 'remove' | 'drop' | 'cancelDrop', playerId: string) =>
+		playerActions[name]!(event({ slug: 's1' }, ORG, { playerId }));
+	const dropped = (id: string) =>
+		db.select().from(entries).where(eq(entries.playerId, id)).get()?.dropped;
+
+	it('remove only while signup is open', async () => {
+		expect(await status(run('remove', 'p3'))).toBe(409);
+		setSeason({ status: 'signup' });
+		await run('remove', 'p3');
+		expect(seasonEntries(season.id).map((e) => e.playerId)).toEqual(['p1', 'p2']);
+	});
+
+	it('drop once, only entered players, only in play', async () => {
+		expect(await status(run('drop', 'org'))).toBe(409);
+		await run('drop', 'p3');
+		expect(dropped('p3')).toBe(true);
+		expect(await status(run('drop', 'p3'))).toBe(409);
+		setSeason({ status: 'finished' });
+		expect(await status(run('drop', 'p2'))).toBe(409);
+		expect(dropped('p2')).toBe(false);
+	});
+
+	it('cancelDrop only a dropped player, only in play', async () => {
+		expect(await status(run('cancelDrop', 'p3'))).toBe(409);
+		await run('drop', 'p3');
+		setSeason({ status: 'finished' });
+		expect(await status(run('cancelDrop', 'p3'))).toBe(409);
+		setSeason({ status: 'play' });
+		await run('cancelDrop', 'p3');
+		expect(dropped('p3')).toBe(false);
 	});
 });
