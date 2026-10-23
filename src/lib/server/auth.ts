@@ -27,6 +27,7 @@ export async function currentRole({ locals, url }: Ctx): Promise<boolean> {
 		console.error(e);
 		return null;
 	});
+	checkedAt.set(session.id, Date.now());
 	if (!result) return user.isOrganizer;
 	if (result.status === 'unauthorized') {
 		deleteSession(session.id);
@@ -37,7 +38,6 @@ export async function currentRole({ locals, url }: Ctx): Promise<boolean> {
 		setOrganizer(session.id, isOrganizer);
 		user.isOrganizer = isOrganizer;
 	}
-	checkedAt.set(session.id, Date.now());
 	return isOrganizer;
 }
 

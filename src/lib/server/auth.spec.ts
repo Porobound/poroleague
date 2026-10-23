@@ -40,15 +40,20 @@ const json = (body: unknown, status = 200) => Response.json(body, { status });
 function cookieJar(initial: Record<string, string> = {}) {
 	const jar = new Map(Object.entries(initial));
 	const set = new Map<string, { value: string; opts: Record<string, unknown> }>();
+	const deleted = new Map<string, Record<string, unknown>>();
 	return {
 		get: (k: string) => jar.get(k),
 		set: (k: string, value: string, opts: Record<string, unknown>) => {
 			jar.set(k, value);
 			set.set(k, { value, opts });
 		},
-		delete: (k: string) => void jar.delete(k),
+		delete: (k: string, opts: Record<string, unknown>) => {
+			jar.delete(k);
+			deleted.set(k, opts);
+		},
 		jar,
-		set_: set
+		set_: set,
+		deleted
 	};
 }
 
@@ -117,13 +122,22 @@ describe('currentRole', () => {
 		expect(fetch).toHaveBeenCalledTimes(2);
 	});
 
-	it('keeps the last known role when Discord rate-limits or fails', async () => {
-		vi.spyOn(console, 'error').mockImplementation(() => {});
-		discord({ member: json({}, 429) });
-		expect(await currentRole(login(true))).toBe(true);
-		discord({ member: () => json({}, 500) });
-		expect(await currentRole(login(false))).toBe(false);
-	});
+	it.each([429, 500])(
+		'keeps the last known role on a %i and waits a minute to retry',
+		async (code) => {
+			vi.useFakeTimers({ toFake: ['Date'] });
+			vi.spyOn(console, 'error').mockImplementation(() => {});
+			const fetch = discord({ member: () => json({}, code) });
+			const ctx = login(true);
+			expect(await currentRole(ctx)).toBe(true);
+			expect(await currentRole(ctx)).toBe(true);
+			expect(fetch).toHaveBeenCalledTimes(1);
+			expect(db.select().from(sessions).get()!.isOrganizer).toBe(true);
+			vi.advanceTimersByTime(61_000);
+			await currentRole(ctx);
+			expect(fetch).toHaveBeenCalledTimes(2);
+		}
+	);
 
 	it('demotes a revoked organizer and stores it on the session', async () => {
 		discord({ member: json(member([])) });
@@ -180,7 +194,7 @@ describe('hooks.server handle', () => {
 		const locals = run(cookies);
 		expect(locals.user).toBeNull();
 		expect(locals.session).toBeNull();
-		expect(cookies.jar.has(SESSION_COOKIE)).toBe(false);
+		expect(cookies.deleted.get(SESSION_COOKIE)).toEqual({ path: '/' });
 	});
 });
 
@@ -228,7 +242,8 @@ describe('OAuth callback', () => {
 		expect(expires - before).toBeLessThanOrEqual(SESSION_TTL_SECONDS * 1000 + 1000);
 		expect(expires - before).toBeGreaterThan(SESSION_TTL_SECONDS * 1000 - 1000);
 		expect(cookies.set_.get(SESSION_COOKIE)!.opts).toMatchObject({ httpOnly: true, path: '/' });
-		expect(cookies.jar.has('oauth_state')).toBe(false);
+		expect(cookies.deleted.get('oauth_state')).toEqual({ path: '/' });
+		expect(cookies.deleted.get('return_to')).toEqual({ path: '/' });
 	});
 
 	it('uses a shorter Discord token lifetime and never redirects off-site', async () => {

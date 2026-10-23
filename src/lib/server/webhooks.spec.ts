@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 // The shared setup turns every webhook off; these tests reload the module with them on.
 async function load(urls: Record<string, string>) {
@@ -15,8 +15,6 @@ async function load(urls: Record<string, string>) {
 }
 const flush = () => new Promise((r) => setTimeout(r));
 const embed = { title: '**@everyone**' } as never;
-
-afterEach(() => vi.doUnmock('$app/env/private'));
 
 describe('webhooks', () => {
 	it('send nothing when the channel is off', async () => {

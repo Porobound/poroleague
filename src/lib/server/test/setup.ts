@@ -17,7 +17,7 @@ vi.mock('$app/env/private', () => ({
 	WEBHOOK_PAIRINGS_URL: ''
 }));
 
-// beforeEach wipes every table: refuse to run against anything but the in-memory DB.
+// beforeEach wipes every table: stop before any write unless the mock gave us the in-memory DB.
 if (DATABASE_URL !== ':memory:') throw new Error(`Tests must use :memory:, got ${DATABASE_URL}`);
 migrate(db, { migrationsFolder: 'drizzle' });
 
