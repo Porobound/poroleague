@@ -19,7 +19,7 @@
 - **Organizers see the public pages as players do** (published only). The full schedule is on Admin → Matches, where unpublished rows show "Unpublished" and no result actions.
 - **Total weeks stay visible** ("Week 2 of 7", week tabs). The pairings are hidden, not the season's length.
 - **Not filtered:** standings, legends, career pages. They count reported matches only, and unpublished matches can't be reported.
-- **Existing seasons:** the migration sets `published_round` to their last round, so a running season stays fully visible.
+- **No backfill.** The site isn't in use yet, so every season starts at 0 (dropped after Task 2; Steps 3–4 there are superseded). Dev seasons get `published_round` set by hand.
 - **Future bot API (Plan 8)** must apply the same filter; the spec says so.
 
 ---
