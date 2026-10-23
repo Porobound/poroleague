@@ -175,10 +175,7 @@
 					{#if live?.ok}
 						<MatchCard {head} status="reported" {...card(live.values)} />
 					{/if}
-					<p>
-						You can't change it after saving. If something's off, you or {opponent} can flag it and an
-						organizer fixes it.
-					</p>
+					<p>Reports are final. If something's off, either of you can flag it.</p>
 				</ConfirmButton>
 				<a href="/seasons/{data.season.slug}" class="muted cancel">Cancel</a>
 			</div>
@@ -215,10 +212,7 @@
 					title="Flag this result?"
 					confirmLabel="Flag result"
 				>
-					<p>
-						{m.reportedBy === me ? 'Made a mistake? ' : ''}An organizer will review it and fix the
-						result if needed. After a flag, only organizers can change it.
-					</p>
+					<p>Only organizers can change the result after a flag.</p>
 					<label class="pb-field">
 						What's wrong?
 						<textarea
@@ -229,7 +223,6 @@
 							placeholder="e.g. It was 1-2, not 0-2."></textarea>
 					</label>
 				</ConfirmButton>
-				<span class="muted">Looks right? Nothing to do.</span>
 			</div>
 			{#if form && 'flagError' in form}<p class="pb-hint is-error">{form.flagError}</p>{/if}
 		{:else if data.mode === 'locked' && m.flagResolvedAt}

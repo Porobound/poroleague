@@ -16,7 +16,7 @@
 	{:else}
 		<span class="pb-badge">No season yet</span>
 		<h1>The herd is gathering.</h1>
-		<p>The first season hasn't been set up yet. It will be announced in the Porobound Discord.</p>
+		<p>The first season hasn't been set up yet. It'll be announced in the Porobound Discord.</p>
 	{/if}
 	{#if data.user?.isOrganizer}
 		<a class="pb-btn pb-btn-secondary" href="/admin">Go to admin</a>

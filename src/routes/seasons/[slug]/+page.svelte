@@ -46,8 +46,9 @@
 					<h1>Week {data.week} is up.</h1>
 					<p class="lede">
 						This week: {roundsText(data.rounds)}. Aim to play your matches by {day(data.weekEnds)}
-						and report each one here. Need more time? Agree a later date with your opponent. Only matches
-						still unplayed when the season ends count as a double loss.
+						and report them here.<span class="desk">
+							Only matches unplayed at the end of the season count as a double loss.</span
+						>
 					</p>
 				{:else}
 					<h1>All rounds are out.</h1>
@@ -62,26 +63,16 @@
 				<span class="pb-badge pb-badge-live">Signup open</span>
 				<h1>Join the herd for {season.name}.</h1>
 				<p class="lede">
-					Open to everyone in the Porobound Discord. Signup stays open until an organizer closes it.
-					Then we draw groups and play {season.roundsPerWeek} rounds a week, one Bo3 each, until the deadline.
+					Open to everyone in the Porobound Discord. One Bo3 per round, until the deadline.
 				</p>
 				<ul class="tiles">
 					<li>
 						<strong>Round-robin groups</strong>
-						<span>One group, or two random groups if about 16 or more sign up.</span>
+						<span>One group, or two if 16 or more sign up.</span>
 					</li>
 					<li>
-						<strong>Play on your schedule</strong>
-						<span
-							>{season.roundsPerWeek} rounds a week. Arrange each match with your opponent; each week
-							ends at 23:59{season.deadline ? ` ${tzName(season.deadline)}` : ''}.</span
-						>
-					</li>
-					<li>
-						<strong>Report it yourself</strong>
-						<span
-							>Either player reports. Something off? Either of you can flag it for an organizer.</span
-						>
+						<strong>{season.roundsPerWeek} rounds a week</strong>
+						<span>Deadlines are 23:59{season.deadline ? ` ${tzName(season.deadline)}` : ''}.</span>
 					</li>
 				</ul>
 			{:else}
@@ -96,9 +87,6 @@
 			<div class="panel deadline">
 				<span class="eyebrow">Season deadline</span>
 				<span class="deadline-date">{date(season.deadline)} · 23:59 {tzName(season.deadline)}</span>
-				{#if season.status !== 'finished'}
-					<span class="muted small">Anything unplayed by then is a double loss.</span>
-				{/if}
 			</div>
 		{/if}
 	</section>
@@ -119,7 +107,6 @@
 			{#if allDone}
 				<div class="empty">
 					<strong>All done for this week</strong>
-					<span>Your matches this week are reported.</span>
 					<a href="/seasons/{season.slug}/players/{user?.id}">See your results</a>
 				</div>
 			{:else if data.myWeek.length}
@@ -137,10 +124,7 @@
 						>You have a bye in round{data.myByes.length > 1 ? 's' : ''}
 						{data.myByes.join(' and ')}</strong
 					>
-					<span>
-						Your group has an odd number of players, so one player sits out each round. Byes aren't
-						matches: no points either way.
-					</span>
+					<span>No points either way.</span>
 					<a href="/seasons/{season.slug}/schedule">See the schedule</a>
 				</div>
 			{/if}
@@ -156,7 +140,6 @@
 		<section class="panel signup">
 			<span class="eyebrow">Signed up so far</span>
 			<span class="count">{data.entries.length}</span>
-			<span class="muted small">16 or more makes two groups</span>
 			{#if data.entries.length}
 				<div class="avatars">
 					{#each data.entries.slice(0, AVATARS) as e (e.playerId)}
@@ -178,7 +161,7 @@
 				{:else if data.signedUp}
 					<p>
 						<span class="pb-badge pb-badge-win">You're in</span> Signed up as
-						<strong>{user.displayName}</strong>. You can withdraw until signup closes.
+						<strong>{user.displayName}</strong>. You can withdraw until groups are drawn.
 					</p>
 					<ConfirmButton
 						action="?/withdraw"
@@ -187,10 +170,9 @@
 						title="Withdraw from {season.name}?"
 						confirmLabel="Withdraw"
 					>
-						You'll be taken off the signup list. You can sign up again while signup is open.
+						You can sign up again while signup is open.
 					</ConfirmButton>
 				{:else}
-					<p>You'll play as <strong>{user.displayName}</strong>, your nickname on the server.</p>
 					<form method="POST" action="?/join">
 						<button class="pb-btn pb-btn-primary">Sign up for {season.name}</button>
 					</form>
@@ -206,10 +188,7 @@
 		{#if fresh}
 			<p class="note">
 				<strong>No results yet.</strong>
-				<span class="muted"
-					>Everyone starts on 0 points, so players are listed alphabetically for now. The tables
-					sort themselves as soon as the first results are reported.</span
-				>
+				<span class="muted">Players are listed alphabetically for now.</span>
 			</p>
 		{/if}
 		<div class="groups">
@@ -242,21 +221,15 @@
 						/>
 						{#if g.dropped.length}
 							<p class="muted small">
-								Dropped: {g.dropped.map((e) => e.displayName).join(', ')}. Their matches are void
-								and left out of standings.
+								Dropped: {g.dropped.map((e) => e.displayName).join(', ')}. Their matches are void.
 							</p>
 						{/if}
 					</section>
 				{/each}
 			</div>
 		</div>
-		<p class="muted small">
-			Win 3 · Draw 1 · Loss 0. Ties break on points, then head-to-head, then game-win %, then an
-			organizer decision.
-		</p>
 		<p class="small">
-			{#if season.topCutSize}<span class="muted"
-					>Dashed line: top {season.topCutSize} per group (top cut comes later).</span
+			{#if season.topCutSize}<span class="muted">Top {season.topCutSize} go to the top cut.</span
 				>{/if}
 			<a href="/seasons/{season.slug}/audit">Audit log</a>
 		</p>
@@ -363,9 +336,6 @@
 		min-width: 240px;
 		padding: 16px 20px;
 	}
-	.deadline .small {
-		max-width: 240px;
-	}
 	.deadline-date {
 		font: 400 20px/24px var(--font-mono);
 		color: var(--signal);
@@ -393,8 +363,8 @@
 			padding: 12px 16px;
 			gap: 2px;
 		}
-		.deadline .small {
-			max-width: none;
+		.desk {
+			display: none;
 		}
 		.deadline-date {
 			font-size: 17px;
