@@ -98,8 +98,8 @@
 		<div class="panel stat">
 			{#if now}
 				<div class="stat-head">
-					<strong>{now.label}</strong>
-					<span class="muted small">{now.detail}</span>
+					<span class="stat-label">{now.label}</span>
+					<span class="muted small stat-detail">{now.detail}</span>
 				</div>
 			{/if}
 			<div class="segs" aria-hidden="true">
@@ -393,6 +393,12 @@
 			align-items: baseline;
 			gap: 12px;
 		}
+		.stat-label {
+			font: 600 14px/20px var(--font-sans);
+		}
+		.stat-detail {
+			text-align: right;
+		}
 		.segs {
 			display: grid;
 			grid-auto-flow: column;
@@ -421,6 +427,13 @@
 			min-height: 32px;
 			display: inline-flex;
 			align-items: center;
+			list-style: none;
+		}
+		.steps > summary::-webkit-details-marker {
+			display: none;
+		}
+		.steps[open] > summary {
+			margin-bottom: 4px;
 		}
 		.hero h1 {
 			font-size: 28px;
