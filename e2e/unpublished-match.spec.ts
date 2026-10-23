@@ -2,11 +2,13 @@ import { expect, test, type Page } from '@playwright/test';
 import { removeSeason, seedSeason } from './db.ts';
 import { ORGANIZER, SEASONS, as, player } from './fixtures.ts';
 
-const { slug, first } = SEASONS.visibility;
-const PUBLISHED = first; // round 1
-const UNPUBLISHED = first + 2; // round 2
+const slug = SEASONS.visibility;
+let published: number; // round 1
+let unpublished: number; // round 2
 
-test.beforeAll(() => seedSeason('visibility', { publishedRound: 1 }));
+test.beforeAll(() => {
+	[published, , unpublished] = seedSeason('visibility', { publishedRound: 1 });
+});
 test.afterAll(() => removeSeason('visibility'));
 
 for (const [role, id] of [
@@ -25,7 +27,7 @@ for (const [role, id] of [
 		};
 
 		test('unpublished match is a 404', async ({ page }) => {
-			const res = await page.goto(`/seasons/${slug}/matches/${UNPUBLISHED}`);
+			const res = await page.goto(`/seasons/${slug}/matches/${unpublished}`);
 			expect(res?.status()).toBe(404);
 			await expect(page.getByRole('heading', { name: '404' })).toBeVisible();
 			await expect(page.getByText('Match not found')).toBeVisible();
@@ -33,7 +35,7 @@ for (const [role, id] of [
 		});
 
 		test('published match opens', async ({ page }) => {
-			const res = await page.goto(`/seasons/${slug}/matches/${PUBLISHED}`);
+			const res = await page.goto(`/seasons/${slug}/matches/${published}`);
 			expect(res?.status()).toBe(200);
 			await expect(
 				page.getByRole('heading', { level: 1, name: /Visibility \d vs Visibility \d/ })

@@ -2,14 +2,17 @@ import { expect, test } from '@playwright/test';
 import { removeSeason, seedSeason } from './db.ts';
 import { ORGANIZER, SEASONS, as, player, playerName, posts } from './fixtures.ts';
 
-const { slug, first: match } = SEASONS.report; // round 1: Report 1 vs Report 2
+const slug = SEASONS.report;
+let match: number; // round 1: Report 1 vs Report 2
 const [p1, p2] = [playerName('report', 1), playerName('report', 2)];
 const titles = async (channel: 'results' | 'organizers') =>
 	(await posts(channel)).flatMap(
 		(b) => b.embeds?.map((e) => `${e.title} | ${e.description}`) ?? []
 	);
 
-test.beforeAll(() => seedSeason('report', { publishedRound: 3 }));
+test.beforeAll(() => {
+	[match] = seedSeason('report', { publishedRound: 3 });
+});
 test.afterAll(() => removeSeason('report'));
 
 test('report, flag, organizer fix', async ({ browser }) => {

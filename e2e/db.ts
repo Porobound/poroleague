@@ -25,9 +25,9 @@ function write(fn: (db: Db) => void) {
 
 // A player with a day-long session; log in with `as(id)`.
 function addPlayer(db: Db, id: string, name: string, organizer = false) {
-	db.prepare('insert into players (id, display_name) values (?, ?)').run(id, name);
+	db.prepare('insert or ignore into players (id, display_name) values (?, ?)').run(id, name);
 	db.prepare(
-		"insert into sessions (id, player_id, access_token, is_organizer, expires_at) values (?, ?, 'e2e', ?, ?)"
+		"insert or ignore into sessions (id, player_id, access_token, is_organizer, expires_at) values (?, ?, 'e2e', ?, ?)"
 	).run(
 		createHash('sha256').update(token(id)).digest('hex'),
 		id,
@@ -36,41 +36,48 @@ function addPlayer(db: Db, id: string, name: string, organizer = false) {
 	);
 }
 
-const addPlayers = (db: Db, key: SeasonKey) => {
-	for (let n = 1; n <= 4; n++) addPlayer(db, player(key, n), playerName(key, n));
+const addPlayers = (db: Db, key: SeasonKey, count: number) => {
+	for (let n = 1; n <= count; n++) addPlayer(db, player(key, n), playerName(key, n));
 };
 
 export const seedOrganizer = () => write((db) => addPlayer(db, ORGANIZER, 'Org', true));
 
-// The flow's four players, in no season.
-export const seedPlayers = (key: SeasonKey) => write((db) => addPlayers(db, key));
+// The flow's players, in no season.
+export const seedPlayers = (key: SeasonKey, count: number) =>
+	write((db) => addPlayers(db, key, count));
 
-// The flow's players in a season in play, one group, the full round robin scheduled.
-export const seedSeason = (key: SeasonKey, values: { publishedRound: number; deadline?: string }) =>
+// Four players in a season in play, one group, the full round robin scheduled. Returns the match
+// ids in schedule order: round 1: 1v2, 3v4 · round 2: 1v3, 2v4 · round 3: 1v4, 2v3.
+export function seedSeason(key: SeasonKey, values: { publishedRound: number; deadline?: string }) {
+	const ids: number[] = [];
 	write((db) => {
-		const { slug, first } = SEASONS[key];
-		addPlayers(db, key);
+		unlist(db, key);
+		addPlayers(db, key, 4);
 		const { id } = db
 			.prepare(
 				"insert into seasons (slug, name, status, published_round, deadline) values (?, ?, 'play', ?, ?) returning id"
 			)
-			.get(slug, `E2E ${key}`, values.publishedRound, values.deadline ?? null) as { id: number };
+			.get(SEASONS[key], `E2E ${key}`, values.publishedRound, values.deadline ?? null) as {
+			id: number;
+		};
 		for (let n = 1; n <= 4; n++)
 			db.prepare('insert into entries (season_id, player_id, group_no) values (?, ?, 1)').run(
 				id,
 				player(key, n)
 			);
-		ROUNDS.forEach(([round, a, b], i) =>
-			db
-				.prepare(
-					'insert into matches (id, season_id, group_no, round, p1_id, p2_id) values (?, ?, 1, ?, ?, ?)'
-				)
-				.run(first + i, id, round, player(key, a), player(key, b))
+		const add = db.prepare(
+			'insert into matches (season_id, group_no, round, p1_id, p2_id) values (?, 1, ?, ?, ?) returning id'
 		);
+		for (const [round, a, b] of ROUNDS)
+			ids.push((add.get(id, round, player(key, a), player(key, b)) as { id: number }).id);
 	});
+	return ids;
+}
 
-// Soft-deletes the flow's season, so the next flow can have a running season of its own.
-export const removeSeason = (key: SeasonKey) =>
-	write((db) =>
-		db.prepare('update seasons set deleted_at = unixepoch() where slug = ?').run(SEASONS[key].slug)
-	);
+// Soft-deletes the flow's season and frees its slug, as the site does, so the next flow can have a
+// running season of its own and a rerun after a failure can seed it again.
+const unlist = (db: Db, key: SeasonKey) =>
+	db
+		.prepare("update seasons set deleted_at = unixepoch(), slug = slug || '~' || id where slug = ?")
+		.run(SEASONS[key]);
+export const removeSeason = (key: SeasonKey) => write((db) => unlist(db, key));

@@ -7,12 +7,11 @@ export const PORT = 4317;
 export const HOOKS_PORT = 4318;
 export const ORGANIZER = 'org';
 
-// Each flow gets its own season and four players (`e2e/db.ts`), so flows never see each other's
-// writes. Players are `<key>-1`…`<key>-4`, named "<Key> 1"…; seeded matches get ids
-// `first`…`first + 5`: round 1: 1v2, 3v4 · round 2: 1v3, 2v4 · round 3: 1v4, 2v3.
+// Each flow gets its own season and players (`e2e/db.ts`), so flows never see each other's writes.
+// Players are `<key>-1`, `<key>-2`…, named "<Key> 1", "<Key> 2"….
 export const SEASONS = {
-	visibility: { slug: 'e2e-visibility', first: 1 },
-	report: { slug: 'e2e-report', first: 11 }
+	visibility: 'e2e-visibility',
+	report: 'e2e-report'
 };
 export type SeasonKey = keyof typeof SEASONS;
 

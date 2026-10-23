@@ -185,7 +185,7 @@ docs/                  spec, plans
 
 ## Browser tests
 
-`npm run test:e2e` runs the Playwright tests in `e2e/` in your installed Google Chrome (no browser download). It builds the app, migrates and seeds a throwaway database in the system temp dir (fixed data from `e2e/fixtures.ts`), serves it with `vite preview` on :4317, runs the tests and deletes the database. It never opens `local.db` and leaves `npm run dev` on :5173 alone, so it's safe to run while you develop.
+`npm run test:e2e` runs the Playwright tests in `e2e/` in your installed Google Chrome (no browser download). It builds the app, migrates and seeds a throwaway database in the system temp dir, serves it with `vite preview` on :4317, runs the tests and deletes the database. It never opens `local.db` and leaves `npm run dev` on :5173 alone, so it's safe to run while you develop.
 
 - Every env variable comes from `playwright.config.ts`, not `.env`. Discord is unreachable (dead proxy), so fake organizer sessions keep their role; the `ECONNREFUSED 127.0.0.1:9` lines in the output are that role check failing, as intended.
 - Webhooks post to a listener on :4318 (`e2e/global.ts`) instead of Discord. Tests read what was posted with `posts(channel)` from `e2e/fixtures.ts`.
