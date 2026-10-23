@@ -2,7 +2,7 @@
 
 League website for the Porobound community's Riftbound TCG league. Players log in with Discord, sign up for a season and report their own matches. Organizers run the season: groups, results, drops and tiebreaks.
 
-- **Rules:** draft in [PR #12](https://github.com/Porobound/poroleague/pull/12) (becomes `docs/rules.md`)
+- **Rules:** [`docs/rules.md`](docs/rules.md), shown on the site at `/rules`
 - **Spec:** [`docs/spec.md`](docs/spec.md)
 - **Implementation plans:** [`docs/superpowers/plans/`](docs/superpowers/plans/)
 - **Tracking:** [GitHub project](https://github.com/orgs/Porobound/projects/1) and milestones
@@ -22,10 +22,11 @@ League website for the Porobound community's Riftbound TCG league. Players log i
 | 9. Mobile sweep       | Done: phone layouts for every view, phone checker     |
 | 10. Weekly publishing | Done: players see a week once organizers publish it   |
 | 11. Design nits       | Done: copy cuts, compact phone season card            |
+| 12. Browser tests     | Done: Playwright for every flow, CSRF, phone layouts  |
 
 ## Stack
 
-SvelteKit 3 (adapter-node) · TypeScript · SQLite via Drizzle ORM (better-sqlite3) · Vitest. Login is hand-rolled Discord OAuth (`identify guilds.members.read`). Only members of one Discord server (`GUILD_ID`) can log in, and the organizer role comes from that server.
+SvelteKit 3 (adapter-node) · TypeScript · SQLite via Drizzle ORM (better-sqlite3) · Vitest · Playwright. Login is hand-rolled Discord OAuth (`identify guilds.members.read`). Only members of one Discord server (`GUILD_ID`) can log in, and the organizer role comes from that server.
 
 ## Local setup
 
@@ -179,7 +180,7 @@ scripts/               migrate.ts (container start), backup.sh (host cron), dev-
 Dockerfile             server image
 compose.yaml           host stack: app + cloudflared
 .github/workflows/     CI: lint, check, tests, e2e on PRs; image to GHCR from main and dev
-docs/                  spec, plans
+docs/                  spec, plans, rules (rendered at /rules)
 ```
 
 ## Browser tests
@@ -238,6 +239,12 @@ chown 1000:1000 data/poroleague.db
 docker compose start app
 ```
 
+## Updating the rules
+
+Edit [`docs/rules.md`](docs/rules.md) in a PR. The site renders it at `/rules` from the next deploy, up to the "Ideas for future seasons" heading. Everything from there on stays in the doc only.
+
+Each heading becomes a link target: `## 5. Reporting results` is `/rules#5-reporting-results`. The site links to `#4-points-and-standings` and `#5-reporting-results`, so when you rename or renumber those headings, update the links too. `npx vitest run` and `npm run test:e2e` fail if they break.
+
 ## Updating legends
 
 New Riftbound sets come out about every quarter. When one does, add its legends to `src/lib/legends.ts`:
@@ -255,6 +262,7 @@ sqlite3 data/poroleague.db "UPDATE matches SET p1_legend = 'Jinx (A)' WHERE p1_l
 ## Contributing
 
 - `main` is protected: open a PR, get one approval, squash or rebase merge.
-- CI runs `npm run lint`, `npm run check` and `npx vitest run` on every PR. Run `npm run format` before pushing.
+- CI runs `npm run lint`, `npm run check` and `npx vitest run` on every PR, and `npm run test:e2e` as a separate job. Run `npm run format` before pushing.
+- Every change comes with tests in the same PR: unit tests for logic and server code, browser tests (`e2e/`) for pages and flows. A bug fix gets a test that fails without the fix.
 - League rules live only in `src/lib/league/`, and routes call them. Every result change writes an audit row.
 - See [`CLAUDE.md`](CLAUDE.md) for code conventions (`#lib/…ts` imports, env vars, styling).
