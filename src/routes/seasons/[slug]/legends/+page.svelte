@@ -443,7 +443,7 @@
 		gap: 0;
 		padding: 0;
 	}
-	.lc-body .urec .pb-muted,
+	.lc-body .urec > .pb-muted,
 	.lc-body .mirror {
 		display: none;
 	}

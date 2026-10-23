@@ -170,6 +170,7 @@
 					label="Add result"
 					title="Save this result?"
 					confirmLabel="Save result"
+					disabled={!live?.ok}
 					confirmDisabled={!live?.ok}
 				>
 					{#if live?.ok}
