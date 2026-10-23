@@ -123,7 +123,7 @@
 									href={sortHref(c.key)}
 									title={'title' in c ? c.title : undefined}
 									data-on={c.key === data.sort}
-									data-sveltekit-noscroll
+									data-sveltekit-reset="false"
 									>{c.label}<span class="arrow" aria-hidden="true"
 										>{c.key === data.sort ? (data.dir === 'asc' ? '↑' : '↓') : ''}</span
 									></a
@@ -140,7 +140,7 @@
 									class="pb-disclosure"
 									href={toggleHref(r.key)}
 									aria-expanded={data.open === r.key}
-									data-sveltekit-noscroll
+									data-sveltekit-reset="false"
 								>
 									{@render chev()}{r.key}
 								</a>
@@ -169,7 +169,7 @@
 
 		<!-- Phones: one card per legend, sorted through a select. -->
 		<div class="cards-m">
-			<form method="GET" class="pb-field" data-sveltekit-noscroll>
+			<form method="GET" class="pb-field" data-sveltekit-reset="false">
 				<label for="sort">Sort by</label>
 				<select
 					id="sort"
@@ -191,7 +191,7 @@
 							class="lc"
 							href={toggleHref(r.key)}
 							aria-expanded={data.open === r.key}
-							data-sveltekit-noscroll
+							data-sveltekit-reset="false"
 						>
 							<span class="lc-head">
 								<span class="pb-disclosure">{@render chev()}{r.key}</span>
