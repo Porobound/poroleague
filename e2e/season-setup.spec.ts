@@ -44,6 +44,11 @@ test('season setup to first publish', async ({ browser }) => {
 		}
 		await p.close();
 	}
+	const playerHref = (n: number) => `/seasons/${slug}/players/${player('setup', n)}`;
+	await organizer.goto(`/seasons/${slug}/admin/players`);
+	await expect(
+		organizer.getByRole('link', { name: playerName('setup', 1), exact: true })
+	).toHaveAttribute('href', playerHref(1));
 
 	// Closing signup draws two groups of eight; the organizer moves Setup 1 to the other group.
 	await organizer.goto(`/seasons/${slug}/admin/season`);
@@ -60,6 +65,10 @@ test('season setup to first publish', async ({ browser }) => {
 	const to = (await move.textContent())!.trim().slice(-1);
 	await move.click();
 	await expect(row(1).getByRole('button')).toHaveText(`Move to ${to === 'A' ? 'B' : 'A'}`);
+	await expect(row(1).getByRole('link', { name: playerName('setup', 1) })).toHaveAttribute(
+		'href',
+		playerHref(1)
+	);
 
 	// Lock, then publish week 1 from the overview.
 	await confirm(organizer, 'Lock groups & generate schedule', 'Lock groups');

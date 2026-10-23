@@ -72,16 +72,16 @@
 							<td>
 								<div class="match">
 									<span class="names">
-										<span class="pb-player"
-											><Avatar name={a.name} src={a.avatar} size={20} /><span class="pb-player-name"
+										<a class="pb-pname" href={a.href}
+											><Avatar name={a.name} src={a.avatar} size={20} /><span class="pb-pname-text"
 												>{a.name}</span
-											></span
+											></a
 										>
-										<a class="muted" href="/seasons/{data.season.slug}/matches/{r.id}">vs</a>
-										<span class="pb-player"
-											><Avatar name={b.name} src={b.avatar} size={20} /><span class="pb-player-name"
+										<span class="muted">vs</span>
+										<a class="pb-pname" href={b.href}
+											><Avatar name={b.name} src={b.avatar} size={20} /><span class="pb-pname-text"
 												>{b.name}</span
-											></span
+											></a
 										>
 									</span>
 									{#if r.reported}<span class="muted small">{a.legend} · {b.legend}</span>{/if}
@@ -92,6 +92,10 @@
 							<td><span class={['pb-badge', badge(r)[0]]}>{badge(r)[1]}</span></td>
 							<td>
 								<div class="row-actions">
+									<a
+										class="pb-btn pb-btn-ghost pb-btn-sm"
+										href="/seasons/{data.season.slug}/matches/{r.id}">View match</a
+									>
 									{#if r.round > data.publishedRound}
 										<span class="muted small">Unpublished</span>
 									{:else if data.canEdit && r.status !== 'void'}
