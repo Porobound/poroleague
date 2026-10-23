@@ -14,6 +14,8 @@ type Change = Partial<Report> & {
 	roundsPerWeek?: number;
 	deadline?: string | null;
 	topCutSize?: number | null;
+	week?: number;
+	rounds?: [number, number];
 };
 const LABEL: Record<string, string> = {
 	report: 'Report',
@@ -24,7 +26,8 @@ const LABEL: Record<string, string> = {
 	undrop: 'Drop cancelled',
 	tiebreak: 'Tiebreak',
 	finalize: 'Finalize',
-	season: 'Season'
+	season: 'Season',
+	publish: 'Publish'
 };
 export const auditLabel = (action: string) => LABEL[action] ?? action;
 
@@ -75,7 +78,10 @@ export function auditLines(seasonId: number, limit?: number) {
 						: '',
 					after?.order ? `Order: ${after.order.map(name).join(', ')}` : '',
 					r.action === 'season' ? settings(before, after) : '',
-					r.action === 'finalize' ? 'Season finalized' : ''
+					r.action === 'finalize' ? 'Season finalized' : '',
+					r.action === 'publish' && after?.rounds
+						? `Week ${after.week} published · R${after.rounds[0]}${after.rounds[1] > after.rounds[0] ? `–${after.rounds[1]}` : ''}`
+						: ''
 				]
 					.filter(Boolean)
 					.join(' · ')

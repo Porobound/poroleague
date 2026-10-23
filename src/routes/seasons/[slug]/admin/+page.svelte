@@ -35,16 +35,18 @@
 		{#if data.pairings}
 			{@const p = data.pairings}
 			<ConfirmButton
-				action="?/postPairings"
+				action="?/publish"
 				variant="secondary"
-				label="Post week {p.week} pairings in Discord"
-				title="Post week {p.week} pairings in Discord?"
-				confirmLabel="Post pairings"
+				label="Publish week {p.week}"
+				title="Publish week {p.week} pairings?"
+				confirmLabel="Publish"
+				fields={{ week: String(p.week) }}
 			>
-				Posts the {p.count} pairings for {p.rounds[0] === p.rounds[1]
+				Players see the {p.count} pairings for {p.rounds[0] === p.rounds[1]
 					? `round ${p.rounds[0]}`
-					: `rounds ${p.rounds[0]}–${p.rounds[1]}`} in the pairings channel, with each player's Discord
-				name. Nobody is pinged. It can't be unsent from here.
+					: `rounds ${p.rounds[0]}–${p.rounds[1]}`} on the site{data.discord
+					? ", and they're posted in the pairings channel with each player's Discord name. Nobody is pinged"
+					: ''}. A published week can't be hidden again.
 			</ConfirmButton>
 		{/if}
 	</div>
@@ -54,6 +56,14 @@
 	{/if}
 
 	<PhaseBar phases={data.phases} />
+
+	{#if season.status === 'play'}
+		<p class="muted">
+			{data.publishedWeeks
+				? `Players see ${data.publishedWeeks === 1 ? 'week 1' : `weeks 1–${data.publishedWeeks}`} of ${data.weeks}.`
+				: 'No weeks published yet. Players see no pairings until you publish week 1.'}
+		</p>
+	{/if}
 
 	{#if NEXT[season.status]}
 		<p class="muted">

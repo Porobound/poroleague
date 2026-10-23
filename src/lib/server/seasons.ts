@@ -182,6 +182,18 @@ export function finalizeSeason(seasonId: number, actorId: string) {
 	});
 }
 
+export function publishWeek(
+	seasonId: number,
+	week: number,
+	rounds: [number, number],
+	actorId: string
+) {
+	db.transaction((tx) => {
+		tx.update(seasons).set({ publishedRound: rounds[1] }).where(eq(seasons.id, seasonId)).run();
+		tx.insert(audit).values({ seasonId, actorId, action: 'publish', after: { week, rounds } }).run();
+	});
+}
+
 export function setGroup(seasonId: number, playerId: string, group: number) {
 	db.update(entries)
 		.set({ group })
