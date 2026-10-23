@@ -43,7 +43,9 @@ type M = { id: number; p1_id: string; p2_id: string };
 const open = db
 	.prepare(
 		`select id, p1_id, p2_id from matches where season_id = ? and reported_by is null
-		 and p1_id like 'dev-%' and p2_id like 'dev-%' order by round, id`
+		 and p1_id like 'dev-%' and p2_id like 'dev-%'
+		 and round <= (select published_round from seasons where id = matches.season_id)
+		 order by round, id`
 	)
 	.all(season.id) as M[];
 

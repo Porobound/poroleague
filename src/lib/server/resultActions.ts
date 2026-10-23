@@ -35,6 +35,8 @@ export async function editResult(event: Event) {
 	if (season.status !== 'play')
 		return fail(409, { message: 'Results can only change while the season is in play.' });
 	if (isVoided(match)) return fail(409, { message: 'A player dropped, so this match is void.' });
+	if (match.round > season.publishedRound)
+		return fail(409, { message: 'Publish this week before entering results.' });
 	const parsed = parseReport(form, match.p1Id, match.p2Id);
 	if (!parsed.ok) return fail(400, { message: Object.values(parsed.errors).join(' ') });
 	const resolves = !!match.flaggedBy && !match.flagResolvedAt;

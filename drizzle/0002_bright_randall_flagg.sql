@@ -1,0 +1,1 @@
+ALTER TABLE `seasons` ADD `published_round` integer DEFAULT 0 NOT NULL;

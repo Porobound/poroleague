@@ -1,5 +1,6 @@
 import { error } from '@sveltejs/kit';
 import { legendMatches, playerLegends } from '#lib/league/legendStats.ts';
+import { published } from '#lib/league/publish.ts';
 import { weekOf } from '#lib/league/time.ts';
 import { cardContext, matchCard } from '#lib/matchCard.ts';
 import { playerMatches } from '#lib/server/matches.ts';
@@ -17,7 +18,7 @@ export const load: PageServerLoad = ({ params, locals }) => {
 	const list = seasonEntries(season.id);
 	const player = list.find((e) => e.playerId === params.id) ?? error(404, 'Player not found');
 	const ctx = cardContext(season, list, locals.user?.id ?? null);
-	const ms = playerMatches(season.id, player.playerId);
+	const ms = published(playerMatches(season.id, player.playerId), season.publishedRound);
 	const cards = ms.map((m) => ({
 		week: weekOf(m.round, season.roundsPerWeek),
 		card: matchCard(m, ctx)

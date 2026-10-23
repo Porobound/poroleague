@@ -31,6 +31,7 @@ export const seasons = sqliteTable('seasons', {
 		.default('draft'),
 	startDate: text('start_date'), // ISO date
 	roundsPerWeek: integer('rounds_per_week').notNull().default(2),
+	publishedRound: integer('published_round').notNull().default(0), // players see rounds up to this
 	deadline: text('deadline'), // ISO date
 	topCutSize: integer('top_cut_size'),
 	createdAt: createdAt(),

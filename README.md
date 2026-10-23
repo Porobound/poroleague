@@ -9,17 +9,18 @@ League website for the Porobound community's Riftbound TCG league. Players log i
 
 ## Status
 
-| Plan                 | State                                                 |
-| -------------------- | ----------------------------------------------------- |
-| 1. Foundation        | Done: schema, round robin, groups, standings (tested) |
-| 2. Shell & auth      | Done: app shell, Discord login, sessions              |
-| 3. Season & signup   | Done: create season, signup, group draw, schedule     |
-| 4. Reporting         | Done: report, flag, audit rows, Discord posts         |
-| 5. Standings & pages | Done: standings, schedule, legends, player pages      |
-| 6. Admin             | Done: overview, players, groups, results, finalize    |
-| 7. Deploy            | Done: Docker image, compose + cloudflared, backups    |
-| 8. Bot API           | Later: when a Discord bot is being built (#8)         |
-| 9. Mobile sweep      | Done: phone layouts for every view, phone checker     |
+| Plan                  | State                                                 |
+| --------------------- | ----------------------------------------------------- |
+| 1. Foundation         | Done: schema, round robin, groups, standings (tested) |
+| 2. Shell & auth       | Done: app shell, Discord login, sessions              |
+| 3. Season & signup    | Done: create season, signup, group draw, schedule     |
+| 4. Reporting          | Done: report, flag, audit rows, Discord posts         |
+| 5. Standings & pages  | Done: standings, schedule, legends, player pages      |
+| 6. Admin              | Done: overview, players, groups, results, finalize    |
+| 7. Deploy             | Done: Docker image, compose + cloudflared, backups    |
+| 8. Bot API            | Later: when a Discord bot is being built (#8)         |
+| 9. Mobile sweep       | Done: phone layouts for every view, phone checker     |
+| 10. Weekly publishing | Done: players see a week once organizers publish it   |
 
 ## Stack
 

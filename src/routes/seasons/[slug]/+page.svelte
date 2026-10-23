@@ -18,7 +18,7 @@
 	const fresh = $derived(data.groups.every((g) => g.rows.every((r) => !r.played)));
 	// Every match of this week is reported; flagged, void or overdue ones keep the cards showing.
 	const allDone = $derived(
-		data.myWeek.length > 0 && data.myWeek.every((c) => c.status === 'reported')
+		!data.pending && data.myWeek.length > 0 && data.myWeek.every((c) => c.status === 'reported')
 	);
 </script>
 
@@ -36,7 +36,7 @@
 					<p class="lede">Organizers are entering the last results and breaking any ties.</p>
 				{:else if data.week < 1}
 					<h1>Starts {date(season.startDate)}.</h1>
-					<p class="lede">The schedule is out. Week 1 opens on the start date.</p>
+					<p class="lede">Pairings come out week by week. Week 1 opens on the start date.</p>
 				{:else if data.rounds && data.weekEnds}
 					<h1>Week {data.week} is up.</h1>
 					<p class="lede">
@@ -121,6 +121,8 @@
 				<div class="cards">
 					{#each data.myWeek as c (c.id)}<MatchCard {...c.props} />{/each}
 				</div>
+			{:else if data.pending}
+				<p class="empty">This week's pairings aren't out yet. Watch the pairings channel.</p>
 			{:else if !data.myByes.length}
 				<p class="empty">No matches for you this week.</p>
 			{/if}

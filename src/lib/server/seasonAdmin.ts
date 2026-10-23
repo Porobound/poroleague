@@ -1,5 +1,6 @@
 import { droppedIds, isVoid } from '#lib/league/status.ts';
-import { currentWeek, reportingClosed, roundsOfWeek } from '#lib/league/time.ts';
+import { nextPublish } from '#lib/league/publish.ts';
+import { reportingClosed } from '#lib/league/time.ts';
 import { seasonMatches } from '#lib/server/matches.ts';
 import { groupStandings, seasonEntries, type Season } from '#lib/server/seasons.ts';
 
@@ -12,13 +13,18 @@ export const seasonData = (seasonId: number) => {
 };
 export type SeasonData = ReturnType<typeof seasonData>;
 
-// This week's non-void matches by round (week 1 before the start date); null once reporting closed.
-export function weekPairings(season: Season, { all, live }: SeasonData, now = new Date()) {
+// The next week to publish and its non-void matches by round; null once everything is out or
+// reporting closed.
+export function nextPairings(season: Season, { all, live }: SeasonData, now = new Date()) {
 	if (reportingClosed(season.deadline, now)) return null;
-	const week = Math.max(1, currentWeek(season.startDate, now));
-	const rounds = roundsOfWeek(week, season.roundsPerWeek, Math.max(0, ...all.map((m) => m.round)));
-	if (!rounds) return null;
-	const byRound = Array.from({ length: rounds[1] - rounds[0] + 1 }, (_, i) => rounds[0] + i)
+	const next = nextPublish(
+		season.publishedRound,
+		season.roundsPerWeek,
+		Math.max(0, ...all.map((m) => m.round))
+	);
+	if (!next) return null;
+	const [first, last] = next.rounds;
+	const byRound = Array.from({ length: last - first + 1 }, (_, i) => first + i)
 		.map((round) => ({
 			round,
 			pairs: live
@@ -26,8 +32,7 @@ export function weekPairings(season: Season, { all, live }: SeasonData, now = ne
 				.map((m) => ({ group: m.group, p1Id: m.p1Id, p2Id: m.p2Id }))
 		}))
 		.filter((r) => r.pairs.length);
-	if (!byRound.length) return null;
-	return { week, rounds, byRound, count: byRound.reduce((n, r) => n + r.pairs.length, 0) };
+	return { ...next, byRound, count: byRound.reduce((n, r) => n + r.pairs.length, 0) };
 }
 
 // End of season opens at the deadline, or earlier once every live match is reported.

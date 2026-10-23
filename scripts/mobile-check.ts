@@ -38,7 +38,8 @@ const me = get<{ id: string }>(
 )!;
 const match = (where: string) =>
 	get<{ id: number }>(
-		`select id from matches where season_id = ? and (p1_id = ? or p2_id = ?) and ${where} order by round`,
+		`select id from matches where season_id = ? and (p1_id = ? or p2_id = ?) and ${where}
+		 and round <= (select published_round from seasons where id = matches.season_id) order by round`,
 		play.id,
 		me.id,
 		me.id

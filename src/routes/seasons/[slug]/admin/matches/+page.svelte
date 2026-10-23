@@ -89,7 +89,9 @@
 							<td><span class={['pb-badge', badge(r)[0]]}>{badge(r)[1]}</span></td>
 							<td>
 								<div class="row-actions">
-									{#if data.canEdit && r.status !== 'void'}
+									{#if r.round > data.publishedRound}
+										<span class="muted small">Unpublished</span>
+									{:else if data.canEdit && r.status !== 'void'}
 										<ResultActions row={r} query="status={data.filter}" />
 									{/if}
 								</div>
