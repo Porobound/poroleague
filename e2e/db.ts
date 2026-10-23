@@ -46,6 +46,17 @@ export const seedOrganizer = () => write((db) => addPlayer(db, ORGANIZER, 'Org',
 export const seedPlayers = (key: SeasonKey, count: number) =>
 	write((db) => addPlayers(db, key, count));
 
+// A season with no players or matches, e.g. in signup or still a draft.
+export const seedEmptySeason = (key: SeasonKey, status: 'draft' | 'signup') =>
+	write((db) => {
+		unlist(db, key);
+		db.prepare('insert into seasons (slug, name, status) values (?, ?, ?)').run(
+			SEASONS[key],
+			`E2E ${key}`,
+			status
+		);
+	});
+
 // Signs up players `from`…`to` of the flow to its season, as if they joined through the site.
 export const seedEntries = (key: SeasonKey, from: number, to: number) =>
 	write((db) => {
