@@ -23,6 +23,19 @@ jobs:
       - run: npm run check
       - run: npx vitest run
 
+  e2e:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      # Uses the runner's Google Chrome, no browser download.
+      - run: npm run test:e2e
+
   image:
     needs: test
     if: github.event_name != 'pull_request'
