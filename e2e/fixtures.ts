@@ -14,7 +14,10 @@ export const SEASONS = {
 	report: 'e2e-report',
 	setup: 'e2e-setup',
 	finalize: 'e2e-finalize',
-	csrf: 'e2e-csrf'
+	csrf: 'e2e-csrf',
+	mobile: 'e2e-mobile',
+	mobileSignup: 'e2e-mobile-signup',
+	mobileDraft: 'e2e-mobile-draft'
 };
 export type SeasonKey = keyof typeof SEASONS;
 
