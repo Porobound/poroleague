@@ -2,8 +2,7 @@
 // memory. GET / returns them all. The returned function is the global teardown.
 import { createServer } from 'node:http';
 import { rmSync } from 'node:fs';
-import { DB } from '../playwright.config.ts';
-import { HOOKS_PORT, type Post } from './fixtures.ts';
+import { DB, HOOKS_PORT, type Post } from './fixtures.ts';
 
 export default async function () {
 	const posts: Post[] = [];

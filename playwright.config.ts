@@ -1,9 +1,6 @@
 import { defineConfig } from '@playwright/test';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { HOOKS_PORT, PORT } from './e2e/fixtures.ts';
+import { DB, HOOKS_PORT, PORT } from './e2e/fixtures.ts';
 
-export const DB = join(tmpdir(), 'poroleague-e2e.db');
 const hook = (channel: string) => `http://localhost:${HOOKS_PORT}/${channel}`;
 
 export default defineConfig({

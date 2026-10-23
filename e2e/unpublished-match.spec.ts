@@ -1,9 +1,13 @@
 import { expect, test, type Page } from '@playwright/test';
+import { removeSeason, seedSeason } from './db.ts';
 import { ORGANIZER, SEASONS, as, player } from './fixtures.ts';
 
 const { slug, first } = SEASONS.visibility;
 const PUBLISHED = first; // round 1
 const UNPUBLISHED = first + 2; // round 2
+
+test.beforeAll(() => seedSeason('visibility', { publishedRound: 1 }));
+test.afterAll(() => removeSeason('visibility'));
 
 for (const [role, id] of [
 	['player', player('visibility', 1)],
