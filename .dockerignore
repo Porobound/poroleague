@@ -7,6 +7,8 @@ node_modules
 data
 backups
 docs
+# Rendered at /rules; inlined at build time.
+!docs/rules.md
 *.db
 *.db-journal
 .env

@@ -36,9 +36,9 @@ jobs:
       # Uses the runner's Google Chrome, no browser download.
       - run: npm run test:e2e
 
+  # PRs build the image too (without pushing), so a broken Docker build fails before merge.
   image:
     needs: test
-    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -46,6 +46,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: docker/login-action@v3
+        if: github.event_name != 'pull_request'
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -53,7 +54,7 @@ jobs:
       - uses: docker/build-push-action@v6
         with:
           context: .
-          push: true
+          push: ${{ github.event_name != 'pull_request' }}
           tags: |
             ghcr.io/porobound/poroleague:${{ github.ref_name == 'main' && 'latest' || 'dev' }}
             ghcr.io/porobound/poroleague:${{ github.sha }}
