@@ -73,8 +73,13 @@
 					<ul class="player-list">
 						{#each group as e (e.playerId)}
 							<li>
-								<Avatar name={e.displayName} src={e.avatar} />
-								<span class="grow">{e.displayName}</span>
+								<span class="grow"
+									><a class="pb-pname" href="/seasons/{data.season.slug}/players/{e.playerId}"
+										><Avatar name={e.displayName} src={e.avatar} /><span class="pb-pname-text"
+											>{e.displayName}</span
+										></a
+									></span
+								>
 								{#if status === 'groups' && data.groups.length === 2}
 									<form method="POST" action="?/move">
 										<input type="hidden" name="playerId" value={e.playerId} />

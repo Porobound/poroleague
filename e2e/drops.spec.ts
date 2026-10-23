@@ -44,7 +44,21 @@ const record = async (page: Page, n: number) => {
 test('match filters, drop and cancel drop', async ({ page, browser }) => {
 	const before = { All: 6, 'Unplayed & overdue': 4, Reported: 1, Flagged: 1, Resolved: 0, Void: 0 };
 	expect(await filtered(page)).toEqual(before);
+
+	// Names link to the player's page, and each row to its match.
+	await page.goto(`/seasons/${slug}/admin/matches?status=flagged`);
+	const flaggedRow = page.getByRole('rowgroup').nth(1).getByRole('row');
+	await expect(flaggedRow.getByRole('link', { name: name(4) })).toHaveAttribute(
+		'href',
+		`/seasons/${slug}/players/${player('drops', 4)}`
+	);
+	await flaggedRow.getByRole('link', { name: 'View match' }).click();
+	await expect(page).toHaveURL(`/seasons/${slug}/matches/${flagged}`);
 	await expect(await record(page, 3)).toHaveText('1–0–0');
+	await expect(page.getByRole('link', { name: name(3), exact: true })).toHaveAttribute(
+		'href',
+		`/seasons/${slug}/players/${player('drops', 3)}`
+	);
 
 	// Dropping 4 voids their three matches, 3's flagged win over them included.
 	const row4 = page.getByRole('row').filter({ hasText: name(4) });

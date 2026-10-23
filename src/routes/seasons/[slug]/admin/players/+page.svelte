@@ -49,10 +49,10 @@
 					{#each data.entries as e (e.playerId)}
 						<tr class={[e.dropped && 'is-dropped']}>
 							<td class="pb-player-cell">
-								<span class="pb-player">
+								<a class="pb-pname" href="/seasons/{data.season.slug}/players/{e.playerId}">
 									<Avatar name={e.displayName} src={e.avatar} size={24} />
-									<span class="pb-player-name">{e.displayName}</span>
-								</span>
+									<span class="pb-pname-text">{e.displayName}</span>
+								</a>
 							</td>
 							<td class="nowrap">{e.group ? groupName(e.group) : ''}</td>
 							<td class="pb-num pb-opt">{e.record?.played ?? '—'}</td>
@@ -98,8 +98,13 @@
 		<ul class="player-list">
 			{#each data.entries as e (e.playerId)}
 				<li>
-					<Avatar name={e.displayName} src={e.avatar} />
-					<span class="grow">{e.displayName}</span>
+					<span class="grow"
+						><a class="pb-pname" href="/seasons/{data.season.slug}/players/{e.playerId}"
+							><Avatar name={e.displayName} src={e.avatar} /><span class="pb-pname-text"
+								>{e.displayName}</span
+							></a
+						></span
+					>
 					{#if status === 'signup'}
 						<ConfirmButton
 							action="?/remove"
