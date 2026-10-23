@@ -23,12 +23,29 @@ test('report, flag, organizer fix', async ({ browser }) => {
 	const reporter = await browser.newPage(as(player('report', 1)));
 	await reporter.goto(`/seasons/${slug}/matches/${match}`);
 	const games = reporter.getByRole('group', { name: 'Games won' });
+	const add = reporter.getByRole('button', { name: 'Add result' });
+	await expect(add).toBeDisabled();
+	// 0, 1 and 2 sit on one row, apart.
+	const boxes = await Promise.all(
+		['0', '1', '2'].map(
+			async (n) => (await games.nth(0).getByText(n, { exact: true }).boundingBox())!
+		)
+	);
+	expect(new Set(boxes.map((b) => Math.round(b.y))).size).toBe(1);
+	expect(boxes[0].x + boxes[0].width).toBeLessThan(boxes[1].x);
+	const scoreError = reporter
+		.getByRole('alert')
+		.filter({ hasText: "That isn't a possible Bo3 result" });
 	await games.nth(0).getByLabel('2').check();
-	await games.nth(1).getByLabel('1').check();
+	await expect(scoreError).toHaveCount(0); // waits for the other side
+	await games.nth(1).getByLabel('2').check();
+	await expect(scoreError).toBeVisible();
 	await reporter.getByLabel('Legend').nth(0).selectOption('Ahri');
 	await reporter.getByLabel('Legend').nth(1).selectOption('Annie');
 	await reporter.getByRole('group', { name: 'Who won the dice roll?' }).getByLabel(p2).check();
-	await reporter.getByRole('button', { name: 'Add result' }).click();
+	await expect(add).toBeDisabled(); // 2–2 isn't a Bo3 score
+	await games.nth(1).getByLabel('1').check();
+	await add.click();
 	await reporter.getByRole('dialog').getByRole('button', { name: 'Save result' }).click();
 	await expect(reporter.getByRole('status')).toContainText('Result saved');
 	await expect(reporter.getByRole('article')).toHaveText(card(2, 1), { useInnerText: true });
@@ -70,6 +87,10 @@ test('report, flag, organizer fix', async ({ browser }) => {
 	await reporter.reload();
 	await expect(reporter.getByText('Flag resolved by an organizer · final')).toBeVisible();
 	await expect(reporter.getByRole('article')).toHaveText(card(1, 2), { useInnerText: true });
+
+	// Match lists mark the resolved flag on that match only.
+	await reporter.goto(`/seasons/${slug}/schedule`);
+	await expect(reporter.getByRole('img', { name: 'Flag resolved by an organizer' })).toHaveCount(1);
 
 	// Every change is in the public audit log, newest first.
 	await reporter.goto(`/seasons/${slug}/audit`);

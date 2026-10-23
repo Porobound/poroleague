@@ -56,3 +56,18 @@ test('sort and expand keep the scroll position', async ({ page }) => {
 	await expect(page).toHaveURL(`${url}?sort=legend&dir=desc`);
 	await expect(page.getByRole('list', { name: 'Players who used Jinx' })).toHaveCount(0);
 });
+
+// Regression: hiding the picks count on phone cards also hid zeros in W–D–L.
+test('phone cards show every W–D–L number', async ({ page }) => {
+	await page.setViewportSize({ width: 390, height: 844 });
+	await page.goto(`${url}?legend=Jinx`);
+	await expect(
+		page.getByRole('list', { name: 'Players who used Jinx' }).getByRole('listitem')
+	).toHaveText(
+		[
+			new RegExp(`${playerName('legends', 1)}\\s*1–0–1`),
+			new RegExp(`${playerName('legends', 3)}\\s*1–0–0`)
+		],
+		{ useInnerText: true }
+	);
+});

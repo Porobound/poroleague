@@ -54,6 +54,13 @@ describe('matchCard status', () => {
 		expect(status({ round: 5 })).toBe('scheduled');
 	});
 
+	it('marks a resolved flag', () => {
+		const resolved = (m: Partial<CardMatch>) => matchCard(match(m), ctx()).props.resolved;
+		expect(resolved({ ...reported, flaggedBy: 'p2', flagResolvedAt: NOW })).toBe(true);
+		expect(resolved({ ...reported, flaggedBy: 'p2' })).toBe(false);
+		expect(resolved(reported)).toBe(false);
+	});
+
 	it('is never overdue outside play or after the deadline', () => {
 		const status = (s: typeof season) => matchCard(match({ round: 1 }), ctx(null, s)).status;
 		expect(status({ ...season, status: 'finished' })).toBe('scheduled');

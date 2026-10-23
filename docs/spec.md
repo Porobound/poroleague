@@ -18,7 +18,7 @@ Top cut (top X per group, cross-seeded A1 vs B4 …, single elim, Bo3, online, s
 
 ## Matches & scoring
 
-- Bo3. Result = game score: 2-0, 2-1, 1-1 (and mirrors). 1-1 = draw (time / unfinished).
+- Bo3. Result = game score: 2-0, 2-1, 1-0, 1-1 (and mirrors). 1-1 = draw (time / unfinished). 1-0 = win (time ran out or called early).
 - Also recorded: each player's legend (chosen per match, pre-filled with player's last-used legend), dice-roll winner (per match).
 - Points: win 3, draw 1, loss 0.
 - Tiebreakers: points → head-to-head (mini-league among tied players) → game-win % → organizer decision (manual `tiebreak` rank).

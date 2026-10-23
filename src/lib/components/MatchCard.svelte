@@ -16,6 +16,7 @@
 		note = '',
 		link,
 		flag = null,
+		resolved = false,
 		mine = false
 	}: {
 		head: string;
@@ -25,6 +26,7 @@
 		note?: string;
 		link?: { href: string; label: string };
 		flag?: { by: string; reason: string } | null;
+		resolved?: boolean;
 		mine?: boolean;
 	} = $props();
 
@@ -45,7 +47,22 @@
 <article class={['pb-match', `pb-match-${status}`, mine && 'pb-match-mine']}>
 	<div class="pb-match-head">
 		<span>{head}</span>
-		<span class={['pb-badge', BADGE[status][0]]}>{BADGE[status][1]}</span>
+		<span class="status">
+			{#if resolved}
+				<svg class="resolved" width="14" height="14" viewBox="0 0 14 14" role="img">
+					<title>Flag resolved by an organizer</title>
+					<path
+						d="M3 12.5V1.5M3 2h7.5l-1.8 2.75L10.5 7.5H3"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="1.5"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					/>
+				</svg>
+			{/if}
+			<span class={['pb-badge', BADGE[status][0]]}>{BADGE[status][1]}</span>
+		</span>
 	</div>
 	{#each sides as s, i (i)}
 		<div class={['pb-match-p', winner === i && 'is-winner']}>
@@ -89,3 +106,14 @@
 		</div>
 	{/if}
 </article>
+
+<style>
+	.status {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+	}
+	.resolved {
+		color: var(--ink-muted);
+	}
+</style>

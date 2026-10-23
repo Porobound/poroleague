@@ -2,10 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { isValidScore, matchPoints } from './score';
 
 describe('isValidScore', () => {
-	it('accepts Bo3 results and draws', () => {
+	it('accepts Bo3 results, matches called at 1-0, and draws', () => {
 		for (const [a, b] of [
 			[2, 0],
 			[2, 1],
+			[1, 0],
+			[0, 1],
 			[1, 1],
 			[0, 2],
 			[1, 2]
@@ -18,7 +20,6 @@ describe('isValidScore', () => {
 			[2, 2],
 			[3, 0],
 			[0, 0],
-			[1, 0],
 			[-1, 2]
 		]) {
 			expect(isValidScore(a, b)).toBe(false);

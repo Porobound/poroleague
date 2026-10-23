@@ -63,6 +63,12 @@
 		void changes;
 		return reportForm ? parseReport(new FormData(reportForm), m.p1Id, m.p2Id) : null;
 	});
+	// Wait for both sides' games before calling the score wrong.
+	const scoreError = $derived.by(() => {
+		void changes;
+		const f = reportForm && new FormData(reportForm);
+		return f?.has('p1Games') && f.has('p2Games') && live && !live.ok ? live.errors.score : '';
+	});
 </script>
 
 <svelte:head>
@@ -142,10 +148,8 @@
 					</div>
 				{/each}
 			</div>
-			{#if errors.score || (changes && live && !live.ok && live.errors.score)}
-				<p class="pb-hint is-error" role="alert">
-					{errors.score || (changes && live && !live.ok && live.errors.score)}
-				</p>
+			{#if errors.score || scoreError}
+				<p class="pb-hint is-error" role="alert">{errors.score || scoreError}</p>
 			{/if}
 
 			<fieldset class="opts">
@@ -170,6 +174,7 @@
 					label="Add result"
 					title="Save this result?"
 					confirmLabel="Save result"
+					disabled={!live?.ok}
 					confirmDisabled={!live?.ok}
 				>
 					{#if live?.ok}
@@ -268,6 +273,16 @@
 		padding: 20px;
 		background: var(--surface);
 	}
+	.side .opts {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
+	.side .opts legend {
+		grid-column: 1 / -1;
+	}
+	.side .opt {
+		min-width: 0;
+	}
 	.who-row {
 		display: flex;
 		align-items: center;
@@ -300,13 +315,6 @@
 		}
 		.side {
 			padding: 16px;
-		}
-		.side .opts {
-			display: grid;
-			grid-template-columns: repeat(3, minmax(0, 1fr));
-		}
-		.side .opts legend {
-			grid-column: 1 / -1;
 		}
 		.report > .opts {
 			display: grid;
