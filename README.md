@@ -150,6 +150,7 @@ Declare new variables in `src/env.ts` and add them to `.env.example`.
 | `npm run dev`                                | Dev server on :5173                                    |
 | `npm run check`                              | Type-check (svelte-check)                              |
 | `npx vitest run`                             | Unit tests                                             |
+| `npm run test:e2e`                           | Browser tests against a throwaway database             |
 | `npm run build` / `npm run preview`          | Production build / serve it locally                    |
 | `npm run lint` / `npm run format`            | Prettier check / fix                                   |
 | `npm run db:generate` / `npm run db:migrate` | Create a migration from `schema.ts` / apply migrations |
@@ -174,12 +175,22 @@ src/
   routes/              pages and endpoints (auth/ = OAuth, login/ = refusal pages, admin/, seasons/, players/ = career)
   hooks.server.ts      session cookie → locals.user
 drizzle/               SQL migrations (commit these)
+e2e/                   Playwright browser tests, seed and fixtures
 scripts/               migrate.ts (container start), backup.sh (host cron), dev-only data helpers
 Dockerfile             server image
 compose.yaml           host stack: app + cloudflared
-.github/workflows/     CI: lint, check, tests; image to GHCR from main and dev
+.github/workflows/     CI: lint, check, tests, e2e on PRs; image to GHCR from main and dev
 docs/                  spec, plans
 ```
+
+## Browser tests
+
+`npm run test:e2e` runs the Playwright tests in `e2e/` in your installed Google Chrome (no browser download). It builds the app, migrates and seeds a throwaway database in the system temp dir (`e2e/seed.ts`, fixed data from `e2e/fixtures.ts`), serves it with `vite preview` on :4317, runs the tests and deletes the database. It never opens `local.db` and leaves `npm run dev` on :5173 alone, so it's safe to run while you develop.
+
+- Every env variable comes from `playwright.config.ts`, not `.env`. Webhooks are off and Discord is unreachable (dead proxy), so fake organizer sessions keep their role.
+- Logins are session rows written by the seed; a test picks one with `test.use({ storageState })`.
+- Select by role, label and text, never by CSS class.
+- CI runs it as a separate `e2e` job on PRs.
 
 ## Checking phone layouts
 
