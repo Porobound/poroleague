@@ -11,6 +11,7 @@
 **Design:** Poroleague Screens canvas boards `Report`, `MobileReport`, `Match`, `MobileMatch`, `AdminMatches`; design-system components `GameRows`, `GameChips`, `scoreGames` (`project/components/bundle.js`). CSS (`pb-games`, `pb-game*`, `pb-gchip*`, `pb-match-games*`, `pb-sr`) is already in the `src/lib/styles/porobound.css` snapshot.
 
 **Deviations from #79 / the design:**
+
 - "Rejected: a sequence whose derived score isn't in the valid set" can't be built: ≤3 games with no game after 2 wins only yields valid scores. The `isValidScore` check stays as a guard; the test asserts every reachable sequence is valid instead.
 - Errors never name a player (the server parse has no names): "Game 3 can't be played: the match was already 2–0." The live "Result: …" line under the rows uses names.
 - Match page keeps its current `MatchCard` layout and adds the chips row; the board's big-score panel and "Games" list table are skipped (chips carry the same data).
@@ -67,14 +68,20 @@ describe('scoreGames', () => {
 
 	it('only ever derives scores from the valid set', () => {
 		const all = ['', '1', '2', 'D'];
-		for (const a of all) for (const b of all) for (const c of all) {
-			const r = scoreGames([a, b, c]);
-			if (r.ok) expect(isValidScore(r.p1, r.p2)).toBe(true);
-		}
+		for (const a of all)
+			for (const b of all)
+				for (const c of all) {
+					const r = scoreGames([a, b, c]);
+					if (r.ok) expect(isValidScore(r.p1, r.p2)).toBe(true);
+				}
 	});
 
 	it('rejects a missing game 1, a gap, a game after 2–0, and unknown values', () => {
-		expect(scoreGames(['', '', ''])).toEqual({ ok: false, error: 'Pick the result of game 1.', game: 0 });
+		expect(scoreGames(['', '', ''])).toEqual({
+			ok: false,
+			error: 'Pick the result of game 1.',
+			game: 0
+		});
 		expect(scoreGames(['', '1', ''])).toMatchObject({ ok: false, game: 0 });
 		expect(scoreGames(['1', '', '2'])).toEqual({
 			ok: false,
@@ -120,8 +127,7 @@ export function matchPoints(a: number, b: number): [number, number] {
 
 // One char per game played: '1' or '2' (who won it) or 'D'. `game` is the 0-based row to mark.
 export type GamesScore =
-	| { ok: true; games: string; p1: number; p2: number }
-	| { ok: false; error: string; game: number };
+	{ ok: true; games: string; p1: number; p2: number } | { ok: false; error: string; game: number };
 
 // Games 2 and 3 are optional (time can run out), with no gaps and nothing after a player has 2 wins.
 export function scoreGames(picks: string[]): GamesScore {
@@ -132,7 +138,11 @@ export function scoreGames(picks: string[]): GamesScore {
 			const next = picks.findIndex((x, j) => j > i && x);
 			if (i === 0) return { ok: false, error: 'Pick the result of game 1.', game: 0 };
 			if (next > 0)
-				return { ok: false, error: `Game ${next + 1} can't be played without game ${i + 1}.`, game: next };
+				return {
+					ok: false,
+					error: `Game ${next + 1} can't be played without game ${i + 1}.`,
+					game: next
+				};
 			break;
 		}
 		if (!(g in won)) return { ok: false, error: "That isn't a possible Bo3 result.", game: i };
@@ -226,19 +236,19 @@ export type Report = {
 and in `parseReport` replace the games reading and the score check:
 
 ```ts
-	const get = (k: string) => String(form.get(k) ?? '').trim();
-	const score = scoreGames([get('game1'), get('game2'), get('game3')]);
-	const values: Report = {
-		games: score.ok ? score.games : null,
-		p1Games: score.ok ? score.p1 : 0,
-		p2Games: score.ok ? score.p2 : 0,
-		p1Legend: get('p1Legend'),
-		p2Legend: get('p2Legend'),
-		diceWinnerId: get('dice')
-	};
+const get = (k: string) => String(form.get(k) ?? '').trim();
+const score = scoreGames([get('game1'), get('game2'), get('game3')]);
+const values: Report = {
+	games: score.ok ? score.games : null,
+	p1Games: score.ok ? score.p1 : 0,
+	p2Games: score.ok ? score.p2 : 0,
+	p1Legend: get('p1Legend'),
+	p2Legend: get('p2Legend'),
+	diceWinnerId: get('dice')
+};
 
-	const errors: ReportErrors = {};
-	if (!score.ok) errors.score = score.error;
+const errors: ReportErrors = {};
+if (!score.ok) errors.score = score.error;
 ```
 
 - [ ] **Step 4:** `npx vitest run src/lib/league/report.spec.ts` → PASS.
@@ -307,15 +317,15 @@ Check every `gameWinPct` caller renders `null` as "–" (it already does for und
 - [ ] **Step 5: Failing tests** — `actions.spec.ts`, player report:
 
 ```ts
-	it('saves the games and the counts they give', async () => {
-		await report(m1, as('p1'), { ...result, game3: '', game2: 'D', dice: 'p1' });
-		expect(get(m1)).toMatchObject({ games: '1D', p1Games: 1, p2Games: 0 });
-	});
+it('saves the games and the counts they give', async () => {
+	await report(m1, as('p1'), { ...result, game3: '', game2: 'D', dice: 'p1' });
+	expect(get(m1)).toMatchObject({ games: '1D', p1Games: 1, p2Games: 0 });
+});
 ```
 
 and in the organizer edit describe (same file; follow its existing `edit(...)` helper):
 
-```ts
+```
 	it('replaces games and counts, and audits both', async () => {
 		// reported 121 first, then the organizer edits to 22
 		...
@@ -332,13 +342,13 @@ and in the organizer edit describe (same file; follow its existing `edit(...)` h
 - [ ] **Step 6: Migration test** — `src/lib/server/db/migrate-games.spec.ts`, same approach as `migrate-ids.spec.ts`: copy `drizzle/` with the journal cut to `idx <= 3`, migrate, insert a reported match (`p1_games 2, p2_games 1`), migrate with the full folder, then:
 
 ```ts
-	it('keeps counts and leaves games null', () => {
-		expect(db.prepare('select p1_games, p2_games, games from matches').get()).toEqual({
-			p1_games: 2,
-			p2_games: 1,
-			games: null
-		});
+it('keeps counts and leaves games null', () => {
+	expect(db.prepare('select p1_games, p2_games, games from matches').get()).toEqual({
+		p1_games: 2,
+		p2_games: 1,
+		games: null
 	});
+});
 ```
 
 - [ ] **Step 7:** `npx vitest run` → all PASS. Commit `feat: store per-game sequence on matches` (include `drizzle/`).
@@ -353,7 +363,7 @@ and in the organizer edit describe (same file; follow its existing `edit(...)` h
 
 ```ts
 it('names who won each game when the report has them, counts only for legacy rows', () => {
-	saveReport(match, 'p1', { ...report, games: '1D2' , p1Games: 1, p2Games: 1 });
+	saveReport(match, 'p1', { ...report, games: '1D2', p1Games: 1, p2Games: 1 });
 	organizerEdit(reload(), ORG, { ...report, games: null });
 	const [edit, rep] = auditLines(season.id);
 	expect(rep.what).toBe('R1 · P1 1–1 P2 · games P1, draw, P2 · Jinx vs Viktor · dice: P1');
@@ -367,14 +377,14 @@ it('names who won each game when the report has them, counts only for legacy row
 - [ ] **Step 3:** In `auditLines`, `result`:
 
 ```ts
-			const seq = (games: string | null | undefined) =>
-				games
-					? ` · games ${[...games].map((g) => (g === 'D' ? 'draw' : name(g === '1' ? r.p1Id : r.p2Id))).join(', ')}`
-					: '';
-			const result = (c: Change | null) =>
-				c?.p1Games != null
-					? `${name(r.p1Id)} ${c.p1Games}–${c.p2Games} ${name(r.p2Id)}${seq(c.games)} · ${c.p1Legend} vs ${c.p2Legend} · dice: ${name(c.diceWinnerId)}`
-					: '';
+const seq = (games: string | null | undefined) =>
+	games
+		? ` · games ${[...games].map((g) => (g === 'D' ? 'draw' : name(g === '1' ? r.p1Id : r.p2Id))).join(', ')}`
+		: '';
+const result = (c: Change | null) =>
+	c?.p1Games != null
+		? `${name(r.p1Id)} ${c.p1Games}–${c.p2Games} ${name(r.p2Id)}${seq(c.games)} · ${c.p1Legend} vs ${c.p2Legend} · dice: ${name(c.diceWinnerId)}`
+		: '';
 ```
 
 - [ ] **Step 4:** Run → PASS. Commit `feat: audit lines list per-game winners`.
@@ -439,7 +449,13 @@ it('names who won each game when the report has them, counts only for legacy row
 			<div class="pb-game-opts">
 				{#each opts as [v, label] (v)}
 					<label class={['pb-game-opt', v === 'D' && 'is-draw']}>
-						<input type="radio" name="game{i + 1}" value={v} bind:group={picks[i]} required={i === 0} />
+						<input
+							type="radio"
+							name="game{i + 1}"
+							value={v}
+							bind:group={picks[i]}
+							required={i === 0}
+						/>
 						<span class="pb-game-opt-text" title={label}>{label}</span>
 					</label>
 				{/each}
@@ -470,7 +486,7 @@ The radiogroup's accessible name is "Game N Required"/"Game N Optional"; tests s
 
 - [ ] **Step 2: ResultFields** — replace the `{who.name} games` select with GameRows above the legend grid; legend labels become `{who.name}'s legend`:
 
-```svelte
+```
 <script lang="ts">
 	import GameRows from '#lib/components/GameRows.svelte';
 	import { LEGENDS } from '#lib/legends.ts';
@@ -509,50 +525,69 @@ The radiogroup's accessible name is "Game N Required"/"Game N Optional"; tests s
 - [ ] **Step 1: MatchCard chips** — new optional prop `games?: (0 | 1 | null)[]` (side index that won each game in display order, `null` = draw). After the sides loop:
 
 ```svelte
-	{#if games?.length}
-		<div class="pb-match-games">
-			<span class="pb-match-games-k">Games</span>
-			<ol class="pb-gchips" aria-label="Games">
-				{#each games as g, i (i)}
-					{@const who = g === null ? null : sides[g]}
-					<li
-						class={['pb-gchip', g === null && 'is-draw', g !== null && g === winner && 'is-match-winner']}
-						title="Game {i + 1}: {who ? `${who.name} won` : 'draw'}"
-					>
-						<span class="pb-gchip-n" aria-hidden="true">{i + 1}</span><span class="pb-sr"
-							>Game {i + 1}: </span
-						>{who ? (who.former ? who.name : who.name.split(/\s+/)[0]) : 'Draw'}
-					</li>
-				{/each}
-			</ol>
-		</div>
-	{/if}
+{#if games?.length}
+	<div class="pb-match-games">
+		<span class="pb-match-games-k">Games</span>
+		<ol class="pb-gchips" aria-label="Games">
+			{#each games as g, i (i)}
+				{@const who = g === null ? null : sides[g]}
+				<li
+					class={[
+						'pb-gchip',
+						g === null && 'is-draw',
+						g !== null && g === winner && 'is-match-winner'
+					]}
+					title="Game {i + 1}: {who ? `${who.name} won` : 'draw'}"
+				>
+					<span class="pb-gchip-n" aria-hidden="true">{i + 1}</span><span class="pb-sr"
+						>Game {i + 1}:
+					</span>{who ? (who.former ? who.name : who.name.split(/\s+/)[0]) : 'Draw'}
+				</li>
+			{/each}
+		</ol>
+	</div>
+{/if}
 ```
 
 - [ ] **Step 2: Match page** — `Result` type gains `games: string | null`; `card()` returns
 
 ```ts
-			games: r.games ? [...r.games].map((g) => (g === 'D' ? null : (order.indexOf(g === '1' ? 'p1' : 'p2') as 0 | 1))) : undefined
+games: r.games
+	? [...r.games].map((g) => (g === 'D' ? null : (order.indexOf(g === '1' ? 'p1' : 'p2') as 0 | 1)))
+	: undefined;
 ```
 
 Pre-fill `values`: replace `p1Games`/`p2Games` with `game1: m.games?.[0] ?? ''`, `game2`, `game3`. Form: delete both "Games won" fieldsets from the side panels; insert before the sides grid
 
 ```svelte
-			<section class="games" aria-labelledby="games-h">
-				<h2 id="games-h" class="eyebrow">Games</h2>
-				<GameRows p1={{ name: data.p1.displayName }} p2={{ name: data.p2.displayName }} {values} />
-			</section>
+<section class="games" aria-labelledby="games-h">
+	<h2 id="games-h" class="eyebrow">Games</h2>
+	<GameRows p1={{ name: data.p1.displayName }} p2={{ name: data.p2.displayName }} {values} />
+</section>
 ```
 
 Players in GameRows always go p1, Draw, p2 (form values are p1/p2; viewer-first would flip meaning of `1`). Remove `scoreError` and its `<p>` — GameRows shows the live error; keep the `errors.score` paragraph for server errors. Remove `.side .opts` CSS. `compact` stays for dialogs; the page goes compact on phones with CSS (mirrors `.pb-games-compact`):
 
 ```css
-	@media (max-width: 640px) {
-		.games :global(.pb-game) { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'label clear' 'opts opts'; }
-		.games :global(.pb-game-label) { grid-area: label; flex-direction: row; align-items: baseline; gap: 8px; }
-		.games :global(.pb-game-opts) { grid-area: opts; }
-		.games :global(.pb-game-clear) { grid-area: clear; min-height: 32px; }
+@media (max-width: 640px) {
+	.games :global(.pb-game) {
+		grid-template-columns: minmax(0, 1fr) auto;
+		grid-template-areas: 'label clear' 'opts opts';
 	}
+	.games :global(.pb-game-label) {
+		grid-area: label;
+		flex-direction: row;
+		align-items: baseline;
+		gap: 8px;
+	}
+	.games :global(.pb-game-opts) {
+		grid-area: opts;
+	}
+	.games :global(.pb-game-clear) {
+		grid-area: clear;
+		min-height: 32px;
+	}
+}
 ```
 
 - [ ] **Step 3:** `npm run check`; `npm run dev` is the owner's — smoke-test via `npm run test:e2e` in Task 8.
@@ -569,16 +604,23 @@ Players in GameRows always go p1, Draw, p2 (form values are p1/p2; viewer-first 
 - [ ] **Step 2: Update specs:**
   - `report-flag.spec.ts`: replace the "Games won" block with
     ```ts
-    const game = (n: number) => reporter.getByRole('radiogroup', { name: new RegExp(`^Game ${n}`) });
+    const game = (n: number) =>
+    	reporter.getByRole('radiogroup', { name: new RegExp(`^Game ${n}`) });
     await expect(add).toBeDisabled();
     // p1 · Draw · p2 sit on one row, apart.
-    const boxes = await Promise.all([p1, 'Draw', p2].map(async (n) => (await game(1).getByText(n, { exact: true }).boundingBox())!));
+    const boxes = await Promise.all(
+    	[p1, 'Draw', p2].map(
+    		async (n) => (await game(1).getByText(n, { exact: true }).boundingBox())!
+    	)
+    );
     expect(new Set(boxes.map((b) => Math.round(b.y))).size).toBe(1);
     expect(boxes[0].x + boxes[0].width).toBeLessThan(boxes[1].x);
     await game(1).getByLabel(p1).check();
     await game(2).getByLabel(p1).check();
     await game(3).getByLabel(p2).check();
-    await expect(reporter.getByRole('alert')).toHaveText("Game 3 can't be played: the match was already 2–0.");
+    await expect(reporter.getByRole('alert')).toHaveText(
+    	"Game 3 can't be played: the match was already 2–0."
+    );
     await expect(add).toBeDisabled();
     await game(2).getByLabel(p2).check();
     await game(3).getByLabel(p1).check();
