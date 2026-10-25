@@ -29,3 +29,7 @@ export const currentWeek = (startDate: string | null, now: Date) =>
 
 export const addDays = (d: string, n: number) =>
 	new Date(Date.parse(`${d}T12:00:00Z`) + n * DAY).toISOString().slice(0, 10);
+
+// The last day of the final round's week: the earliest deadline that leaves every round its week.
+export const lastRoundDay = (startDate: string, roundsPerWeek: number, rounds: number) =>
+	addDays(startDate, weekOf(rounds, roundsPerWeek) * 7 - 1);

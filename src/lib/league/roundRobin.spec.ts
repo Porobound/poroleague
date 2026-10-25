@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { roundRobin } from './roundRobin';
+import { roundCount, roundRobin } from './roundRobin';
 
 const ids = (n: number) => Array.from({ length: n }, (_, i) => `p${i}`);
 
@@ -35,5 +35,11 @@ describe('roundRobin', () => {
 	it('fewer than two players: no rounds', () => {
 		expect(roundRobin([])).toEqual([]);
 		expect(roundRobin(['p0'])).toEqual([]);
+	});
+});
+
+describe('roundCount', () => {
+	it('matches the rounds roundRobin builds', () => {
+		for (let n = 0; n <= 20; n++) expect(roundCount(n)).toBe(roundRobin(ids(n)).length);
 	});
 });
