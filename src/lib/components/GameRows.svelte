@@ -3,7 +3,7 @@
 	import { scoreGames } from '#lib/league/score.ts';
 
 	type Who = { name: string };
-	type Values = { game1: string; game2: string; game3: string };
+	type Values = { game1?: string; game2?: string; game3?: string };
 	// One labelled radio group per game: first player · Draw · second player. Form fields game1..3.
 	let {
 		p1,
@@ -14,7 +14,7 @@
 
 	// The pre-fill only seeds the rows; after that they are the form's own state.
 	// svelte-ignore state_referenced_locally
-	let picks = $state([values.game1, values.game2, values.game3]);
+	let picks = $state([values.game1 ?? '', values.game2 ?? '', values.game3 ?? '']);
 	const uid = $props.id();
 	const score = $derived(scoreGames(picks));
 	const bad = $derived(!score.ok && !!picks[0] ? score.game : -1);

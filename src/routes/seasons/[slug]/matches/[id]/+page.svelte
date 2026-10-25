@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Avatar from '#lib/components/Avatar.svelte';
 	import ConfirmButton from '#lib/components/ConfirmButton.svelte';
+	import GameRows from '#lib/components/GameRows.svelte';
 	import MatchCard from '#lib/components/MatchCard.svelte';
 	import { parseReport } from '#lib/league/report.ts';
 	import { groupName } from '#lib/season.ts';
@@ -19,8 +20,9 @@
 		form && 'values' in form && form.values
 			? form.values
 			: {
-					p1Games: m.p1Games?.toString() ?? '',
-					p2Games: m.p2Games?.toString() ?? '',
+					game1: m.games?.[0] ?? '',
+					game2: m.games?.[1] ?? '',
+					game3: m.games?.[2] ?? '',
 					p1Legend: data.prefill.p1Legend,
 					p2Legend: data.prefill.p2Legend,
 					dice: m.diceWinnerId ?? ''
@@ -28,6 +30,7 @@
 	);
 	const errors = $derived<Record<string, string>>((form && 'errors' in form && form.errors) || {});
 	type Result = {
+		games: string | null;
 		p1Games: number | null;
 		p2Games: number | null;
 		p1Legend: string | null;
@@ -47,7 +50,12 @@
 		const diceSide = r.diceWinnerId === m.p1Id ? 'p1' : 'p2';
 		return {
 			sides: [side(order[0]), side(order[1])] as [ReturnType<typeof side>, ReturnType<typeof side>],
-			dice: r.diceWinnerId ? (order.indexOf(diceSide) as 0 | 1) : null
+			dice: r.diceWinnerId ? (order.indexOf(diceSide) as 0 | 1) : null,
+			games: r.games
+				? [...r.games].map((g) =>
+						g === 'D' ? null : (order.indexOf(g === '1' ? 'p1' : 'p2') as 0 | 1)
+					)
+				: undefined
 		};
 	};
 	const saved = $derived(card(m));
@@ -63,12 +71,6 @@
 	const live = $derived.by(() => {
 		void changes;
 		return reportForm ? parseReport(new FormData(reportForm), m.p1Id, m.p2Id) : null;
-	});
-	// Wait for both sides' games before calling the score wrong.
-	const scoreError = $derived.by(() => {
-		void changes;
-		const f = reportForm && new FormData(reportForm);
-		return f?.has('p1Games') && f.has('p2Games') && live && !live.ok ? live.errors.score : '';
 	});
 </script>
 
@@ -113,6 +115,12 @@
 			bind:this={reportForm}
 			onchange={() => changes++}
 		>
+			<section class="games" aria-labelledby="games-h">
+				<h2 id="games-h" class="eyebrow">Games</h2>
+				<GameRows p1={{ name: data.p1.displayName }} p2={{ name: data.p2.displayName }} {values} />
+			</section>
+			{#if errors.score}<p class="pb-hint is-error" role="alert">{errors.score}</p>{/if}
+
 			<div class="grid-2">
 				{#each order as k (k)}
 					<div class="side">
@@ -124,20 +132,6 @@
 							/>
 							<strong class={[player(k).former && 'pb-former']}>{name(k)}</strong>
 						</div>
-						<fieldset class="opts">
-							<legend class="eyebrow">Games won</legend>
-							{#each [0, 1, 2] as n (n)}
-								<label class="opt">
-									<input
-										type="radio"
-										name="{k}Games"
-										value={n}
-										checked={values[`${k}Games`] === String(n)}
-										required
-									/>{n}
-								</label>
-							{/each}
-						</fieldset>
 						<label class="pb-field">
 							Legend
 							<select class="pb-input pb-select" name="{k}Legend" required>
@@ -153,9 +147,6 @@
 					</div>
 				{/each}
 			</div>
-			{#if errors.score || scoreError}
-				<p class="pb-hint is-error" role="alert">{errors.score || scoreError}</p>
-			{/if}
 
 			<fieldset class="opts">
 				<legend class="eyebrow">Who won the dice roll?</legend>
@@ -278,15 +269,13 @@
 		padding: 20px;
 		background: var(--surface);
 	}
-	.side .opts {
-		display: grid;
-		grid-template-columns: repeat(3, minmax(0, 1fr));
+	.games {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
 	}
-	.side .opts legend {
-		grid-column: 1 / -1;
-	}
-	.side .opt {
-		min-width: 0;
+	.games h2 {
+		margin: 0;
 	}
 	.who-row {
 		display: flex;
@@ -320,6 +309,25 @@
 		}
 		.side {
 			padding: 16px;
+		}
+		/* Same as .pb-games-compact: label above the three options. */
+		.games :global(.pb-game) {
+			grid-template-columns: minmax(0, 1fr) auto;
+			grid-template-areas: 'label clear' 'opts opts';
+			padding: 12px 0;
+		}
+		.games :global(.pb-game-label) {
+			grid-area: label;
+			flex-direction: row;
+			align-items: baseline;
+			gap: 8px;
+		}
+		.games :global(.pb-game-opts) {
+			grid-area: opts;
+		}
+		.games :global(.pb-game-clear) {
+			grid-area: clear;
+			min-height: 32px;
 		}
 		.report > .opts {
 			display: grid;
