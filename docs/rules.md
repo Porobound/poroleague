@@ -1,6 +1,6 @@
 # Poroleague Rules
 
-Draft v0.1. Items marked **[TBD]** are not decided yet.
+Items marked **[TBD]** are not decided yet.
 
 ## 1. Who can play
 
@@ -14,9 +14,9 @@ Draft v0.1. Items marked **[TBD]** are not decided yet.
 - **Groups.** With up to 16 players the season has one group. With 17 or more, players are drawn at random into two groups (they can be uneven, e.g. 13 and 12).
 - **Round robin.** You play every other player in your group once. In a group of 12 that's 11 matches.
 - **Byes.** If a group has an odd number of players, one player sits out each round. A bye is not a match and gives no points.
-- **Schedule.** The schedule is set when groups are locked. Each week has 2 rounds, so a 12-player group runs about 6 weeks.
+- **Schedule.** The schedule is set when groups are locked. Each week has a set number of rounds, shown on the season page. With 2 rounds a week, a 12-player group runs about 6 weeks.
 - **Season deadline.** Every season has a hard deadline at 23:59 Helsinki time (Europe/Helsinki) on the deadline date.
-- **Top cut.** After the group stage, the top players go on to a single-elimination top cut. With one group, it's seeded by the standings: 1st plays the last qualifier, 2nd plays the second-to-last, and so on. With two groups, it's cross-seeded: group A's 1st plays group B's last qualifier, group B's 1st plays group A's last, and so on. How many qualify, when the top cut is played, and prizes: **[TBD]**.
+- **Top cut.** After the group stage, the top players go on to a single-elimination top cut. With one group, it's seeded by the standings: 1st plays the last qualifier, 2nd plays the second-to-last, and so on. With two groups, it's cross-seeded: group A's 1st plays group B's last qualifier, group B's 1st plays group A's last, and so on. The top players of each group qualify; how many is set per season and shown on the season page. When the top cut is played, and prizes: **[TBD]**.
 
 ## 3. Playing a match
 
@@ -58,6 +58,7 @@ Draft v0.1. Items marked **[TBD]** are not decided yet.
 - If you can't finish the season, tell an organizer.
 - When you drop, **all** your matches in that season, played and unplayed, are void. They don't count for anyone's standings. Your name stays in the group, marked as dropped.
 - Dropping is final: you can't rejoin the same season.
+- Being erased from the site (see the [privacy notice](/privacy)) during a running season counts as dropping.
 
 ## 8. Organizers
 
@@ -79,5 +80,5 @@ Not rules yet. These may change how later seasons work, and will be decided befo
 
 ## Open questions
 
-- Top cut: how many players per group qualify, when it's played, and prizes.
+- Top cut: when it's played, and prizes.
 - No-show policy: when organizers award a win instead of a double loss.
