@@ -7,7 +7,7 @@ import { standings } from '#lib/league/standings.ts';
 import { currentWeek, reportingClosed, roundsOfWeek, weekOf } from '#lib/league/time.ts';
 import { seasonFields, seasonPhases, type SeasonFields, type SeasonStatus } from '#lib/season.ts';
 import { db } from '#lib/server/db/index.ts';
-import { audit, entries, matches, players, seasons } from '#lib/server/db/schema.ts';
+import { audit, entries, former, matches, players, seasons } from '#lib/server/db/schema.ts';
 import { droppedIds } from '#lib/league/status.ts';
 import { clearTiebreaks, playerMatches, seasonMatches, type Match } from '#lib/server/matches.ts';
 
@@ -112,7 +112,7 @@ export function seasonEntries(seasonId: number) {
 			playerId: players.id,
 			displayName: players.displayName,
 			avatar: players.avatar,
-			former: sql<boolean>`${players.erasedAt} is not null`.mapWith(Boolean),
+			former: former(),
 			group: entries.group,
 			dropped: entries.dropped,
 			tiebreak: entries.tiebreak

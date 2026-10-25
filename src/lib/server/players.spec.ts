@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { Report } from '#lib/league/report.ts';
 import { db } from '#lib/server/db/index.ts';
 import { audit, entries, matches, players, seasons, sessions } from '#lib/server/db/schema.ts';
-import { adminRows, flagMatch, getMatch, saveReport } from '#lib/server/matches.ts';
+import { adminRows, flagMatch, getMatch, matchPlayers, saveReport } from '#lib/server/matches.ts';
 import { discordMentions, erasePlayer } from '#lib/server/players.ts';
 import {
 	dropPlayer,
@@ -89,6 +89,21 @@ describe('erasePlayer', () => {
 			.from(entries)
 			.where(and(eq(entries.seasonId, seasonId), eq(entries.playerId, 'p1')))
 			.get();
+
+	it('match players carry only what pages show, never the Discord id', () => {
+		const [p1] = matchPlayers(getMatch(season.id, ms[0])!);
+		expect(p1).toEqual({
+			id: 'p1',
+			displayName: 'Player 1',
+			avatar: 'https://cdn/p1.png',
+			former: false
+		});
+		erasePlayer('p1', ORG);
+		expect(matchPlayers(getMatch(season.id, ms[0])!)[0]).toMatchObject({
+			former: true,
+			avatar: null
+		});
+	});
 
 	it('keeps results and standings in a finished season', () => {
 		finish();

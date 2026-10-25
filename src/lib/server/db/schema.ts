@@ -14,6 +14,9 @@ export const players = sqliteTable('players', {
 	erasedAt: integer('erased_at', { mode: 'timestamp' })
 });
 
+// The one test for an erased player, as a column for selects.
+export const former = () => sql<boolean>`${players.erasedAt} is not null`.mapWith(Boolean);
+
 export const sessions = sqliteTable('sessions', {
 	id: text('id').primaryKey(),
 	playerId: text('player_id')

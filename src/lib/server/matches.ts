@@ -1,14 +1,14 @@
-import { and, asc, desc, eq, inArray, isNotNull, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNotNull, or } from 'drizzle-orm';
 import type { MatchPost } from '#lib/discord.ts';
 import type { Report } from '#lib/league/report.ts';
 import { isVoid } from '#lib/league/status.ts';
 import { cardContext, matchCard } from '#lib/matchCard.ts';
 import { db } from '#lib/server/db/index.ts';
-import { audit, entries, matches, players } from '#lib/server/db/schema.ts';
+import { audit, entries, former, matches, players } from '#lib/server/db/schema.ts';
 import { groupName } from '#lib/season.ts';
 
 export type Match = typeof matches.$inferSelect;
-export type Player = typeof players.$inferSelect;
+export type Player = ReturnType<typeof matchPlayers>[number];
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -24,14 +24,20 @@ export const getMatch = (seasonId: number, id: number) =>
 		.where(and(eq(matches.id, id), eq(matches.seasonId, seasonId)))
 		.get();
 
-export function matchPlayers(m: Match): [Player, Player] {
+// What match pages and posts need; never the Discord id.
+export function matchPlayers(m: Match) {
 	const list = db
-		.select()
+		.select({
+			id: players.id,
+			displayName: players.displayName,
+			avatar: players.avatar,
+			former: former()
+		})
 		.from(players)
 		.where(inArray(players.id, [m.p1Id, m.p2Id]))
 		.all();
 	const by = (id: string) => list.find((p) => p.id === id)!;
-	return [by(m.p1Id), by(m.p2Id)];
+	return [by(m.p1Id), by(m.p2Id)] as const;
 }
 
 export const playerMatches = (seasonId: number, playerId: string) =>
@@ -206,7 +212,7 @@ export const seasonAudit = (seasonId: number) =>
 			after: audit.after,
 			createdAt: audit.createdAt,
 			actor: players.displayName,
-			actorFormer: sql<boolean>`${players.erasedAt} is not null`.mapWith(Boolean),
+			actorFormer: former(),
 			group: matches.group,
 			round: matches.round,
 			p1Id: matches.p1Id,

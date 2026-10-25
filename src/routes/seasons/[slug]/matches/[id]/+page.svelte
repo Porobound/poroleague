@@ -41,8 +41,8 @@
 			avatar: player(k).avatar,
 			legend: k === 'p1' ? r.p1Legend : r.p2Legend,
 			games: k === 'p1' ? r.p1Games : r.p2Games,
-			former: !!player(k).erasedAt,
-			href: player(k).erasedAt ? null : `/seasons/${data.season.slug}/players/${player(k).id}`
+			former: player(k).former,
+			href: player(k).former ? null : `/seasons/${data.season.slug}/players/${player(k).id}`
 		});
 		const diceSide = r.diceWinnerId === m.p1Id ? 'p1' : 'p2';
 		return {
@@ -120,9 +120,9 @@
 							<Avatar
 								name={player(k).displayName}
 								src={player(k).avatar}
-								former={!!player(k).erasedAt}
+								former={player(k).former}
 							/>
-							<strong class={[player(k).erasedAt && 'pb-former']}>{name(k)}</strong>
+							<strong class={[player(k).former && 'pb-former']}>{name(k)}</strong>
 						</div>
 						<fieldset class="opts">
 							<legend class="eyebrow">Games won</legend>
