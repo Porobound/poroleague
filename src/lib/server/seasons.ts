@@ -9,7 +9,13 @@ import { seasonFields, seasonPhases, type SeasonFields, type SeasonStatus } from
 import { db } from '#lib/server/db/index.ts';
 import { audit, entries, former, matches, players, seasons } from '#lib/server/db/schema.ts';
 import { droppedIds } from '#lib/league/status.ts';
-import { clearTiebreaks, playerMatches, seasonMatches, type Match } from '#lib/server/matches.ts';
+import {
+	clearTiebreaks,
+	playerMatches,
+	seasonMatches,
+	type Match,
+	type Tx
+} from '#lib/server/matches.ts';
 
 export type Season = typeof seasons.$inferSelect;
 
@@ -137,17 +143,17 @@ export function removeEntry(seasonId: number, playerId: string) {
 }
 
 // Voids every match of the player (derived from `dropped`); kept in the DB, out of the standings.
-export function dropPlayer(seasonId: number, playerId: string, actorId: string) {
-	db.transaction((tx) => {
-		tx.update(entries)
-			.set({ dropped: true })
-			.where(and(eq(entries.seasonId, seasonId), eq(entries.playerId, playerId)))
-			.run();
-		clearTiebreaks(tx, seasonId);
-		tx.insert(audit)
-			.values({ seasonId, actorId, action: 'drop', after: { dropped: playerId } })
-			.run();
-	});
+// Pass `tx` to drop as part of a bigger change (erasure).
+export function dropPlayer(seasonId: number, playerId: string, actorId: string, tx?: Tx): void {
+	if (!tx) return db.transaction((t) => dropPlayer(seasonId, playerId, actorId, t));
+	tx.update(entries)
+		.set({ dropped: true })
+		.where(and(eq(entries.seasonId, seasonId), eq(entries.playerId, playerId)))
+		.run();
+	clearTiebreaks(tx, seasonId);
+	tx.insert(audit)
+		.values({ seasonId, actorId, action: 'drop', after: { dropped: playerId } })
+		.run();
 }
 
 // Fixes a mistaken drop: the player's matches count again.

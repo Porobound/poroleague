@@ -3,7 +3,7 @@ import { and, eq, inArray, sql } from 'drizzle-orm';
 import { escapeMd } from '#lib/discord.ts';
 import { db } from '#lib/server/db/index.ts';
 import { audit, entries, matches, players, seasons, sessions } from '#lib/server/db/schema.ts';
-import { clearTiebreaks } from '#lib/server/matches.ts';
+import { dropPlayer } from '#lib/server/seasons.ts';
 
 export const newPlayerId = () => randomBytes(8).toString('hex');
 
@@ -49,13 +49,7 @@ export function erasePlayer(playerId: string, actorId: string) {
 				tx.delete(entries).where(entry).run();
 				continue;
 			}
-			if (s.status === 'play' && !s.dropped) {
-				tx.update(entries).set({ dropped: true }).where(entry).run();
-				clearTiebreaks(tx, s.id);
-				tx.insert(audit)
-					.values({ seasonId: s.id, actorId, action: 'drop', after: { dropped: playerId } })
-					.run();
-			}
+			if (s.status === 'play' && !s.dropped) dropPlayer(s.id, playerId, actorId, tx);
 			tx.insert(audit)
 				.values({ seasonId: s.id, actorId, action: 'erase', after: { erased: playerId } })
 				.run();

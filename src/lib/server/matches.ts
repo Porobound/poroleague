@@ -10,7 +10,7 @@ import { groupName } from '#lib/season.ts';
 export type Match = typeof matches.$inferSelect;
 export type Player = ReturnType<typeof matchPlayers>[number];
 
-type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+export type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 // Organizer tie ranks only order the ties of the standings they were set on, so any result change
 // clears them and the organizer confirms the order again.
