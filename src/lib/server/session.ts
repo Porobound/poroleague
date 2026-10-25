@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto';
-import { eq } from 'drizzle-orm';
+import { eq, lt } from 'drizzle-orm';
 import { db } from '#lib/server/db/index.ts';
 import { players, sessions } from '#lib/server/db/schema.ts';
 
@@ -18,6 +18,8 @@ export function createSession(
 	expiresAt: Date
 ): string {
 	const token = randomBytes(32).toString('base64url');
+	// Expired cookies are never sent back, so their rows are swept here; the privacy notice keeps logins 7 days at most.
+	db.delete(sessions).where(lt(sessions.expiresAt, new Date())).run();
 	db.insert(sessions)
 		.values({ id: hash(token), playerId, accessToken, isOrganizer, expiresAt })
 		.run();
