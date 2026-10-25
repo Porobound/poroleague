@@ -5,11 +5,13 @@
 	import MatchCard from '#lib/components/MatchCard.svelte';
 	import { parseReport } from '#lib/league/report.ts';
 	import { groupName } from '#lib/season.ts';
+	import { MediaQuery } from 'svelte/reactivity';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
 	const m = $derived(data.match);
 	const me = $derived(data.user?.id);
+	const narrow = new MediaQuery('max-width: 640px', false);
 	// The viewer's side comes first; form field names stay p1/p2.
 	const order = $derived(me === m.p2Id ? (['p2', 'p1'] as const) : (['p1', 'p2'] as const));
 	const player = (k: 'p1' | 'p2') => (k === 'p1' ? data.p1 : data.p2);
@@ -121,6 +123,7 @@
 					p1={{ name: data.p1.displayName }}
 					p2={{ name: data.p2.displayName }}
 					{values}
+					compact={narrow.current}
 					flip={order[0] === 'p2'}
 				/>
 			</section>
@@ -310,25 +313,6 @@
 		}
 		.side {
 			padding: 16px;
-		}
-		/* Same as .pb-games-compact: label above the three options. */
-		.games :global(.pb-game) {
-			grid-template-columns: minmax(0, 1fr) auto;
-			grid-template-areas: 'label clear' 'opts opts';
-			padding: 12px 0;
-		}
-		.games :global(.pb-game-label) {
-			grid-area: label;
-			flex-direction: row;
-			align-items: baseline;
-			gap: 8px;
-		}
-		.games :global(.pb-game-opts) {
-			grid-area: opts;
-		}
-		.games :global(.pb-game-clear) {
-			grid-area: clear;
-			min-height: 32px;
 		}
 		.report > .opts {
 			display: grid;
