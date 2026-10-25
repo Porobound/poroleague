@@ -117,8 +117,8 @@
 										<li>
 											<span class="place">{p.place}</span>
 											<span class="pb-player grow"
-												><Avatar name={p.name} src={p.avatar} size={24} /><span
-													class="pb-player-name">{p.name}</span
+												><Avatar name={p.name} src={p.avatar} size={24} former={p.former} /><span
+													class={['pb-player-name', p.former && 'pb-former']}>{p.name}</span
 												></span
 											>
 											<form method="POST" action="?/tiebreak">

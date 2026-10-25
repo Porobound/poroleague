@@ -64,7 +64,8 @@ export const load: PageServerLoad = ({ params, locals, url }) => {
 			? legendPlayers(ms, open).map((t) => ({
 					...t,
 					name: people.get(t.key)?.displayName ?? 'Unknown',
-					avatar: people.get(t.key)?.avatar ?? null
+					avatar: people.get(t.key)?.avatar ?? null,
+					former: !!people.get(t.key)?.former
 				}))
 			: [],
 		notPicked: LEGENDS.filter((l) => !rows.some((r) => r.key === l))

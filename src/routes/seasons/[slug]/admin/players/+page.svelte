@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Avatar from '#lib/components/Avatar.svelte';
+	import PlayerName from '#lib/components/PlayerName.svelte';
 	import ConfirmButton from '#lib/components/ConfirmButton.svelte';
 	import { groupName } from '#lib/season.ts';
 	import type { PageProps } from './$types';
@@ -49,10 +49,12 @@
 					{#each data.entries as e (e.playerId)}
 						<tr class={[e.dropped && 'is-dropped']}>
 							<td class="pb-player-cell">
-								<a class="pb-pname" href="/seasons/{data.season.slug}/players/{e.playerId}">
-									<Avatar name={e.displayName} src={e.avatar} size={24} />
-									<span class="pb-pname-text">{e.displayName}</span>
-								</a>
+								<PlayerName
+									name={e.displayName}
+									avatar={e.avatar}
+									former={e.former}
+									href="/seasons/{data.season.slug}/players/{e.playerId}"
+								/>
 							</td>
 							<td class="nowrap">{e.group ? groupName(e.group) : ''}</td>
 							<td class="pb-num pb-opt">{e.record?.played ?? '—'}</td>
@@ -99,11 +101,13 @@
 			{#each data.entries as e (e.playerId)}
 				<li>
 					<span class="grow"
-						><a class="pb-pname" href="/seasons/{data.season.slug}/players/{e.playerId}"
-							><Avatar name={e.displayName} src={e.avatar} /><span class="pb-pname-text"
-								>{e.displayName}</span
-							></a
-						></span
+						><PlayerName
+							name={e.displayName}
+							avatar={e.avatar}
+							former={e.former}
+							size={32}
+							href="/seasons/{data.season.slug}/players/{e.playerId}"
+						/></span
 					>
 					{#if status === 'signup'}
 						<ConfirmButton

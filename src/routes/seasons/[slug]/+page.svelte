@@ -167,7 +167,9 @@
 			{#if data.entries.length}
 				<div class="avatars">
 					{#each data.entries.slice(0, AVATARS) as e (e.playerId)}
-						<span title={e.displayName}><Avatar name={e.displayName} src={e.avatar} /></span>
+						<span title={e.displayName}
+							><Avatar name={e.displayName} src={e.avatar} former={e.former} /></span
+						>
 					{/each}
 					{#if data.entries.length > AVATARS}
 						<span class="muted small">+{data.entries.length - AVATARS} more</span>
@@ -267,7 +269,8 @@
 			<ul class="player-list">
 				{#each data.entries as e (e.playerId)}
 					<li>
-						<Avatar name={e.displayName} src={e.avatar} /> <span class="grow">{e.displayName}</span>
+						<Avatar name={e.displayName} src={e.avatar} former={e.former} />
+						<span class={['grow', e.former && 'pb-former']}>{e.displayName}</span>
 					</li>
 				{/each}
 			</ul>

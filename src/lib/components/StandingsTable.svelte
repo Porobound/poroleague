@@ -43,13 +43,17 @@
 			>
 				<td class={['pb-rank', i === 0 && r.played > 0 && 'is-podium']}>{fresh ? '–' : i + 1}</td>
 				<td class="pb-player-cell">
-					<a class="pb-player" href="/seasons/{slug}/players/{r.playerId}">
-						<Avatar name={r.name} src={r.avatar} size={24} />
-						<span class="pb-player-name">{r.name}</span>
+					<svelte:element
+						this={r.former ? 'span' : 'a'}
+						class="pb-player"
+						href={r.former ? undefined : `/seasons/${slug}/players/${r.playerId}`}
+					>
+						<Avatar name={r.name} src={r.avatar} size={24} former={r.former} />
+						<span class={['pb-player-name', r.former && 'pb-former']}>{r.name}</span>
 						{#if showTies && r.unresolvedTie}<span class="pb-tie" title="Tied: an organizer decides"
 								>Tie</span
 							>{/if}
-					</a>
+					</svelte:element>
 				</td>
 				<td class="pb-num">{r.played}</td>
 				<td class="pb-num pb-opt">{r.wins}</td>

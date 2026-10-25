@@ -116,7 +116,11 @@
 				{#each order as k (k)}
 					<div class="side">
 						<div class="who-row">
-							<Avatar name={player(k).displayName} src={player(k).avatar} />
+							<Avatar
+								name={player(k).displayName}
+								src={player(k).avatar}
+								former={!!player(k).erasedAt}
+							/>
 							<strong>{name(k)}</strong>
 						</div>
 						<fieldset class="opts">

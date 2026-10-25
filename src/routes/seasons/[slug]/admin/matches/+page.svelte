@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Avatar from '#lib/components/Avatar.svelte';
+	import PlayerName from '#lib/components/PlayerName.svelte';
 	import ResultActions from '#lib/components/ResultActions.svelte';
 	import { groupName } from '#lib/season.ts';
 	import type { PageProps } from './$types';
@@ -72,17 +72,21 @@
 							<td>
 								<div class="match">
 									<span class="names">
-										<a class="pb-pname" href={a.href}
-											><Avatar name={a.name} src={a.avatar} size={20} /><span class="pb-pname-text"
-												>{a.name}</span
-											></a
-										>
+										<PlayerName
+											name={a.name}
+											avatar={a.avatar}
+											former={a.former}
+											href={a.href}
+											size={20}
+										/>
 										<span class="muted">vs</span>
-										<a class="pb-pname" href={b.href}
-											><Avatar name={b.name} src={b.avatar} size={20} /><span class="pb-pname-text"
-												>{b.name}</span
-											></a
-										>
+										<PlayerName
+											name={b.name}
+											avatar={b.avatar}
+											former={b.former}
+											href={b.href}
+											size={20}
+										/>
 									</span>
 									{#if r.reported}<span class="muted small">{a.legend} · {b.legend}</span>{/if}
 									{#if r.flag}<span class="small">“{r.flag.reason}” · {r.flag.by}</span>{/if}

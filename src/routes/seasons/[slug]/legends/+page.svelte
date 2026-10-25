@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Avatar from '#lib/components/Avatar.svelte';
+	import PlayerName from '#lib/components/PlayerName.svelte';
 	import { pct } from '#lib/format.ts';
 	import { gameWinPct, matchWinPct, type Tally } from '#lib/league/legendStats.ts';
 	import type { PageProps } from './$types';
@@ -67,10 +67,12 @@
 	<ul class="ulist" aria-label="Players who used {legend}">
 		{#each data.users as u (u.key)}
 			<li>
-				<a class="pb-pname" href="/seasons/{season.slug}/players/{u.key}">
-					<Avatar name={u.name} src={u.avatar} size={24} />
-					<span class="pb-pname-text">{u.name}</span>
-				</a>
+				<PlayerName
+					name={u.name}
+					avatar={u.avatar}
+					former={u.former}
+					href="/seasons/{season.slug}/players/{u.key}"
+				/>
 				<span class="urec">
 					<span class="pb-num pb-muted">{u.picks} M</span>
 					<span class="pb-num">{@render wdl(u)}</span>

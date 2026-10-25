@@ -18,10 +18,10 @@
 
 <div class="page">
 	<section class="player-head">
-		<Avatar name={player.displayName} src={player.avatar} size={72} />
+		<Avatar name={player.displayName} src={player.avatar} size={72} former={player.former} />
 		<div class="head-text">
 			<div class="name-row">
-				<h1>{player.displayName}</h1>
+				<h1 class={[player.former && 'pb-former']}>{player.displayName}</h1>
 				<a href="/players/{player.playerId}">Career</a>
 			</div>
 			<div class="badges">
@@ -32,6 +32,7 @@
 					<span class="pb-badge pb-badge-rank">#{data.rank} in group</span>
 				{/if}
 				<span class="muted small">{season.name}</span>
+				{#if player.former}<span class="muted small">· Account erased. Results are kept.</span>{/if}
 			</div>
 		</div>
 	</section>
