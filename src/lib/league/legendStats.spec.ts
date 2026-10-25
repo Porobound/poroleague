@@ -77,6 +77,12 @@ describe('legendStats', () => {
 		expect(gameWinPct(jinx, 0)).toBeCloseTo(4 / 7);
 	});
 
+	it('gives no game-win % when every result was a 0–0 draw', () => {
+		const [jinx] = legendStats([m('a', 'Jinx', 0, 0, 'Ahri', 'b')]);
+		expect(matchWinPct(jinx, 0)).toBe(0);
+		expect(gameWinPct(jinx, 0)).toBeNull();
+	});
+
 	it('lists the players of one legend', () => {
 		expect(legendPlayers(ms, 'Jinx').map(pick)).toEqual([
 			{ key: 'a', picks: 2, mirrors: 0, wins: 1, draws: 1, losses: 0, gameWins: 3, gameLosses: 1 },
