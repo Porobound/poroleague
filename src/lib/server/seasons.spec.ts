@@ -6,16 +6,19 @@ import { auditLines } from '#lib/server/auditLog.ts';
 import { db } from '#lib/server/db/index.ts';
 import { entries, matches, seasons } from '#lib/server/db/schema.ts';
 import { flagMatch, getMatch, saveReport } from '#lib/server/matches.ts';
+import { erasePlayer } from '#lib/server/players.ts';
 import { endState, nextPairings, seasonData } from '#lib/server/seasonAdmin.ts';
 import {
 	deleteSeason,
 	dropPlayer,
 	getSeason,
+	groupStandings,
 	myPlayerPage,
 	publicSeason,
 	publishWeek,
 	reopenSignup,
 	runningSeason,
+	seasonEntries,
 	setTiebreaks,
 	slugTaken,
 	updateSeason,
@@ -216,5 +219,39 @@ describe('auditLines', () => {
 		]);
 		expect(lines[0].actor).toBe('Player 9');
 		expect(auditLines(season.id, 2)).toHaveLength(2);
+	});
+
+	it('shows erased players as former, with their flag reasons removed', () => {
+		report(0, score(2, 1));
+		flagMatch(getMatch(season.id, ms[0])!, 'p2', 'wrong score');
+		erasePlayer('p2', ORG.id);
+
+		const lines = auditLines(season.id);
+		expect(lines.map((l) => [l.label, l.what, l.actor, l.actorFormer])).toEqual([
+			['Erase', 'Erased a player · now Former player 1', 'Player 9', false],
+			[
+				'Flag',
+				'Group A R1 · Player 1 vs Former player 1 · reason removed',
+				'Former player 1',
+				true
+			],
+			[
+				'Report',
+				'Group A R1 · Player 1 2–1 Former player 1 · Jinx vs Viktor · dice: Player 1',
+				'Player 1',
+				false
+			]
+		]);
+		expect(seasonEntries(season.id).map((e) => [e.playerId, e.former])).toContainEqual([
+			'p2',
+			true
+		]);
+		expect(seasonEntries(season.id).filter((e) => e.former)).toHaveLength(1);
+		const rows = groupStandings(season, seasonEntries(season.id))[0].rows;
+		expect(rows.find((r) => r.playerId === 'p2')).toMatchObject({
+			name: 'Former player 1',
+			former: true
+		});
+		expect(rows.find((r) => r.playerId === 'p1')!.former).toBe(false);
 	});
 });

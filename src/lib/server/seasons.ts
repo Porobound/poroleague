@@ -112,6 +112,7 @@ export function seasonEntries(seasonId: number) {
 			playerId: players.id,
 			displayName: players.displayName,
 			avatar: players.avatar,
+			former: sql<boolean>`${players.erasedAt} is not null`.mapWith(Boolean),
 			group: entries.group,
 			dropped: entries.dropped,
 			tiebreak: entries.tiebreak
@@ -260,7 +261,8 @@ export function groupStandings(
 			rows: standings(g, results, closed).map((r) => ({
 				...r,
 				name: by.get(r.playerId)!.displayName,
-				avatar: by.get(r.playerId)!.avatar
+				avatar: by.get(r.playerId)!.avatar,
+				former: by.get(r.playerId)!.former
 			}))
 		};
 	});

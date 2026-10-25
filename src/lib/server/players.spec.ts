@@ -44,7 +44,7 @@ describe('erasePlayer', () => {
 	const player = (id: string) => db.select().from(players).where(eq(players.id, id)).get()!;
 	const stats = () =>
 		groupStandings(season, seasonEntries(season.id)).map((g) =>
-			g.rows.map(({ name: _, avatar: __, ...r }) => r)
+			g.rows.map(({ name: _, avatar: __, former: ___, ...r }) => r)
 		);
 
 	beforeEach(() => {

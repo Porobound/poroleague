@@ -18,7 +18,13 @@ export type CardMatch = {
 	flaggedBy: string | null;
 	flagResolvedAt: Date | null;
 };
-type Person = { playerId: string; displayName: string; avatar: string | null; dropped: boolean };
+type Person = {
+	playerId: string;
+	displayName: string;
+	avatar: string | null;
+	dropped: boolean;
+	former: boolean;
+};
 type CardSeason = {
 	slug: string;
 	status: string;
@@ -69,9 +75,10 @@ export function matchCard(m: CardMatch, c: CardContext) {
 	const side = (id: string, legend: string | null, games: number | null) => ({
 		name: person(id)?.displayName ?? 'Unknown',
 		avatar: person(id)?.avatar ?? null,
+		former: !!person(id)?.former,
 		legend,
 		games,
-		href: `/seasons/${c.season.slug}/players/${id}`
+		href: person(id)?.former ? null : `/seasons/${c.season.slug}/players/${id}`
 	});
 	const mode = matchMode(m, {
 		viewerId: c.viewerId,

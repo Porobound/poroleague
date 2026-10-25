@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, isNotNull, or } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNotNull, or, sql } from 'drizzle-orm';
 import type { MatchPost } from '#lib/discord.ts';
 import type { Report } from '#lib/league/report.ts';
 import { isVoid } from '#lib/league/status.ts';
@@ -206,6 +206,7 @@ export const seasonAudit = (seasonId: number) =>
 			after: audit.after,
 			createdAt: audit.createdAt,
 			actor: players.displayName,
+			actorFormer: sql<boolean>`${players.erasedAt} is not null`.mapWith(Boolean),
 			group: matches.group,
 			round: matches.round,
 			p1Id: matches.p1Id,
