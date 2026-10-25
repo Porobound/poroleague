@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { and, eq, inArray, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { escapeMd } from '#lib/discord.ts';
 import { db } from '#lib/server/db/index.ts';
 import { audit, entries, matches, players, seasons, sessions } from '#lib/server/db/schema.ts';
@@ -47,7 +47,7 @@ export function erasePlayer(playerId: string, actorId: string) {
 			})
 			.from(entries)
 			.innerJoin(seasons, eq(entries.seasonId, seasons.id))
-			.where(eq(entries.playerId, playerId))
+			.where(and(eq(entries.playerId, playerId), isNull(seasons.deletedAt)))
 			.all();
 		// Seasons in play they were dropped from, for the organizers' Discord notice.
 		const dropped: { name: string; slug: string }[] = [];
