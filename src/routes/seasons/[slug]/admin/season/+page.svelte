@@ -1,7 +1,7 @@
 <script lang="ts">
 	import SeasonForm from '#lib/components/SeasonForm.svelte';
 	import ConfirmButton from '#lib/components/ConfirmButton.svelte';
-	import Avatar from '#lib/components/Avatar.svelte';
+	import PlayerName from '#lib/components/PlayerName.svelte';
 	import { date, ordinal, pct, tzName } from '#lib/format.ts';
 	import { editableFields, groupName, seasonFields, STATUS_LABEL } from '#lib/season.ts';
 	import type { PageProps } from './$types';
@@ -116,11 +116,13 @@
 									{#each t.players as p, i (p.playerId)}
 										<li>
 											<span class="place">{p.place}</span>
-											<span class="pb-player grow"
-												><Avatar name={p.name} src={p.avatar} size={24} former={p.former} /><span
-													class={['pb-player-name', p.former && 'pb-former']}>{p.name}</span
-												></span
-											>
+											<PlayerName
+												cell
+												class="grow"
+												name={p.name}
+												avatar={p.avatar}
+												former={p.former}
+											/>
 											<form method="POST" action="?/tiebreak">
 												<input
 													type="hidden"
@@ -362,7 +364,7 @@
 		border-radius: var(--radius-sm);
 		background: var(--surface-raised);
 	}
-	.tie-list .grow {
+	.tie-list :global(.grow) {
 		flex: 1;
 		min-width: 0;
 	}
