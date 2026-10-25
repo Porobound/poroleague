@@ -6,8 +6,8 @@ const slug = SEASONS.setup;
 const name = 'E2E Setup';
 const day = (offset: number) =>
 	new Date(Date.now() + offset * 86_400_000).toISOString().slice(0, 10);
-// Two groups need 16 players: three use the site, the other 14 are signed up directly.
-const PLAYERS = 17;
+// Two groups need 17 players: three use the site, the other 15 are signed up directly.
+const PLAYERS = 18;
 
 test.beforeAll(() => seedPlayers('setup', PLAYERS));
 test.afterAll(() => removeSeason('setup'));
@@ -50,7 +50,7 @@ test('season setup to first publish', async ({ browser }) => {
 		organizer.getByRole('link', { name: playerName('setup', 1), exact: true })
 	).toHaveAttribute('href', playerHref(1));
 
-	// Closing signup draws two groups of eight; the organizer moves Setup 1 to the other group.
+	// Closing signup draws groups of nine and eight; the organizer moves Setup 1 to the other group.
 	await organizer.goto(`/seasons/${slug}/admin/season`);
 	await confirm(organizer, 'Close signup & draw groups', 'Close signup');
 	await expect(organizer).toHaveURL(`/seasons/${slug}/admin/groups`);
@@ -59,7 +59,7 @@ test('season setup to first publish', async ({ browser }) => {
 		organizer
 			.getByRole('listitem')
 			.filter({ has: organizer.getByText(playerName('setup', n), { exact: true }) });
-	await expect(organizer.getByRole('listitem')).toHaveCount(16);
+	await expect(organizer.getByRole('listitem')).toHaveCount(17);
 	await expect(row(3)).toHaveCount(0);
 	const move = row(1).getByRole('button', { name: /^Move to [AB]$/ });
 	const to = (await move.textContent())!.trim().slice(-1);
@@ -69,6 +69,13 @@ test('season setup to first publish', async ({ browser }) => {
 		'href',
 		playerHref(1)
 	);
+
+	// The groups need 9 rounds, 5 weeks at 2 a week, so a deadline in two weeks is refused.
+	await organizer.goto(`/seasons/${slug}/admin/season`);
+	await organizer.getByLabel('Season deadline').fill(day(14));
+	await confirm(organizer, 'Save changes', 'Save changes');
+	await expect(organizer.getByText(/The last round's week ends/)).toBeVisible();
+	await organizer.goto(`/seasons/${slug}/admin/groups`);
 
 	// Lock, then publish week 1 from the overview.
 	await confirm(organizer, 'Lock groups & generate schedule', 'Lock groups');
@@ -86,7 +93,7 @@ test('season setup to first publish', async ({ browser }) => {
 	const post = (await posts('pairings')).find((b) => b.content?.includes(name))!;
 	expect(post.embeds!.map((e) => e.title)).toEqual(['Round 1', 'Round 2']);
 	const groups = post.embeds!.flatMap((e) => e.fields ?? []);
-	// Moving makes groups of 7 and 9, so a week can hold a bye: at least one match, all in Group <to>.
+	// 17 players always leave one group odd, so a week can hold a bye: at least one match, all in Group <to>.
 	const mine = groups.filter((f) => f.value.includes(`<@${player('setup', 1)}>`));
 	expect(mine.length).toBeGreaterThan(0);
 	expect(mine.map((f) => f.name)).toEqual(mine.map(() => `Group ${to}`));

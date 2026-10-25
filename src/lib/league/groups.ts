@@ -1,5 +1,5 @@
 export function defaultGroupCount(players: number): number {
-	return players >= 16 ? 2 : 1;
+	return players > 16 ? 2 : 1;
 }
 
 export function splitGroups<T>(items: T[], groupCount: number, random = Math.random): T[][] {
