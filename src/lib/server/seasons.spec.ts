@@ -224,7 +224,7 @@ describe('auditLines', () => {
 	it('shows erased players as former, with their flag reasons removed', () => {
 		report(0, score(2, 1));
 		flagMatch(getMatch(season.id, ms[0])!, 'p2', 'wrong score');
-		const name = erasePlayer('p2', ORG.id);
+		const { name } = erasePlayer('p2', ORG.id);
 
 		const lines = auditLines(season.id);
 		expect(lines.map((l) => [l.label, l.what, l.actor, l.actorFormer])).toEqual([

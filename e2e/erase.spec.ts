@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { removeSeason, seedResult, seedSeason } from './db.ts';
-import { ORGANIZER, SEASONS, as, player, playerName } from './fixtures.ts';
+import { ORGANIZER, SEASONS, as, player, playerName, posts } from './fixtures.ts';
 
 const slug = SEASONS.erase;
 const page2 = `/seasons/${slug}/players/${player('erase', 2)}`;
@@ -47,6 +47,11 @@ test('an organizer erases a player mid-season: dropped, shown as a former player
 	await expect(page.getByText('· Account erased.')).toBeVisible();
 	await expect(page.getByText('Dropped', { exact: true })).toBeVisible();
 	await expect(page.getByRole('button', { name: 'Erase player…' })).toHaveCount(0);
+
+	// Organizers get the usual drop notice, under the new name only.
+	const notices = await posts('organizers');
+	expect(notices.flatMap((b) => b.embeds ?? []).map((e) => e.title)).toContain(`${former} dropped`);
+	expect(JSON.stringify(notices)).not.toContain(playerName('erase', 2));
 
 	// The season is in play, so erasing dropped them: out of the standings, their matches void.
 	await page.goto(`/seasons/${slug}`);

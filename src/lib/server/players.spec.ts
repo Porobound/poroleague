@@ -124,11 +124,11 @@ describe('erasePlayer', () => {
 	});
 
 	it('replaces the identity with a former player and a random suffix', () => {
-		const name = erasePlayer('p1', ORG);
+		const { name } = erasePlayer('p1', ORG);
 		expect(name).toMatch(/^Former player [0-9a-f]{4}$/);
 		expect(player('p1')).toMatchObject({ displayName: name, avatar: null, discordId: null });
 		expect(player('p1').erasedAt).toBeInstanceOf(Date);
-		expect(erasePlayer('p2', ORG)).not.toBe(name);
+		expect(erasePlayer('p2', ORG).name).not.toBe(name);
 	});
 
 	it('leaves no Discord id, name or avatar anywhere', () => {
@@ -171,7 +171,7 @@ describe('erasePlayer', () => {
 	});
 
 	it('drops them from a season in play: their matches are void', () => {
-		erasePlayer('p1', ORG);
+		expect(erasePlayer('p1', ORG).dropped).toEqual([{ name: 'Season 1', slug: 's1' }]);
 		expect(entry(season.id)?.dropped).toBe(true);
 		expect(
 			db
@@ -196,7 +196,7 @@ describe('erasePlayer', () => {
 
 	it('keeps an earlier drop as it is', () => {
 		dropPlayer(season.id, 'p1', ORG);
-		erasePlayer('p1', ORG);
+		expect(erasePlayer('p1', ORG).dropped).toEqual([]);
 		expect(db.select().from(audit).where(eq(audit.action, 'drop')).all()).toHaveLength(1);
 	});
 

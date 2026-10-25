@@ -38,22 +38,33 @@ export function erasePlayer(playerId: string, actorId: string) {
 			.run();
 		// They can't play on: off the list before groups are locked, dropped (matches void) in play.
 		const theirs = tx
-			.select({ id: seasons.id, status: seasons.status, dropped: entries.dropped })
+			.select({
+				id: seasons.id,
+				name: seasons.name,
+				slug: seasons.slug,
+				status: seasons.status,
+				dropped: entries.dropped
+			})
 			.from(entries)
 			.innerJoin(seasons, eq(entries.seasonId, seasons.id))
 			.where(eq(entries.playerId, playerId))
 			.all();
+		// Seasons in play they were dropped from, for the organizers' Discord notice.
+		const dropped: { name: string; slug: string }[] = [];
 		for (const s of theirs) {
 			const entry = and(eq(entries.seasonId, s.id), eq(entries.playerId, playerId));
 			if (s.status === 'signup' || s.status === 'groups') {
 				tx.delete(entries).where(entry).run();
 				continue;
 			}
-			if (s.status === 'play' && !s.dropped) dropPlayer(s.id, playerId, actorId, tx);
+			if (s.status === 'play' && !s.dropped) {
+				dropPlayer(s.id, playerId, actorId, tx);
+				dropped.push({ name: s.name, slug: s.slug });
+			}
 			tx.insert(audit)
 				.values({ seasonId: s.id, actorId, action: 'erase', after: { erased: playerId } })
 				.run();
 		}
-		return name;
+		return { name, dropped };
 	});
 }

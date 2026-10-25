@@ -120,10 +120,11 @@ export const dropEmbed = (o: {
 	where: string;
 	url: string;
 	cancelled?: boolean;
+	erased?: boolean;
 }): Embed => ({
 	title: o.cancelled ? `Drop cancelled: ${escapeMd(o.player)}` : `${escapeMd(o.player)} dropped`,
 	url: o.url,
-	description: `By ${escapeMd(o.by)}. ${o.cancelled ? 'Their matches count again.' : 'All their matches are void.'}`,
+	description: `By ${escapeMd(o.by)}. ${o.cancelled ? 'Their matches count again.' : o.erased ? 'Erased on request; all their matches are void.' : 'All their matches are void.'}`,
 	color: SIGNAL,
 	footer: { text: o.where },
 	timestamp: new Date().toISOString()

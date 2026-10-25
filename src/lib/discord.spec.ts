@@ -143,6 +143,18 @@ describe('organizer posts', () => {
 		expect(dropEmbed({ player: '*x*', by: 'Org', where: 'S', url: 'http://x' }).title).toBe(
 			'\\*x\\* dropped'
 		);
+		expect(
+			dropEmbed({
+				player: 'Former player 3f9a',
+				by: 'Org',
+				where: 'S',
+				url: 'http://x',
+				erased: true
+			})
+		).toMatchObject({
+			title: 'Former player 3f9a dropped',
+			description: 'By Org. Erased on request; all their matches are void.'
+		});
 		expect(seasonDeletedEmbed('S_1', 'Org').title).toBe('Season deleted: S\\_1');
 		const undo = dropEmbed({
 			player: '*x*',
