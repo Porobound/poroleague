@@ -208,7 +208,20 @@ The image is public, so the host needs no registry login.
 3. In Cloudflare **Zero Trust → Networks → Tunnels**, create a tunnel, copy its token, and add a public hostname pointing to `http://app:3000`.
 4. Write `.env` with the production values: every variable from `.env.example`, plus `ORIGIN=https://<domain>` and `TUNNEL_TOKEN`. Use the production Discord application, with `DISCORD_REDIRECT_URI=https://<domain>/auth/callback` (set the same redirect in the developer portal). `DATABASE_URL` is set by compose and can stay as is.
 5. `docker compose up -d`.
-6. Backups need `sqlite3` on the host. Add to the host's crontab: `0 4 * * * /opt/poroleague/scripts/backup.sh`. It writes `backups/poroleague-<date>.db` and keeps 14 days. Copying them off the box (Proxmox backup, rclone) is up to the host.
+6. Backups: see [Backups](#backups).
+
+### Backups
+
+`scripts/backup.sh` runs nightly from root's crontab. It writes `backups/poroleague-<date>.db` (root-only, 14 kept), uploads with rclone to an encrypted R2 bucket, then pings healthchecks.io. Full runbook and decisions: [#32](https://github.com/Porobound/poroleague/issues/32).
+
+1. Cloudflare R2: one bucket per environment (`poroleague-backups`, `poroleague-dev-backups`), with a lifecycle rule deleting objects after 30 days (dev: 7). Create an **Object Read & Write** API token scoped to that bucket only.
+2. Install `cron`, `sqlite3`, `curl`, and rclone from rclone.org (Debian's apt rclone gets `501 NotImplemented` from R2).
+3. As root, `rclone config`: remote `r2` (s3, provider Cloudflare, region `auto`, account endpoint, advanced `no_check_bucket = true`), and remote `r2crypt` (crypt over `r2:<bucket>`, generated password and salt). Save the keys, password and salt in the password manager: without them the backups can't be decrypted. No `r2crypt` remote = upload skipped.
+4. healthchecks.io: a check with schedule `0 4 * * *` (UTC), 1 hour grace. Put its ping URL in `/root/.poroleague-hc-url` (`chmod 600`). No file = ping skipped.
+5. `crontab -e`: `0 4 * * * /opt/poroleague/scripts/backup.sh >> /var/log/poroleague-backup.log 2>&1`
+6. Check under cron's bare environment: `env -i HOME=/root PATH=/usr/bin:/bin /opt/poroleague/scripts/backup.sh && echo OK`, then `rclone cryptcheck backups r2crypt:` shows 0 differences.
+
+Credentials stay in root's rclone config, never in `.env`: compose passes `.env` into the app container, and the app never needs R2.
 
 ### Update
 
@@ -231,6 +244,15 @@ git push --force origin HEAD:dev
 CI checks it and builds `:dev`. Then on the dev server: `docker compose pull && docker compose up -d`.
 
 ### Restore
+
+If the host is gone, recreate the rclone remotes from the password manager and fetch the backup first:
+
+```sh
+rclone copy r2crypt:poroleague-<date>.db backups/
+sqlite3 backups/poroleague-<date>.db "pragma integrity_check;"   # ok
+```
+
+Then:
 
 ```sh
 docker compose stop app
