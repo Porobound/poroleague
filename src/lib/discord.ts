@@ -13,7 +13,7 @@ export type GuildMember = {
 	avatar: string | null;
 	roles: string[];
 };
-export type Profile = { id: string; displayName: string; avatar: string };
+export type Profile = { discordId: string; displayName: string; avatar: string };
 
 const CDN = 'https://cdn.discordapp.com';
 
@@ -37,7 +37,7 @@ export function profileFromMember(m: GuildMember, guildId: string): Profile {
 		: u.avatar
 			? `${CDN}/avatars/${u.id}/${u.avatar}.png`
 			: `${CDN}/embed/avatars/${Number((BigInt(u.id) >> 22n) % 6n)}.png`;
-	return { id: u.id, displayName: m.nick ?? u.global_name ?? u.username, avatar };
+	return { discordId: u.id, displayName: m.nick ?? u.global_name ?? u.username, avatar };
 }
 
 // Parse like a browser would (it strips tabs/newlines and treats \ as /), then require the same origin.
@@ -145,19 +145,20 @@ export type WebhookBody = {
 export type Pairing = { group: number | null; p1Id: string; p2Id: string };
 export type PairingRound = { round: number; pairs: Pairing[] };
 
-// One message per week, an embed per round. Players are mentions inside embeds: they show as
-// clickable server names and never ping.
+// One message per week, an embed per round. `mention` gives each player's text: a mention inside
+// an embed shows as a clickable server name and never pings.
 export function pairingsPost(
 	title: string,
 	url: string,
 	rounds: PairingRound[],
+	mention: (playerId: string) => string,
 	at = new Date()
 ): WebhookBody {
 	const field = (pairs: Pairing[], group: number | null) => ({
 		name: group ? groupName(group) : 'Matches',
 		value: pairs
 			.filter((p) => p.group === group)
-			.map((p) => `<@${p.p1Id}> vs <@${p.p2Id}>`)
+			.map((p) => `${mention(p.p1Id)} vs ${mention(p.p2Id)}`)
 			.join('\n'),
 		inline: true
 	});
