@@ -229,6 +229,7 @@ describe('auditLines', () => {
 		const lines = auditLines(season.id);
 		expect(lines.map((l) => [l.label, l.what, l.actor, l.actorFormer])).toEqual([
 			['Erase', `Erased a player · now ${name}`, 'Player 9', false],
+			['Drop', `Dropped ${name}; their matches are void`, 'Player 9', false],
 			['Flag', `Group A R1 · Player 1 vs ${name} · reason removed`, name, true],
 			[
 				'Report',
@@ -242,11 +243,10 @@ describe('auditLines', () => {
 			true
 		]);
 		expect(seasonEntries(season.id).filter((e) => e.former)).toHaveLength(1);
-		const rows = groupStandings(season, seasonEntries(season.id))[0].rows;
-		expect(rows.find((r) => r.playerId === 'p2')).toMatchObject({
-			name: name,
-			former: true
-		});
+		const [group] = groupStandings(season, seasonEntries(season.id));
+		const rows = group.rows;
+		// Erased mid-season means dropped: out of the rows, listed with the group's drops.
+		expect(group.dropped).toMatchObject([{ playerId: 'p2', displayName: name, former: true }]);
 		expect(rows.find((r) => r.playerId === 'p1')!.former).toBe(false);
 	});
 });

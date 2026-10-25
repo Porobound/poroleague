@@ -1,4 +1,4 @@
-import { error, fail } from '@sveltejs/kit';
+import { error, fail, redirect } from '@sveltejs/kit';
 import { legendMatches, playerLegends } from '#lib/league/legendStats.ts';
 import { published } from '#lib/league/publish.ts';
 import { weekOf } from '#lib/league/time.ts';
@@ -62,6 +62,9 @@ export const actions: Actions = {
 		if (typed !== player.displayName)
 			return fail(400, { message: "Type the player's name to confirm." });
 		const name = erasePlayer(player.playerId, user.id);
+		// Before groups are locked, erasing takes them off the season, so this page is gone.
+		if (season.status === 'signup' || season.status === 'groups')
+			redirect(303, `/seasons/${season.slug}/admin/players`);
 		return { message: `Player erased. Their results now show as ${name}.` };
 	}
 };

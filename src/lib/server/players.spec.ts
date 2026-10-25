@@ -1,11 +1,17 @@
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { Report } from '#lib/league/report.ts';
 import { db } from '#lib/server/db/index.ts';
 import { audit, entries, matches, players, seasons, sessions } from '#lib/server/db/schema.ts';
 import { adminRows, flagMatch, getMatch, saveReport } from '#lib/server/matches.ts';
 import { discordMentions, erasePlayer } from '#lib/server/players.ts';
-import { groupStandings, seasonEntries, setTiebreaks, type Season } from '#lib/server/seasons.ts';
+import {
+	dropPlayer,
+	groupStandings,
+	seasonEntries,
+	setTiebreaks,
+	type Season
+} from '#lib/server/seasons.ts';
 import { createSession } from '#lib/server/session.ts';
 import { seedEntries, seedMatch, seedPlayers, seedSeason } from '#lib/server/test/seed.ts';
 
@@ -73,7 +79,19 @@ describe('erasePlayer', () => {
 		createSession('p2', 'tok2', false, new Date(Date.now() + 60_000));
 	});
 
-	it('keeps results and standings', () => {
+	const finish = () => {
+		db.update(seasons).set({ status: 'finished' }).where(eq(seasons.id, season.id)).run();
+		season = { ...season, status: 'finished' };
+	};
+	const entry = (seasonId: number) =>
+		db
+			.select()
+			.from(entries)
+			.where(and(eq(entries.seasonId, seasonId), eq(entries.playerId, 'p1')))
+			.get();
+
+	it('keeps results and standings in a finished season', () => {
+		finish();
 		const before = stats();
 		erasePlayer('p1', ORG);
 		expect(stats()).toEqual(before);
@@ -131,9 +149,52 @@ describe('erasePlayer', () => {
 	});
 
 	it('leaves an open flag without a reason for organizers', () => {
+		finish();
 		erasePlayer('p1', ORG);
 		const [row] = adminRows(season, seasonEntries(season.id), [getMatch(season.id, ms[1])!]);
 		expect(row.flag).toEqual({ by: expect.stringMatching(/^Former player /), reason: null });
+	});
+
+	it('drops them from a season in play: their matches are void', () => {
+		erasePlayer('p1', ORG);
+		expect(entry(season.id)?.dropped).toBe(true);
+		expect(
+			db
+				.select()
+				.from(audit)
+				.where(eq(audit.action, 'drop'))
+				.all()
+				.map((r) => [r.actorId, r.after])
+		).toEqual([[ORG, { dropped: 'p1' }]]);
+		expect(
+			db
+				.select({ t: entries.tiebreak })
+				.from(entries)
+				.all()
+				.every((e) => e.t === null)
+		).toBe(true);
+		const p2 = groupStandings(season, seasonEntries(season.id))[0].rows.find(
+			(r) => r.playerId === 'p2'
+		)!;
+		expect(p2.played).toBe(1);
+	});
+
+	it('keeps an earlier drop as it is', () => {
+		dropPlayer(season.id, 'p1', ORG);
+		erasePlayer('p1', ORG);
+		expect(db.select().from(audit).where(eq(audit.action, 'drop')).all()).toHaveLength(1);
+	});
+
+	it('takes them off a season in signup or groups, with no erase row there', () => {
+		const signup = seedSeason({ slug: 's2', status: 'signup' });
+		const groups = seedSeason({ slug: 's3', status: 'groups' });
+		seedEntries(signup.id, ['p1', 'p2']);
+		seedEntries(groups.id, ['p1', 'p2'], 1);
+		erasePlayer('p1', ORG);
+		expect([entry(signup.id), entry(groups.id)]).toEqual([undefined, undefined]);
+		expect(seasonEntries(signup.id).map((e) => e.playerId)).toEqual(['p2']);
+		const erased = db.select().from(audit).where(eq(audit.action, 'erase')).all();
+		expect(erased.map((r) => r.seasonId)).toEqual([season.id]);
 	});
 
 	it('writes an erase row per season, with no personal data', () => {
@@ -163,13 +224,8 @@ describe('erasePlayer', () => {
 
 	it('rolls back everything if a step fails', () => {
 		const before = dump();
-		// The erase audit row needs a season; a dangling entry makes that insert fail last.
-		db.$client.pragma('foreign_keys = OFF');
-		db.insert(entries).values({ seasonId: 999, playerId: 'p1' }).run();
-		db.$client.pragma('foreign_keys = ON');
-		const withEntry = dump();
-		expect(withEntry).not.toBe(before);
-		expect(() => erasePlayer('p1', ORG)).toThrow();
-		expect(dump()).toBe(withEntry);
+		// The audit rows come last; an unknown actor fails their foreign key.
+		expect(() => erasePlayer('p1', 'nobody')).toThrow();
+		expect(dump()).toBe(before);
 	});
 });

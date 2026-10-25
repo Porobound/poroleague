@@ -38,7 +38,7 @@
 					<span class="pb-badge pb-badge-rank">#{data.rank} in group</span>
 				{/if}
 				<span class="muted small">{season.name}</span>
-				{#if player.former}<span class="muted small">· Account erased. Results are kept.</span>{/if}
+				{#if player.former}<span class="muted small">· Account erased.</span>{/if}
 			</div>
 		</div>
 	</section>
@@ -106,8 +106,8 @@
 			</div>
 			<div class="danger">
 				<p class="muted">
-					Removes their name, avatar, Discord link and logins for good. Their results stay, shown as
-					“Former player”.
+					Removes their name, avatar, Discord link and logins for good. Their results in finished
+					seasons stay, shown as “Former player”; a season still running loses them.
 				</p>
 				<ConfirmButton
 					action="?/erase"
@@ -124,12 +124,19 @@
 							<li>Name and avatar</li>
 							<li>Discord link and logins</li>
 							<li>Their flag reasons</li>
+							<li>Their place in seasons still in signup or groups</li>
+						</ul>
+					</div>
+					<div class="list">
+						<strong>Dropped</strong>
+						<ul>
+							<li>From seasons in play: their matches there are void</li>
 						</ul>
 					</div>
 					<div class="list">
 						<strong>Kept</strong>
 						<ul>
-							<li>Their results, shown as “Former player”</li>
+							<li>Their results in finished seasons, shown as “Former player”</li>
 						</ul>
 					</div>
 					<p class="final">This can't be undone.</p>

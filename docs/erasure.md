@@ -10,9 +10,10 @@ Answer within one month of the request.
    - renames them "Former player" plus a short random code (e.g. "Former player 3f9a") and removes their avatar and Discord link;
    - logs them out everywhere;
    - clears the reasons on flags they filed;
-   - writes an `erase` row to each of their seasons' audit logs.
+   - takes them off seasons in signup or groups, and drops them from seasons in play (their matches there are void; the drop can't be cancelled);
+   - writes an `erase` row to the audit log of each season they stay in.
 
-   Their results stay, so standings don't change. If they log in again later, they start as a new player with no history.
+   Results in finished seasons stay, so those standings don't change. If they log in again later, they start as a new player with no history.
 
 2. **Discord, during a season:** search the results, pairings and organizers channels for their name and delete the bot's posts that name them.
 3. **A player who never signed up for a season** has no player page. Anonymise them in SQLite on the server (`sqlite3 data/poroleague.db`, adjusting the path to your `DATABASE_URL`). Don't delete the row: organizers who never played still appear in the audit log and match history.

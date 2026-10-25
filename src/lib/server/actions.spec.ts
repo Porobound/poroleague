@@ -12,6 +12,7 @@ import { actions as playerPageActions } from '../../routes/seasons/[slug]/player
 import { db } from '#lib/server/db/index.ts';
 import { entries, matches, players, seasons } from '#lib/server/db/schema.ts';
 import { flagMatch, saveReport } from '#lib/server/matches.ts';
+import { erasePlayer } from '#lib/server/players.ts';
 import { groupStandings, seasonEntries, type Season } from '#lib/server/seasons.ts';
 import { seedEntries, seedMatch, seedPlayers, seedSeason } from '#lib/server/test/seed.ts';
 
@@ -422,6 +423,16 @@ describe('admin players', () => {
 		await run('cancelDrop', 'p3');
 		expect(dropped('p3')).toBe(false);
 	});
+
+	it('never brings back an erased player', async () => {
+		erasePlayer('p3', 'org');
+		expect(dropped('p3')).toBe(true);
+		expect((await outcome(run('cancelDrop', 'p3'))).returned).toMatchObject({
+			status: 409,
+			data: { message: 'An erased player can’t come back to the season.' }
+		});
+		expect(dropped('p3')).toBe(true);
+	});
 });
 
 describe('erase player', () => {
@@ -452,6 +463,14 @@ describe('erase player', () => {
 			discordId: null
 		});
 		expect(await status(erase('p2', ORG, p2().displayName))).toBe(409);
+	});
+
+	it('goes to the players list when erasing took them off the season', async () => {
+		setSeason({ status: 'signup' });
+		expect((await outcome(erase('p2', ORG, 'Player 2'))).redirect).toBe(
+			'/seasons/s1/admin/players'
+		);
+		expect(seasonEntries(season.id).map((e) => e.playerId)).toEqual(['p1', 'p3']);
 	});
 
 	it('404s for someone not in the season', async () => {

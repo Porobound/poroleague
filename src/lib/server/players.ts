@@ -2,7 +2,8 @@ import { randomBytes } from 'node:crypto';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import { escapeMd } from '#lib/discord.ts';
 import { db } from '#lib/server/db/index.ts';
-import { audit, entries, matches, players, sessions } from '#lib/server/db/schema.ts';
+import { audit, entries, matches, players, seasons, sessions } from '#lib/server/db/schema.ts';
+import { clearTiebreaks } from '#lib/server/matches.ts';
 
 export const newPlayerId = () => randomBytes(8).toString('hex');
 
@@ -35,15 +36,30 @@ export function erasePlayer(playerId: string, actorId: string) {
 			.set({ after: sql`json_remove(${audit.after}, '$.flagReason')` })
 			.where(and(eq(audit.actorId, playerId), eq(audit.action, 'flag')))
 			.run();
-		const seasonIds = tx
-			.select({ id: entries.seasonId })
+		// They can't play on: off the list before groups are locked, dropped (matches void) in play.
+		const theirs = tx
+			.select({ id: seasons.id, status: seasons.status, dropped: entries.dropped })
 			.from(entries)
+			.innerJoin(seasons, eq(entries.seasonId, seasons.id))
 			.where(eq(entries.playerId, playerId))
 			.all();
-		for (const { id } of seasonIds)
+		for (const s of theirs) {
+			const entry = and(eq(entries.seasonId, s.id), eq(entries.playerId, playerId));
+			if (s.status === 'signup' || s.status === 'groups') {
+				tx.delete(entries).where(entry).run();
+				continue;
+			}
+			if (s.status === 'play' && !s.dropped) {
+				tx.update(entries).set({ dropped: true }).where(entry).run();
+				clearTiebreaks(tx, s.id);
+				tx.insert(audit)
+					.values({ seasonId: s.id, actorId, action: 'drop', after: { dropped: playerId } })
+					.run();
+			}
 			tx.insert(audit)
-				.values({ seasonId: id, actorId, action: 'erase', after: { erased: playerId } })
+				.values({ seasonId: s.id, actorId, action: 'erase', after: { erased: playerId } })
 				.run();
+		}
 		return name;
 	});
 }

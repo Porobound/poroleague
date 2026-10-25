@@ -20,7 +20,9 @@ test('players never see the erase control', async ({ browser }) => {
 	await expect(p.getByRole('button', { name: 'Erase player…' })).toHaveCount(0);
 });
 
-test('an organizer erases a player; results stay as a former player', async ({ browser }) => {
+test('an organizer erases a player mid-season: dropped, shown as a former player', async ({
+	browser
+}) => {
 	const victim = await browser.newPage(as(player('erase', 2)));
 	await victim.goto('/');
 	await expect(victim.getByRole('link', { name: 'Log in with Discord' })).toHaveCount(0);
@@ -42,17 +44,17 @@ test('an organizer erases a player; results stay as a former player', async ({ b
 	);
 	const former = (await status.textContent())!.match(/Former player [0-9a-f]{4}/)![0];
 	await expect(page.getByRole('heading', { level: 1, name: former })).toBeVisible();
-	await expect(page.getByText('Account erased. Results are kept.')).toBeVisible();
+	await expect(page.getByText('· Account erased.')).toBeVisible();
+	await expect(page.getByText('Dropped', { exact: true })).toBeVisible();
 	await expect(page.getByRole('button', { name: 'Erase player…' })).toHaveCount(0);
 
-	// Standings keep the result under the new name, with no link to follow.
+	// The season is in play, so erasing dropped them: out of the standings, their matches void.
 	await page.goto(`/seasons/${slug}`);
-	const table = page.getByRole('table').first();
-	await expect(table.getByText(former)).toBeVisible();
-	await expect(table.getByRole('link', { name: former })).toHaveCount(0);
+	await expect(page.getByRole('table').first().getByText(former)).toHaveCount(0);
+	await expect(page.getByText(`Dropped: ${former}. Their matches are void.`)).toBeVisible();
 	await expect(page.getByText(playerName('erase', 2))).toHaveCount(0);
 
-	// The match keeps its score; the flag reason is gone.
+	// The match keeps its score, now void; the flag reason is gone.
 	await page.goto(`/seasons/${slug}/matches/${match}`);
 	await expect(page.getByText(former).first()).toBeVisible();
 	await expect(page.getByRole('link', { name: former })).toHaveCount(0);
