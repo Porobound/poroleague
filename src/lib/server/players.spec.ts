@@ -218,7 +218,11 @@ describe('erasePlayer', () => {
 		deleteSeason(season, ORG);
 		expect(erasePlayer('p1', ORG).dropped).toEqual([]);
 		expect(entry(season.id)?.dropped).toBe(false);
-		const rows = db.select().from(audit).all().map((r) => r.action);
+		const rows = db
+			.select()
+			.from(audit)
+			.all()
+			.map((r) => r.action);
 		expect(rows).not.toContain('drop');
 		expect(rows).not.toContain('erase');
 	});
