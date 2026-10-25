@@ -7,6 +7,7 @@
 		title,
 		confirmLabel,
 		variant = 'primary',
+		confirmVariant = 'primary',
 		small = false,
 		fields = {},
 		inForm = false,
@@ -18,7 +19,8 @@
 		label: string;
 		title: string;
 		confirmLabel: string;
-		variant?: 'primary' | 'secondary' | 'ghost';
+		variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
+		confirmVariant?: 'primary' | 'danger';
 		small?: boolean;
 		fields?: Record<string, string>;
 		// Inside another form: confirming submits that form (after its own validation passes).
@@ -67,8 +69,9 @@
 			<button type="button" class="pb-btn pb-btn-secondary" onclick={() => dialog?.close()}
 				>Cancel</button
 			>
-			<button class="pb-btn pb-btn-primary" disabled={confirmDisabled || (inForm && !open)}
-				>{confirmLabel}</button
+			<button
+				class={['pb-btn', `pb-btn-${confirmVariant}`]}
+				disabled={confirmDisabled || (inForm && !open)}>{confirmLabel}</button
 			>
 		</div>
 	</svelte:element>

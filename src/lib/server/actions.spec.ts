@@ -8,6 +8,7 @@ import { actions as groupActions } from '../../routes/seasons/[slug]/admin/group
 import { actions as playerActions } from '../../routes/seasons/[slug]/admin/players/+page.server.ts';
 import { actions as createActions } from '../../routes/admin/+page.server.ts';
 import { actions as seasonPageActions } from '../../routes/seasons/[slug]/+page.server.ts';
+import { actions as playerPageActions } from '../../routes/seasons/[slug]/players/[id]/+page.server.ts';
 import { db } from '#lib/server/db/index.ts';
 import { entries, matches, players, seasons } from '#lib/server/db/schema.ts';
 import { flagMatch, saveReport } from '#lib/server/matches.ts';
@@ -420,5 +421,35 @@ describe('admin players', () => {
 		setSeason({ status: 'play' });
 		await run('cancelDrop', 'p3');
 		expect(dropped('p3')).toBe(false);
+	});
+});
+
+describe('erase player', () => {
+	const erase = (id: string, user: User | null, confirm: string) =>
+		playerPageActions.erase!(event({ slug: 's1', id }, user, { confirm }));
+	const p2 = () => db.select().from(players).where(eq(players.id, 'p2')).get()!;
+
+	it('is for organizers only', async () => {
+		expect((await outcome(erase('p2', as('p1'), 'Player 2'))).redirect).toBe(
+			'/login/not-organizer'
+		);
+		expect(p2().erasedAt).toBeNull();
+	});
+
+	it('needs the player’s name typed in', async () => {
+		expect(await status(erase('p2', ORG, 'player 2'))).toBe(400);
+		expect(p2().erasedAt).toBeNull();
+	});
+
+	it('erases once, then refuses', async () => {
+		expect((await outcome(erase('p2', ORG, ' Player 2 '))).returned).toEqual({
+			message: 'Player erased. Their results now show as Former player 1.'
+		});
+		expect(p2()).toMatchObject({ displayName: 'Former player 1', discordId: null });
+		expect(await status(erase('p2', ORG, 'Former player 1'))).toBe(409);
+	});
+
+	it('404s for someone not in the season', async () => {
+		expect((await outcome(erase('org', ORG, 'org'))).error).toBe(404);
 	});
 });
