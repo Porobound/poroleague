@@ -12,7 +12,7 @@ const titles = async (channel: 'results' | 'organizers') =>
 // The reporter's card, their side first: names, legends and games won, then who won each game.
 const card = (a: number, b: number) =>
 	new RegExp(`${p1}\\nAhri\\n${a}\\n.*${p2}\\nAnnie\\n${b}\\nGames\\n`, 'si');
-// Chips show first names; their titles name the player.
+// Each chip's title names the game and its winner.
 const chips = (page: Page) => page.getByRole('list', { name: 'Games' }).getByRole('listitem');
 const game = (page: Page, n: number) =>
 	page.getByRole('radiogroup', { name: new RegExp(`^Game ${n}`) });

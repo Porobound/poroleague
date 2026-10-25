@@ -117,9 +117,13 @@
 		>
 			<section class="games" aria-labelledby="games-h">
 				<span id="games-h" class="eyebrow">Games</span>
-				<GameRows p1={{ name: data.p1.displayName }} p2={{ name: data.p2.displayName }} {values} />
+				<GameRows
+					p1={{ name: data.p1.displayName }}
+					p2={{ name: data.p2.displayName }}
+					{values}
+					flip={order[0] === 'p2'}
+				/>
 			</section>
-			{#if errors.score}<p class="pb-hint is-error" role="alert">{errors.score}</p>{/if}
 
 			<div class="grid-2">
 				{#each order as k (k)}

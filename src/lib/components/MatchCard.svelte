@@ -112,7 +112,7 @@
 					>
 						<span class="pb-gchip-n" aria-hidden="true">{i + 1}</span><span class="pb-sr"
 							>Game {i + 1}:
-						</span>{who ? (who.former ? who.name : who.name.split(/\s+/)[0]) : 'Draw'}
+						</span>{who?.name ?? 'Draw'}
 					</li>
 				{/each}
 			</ol>

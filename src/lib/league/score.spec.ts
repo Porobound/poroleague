@@ -85,7 +85,13 @@ describe('scoreGames', () => {
 			error: "Game 3 can't be played: the match was already 2–0.",
 			game: 2
 		});
-		expect(scoreGames(['2', '2', 'D'])).toMatchObject({ ok: false, game: 2 });
+		expect(scoreGames(['2', '2', 'D'])).toMatchObject({
+			ok: false,
+			error: "Game 3 can't be played: the match was already 2–0.",
+			game: 2
+		});
+		for (const junk of ['toString', 'constructor', '__proto__'])
+			expect(scoreGames(['1', junk, '']), junk).toMatchObject({ ok: false, game: 1 });
 		expect(scoreGames(['1', 'x', ''])).toEqual({
 			ok: false,
 			error: "That isn't a possible Bo3 result.",

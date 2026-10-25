@@ -10,8 +10,7 @@ export function matchPoints(a: number, b: number): [number, number] {
 
 // One char per game played: '1' or '2' (who won it) or 'D'. `game` is the 0-based row to mark.
 export type GamesScore =
-	| { ok: true; games: string; p1: number; p2: number }
-	| { ok: false; error: string; game: number };
+	{ ok: true; games: string; p1: number; p2: number } | { ok: false; error: string; game: number };
 
 // Games 2 and 3 are optional (time can run out), with no gaps and nothing after a player has 2 wins.
 export function scoreGames(picks: string[]): GamesScore {
@@ -29,11 +28,12 @@ export function scoreGames(picks: string[]): GamesScore {
 				};
 			break;
 		}
-		if (!(g in won)) return { ok: false, error: "That isn't a possible Bo3 result.", game: i };
+		if (!Object.hasOwn(won, g))
+			return { ok: false, error: "That isn't a possible Bo3 result.", game: i };
 		if (won['1'] === 2 || won['2'] === 2)
 			return {
 				ok: false,
-				error: `Game ${i + 1} can't be played: the match was already ${won['1']}–${won['2']}.`,
+				error: `Game ${i + 1} can't be played: the match was already 2–0.`,
 				game: i
 			};
 		won[g as keyof typeof won]++;

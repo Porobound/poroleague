@@ -19,7 +19,11 @@ const chips = (page: Page) => page.getByRole('list', { name: 'Games' }).getByRol
 // A player's points in the standings.
 const points = async (page: Page, n: number) => {
 	await page.goto(`/seasons/${slug}`);
-	return page.getByRole('row').filter({ hasText: name(n) }).getByRole('cell').last();
+	return page
+		.getByRole('row')
+		.filter({ hasText: name(n) })
+		.getByRole('cell')
+		.last();
 };
 
 // Picks each game's winner (player number, or 'D'), fills legends and dice, saves.
@@ -71,9 +75,7 @@ test('a gap is refused, in the form and on the server', async ({ page }) => {
 
 	// Past the disabled button: the server says the same and saves nothing.
 	await page.locator('form[action="?/report"]').evaluate((f: HTMLFormElement) => f.requestSubmit());
-	await expect(page.getByRole('alert').first()).toHaveText(
-		"Game 3 can't be played without game 2."
-	);
+	await expect(page.getByRole('alert')).toHaveText("Game 3 can't be played without game 2.");
 	await page.goto(`/seasons/${slug}/matches/${ms[4]}`);
 	await expect(page.getByRole('button', { name: 'Add result' })).toBeVisible();
 });
@@ -94,4 +96,20 @@ test('a result from before per-game reporting shows its counts only', async ({ p
 	await expect(page.getByRole('article')).toContainText(name(3));
 	await expect(page.getByRole('article').getByText('2', { exact: true })).toBeVisible();
 	await expect(page.getByRole('list', { name: 'Games' })).toHaveCount(0);
+});
+
+test.describe('as the second player', () => {
+	test.use(as(player('perGame', 3)));
+
+	test('game rows put the viewer first and still record their wins', async ({ page }) => {
+		await page.goto(`/seasons/${slug}/matches/${ms[5]}`); // 2v3
+		const opts = game(page, 1).getByRole('radio');
+		await expect(opts).toHaveCount(3);
+		expect(
+			await opts.evaluateAll((rs) => rs.map((r) => (r as HTMLInputElement).labels![0].innerText))
+		).toEqual([name(3), 'Draw', name(2)]);
+		await game(page, 1).getByLabel(name(3)).check();
+		await expect(page.getByText(`Result: ${name(3)} 1–0 ${name(2)}`)).toBeVisible();
+		await expect(game(page, 1).getByRole('radio', { checked: true })).toHaveAttribute('value', '2');
+	});
 });

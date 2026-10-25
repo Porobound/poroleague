@@ -4,13 +4,15 @@
 
 	type Who = { name: string };
 	type Values = { game1?: string; game2?: string; game3?: string };
-	// One labelled radio group per game: first player · Draw · second player. Form fields game1..3.
+	// One labelled radio group per game: p1 · Draw · p2, or p2 first with `flip` (the viewer's side
+	// first). Form fields game1..3 hold '1', '2' or 'D' either way.
 	let {
 		p1,
 		p2,
 		values,
-		compact = false
-	}: { p1: Who; p2: Who; values: Values; compact?: boolean } = $props();
+		compact = false,
+		flip = false
+	}: { p1: Who; p2: Who; values: Values; compact?: boolean; flip?: boolean } = $props();
 
 	// The pre-fill only seeds the rows; after that they are the form's own state.
 	// svelte-ignore state_referenced_locally
@@ -24,11 +26,19 @@
 		const [w, l] = score.p1 > score.p2 ? [p1, p2] : [p2, p1];
 		return `Result: ${w.name} ${Math.max(score.p1, score.p2)}–${Math.min(score.p1, score.p2)} ${l.name}`;
 	});
-	const opts = $derived([
-		['1', p1.name],
-		['D', 'Draw'],
-		['2', p2.name]
-	]);
+	const opts = $derived(
+		flip
+			? [
+					['2', p2.name],
+					['D', 'Draw'],
+					['1', p1.name]
+				]
+			: [
+					['1', p1.name],
+					['D', 'Draw'],
+					['2', p2.name]
+				]
+	);
 
 	// Clear isn't a form input, so tell the form its values changed.
 	async function clear(i: number, el: HTMLElement) {
