@@ -37,6 +37,7 @@ describe('erasePlayer', () => {
 	let season: Season;
 	let ms: number[];
 	const result = (diceWinnerId: string): Report => ({
+		games: '121',
 		p1Games: 2,
 		p2Games: 1,
 		p1Legend: 'Ahri',

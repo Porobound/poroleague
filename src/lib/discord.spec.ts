@@ -92,7 +92,14 @@ describe('match embeds', () => {
 	const m = {
 		p1: { id: 'a', name: 'Alice' },
 		p2: { id: 'b', name: 'B*o*b' },
-		report: { p1Games: 2, p2Games: 1, p1Legend: 'Jinx', p2Legend: 'Ahri', diceWinnerId: 'b' },
+		report: {
+			games: '121',
+			p1Games: 2,
+			p2Games: 1,
+			p1Legend: 'Jinx',
+			p2Legend: 'Ahri',
+			diceWinnerId: 'b'
+		},
 		where: 'Season 1 · Group A · Round 3',
 		url: 'https://league.test/seasons/s1/matches/7',
 		at: new Date('2026-10-22T12:00:00Z')
@@ -126,7 +133,14 @@ describe('organizer posts', () => {
 	const post = {
 		p1: { id: '1', name: 'A*' },
 		p2: { id: '2', name: 'B' },
-		report: { p1Games: 2, p2Games: 1, p1Legend: 'Jinx', p2Legend: 'Ahri', diceWinnerId: '1' },
+		report: {
+			games: '121',
+			p1Games: 2,
+			p2Games: 1,
+			p1Legend: 'Jinx',
+			p2Legend: 'Ahri',
+			diceWinnerId: '1'
+		},
 		where: 'S · Group A · Round 1',
 		url: 'http://x/m/1',
 		at: new Date('2026-10-22T10:00:00Z')

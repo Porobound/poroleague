@@ -112,6 +112,7 @@ export function saveReport(m: Match, actorId: string, values: Report) {
 export const resultOf = (m: Match): Report | null =>
 	m.reportedBy
 		? {
+				games: m.games,
 				p1Games: m.p1Games!,
 				p2Games: m.p2Games!,
 				p1Legend: m.p1Legend!,
@@ -250,8 +251,9 @@ export function adminRows(
 			flag: status === 'flagged' ? { by: name(m.flaggedBy!), reason: m.flagReason } : null,
 			// ponytail: lastLegend is 2 queries per unreported match; fine at league size (~150 matches).
 			values: {
-				p1Games: m.p1Games?.toString() ?? '',
-				p2Games: m.p2Games?.toString() ?? '',
+				game1: m.games?.[0] ?? '',
+				game2: m.games?.[1] ?? '',
+				game3: m.games?.[2] ?? '',
 				p1Legend: m.p1Legend ?? lastLegend(m.p1Id) ?? '',
 				p2Legend: m.p2Legend ?? lastLegend(m.p2Id) ?? '',
 				dice: m.diceWinnerId ?? ''

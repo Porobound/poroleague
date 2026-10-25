@@ -38,6 +38,7 @@ const notFound = (f: () => unknown) => {
 	return false;
 };
 const score = (p1Games: number, p2Games: number): Report => ({
+	games: null, // legacy rows: standings read the counts
 	p1Games,
 	p2Games,
 	p1Legend: 'Jinx',

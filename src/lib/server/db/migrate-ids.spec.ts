@@ -110,3 +110,14 @@ describe('0003 player ids', () => {
 		expect(db.pragma('foreign_key_check')).toEqual([]);
 	});
 });
+
+describe('0004 per-game results', () => {
+	it('keeps the counts of existing matches and leaves their games null', () => {
+		expect(
+			rows('matches').map(({ p1_games, p2_games, games }) => [p1_games, p2_games, games])
+		).toEqual([
+			[2, 1, null],
+			[null, null, null]
+		]);
+	});
+});

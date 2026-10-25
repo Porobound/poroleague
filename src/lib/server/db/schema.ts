@@ -82,6 +82,7 @@ export const matches = sqliteTable(
 			.references(() => players.id),
 		p1Games: integer('p1_games'),
 		p2Games: integer('p2_games'),
+		games: text('games'), // per game: '1', '2' or 'D'; null if reported as counts only
 		p1Legend: text('p1_legend'),
 		p2Legend: text('p2_legend'),
 		diceWinnerId: text('dice_winner_id').references(() => players.id),
