@@ -36,9 +36,9 @@ A backup made before an erasure still holds that player. Before the restored sit
 1. Keep a copy of the database as it was just before the restore.
 2. In that copy, list the erasures newer than the backup:
    ```sql
-   select a.created_at, a.after ->> '$.erased' as player_id
-   from audit a where a.action = 'erase' and a.created_at > <backup time, unix seconds>;
+   select id, erased_at from players where erased_at > <backup time, unix seconds>;
    ```
+   This catches every erasure, including players taken off a signup list and the hand-run SQL in step 3, which write no `erase` audit row.
 3. Erase each of those player ids again on the restored site (step 1 above). If one has no player page, use step 3 with their id (`where player_id = '<player id>'` and `where id = '<player id>'`).
 4. Delete the pre-restore copy once every erasure is re-applied.
 

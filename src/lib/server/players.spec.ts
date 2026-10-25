@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { Report } from '#lib/league/report.ts';
 import { db } from '#lib/server/db/index.ts';
@@ -6,6 +6,7 @@ import { audit, entries, matches, players, seasons, sessions } from '#lib/server
 import { adminRows, flagMatch, getMatch, matchPlayers, saveReport } from '#lib/server/matches.ts';
 import { discordMentions, erasePlayer } from '#lib/server/players.ts';
 import {
+	deleteSeason,
 	dropPlayer,
 	groupStandings,
 	seasonEntries,
@@ -211,6 +212,31 @@ describe('erasePlayer', () => {
 		expect(seasonEntries(signup.id).map((e) => e.playerId)).toEqual(['p2']);
 		const erased = db.select().from(audit).where(eq(audit.action, 'erase')).all();
 		expect(erased.map((r) => r.seasonId)).toEqual([season.id]);
+	});
+
+	it('leaves soft-deleted seasons alone: no drop, no audit rows, no notice', () => {
+		deleteSeason(season, ORG);
+		expect(erasePlayer('p1', ORG).dropped).toEqual([]);
+		expect(entry(season.id)?.dropped).toBe(false);
+		const rows = db
+			.select()
+			.from(audit)
+			.all()
+			.map((r) => r.action);
+		expect(rows).not.toContain('drop');
+		expect(rows).not.toContain('erase');
+	});
+
+	it('the restore runbook query finds a player who was only on a signup list', () => {
+		const signup = seedSeason({ slug: 's2', status: 'signup' });
+		db.insert(players).values({ id: 'new', discordId: 'd9', displayName: 'Newbie' }).run();
+		seedEntries(signup.id, ['new']);
+		const backup = Math.floor(Date.now() / 1000) - 1;
+		erasePlayer('new', ORG);
+		// docs/erasure.md, "After restoring a backup", step 2.
+		expect(
+			db.all(sql`select id from players where erased_at > ${backup}`).map((r: any) => r.id)
+		).toEqual(['new']);
 	});
 
 	it('writes an erase row per season, with no personal data', () => {

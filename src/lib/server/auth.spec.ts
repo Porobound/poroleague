@@ -110,6 +110,21 @@ describe('sessions', () => {
 		expect(validateSession(token)).toBeNull();
 		expect(db.select().from(sessions).all()).toEqual([]);
 	});
+
+	it('sweeps expired sessions nobody presents again on the next login', () => {
+		const [a, b] = seedPlayers(2);
+		createSession(a, 'old', false, new Date(Date.now() - 1000));
+		const live = createSession(a, 'live', false, new Date(Date.now() + 60_000));
+		createSession(b, 'new', false, new Date(Date.now() + 60_000));
+		expect(
+			db
+				.select()
+				.from(sessions)
+				.all()
+				.map((s) => s.accessToken)
+		).toEqual(['live', 'new']);
+		expect(validateSession(live)?.player.id).toBe(a);
+	});
 });
 
 describe('currentRole', () => {
