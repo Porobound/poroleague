@@ -5,6 +5,8 @@ set -eu
 umask 077
 cd "$(dirname "$0")/.."
 mkdir -p backups
+# sqlite3 would create a missing DB as an empty root-owned file, which the app then can't write.
+[ -s data/poroleague.db ] || { echo "backup.sh: no database at data/poroleague.db" >&2; exit 1; }
 sqlite3 data/poroleague.db ".backup backups/poroleague-$(date +%F).db"
 # -mtime +13: older than 14 full days, so the 14 newest nightly backups stay.
 find backups -name 'poroleague-*.db' -mtime +13 -delete

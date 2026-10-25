@@ -40,6 +40,8 @@ beforeEach(() => {
 	mkdirSync(join(dir, 'bin'));
 	mkdirSync(join(dir, 'scripts'));
 	copyFileSync('scripts/backup.sh', join(dir, 'scripts/backup.sh'));
+	mkdirSync(join(dir, 'data'));
+	writeFileSync(join(dir, 'data/poroleague.db'), 'db');
 	for (const tool of ['dirname', 'mkdir', 'date', 'find', 'grep', 'cat'])
 		symlinkSync(
 			execFileSync('sh', ['-c', `command -v ${tool}`], { encoding: 'utf8' }).trim(),
@@ -95,4 +97,12 @@ it('does not ping without a ping URL', () => {
 	const { status, calls } = run();
 	expect(status).toBe(0);
 	expect(calls.some((c) => c.startsWith('curl'))).toBe(false);
+});
+
+it('fails without touching anything when the database is missing', () => {
+	rmSync(join(dir, 'data/poroleague.db'));
+	stub('rclone', '[ "$1" = listremotes ] && echo r2crypt:; true');
+	const { status, calls } = run();
+	expect(status).not.toBe(0);
+	expect(calls).toEqual([]);
 });
