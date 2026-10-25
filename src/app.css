@@ -353,6 +353,17 @@ a:hover {
 .doc p {
 	line-height: 1.55;
 }
+.doc .legal {
+	margin-top: var(--space-8);
+	color: var(--ink-muted);
+	font-size: 13px;
+}
+.footer-legal {
+	max-width: 1200px;
+	margin: 12px auto 0;
+	font-size: 12px;
+	line-height: 16px;
+}
 
 /* Phones. Desktop header markup stays as it is; phones get the menu and the tab bar instead. */
 .site-nav .desk {
