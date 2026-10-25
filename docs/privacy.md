@@ -40,7 +40,7 @@ The site posts results and pairings in the league's Discord channels, naming the
 
 ## Backups
 
-The database is backed up every night. The 14 most recent backups are kept, plus copies stored off the server. Backups are only used to recover from a failure. Erased data stays in backups until they're replaced, and if we ever restore one, we erase the same players again.
+The database is backed up every night. The 14 most recent backups are kept on the server, and encrypted copies are kept off the server for 30 days. Backups are only used to recover from a failure. Erased data stays in backups until they're replaced, and if we ever restore one, we erase the same players again.
 
 ## Discord
 

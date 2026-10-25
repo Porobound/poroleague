@@ -42,4 +42,4 @@ A backup made before an erasure still holds that player. Before the restored sit
 3. Erase each of those player ids again on the restored site (step 1 above). If one has no player page, use step 3 with their id (`where player_id = '<player id>'` and `where id = '<player id>'`).
 4. Delete the pre-restore copy once every erasure is re-applied.
 
-Backups rotate out after 14 nights (`scripts/backup.sh`), plus however long the off-box copies are kept.
+Backups rotate out after 14 nights on the server (`scripts/backup.sh`) and after 30 days off-box (R2 lifecycle rule).
