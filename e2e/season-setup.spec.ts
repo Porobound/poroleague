@@ -44,6 +44,10 @@ test('season setup to first publish', async ({ browser }) => {
 		}
 		await p.close();
 	}
+	// The signup panel shows 12 avatars and a count; no full roster.
+	await organizer.goto(`/seasons/${slug}`);
+	await expect(organizer.getByText('+5 more')).toBeVisible();
+	await expect(organizer.getByRole('heading', { name: 'Players' })).toHaveCount(0);
 	const playerHref = (n: number) => `/seasons/${slug}/players/${player('setup', n)}`;
 	await organizer.goto(`/seasons/${slug}/admin/players`);
 	await expect(
