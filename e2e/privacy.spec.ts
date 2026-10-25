@@ -2,6 +2,10 @@ import { expect, test } from '@playwright/test';
 import { removeSeason, seedEmptySeason, seedPlayers } from './db.ts';
 import { SEASONS, as, player } from './fixtures.ts';
 
+test.beforeAll(() => {
+	seedPlayers('privacy', 1);
+	seedEmptySeason('privacy', 'signup');
+});
 test.afterAll(() => removeSeason('privacy'));
 
 test('the footer links to the privacy notice', async ({ page }) => {
@@ -16,8 +20,6 @@ test('the footer links to the privacy notice', async ({ page }) => {
 });
 
 test('signup points to the privacy notice', async ({ browser }) => {
-	seedPlayers('privacy', 1);
-	seedEmptySeason('privacy', 'signup');
 	const page = await browser.newPage(as(player('privacy', 1)));
 	await page.goto(`/seasons/${SEASONS.privacy}`);
 	await expect(page.getByRole('link', { name: 'privacy notice' })).toHaveAttribute(

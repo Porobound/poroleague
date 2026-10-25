@@ -4,4 +4,5 @@ set -eu
 cd "$(dirname "$0")/.."
 mkdir -p backups
 sqlite3 data/poroleague.db ".backup backups/poroleague-$(date +%F).db"
-find backups -name 'poroleague-*.db' -mtime +14 -delete
+# -mtime +13: older than 14 full days, so the 14 newest nightly backups stay.
+find backups -name 'poroleague-*.db' -mtime +13 -delete

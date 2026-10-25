@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { Report } from '#lib/league/report.ts';
 import { db } from '#lib/server/db/index.ts';
 import { audit, entries, matches, players, seasons, sessions } from '#lib/server/db/schema.ts';
-import { flagMatch, getMatch, saveReport } from '#lib/server/matches.ts';
+import { adminRows, flagMatch, getMatch, saveReport } from '#lib/server/matches.ts';
 import { discordMentions, erasePlayer } from '#lib/server/players.ts';
 import { groupStandings, seasonEntries, setTiebreaks, type Season } from '#lib/server/seasons.ts';
 import { createSession } from '#lib/server/session.ts';
@@ -90,15 +90,12 @@ describe('erasePlayer', () => {
 		]);
 	});
 
-	it('replaces the identity with a numbered former player', () => {
-		expect(erasePlayer('p1', ORG)).toBe('Former player 1');
-		expect(player('p1')).toMatchObject({
-			displayName: 'Former player 1',
-			avatar: null,
-			discordId: null
-		});
+	it('replaces the identity with a former player and a random suffix', () => {
+		const name = erasePlayer('p1', ORG);
+		expect(name).toMatch(/^Former player [0-9a-f]{4}$/);
+		expect(player('p1')).toMatchObject({ displayName: name, avatar: null, discordId: null });
 		expect(player('p1').erasedAt).toBeInstanceOf(Date);
-		expect(erasePlayer('p2', ORG)).toBe('Former player 2');
+		expect(erasePlayer('p2', ORG)).not.toBe(name);
 	});
 
 	it('leaves no Discord id, name or avatar anywhere', () => {
@@ -131,6 +128,12 @@ describe('erasePlayer', () => {
 			['p1', {}],
 			['p3', { flagReason: 'p3 disagrees' }]
 		]);
+	});
+
+	it('leaves an open flag without a reason for organizers', () => {
+		erasePlayer('p1', ORG);
+		const [row] = adminRows(season, seasonEntries(season.id), [getMatch(season.id, ms[1])!]);
+		expect(row.flag).toEqual({ by: expect.stringMatching(/^Former player /), reason: null });
 	});
 
 	it('writes an erase row per season, with no personal data', () => {

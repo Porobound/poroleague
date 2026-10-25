@@ -240,7 +240,8 @@ export function adminRows(
 			entered: !!m.reportedBy && m.reportedBy !== m.p1Id && m.reportedBy !== m.p2Id,
 			p1: { id: m.p1Id, name: name(m.p1Id) },
 			p2: { id: m.p2Id, name: name(m.p2Id) },
-			flag: status === 'flagged' ? { by: name(m.flaggedBy!), reason: m.flagReason ?? '' } : null,
+			// A null reason was removed when the flagging player was erased.
+			flag: status === 'flagged' ? { by: name(m.flaggedBy!), reason: m.flagReason } : null,
 			// ponytail: lastLegend is 2 queries per unreported match; fine at league size (~150 matches).
 			values: {
 				p1Games: m.p1Games?.toString() ?? '',

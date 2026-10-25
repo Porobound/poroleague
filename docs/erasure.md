@@ -7,7 +7,7 @@ What organizers do by hand to honour the privacy notice (`docs/privacy.md`). Era
 Answer within one month of the request.
 
 1. Open the player's page in a season they played (`/seasons/<slug>/players/<id>`), scroll to **Erase player**, type their name and confirm. The site:
-   - renames them "Former player N" and removes their avatar and Discord link;
+   - renames them "Former player" plus a short random code (e.g. "Former player 3f9a") and removes their avatar and Discord link;
    - logs them out everywhere;
    - clears the reasons on flags they filed;
    - writes an `erase` row to each of their seasons' audit logs.
@@ -15,10 +15,12 @@ Answer within one month of the request.
    Their results stay, so standings don't change. If they log in again later, they start as a new player with no history.
 
 2. **Discord, during a season:** search the results, pairings and organizers channels for their name and delete the bot's posts that name them.
-3. **A player who never signed up for a season** has no player page. Remove them in SQLite on the server (`sqlite3 data/poroleague.db`, adjusting the path to your `DATABASE_URL`):
+3. **A player who never signed up for a season** has no player page. Anonymise them in SQLite on the server (`sqlite3 data/poroleague.db`, adjusting the path to your `DATABASE_URL`). Don't delete the row: organizers who never played still appear in the audit log and match history.
    ```sql
    delete from sessions where player_id = (select id from players where discord_id = '<discord id>');
-   delete from players where discord_id = '<discord id>';
+   update players set display_name = 'Former player ' || lower(hex(randomblob(2))),
+     avatar = null, discord_id = null, erased_at = unixepoch()
+   where discord_id = '<discord id>';
    ```
 4. Tell the player it's done.
 
@@ -36,7 +38,7 @@ A backup made before an erasure still holds that player. Before the restored sit
    select a.created_at, a.after ->> '$.erased' as player_id
    from audit a where a.action = 'erase' and a.created_at > <backup time, unix seconds>;
    ```
-3. Erase each of those player ids again on the restored site (step 1 above). If one has no player page, use step 3 with their id (`where id = '<player id>'`).
+3. Erase each of those player ids again on the restored site (step 1 above). If one has no player page, use step 3 with their id (`where player_id = '<player id>'` and `where id = '<player id>'`).
 4. Delete the pre-restore copy once every erasure is re-applied.
 
 Backups rotate out after 14 nights (`scripts/backup.sh`), plus however long the off-box copies are kept.

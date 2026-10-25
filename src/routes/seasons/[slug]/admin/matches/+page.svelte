@@ -89,7 +89,9 @@
 										/>
 									</span>
 									{#if r.reported}<span class="muted small">{a.legend} · {b.legend}</span>{/if}
-									{#if r.flag}<span class="small">“{r.flag.reason}” · {r.flag.by}</span>{/if}
+									{#if r.flag}<span class="small"
+											>{r.flag.reason ? `“${r.flag.reason}”` : 'Reason removed'} · {r.flag.by}</span
+										>{/if}
 								</div>
 							</td>
 							<td class="pb-num">{r.reported ? `${a.games}–${b.games}` : '–'}</td>

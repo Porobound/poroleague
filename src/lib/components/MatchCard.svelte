@@ -26,7 +26,7 @@
 		status: 'scheduled' | 'reported' | 'flagged' | 'void' | 'overdue';
 		note?: string;
 		link?: { href: string; label: string };
-		flag?: { by: string; reason: string } | null;
+		flag?: { by: string; reason: string | null } | null;
 		resolved?: boolean;
 		mine?: boolean;
 	} = $props();
@@ -97,7 +97,7 @@
 	{#if flag}
 		<figure class="pb-flag-reason">
 			<figcaption>Flagged by {flag.by}</figcaption>
-			<blockquote>{flag.reason}</blockquote>
+			<blockquote>{flag.reason ?? 'Reason removed'}</blockquote>
 		</figure>
 	{/if}
 	{#if note || link}
