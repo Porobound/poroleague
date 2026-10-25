@@ -25,7 +25,7 @@ test('signup, report and flag link to the rules', async ({ browser }) => {
 	seedEmptySeason('rules', 'signup');
 	const p = await browser.newPage(as(player('rules', 1)));
 	await p.goto(`/seasons/${slug}`);
-	await expect(p.getByRole('link', { name: 'league rules' })).toHaveAttribute('href', '/rules');
+	await expect(p.getByRole('link', { name: 'rules', exact: true })).toHaveAttribute('href', '/rules');
 
 	// Rules 1 reported a win over 2 (round 1) and has round 2 against 3 open.
 	const [reported, , open] = seedSeason('rules', { publishedRound: 3 });

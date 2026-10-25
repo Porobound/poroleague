@@ -121,6 +121,13 @@
 	{@render children()}
 </main>
 
+<footer class="pb-footer">
+	<div class="pb-footer-in">
+		<span class="pb-footer-mark">Poroleague</span>
+		<nav class="pb-footer-links" aria-label="Footer"><a href="/privacy">Privacy</a></nav>
+	</div>
+</footer>
+
 <nav aria-label="Pages" class="tab-bar">
 	{#each tabs as t (t.href)}
 		<a href={t.href} aria-current={here(t.href)}>{@html t.icon}{t.label}</a>

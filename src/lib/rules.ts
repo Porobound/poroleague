@@ -10,6 +10,8 @@ const marked = new Marked({
 	}
 });
 
+// Our own markdown (docs/), rendered on the server.
+export const renderDoc = (md: string) => marked.parse(md, { async: false });
+
 // docs/rules.md as HTML, up to the ideas and open questions, which aren't rules yet.
-export const renderRules = (md: string) =>
-	marked.parse(md.split(/^## Ideas for future seasons/m)[0], { async: false });
+export const renderRules = (md: string) => renderDoc(md.split(/^## Ideas for future seasons/m)[0]);

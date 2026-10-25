@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import privacy from '../../docs/privacy.md?raw';
 import rules from '../../docs/rules.md?raw';
-import { renderRules } from '#lib/rules.ts';
+import { renderDoc, renderRules } from '#lib/rules.ts';
 
 describe('renderRules', () => {
 	const html = renderRules(rules);
@@ -20,5 +21,14 @@ describe('renderRules', () => {
 		expect(renderRules('- **A saved report is final:** yes')).toBe(
 			'<ul>\n<li><strong>A saved report is final:</strong> yes</li>\n</ul>\n'
 		);
+	});
+});
+
+describe('renderDoc', () => {
+	it('renders the whole privacy notice', () => {
+		const html = renderDoc(privacy);
+		expect(html).toContain('<h1 id="privacy-notice">Privacy notice</h1>');
+		expect(html).toContain('<h2 id="your-rights">Your rights</h2>');
+		expect(html).toContain('<h2 id="discord">Discord</h2>');
 	});
 });

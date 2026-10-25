@@ -203,7 +203,8 @@
 						<button class="pb-btn pb-btn-primary">Sign up for {season.name}</button>
 					</form>
 					<p class="muted small">
-						By signing up you agree to the <a href="/rules">league rules</a>.
+						By signing up you agree to the <a href="/rules">rules</a> and the
+						<a href="/privacy">privacy notice</a>.
 					</p>
 				{/if}
 			</div>
