@@ -40,7 +40,7 @@
 					{#each data.lines as l (l.id)}
 						<tr>
 							<td class="pb-num nowrap when">{l.when}</td>
-							<td class="who">{l.actor}</td>
+							<td class={['who', l.actorFormer && 'pb-former']}>{l.actor}</td>
 							<td class="type"><span class={['pb-badge', TONE[l.action]]}>{l.label}</span></td>
 							<td class="what">{l.what}</td>
 						</tr>

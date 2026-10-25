@@ -5,7 +5,8 @@ const people = ['p1', 'p2', 'p3'].map((id, i) => ({
 	playerId: id,
 	displayName: `Player ${i + 1}`,
 	avatar: null,
-	dropped: id === 'p3'
+	dropped: id === 'p3',
+	former: false
 }));
 const season: Parameters<typeof cardContext>[0] = {
 	slug: 's1',
@@ -89,6 +90,18 @@ describe('matchCard props', () => {
 		const other = matchCard(match(), ctx('p3'));
 		expect([other.mine, other.props.link.label]).toEqual([false, 'View']);
 		expect(matchCard(match(), ctx()).props.link.label).toBe('View');
+	});
+
+	it('marks a former player and drops their link', () => {
+		const c = cardContext(
+			season,
+			[...people.slice(1), { ...people[0], displayName: 'Former player 1', former: true }],
+			null,
+			NOW
+		);
+		const [p1, p2] = matchCard(match(), c).props.sides;
+		expect(p1).toMatchObject({ name: 'Former player 1', former: true, href: null });
+		expect(p2).toMatchObject({ former: false, href: '/seasons/s1/players/p2' });
 	});
 
 	it('handles playoffs, unknown people and void notes', () => {

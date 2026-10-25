@@ -10,6 +10,7 @@ import { POST as logoutPOST } from '../../routes/auth/logout/+server.ts';
 import { currentRole, organizerPage } from '#lib/server/auth.ts';
 import { db } from '#lib/server/db/index.ts';
 import { players, sessions } from '#lib/server/db/schema.ts';
+import { erasePlayer } from '#lib/server/players.ts';
 import {
 	createSession,
 	SESSION_COOKIE,
@@ -231,14 +232,17 @@ describe('OAuth callback', () => {
 	});
 
 	it('logs in: upserts the profile, sets the role and a capped cookie', async () => {
-		db.insert(players).values({ id: '1001', displayName: 'Old name' }).run();
+		db.insert(players).values({ id: 'abc', discordId: '1001', displayName: 'Old name' }).run();
 		discord({ token: token(), member: json(member([ORGANIZER_ROLE_ID])) });
 		const cookies = started();
 		const before = Date.now();
 		expect(await call('code=c&state=st', cookies)).toBe('/seasons/s1');
 
-		expect(db.select().from(players).where(eq(players.id, '1001')).get()?.displayName).toBe('Nick');
+		expect(db.select().from(players).all()).toMatchObject([
+			{ id: 'abc', discordId: '1001', displayName: 'Nick' }
+		]);
 		const session = validateSession(cookies.set_.get(SESSION_COOKIE)!.value)!;
+		expect(session.player.id).toBe('abc');
 		expect(session.session.isOrganizer).toBe(true);
 		const expires = (cookies.set_.get(SESSION_COOKIE)!.opts.expires as Date).getTime();
 		expect(expires - before).toBeLessThanOrEqual(SESSION_TTL_SECONDS * 1000 + 1000);
@@ -246,6 +250,32 @@ describe('OAuth callback', () => {
 		expect(cookies.set_.get(SESSION_COOKIE)!.opts).toMatchObject({ httpOnly: true, path: '/' });
 		expect(cookies.deleted.get('oauth_state')).toEqual({ path: '/' });
 		expect(cookies.deleted.get('return_to')).toEqual({ path: '/' });
+	});
+
+	it('creates a new player with a random id for an unknown Discord account', async () => {
+		db.insert(players).values({ id: '1001', displayName: 'Seeded, not linked' }).run();
+		discord({ token: token(), member: json(member([])) });
+		const cookies = started();
+		await call('code=c&state=st', cookies);
+		const p = db.select().from(players).where(eq(players.discordId, '1001')).get()!;
+		expect(p.id).toMatch(/^[0-9a-f]{16}$/);
+		expect(p.displayName).toBe('Nick');
+		expect(validateSession(cookies.set_.get(SESSION_COOKIE)!.value)!.player.id).toBe(p.id);
+		expect(db.select().from(players).all()).toHaveLength(2);
+	});
+
+	it('starts an erased player over as a new player', async () => {
+		db.insert(players).values({ id: 'old', discordId: '1001', displayName: 'Nick' }).run();
+		erasePlayer('old', 'old');
+		discord({ token: token(), member: json(member([])) });
+		const cookies = started();
+		await call('code=c&state=st', cookies);
+		const p = db.select().from(players).where(eq(players.discordId, '1001')).get()!;
+		expect(p.id).not.toBe('old');
+		expect(db.select().from(players).where(eq(players.id, 'old')).get()).toMatchObject({
+			displayName: expect.stringMatching(/^Former player /),
+			discordId: null
+		});
 	});
 
 	it('uses a shorter Discord token lifetime and never redirects off-site', async () => {

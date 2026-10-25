@@ -64,7 +64,7 @@ describe('profileFromMember', () => {
 
 	it('falls back to the default avatar derived from the user id', () => {
 		expect(profileFromMember(member(), 'g1')).toEqual({
-			id: '80351110224678912',
+			discordId: '80351110224678912',
 			displayName: 'mikhe',
 			avatar: 'https://cdn.discordapp.com/embed/avatars/5.png'
 		});
@@ -143,6 +143,18 @@ describe('organizer posts', () => {
 		expect(dropEmbed({ player: '*x*', by: 'Org', where: 'S', url: 'http://x' }).title).toBe(
 			'\\*x\\* dropped'
 		);
+		expect(
+			dropEmbed({
+				player: 'Former player 3f9a',
+				by: 'Org',
+				where: 'S',
+				url: 'http://x',
+				erased: true
+			})
+		).toMatchObject({
+			title: 'Former player 3f9a dropped',
+			description: 'By Org. Erased on request; all their matches are void.'
+		});
 		expect(seasonDeletedEmbed('S_1', 'Org').title).toBe('Season deleted: S\\_1');
 		const undo = dropEmbed({
 			player: '*x*',
@@ -167,7 +179,8 @@ describe('pairingsPost', () => {
 		},
 		{ round: 6, pairs: [{ group: 1, p1Id: '1', p2Id: 'dev-2' }] }
 	];
-	const body = pairingsPost('Autumn *26* · Week 3', 'http://x/schedule', rounds);
+	const mention = (id: string) => (id === 'dev-2' ? 'Former player 1' : `<@d${id}>`);
+	const body = pairingsPost('Autumn *26* · Week 3', 'http://x/schedule', rounds, mention);
 
 	it('pings nobody', () => {
 		expect(body.content).toBe('**Autumn \\*26\\* · Week 3**\n[Full schedule](<http://x/schedule>)');
@@ -176,9 +189,10 @@ describe('pairingsPost', () => {
 	it('lays out one embed per round with a field per group', () => {
 		expect(body.embeds!.map((e) => e.title)).toEqual(['Round 5', 'Round 6']);
 		expect(body.embeds![0].fields).toEqual([
-			{ name: 'Group A', value: '<@1> vs <@2>', inline: true },
-			{ name: 'Group B', value: '<@3> vs <@4>', inline: true }
+			{ name: 'Group A', value: '<@d1> vs <@d2>', inline: true },
+			{ name: 'Group B', value: '<@d3> vs <@d4>', inline: true }
 		]);
+		expect(body.embeds![1].fields![0].value).toBe('<@d1> vs Former player 1');
 		expect(body.embeds!.every((e) => !e.url)).toBe(true);
 	});
 });

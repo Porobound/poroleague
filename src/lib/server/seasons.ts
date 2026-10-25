@@ -7,9 +7,15 @@ import { standings } from '#lib/league/standings.ts';
 import { currentWeek, reportingClosed, roundsOfWeek, weekOf } from '#lib/league/time.ts';
 import { seasonFields, seasonPhases, type SeasonFields, type SeasonStatus } from '#lib/season.ts';
 import { db } from '#lib/server/db/index.ts';
-import { audit, entries, matches, players, seasons } from '#lib/server/db/schema.ts';
+import { audit, entries, former, matches, players, seasons } from '#lib/server/db/schema.ts';
 import { droppedIds } from '#lib/league/status.ts';
-import { clearTiebreaks, playerMatches, seasonMatches, type Match } from '#lib/server/matches.ts';
+import {
+	clearTiebreaks,
+	playerMatches,
+	seasonMatches,
+	type Match,
+	type Tx
+} from '#lib/server/matches.ts';
 
 export type Season = typeof seasons.$inferSelect;
 
@@ -112,6 +118,7 @@ export function seasonEntries(seasonId: number) {
 			playerId: players.id,
 			displayName: players.displayName,
 			avatar: players.avatar,
+			former: former(),
 			group: entries.group,
 			dropped: entries.dropped,
 			tiebreak: entries.tiebreak
@@ -136,17 +143,17 @@ export function removeEntry(seasonId: number, playerId: string) {
 }
 
 // Voids every match of the player (derived from `dropped`); kept in the DB, out of the standings.
-export function dropPlayer(seasonId: number, playerId: string, actorId: string) {
-	db.transaction((tx) => {
-		tx.update(entries)
-			.set({ dropped: true })
-			.where(and(eq(entries.seasonId, seasonId), eq(entries.playerId, playerId)))
-			.run();
-		clearTiebreaks(tx, seasonId);
-		tx.insert(audit)
-			.values({ seasonId, actorId, action: 'drop', after: { dropped: playerId } })
-			.run();
-	});
+// Pass `tx` to drop as part of a bigger change (erasure).
+export function dropPlayer(seasonId: number, playerId: string, actorId: string, tx?: Tx): void {
+	if (!tx) return db.transaction((t) => dropPlayer(seasonId, playerId, actorId, t));
+	tx.update(entries)
+		.set({ dropped: true })
+		.where(and(eq(entries.seasonId, seasonId), eq(entries.playerId, playerId)))
+		.run();
+	clearTiebreaks(tx, seasonId);
+	tx.insert(audit)
+		.values({ seasonId, actorId, action: 'drop', after: { dropped: playerId } })
+		.run();
 }
 
 // Fixes a mistaken drop: the player's matches count again.
@@ -260,7 +267,8 @@ export function groupStandings(
 			rows: standings(g, results, closed).map((r) => ({
 				...r,
 				name: by.get(r.playerId)!.displayName,
-				avatar: by.get(r.playerId)!.avatar
+				avatar: by.get(r.playerId)!.avatar,
+				former: by.get(r.playerId)!.former
 			}))
 		};
 	});

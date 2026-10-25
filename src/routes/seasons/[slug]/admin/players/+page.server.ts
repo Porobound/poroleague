@@ -28,7 +28,7 @@ export const load: PageServerLoad = async ({ parent }) => {
 				...e,
 				record: r ? { played: r.played, wdl: `${r.wins}–${r.draws}–${r.losses}` } : null,
 				matches: ms.filter((m) => m.p1Id === e.playerId || m.p2Id === e.playerId).length,
-				canCancel: season.status === 'play' && e.dropped
+				canCancel: season.status === 'play' && e.dropped && !e.former
 			};
 		})
 	};
@@ -75,6 +75,8 @@ export const actions: Actions = {
 			return fail(409, {
 				message: 'A drop can only be cancelled while the season is in play.'
 			});
+		if (entry.former)
+			return fail(409, { message: 'An erased player can’t come back to the season.' });
 		cancelDrop(season.id, playerId, user.id);
 		postToOrganizers(
 			dropEmbed({

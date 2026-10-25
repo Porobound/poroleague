@@ -43,7 +43,13 @@ export function endState(season: Season, { list, all, live }: SeasonData, now = 
 	type Tie = {
 		group: number;
 		resolved: boolean;
-		players: { playerId: string; name: string; avatar: string | null; place: number }[];
+		players: {
+			playerId: string;
+			name: string;
+			avatar: string | null;
+			former: boolean;
+			place: number;
+		}[];
 		points: number;
 		gwp: number;
 		h2h: string;
@@ -67,7 +73,13 @@ export function endState(season: Season, { list, all, live }: SeasonData, now = 
 						gwp: r.gwp,
 						h2h: ''
 					};
-					t.players.push({ playerId: r.playerId, name: r.name, avatar: r.avatar, place: i + 1 });
+					t.players.push({
+						playerId: r.playerId,
+						name: r.name,
+						avatar: r.avatar,
+						former: r.former,
+						place: i + 1
+					});
 					if (r.unresolvedTie) t.resolved = false;
 					byKey.set(r.tie, t);
 				});

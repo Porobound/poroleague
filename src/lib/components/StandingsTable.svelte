@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Avatar from '#lib/components/Avatar.svelte';
+	import PlayerName from '#lib/components/PlayerName.svelte';
 	import { pct } from '#lib/format.ts';
 	import type { GroupStanding } from '#lib/server/seasons.ts';
 
@@ -43,13 +43,17 @@
 			>
 				<td class={['pb-rank', i === 0 && r.played > 0 && 'is-podium']}>{fresh ? '–' : i + 1}</td>
 				<td class="pb-player-cell">
-					<a class="pb-player" href="/seasons/{slug}/players/{r.playerId}">
-						<Avatar name={r.name} src={r.avatar} size={24} />
-						<span class="pb-player-name">{r.name}</span>
+					<PlayerName
+						cell
+						name={r.name}
+						avatar={r.avatar}
+						former={r.former}
+						href="/seasons/{slug}/players/{r.playerId}"
+					>
 						{#if showTies && r.unresolvedTie}<span class="pb-tie" title="Tied: an organizer decides"
 								>Tie</span
 							>{/if}
-					</a>
+					</PlayerName>
 				</td>
 				<td class="pb-num">{r.played}</td>
 				<td class="pb-num pb-opt">{r.wins}</td>

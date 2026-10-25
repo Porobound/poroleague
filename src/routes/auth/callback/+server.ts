@@ -4,6 +4,7 @@ import { profileFromMember, safeReturnTo } from '#lib/discord.ts';
 import { db } from '#lib/server/db/index.ts';
 import { players } from '#lib/server/db/schema.ts';
 import { exchangeCode, fetchMember } from '#lib/server/discord.ts';
+import { newPlayerId } from '#lib/server/players.ts';
 import { createSession, SESSION_COOKIE, SESSION_TTL_SECONDS } from '#lib/server/session.ts';
 import type { RequestHandler } from './$types';
 
@@ -30,17 +31,19 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 
 	const { member } = login.result;
 	const profile = profileFromMember(member, GUILD_ID);
-	db.insert(players)
-		.values(profile)
+	const { id } = db
+		.insert(players)
+		.values({ id: newPlayerId(), ...profile })
 		.onConflictDoUpdate({
-			target: players.id,
+			target: players.discordId,
 			set: { displayName: profile.displayName, avatar: profile.avatar }
 		})
-		.run();
+		.returning({ id: players.id })
+		.get();
 
 	const expiresAt = new Date(Date.now() + Math.min(login.expiresIn, SESSION_TTL_SECONDS) * 1000);
 	const token = createSession(
-		profile.id,
+		id,
 		login.accessToken,
 		member.roles.includes(ORGANIZER_ROLE_ID),
 		expiresAt

@@ -16,6 +16,7 @@ type Change = Partial<Report> & {
 	topCutSize?: number | null;
 	week?: number;
 	rounds?: [number, number];
+	erased?: string;
 };
 const LABEL: Record<string, string> = {
 	report: 'Report',
@@ -27,7 +28,8 @@ const LABEL: Record<string, string> = {
 	tiebreak: 'Tiebreak',
 	finalize: 'Finalize',
 	season: 'Season',
-	publish: 'Publish'
+	publish: 'Publish',
+	erase: 'Erase'
 };
 export const auditLabel = (action: string) => LABEL[action] ?? action;
 
@@ -66,12 +68,15 @@ export function auditLines(seasonId: number, limit?: number) {
 				id: r.id,
 				when: when(r.createdAt),
 				actor: r.actor,
+				actorFormer: r.actorFormer,
 				action: r.action,
 				label: auditLabel(r.action),
 				what: [
 					match,
 					change,
 					after?.flagReason ? `“${after.flagReason}”` : '',
+					r.action === 'flag' && !after?.flagReason ? 'reason removed' : '',
+					after?.erased ? `Erased a player · now ${name(after.erased)}` : '',
 					after?.dropped ? `Dropped ${name(after.dropped)}; their matches are void` : '',
 					after?.undropped
 						? `Cancelled ${name(after.undropped)}'s drop; their matches count again`

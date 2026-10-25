@@ -167,7 +167,9 @@
 			{#if data.entries.length}
 				<div class="avatars">
 					{#each data.entries.slice(0, AVATARS) as e (e.playerId)}
-						<span title={e.displayName}><Avatar name={e.displayName} src={e.avatar} /></span>
+						<span title={e.displayName}
+							><Avatar name={e.displayName} src={e.avatar} former={e.former} /></span
+						>
 					{/each}
 					{#if data.entries.length > AVATARS}
 						<span class="muted small">+{data.entries.length - AVATARS} more</span>
@@ -201,7 +203,8 @@
 						<button class="pb-btn pb-btn-primary">Sign up for {season.name}</button>
 					</form>
 					<p class="muted small">
-						By signing up you agree to the <a href="/rules">league rules</a>.
+						By signing up you agree to the <a href="/rules">rules</a> and the
+						<a href="/privacy">privacy notice</a>.
 					</p>
 				{/if}
 			</div>
@@ -267,7 +270,8 @@
 			<ul class="player-list">
 				{#each data.entries as e (e.playerId)}
 					<li>
-						<Avatar name={e.displayName} src={e.avatar} /> <span class="grow">{e.displayName}</span>
+						<Avatar name={e.displayName} src={e.avatar} former={e.former} />
+						<span class={['grow', e.former && 'pb-former']}>{e.displayName}</span>
 					</li>
 				{/each}
 			</ul>

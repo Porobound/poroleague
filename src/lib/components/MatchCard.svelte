@@ -6,7 +6,8 @@
 		avatar: string | null;
 		legend: string | null;
 		games: number | null;
-		href?: string;
+		href?: string | null;
+		former?: boolean;
 	};
 	let {
 		head,
@@ -25,7 +26,7 @@
 		status: 'scheduled' | 'reported' | 'flagged' | 'void' | 'overdue';
 		note?: string;
 		link?: { href: string; label: string };
-		flag?: { by: string; reason: string } | null;
+		flag?: { by: string; reason: string | null } | null;
 		resolved?: boolean;
 		mine?: boolean;
 	} = $props();
@@ -65,8 +66,8 @@
 		</span>
 	</div>
 	{#each sides as s, i (i)}
-		<div class={['pb-match-p', winner === i && 'is-winner']}>
-			<Avatar name={s.name} src={s.avatar} />
+		<div class={['pb-match-p', winner === i && 'is-winner', s.former && 'is-former']}>
+			<Avatar name={s.name} src={s.avatar} former={s.former} />
 			<span class="pb-match-name">
 				<span class="pb-match-nm">
 					{#if s.href}<a href={s.href}>{s.name}</a>{:else}{s.name}{/if}
@@ -96,7 +97,7 @@
 	{#if flag}
 		<figure class="pb-flag-reason">
 			<figcaption>Flagged by {flag.by}</figcaption>
-			<blockquote>{flag.reason}</blockquote>
+			<blockquote>{flag.reason ?? 'Reason removed'}</blockquote>
 		</figure>
 	{/if}
 	{#if note || link}

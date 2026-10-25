@@ -23,9 +23,13 @@ function write(fn: (db: Db) => void) {
 	}
 }
 
-// A player with a day-long session; log in with `as(id)`.
+// A player linked to a Discord account (same id), with a day-long session; log in with `as(id)`.
 function addPlayer(db: Db, id: string, name: string, organizer = false) {
-	db.prepare('insert or ignore into players (id, display_name) values (?, ?)').run(id, name);
+	db.prepare('insert or ignore into players (id, discord_id, display_name) values (?, ?, ?)').run(
+		id,
+		id,
+		name
+	);
 	db.prepare(
 		"insert or ignore into sessions (id, player_id, access_token, is_organizer, expires_at) values (?, ?, 'e2e', ?, ?)"
 	).run(

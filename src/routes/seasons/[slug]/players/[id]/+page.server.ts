@@ -1,9 +1,13 @@
-import { error } from '@sveltejs/kit';
+import { error, fail, redirect } from '@sveltejs/kit';
 import { legendMatches, playerLegends } from '#lib/league/legendStats.ts';
 import { published } from '#lib/league/publish.ts';
 import { weekOf } from '#lib/league/time.ts';
 import { cardContext, matchCard } from '#lib/matchCard.ts';
+import { organizerAction } from '#lib/server/auth.ts';
 import { playerMatches } from '#lib/server/matches.ts';
+import { erasePlayer } from '#lib/server/players.ts';
+import { postToOrganizers } from '#lib/server/webhooks.ts';
+import { dropEmbed } from '#lib/discord.ts';
 import {
 	groupStandings,
 	playerSeasons,
@@ -11,7 +15,7 @@ import {
 	seasonEntries,
 	seasonHistory
 } from '#lib/server/seasons.ts';
-import type { PageServerLoad } from './$types';
+import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = ({ params, locals }) => {
 	const season = publicSeason(params.slug, locals.user);
@@ -43,6 +47,37 @@ export const load: PageServerLoad = ({ params, locals }) => {
 			.map((c) => c.card),
 		matches: cards.map((c) => c.card),
 		legends: playerLegends(counted, player.playerId),
-		history: seasonHistory(playerSeasons(player.playerId))
+		history: seasonHistory(playerSeasons(player.playerId)),
+		// Shows the control only; the action re-checks the role with Discord.
+		canErase: !!locals.user?.isOrganizer && !player.former
 	};
+};
+
+export const actions: Actions = {
+	erase: async (event) => {
+		const user = await organizerAction(event);
+		const season = publicSeason(event.params.slug, user);
+		const player = seasonEntries(season.id).find((e) => e.playerId === event.params.id);
+		if (!player) error(404, 'Player not found');
+		if (player.former) return fail(409, { message: 'This player is already erased.' });
+		const typed = String((await event.request.formData()).get('confirm') ?? '').trim();
+		if (typed !== player.displayName)
+			return fail(400, { message: "Type the player's name to confirm." });
+		const { name, dropped } = erasePlayer(player.playerId, user.id);
+		// Same notice as a normal drop, under the new name only.
+		for (const s of dropped)
+			postToOrganizers(
+				dropEmbed({
+					player: name,
+					by: user.displayName,
+					where: s.name,
+					url: `${event.url.origin}/seasons/${s.slug}/players/${player.playerId}`,
+					erased: true
+				})
+			);
+		// Before groups are locked, erasing takes them off the season, so this page is gone.
+		if (season.status === 'signup' || season.status === 'groups')
+			redirect(303, `/seasons/${season.slug}/admin/players`);
+		return { message: `Player erased. Their results now show as ${name}.` };
+	}
 };

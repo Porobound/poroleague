@@ -16,10 +16,10 @@
 
 <div class="page">
 	<section class="player-head">
-		<Avatar name={player.displayName} src={player.avatar} size={72} />
+		<Avatar name={player.displayName} src={player.avatar} size={72} former={player.former} />
 		<div class="who">
 			<span class="eyebrow">Career</span>
-			<h1>{player.displayName}</h1>
+			<h1 class={[player.former && 'pb-former']}>{player.displayName}</h1>
 			<span class="muted small">{n} season{n === 1 ? '' : 's'} · first season {data.first}</span>
 		</div>
 	</section>
