@@ -21,6 +21,7 @@
 		"db:seed-dev": "node scripts/seed-dev.ts",
 		"db:report-dev": "node scripts/report-dev.ts",
 		"db:play-dev": "node scripts/play-dev.ts",
+		"db:reseed-dev": "node scripts/reseed-dev.ts",
 		"test:coverage": "vitest run --coverage",
 		"test:e2e": "playwright test"
 	},
