@@ -72,7 +72,7 @@
 					</li>
 					<li>
 						<strong>{season.roundsPerWeek} rounds a week</strong>
-						<span>Deadlines are 23:59{season.deadline ? ` ${tzName(season.deadline)}` : ''}.</span>
+						<span>Starts {date(season.startDate)}.</span>
 					</li>
 				</ul>
 			{:else}
@@ -264,7 +264,7 @@
 			<a href="/seasons/{season.slug}/audit">Audit log</a>
 			· <a href="/rules#4-points-and-standings">How standings work</a>
 		</p>
-	{:else if data.entries.length}
+	{:else if data.entries.length && season.status !== 'signup'}
 		<section>
 			<h2>Players</h2>
 			<ul class="player-list">
