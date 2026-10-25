@@ -38,8 +38,8 @@ async function crossSitePost(page: Page, action: string, fields: Record<string, 
 test('player action from another origin is rejected', async ({ browser }) => {
 	const page = await browser.newPage(as(player('csrf', 1)));
 	await crossSitePost(page, `/seasons/${slug}/matches/${match}?/report`, {
-		p1Games: '2',
-		p2Games: '0',
+		game1: '1',
+		game2: '1',
 		p1Legend: 'Ahri',
 		p2Legend: 'Annie',
 		dice: player('csrf', 1)

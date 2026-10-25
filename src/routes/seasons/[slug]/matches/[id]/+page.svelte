@@ -116,7 +116,7 @@
 			onchange={() => changes++}
 		>
 			<section class="games" aria-labelledby="games-h">
-				<h2 id="games-h" class="eyebrow">Games</h2>
+				<span id="games-h" class="eyebrow">Games</span>
 				<GameRows p1={{ name: data.p1.displayName }} p2={{ name: data.p2.displayName }} {values} />
 			</section>
 			{#if errors.score}<p class="pb-hint is-error" role="alert">{errors.score}</p>{/if}
@@ -273,9 +273,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: 12px;
-	}
-	.games h2 {
-		margin: 0;
 	}
 	.who-row {
 		display: flex;

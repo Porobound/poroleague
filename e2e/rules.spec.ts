@@ -46,9 +46,12 @@ test('signup, report and flag link to the rules', async ({ browser }) => {
 
 	// The report dialog opens once the form is filled in.
 	await p.goto(`/seasons/${slug}/matches/${open}`);
-	const games = p.getByRole('group', { name: 'Games won' });
-	await games.nth(0).getByLabel('2').check();
-	await games.nth(1).getByLabel('0').check();
+	for (const n of [1, 2])
+		await p
+			.getByRole('radiogroup', { name: new RegExp(`^Game ${n}`) })
+			.getByRole('radio')
+			.first()
+			.check();
 	await p.getByLabel('Legend').nth(0).selectOption('Ahri');
 	await p.getByLabel('Legend').nth(1).selectOption('Annie');
 	await p.getByRole('group', { name: 'Who won the dice roll?' }).getByRole('radio').first().check();
