@@ -7,9 +7,11 @@ const createdAt = () =>
 		.default(sql`(unixepoch())`);
 
 export const players = sqliteTable('players', {
-	id: text('id').primaryKey(), // Discord user id
+	id: text('id').primaryKey(), // random, from newPlayerId(); not the Discord id
+	discordId: text('discord_id').unique(), // null once erased
 	displayName: text('display_name').notNull(),
-	avatar: text('avatar')
+	avatar: text('avatar'),
+	erasedAt: integer('erased_at', { mode: 'timestamp' })
 });
 
 export const sessions = sqliteTable('sessions', {
