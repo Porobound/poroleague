@@ -443,10 +443,15 @@ describe('erase player', () => {
 
 	it('erases once, then refuses', async () => {
 		expect((await outcome(erase('p2', ORG, ' Player 2 '))).returned).toEqual({
-			message: 'Player erased. Their results now show as Former player 1.'
+			message: expect.stringMatching(
+				/^Player erased\. Their results now show as Former player [0-9a-f]{4}\.$/
+			)
 		});
-		expect(p2()).toMatchObject({ displayName: 'Former player 1', discordId: null });
-		expect(await status(erase('p2', ORG, 'Former player 1'))).toBe(409);
+		expect(p2()).toMatchObject({
+			displayName: expect.stringMatching(/^Former player /),
+			discordId: null
+		});
+		expect(await status(erase('p2', ORG, p2().displayName))).toBe(409);
 	});
 
 	it('404s for someone not in the season', async () => {

@@ -38,9 +38,9 @@ test('an organizer erases a player; results stay as a former player', async ({ b
 
 	const status = page.getByRole('status');
 	await expect(status).toHaveText(
-		/^Player erased\. Their results now show as Former player \d+\.$/
+		/^Player erased\. Their results now show as Former player [0-9a-f]{4}\.$/
 	);
-	const former = (await status.textContent())!.match(/Former player \d+/)![0];
+	const former = (await status.textContent())!.match(/Former player [0-9a-f]{4}/)![0];
 	await expect(page.getByRole('heading', { level: 1, name: former })).toBeVisible();
 	await expect(page.getByText('Account erased. Results are kept.')).toBeVisible();
 	await expect(page.getByRole('button', { name: 'Erase player…' })).toHaveCount(0);
@@ -55,6 +55,7 @@ test('an organizer erases a player; results stay as a former player', async ({ b
 	// The match keeps its score; the flag reason is gone.
 	await page.goto(`/seasons/${slug}/matches/${match}`);
 	await expect(page.getByText(former).first()).toBeVisible();
+	await expect(page.getByRole('link', { name: former })).toHaveCount(0);
 	await expect(page.getByText('Wrong score.')).toHaveCount(0);
 
 	await page.goto(`/seasons/${slug}/audit`);

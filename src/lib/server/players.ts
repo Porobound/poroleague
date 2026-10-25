@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { and, count, eq, inArray, isNotNull, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import { escapeMd } from '#lib/discord.ts';
 import { db } from '#lib/server/db/index.ts';
 import { audit, entries, matches, players, sessions } from '#lib/server/db/schema.ts';
@@ -15,18 +15,16 @@ export function discordMentions(ids: string[]) {
 	return (id: string) => by.get(id) ?? 'Unknown';
 }
 
-// GDPR erasure: the player stays as "Former player N" so results and standings don't change,
+// GDPR erasure: the player stays as "Former player 3f9a" so results and standings don't change,
 // but their Discord link, name, avatar, logins and flag reasons go. One audit row per season.
 export function erasePlayer(playerId: string, actorId: string) {
 	return db.transaction((tx) => {
 		const p = tx.select().from(players).where(eq(players.id, playerId)).get();
 		if (!p || p.erasedAt) throw new Error(`No player ${playerId} to erase`);
-		const [{ n }] = tx
-			.select({ n: count() })
-			.from(players)
-			.where(isNotNull(players.erasedAt))
-			.all();
-		const name = `Former player ${n + 1}`;
+		// A random suffix tells former players apart without depending on the order of erasures.
+		let name: string;
+		do name = `Former player ${randomBytes(2).toString('hex')}`;
+		while (tx.select().from(players).where(eq(players.displayName, name)).get());
 		tx.update(players)
 			.set({ displayName: name, avatar: null, discordId: null, erasedAt: new Date() })
 			.where(eq(players.id, playerId))

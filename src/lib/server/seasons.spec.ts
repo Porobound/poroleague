@@ -224,20 +224,15 @@ describe('auditLines', () => {
 	it('shows erased players as former, with their flag reasons removed', () => {
 		report(0, score(2, 1));
 		flagMatch(getMatch(season.id, ms[0])!, 'p2', 'wrong score');
-		erasePlayer('p2', ORG.id);
+		const name = erasePlayer('p2', ORG.id);
 
 		const lines = auditLines(season.id);
 		expect(lines.map((l) => [l.label, l.what, l.actor, l.actorFormer])).toEqual([
-			['Erase', 'Erased a player · now Former player 1', 'Player 9', false],
-			[
-				'Flag',
-				'Group A R1 · Player 1 vs Former player 1 · reason removed',
-				'Former player 1',
-				true
-			],
+			['Erase', `Erased a player · now ${name}`, 'Player 9', false],
+			['Flag', `Group A R1 · Player 1 vs ${name} · reason removed`, name, true],
 			[
 				'Report',
-				'Group A R1 · Player 1 2–1 Former player 1 · Jinx vs Viktor · dice: Player 1',
+				`Group A R1 · Player 1 2–1 ${name} · Jinx vs Viktor · dice: Player 1`,
 				'Player 1',
 				false
 			]
@@ -249,7 +244,7 @@ describe('auditLines', () => {
 		expect(seasonEntries(season.id).filter((e) => e.former)).toHaveLength(1);
 		const rows = groupStandings(season, seasonEntries(season.id))[0].rows;
 		expect(rows.find((r) => r.playerId === 'p2')).toMatchObject({
-			name: 'Former player 1',
+			name: name,
 			former: true
 		});
 		expect(rows.find((r) => r.playerId === 'p1')!.former).toBe(false);

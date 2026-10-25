@@ -273,7 +273,7 @@ describe('OAuth callback', () => {
 		const p = db.select().from(players).where(eq(players.discordId, '1001')).get()!;
 		expect(p.id).not.toBe('old');
 		expect(db.select().from(players).where(eq(players.id, 'old')).get()).toMatchObject({
-			displayName: 'Former player 1',
+			displayName: expect.stringMatching(/^Former player /),
 			discordId: null
 		});
 	});
