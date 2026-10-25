@@ -26,13 +26,14 @@ import { seedEntries, seedMatch, seedPlayers, seedSeason } from '#lib/server/tes
 // CLAUDE.md: every result change writes an audit row. Each write here must leave exactly one.
 const ORG = 'p4';
 const report: Report = {
+	games: '121',
 	p1Games: 2,
 	p2Games: 1,
 	p1Legend: 'Jinx',
 	p2Legend: 'Viktor',
 	diceWinnerId: 'p1'
 };
-const fixed: Report = { ...report, p1Games: 1, p2Games: 2 };
+const fixed: Report = { ...report, games: '212', p1Games: 1, p2Games: 2 };
 
 let season: Season;
 let match: Match;
@@ -100,6 +101,14 @@ describe('result writes', () => {
 		const resolvedAt = reload().flagResolvedAt;
 		organizerEdit(reload(), 'p3', fixed);
 		expect(reload()).toMatchObject({ flagResolvedBy: ORG, flagResolvedAt: resolvedAt });
+	});
+
+	it('organizerEdit on a legacy result (counts only): before has no games', () => {
+		saveReport(match, 'p1', { ...report, games: null });
+		db.delete(audit).run();
+		organizerEdit(reload(), ORG, fixed);
+		expect(only()).toMatchObject({ before: { ...report, games: null }, after: fixed });
+		expect(reload()).toMatchObject({ games: '212', p1Games: 1, p2Games: 2 });
 	});
 
 	it('flagMatch: audits the reason; the result and tiebreaks stay', () => {

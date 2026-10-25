@@ -107,24 +107,29 @@ export function seedSeason(
 	return ids;
 }
 
-// A result reported by p1 (Ahri vs Annie unless given, p1 won the roll), optionally flagged by p2,
+// A result reported by p1 (Ahri vs Annie unless given, p1 won the roll; per-game sequence only if
+// given, like results from before per-game reporting), optionally flagged by p2,
 // with the audit rows the site would write.
 export const seedResult = (
 	matchId: number,
 	p1Games: number,
 	p2Games: number,
-	{ flag, legends = ['Ahri', 'Annie'] }: { flag?: string; legends?: [string, string] } = {}
+	{
+		flag,
+		legends = ['Ahri', 'Annie'],
+		games = null
+	}: { flag?: string; legends?: [string, string]; games?: string | null } = {}
 ) =>
 	write((db) => {
 		db.prepare(
-			`update matches set p1_games = ?, p2_games = ?, p1_legend = ?, p2_legend = ?,
+			`update matches set p1_games = ?, p2_games = ?, games = ?, p1_legend = ?, p2_legend = ?,
 			 dice_winner_id = p1_id, reported_by = p1_id, reported_at = unixepoch(),
 			 flagged_by = iif(? is null, null, p2_id), flag_reason = ? where id = ?`
-		).run(p1Games, p2Games, ...legends, flag ?? null, flag ?? null, matchId);
+		).run(p1Games, p2Games, games, ...legends, flag ?? null, flag ?? null, matchId);
 		const log = db.prepare(
 			`insert into audit (season_id, match_id, actor_id, action, after)
 			 select season_id, id, iif(@action = 'report', p1_id, p2_id), @action, iif(@action = 'report',
-			   json_object('p1Games', p1_games, 'p2Games', p2_games, 'p1Legend', p1_legend,
+			   json_object('games', games, 'p1Games', p1_games, 'p2Games', p2_games, 'p1Legend', p1_legend,
 			     'p2Legend', p2_legend, 'diceWinnerId', dice_winner_id),
 			   json_object('flagReason', flag_reason))
 			 from matches where id = @id`

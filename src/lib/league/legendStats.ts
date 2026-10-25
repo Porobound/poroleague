@@ -102,4 +102,6 @@ export const results = (t: Tally) => t.wins + t.draws + t.losses;
 export const matchWinPct = (t: Tally, min = MIN_RATED) =>
 	results(t) >= Math.max(min, 1) ? t.wins / results(t) : null;
 export const gameWinPct = (t: Tally, min = MIN_RATED) =>
-	results(t) >= Math.max(min, 1) ? t.gameWins / (t.gameWins + t.gameLosses) : null;
+	results(t) >= Math.max(min, 1) && t.gameWins + t.gameLosses
+		? t.gameWins / (t.gameWins + t.gameLosses)
+		: null;

@@ -1,10 +1,12 @@
 <script lang="ts">
+	import GameRows from '#lib/components/GameRows.svelte';
 	import { LEGENDS } from '#lib/legends.ts';
 
 	type Who = { id: string; name: string };
 	type Values = {
-		p1Games: string;
-		p2Games: string;
+		game1: string;
+		game2: string;
+		game3: string;
 		p1Legend: string;
 		p2Legend: string;
 		dice: string;
@@ -16,17 +18,9 @@
 	] as const);
 </script>
 
+<GameRows {p1} {p2} {values} compact />
 <div class="grid-2">
 	{#each sides as [k, who] (k)}
-		<label class="pb-field">
-			{who.name} games
-			<select class="pb-input pb-select" name="{k}Games" required>
-				<option value="" disabled selected={!values[`${k}Games`]}>–</option>
-				{#each ['0', '1', '2'] as n (n)}
-					<option value={n} selected={values[`${k}Games`] === n}>{n}</option>
-				{/each}
-			</select>
-		</label>
 		<label class="pb-field">
 			{who.name} legend
 			<select class="pb-input pb-select" name="{k}Legend" required>

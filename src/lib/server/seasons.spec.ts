@@ -5,7 +5,7 @@ import type { Report } from '#lib/league/report.ts';
 import { auditLines } from '#lib/server/auditLog.ts';
 import { db } from '#lib/server/db/index.ts';
 import { entries, matches, seasons } from '#lib/server/db/schema.ts';
-import { flagMatch, getMatch, saveReport } from '#lib/server/matches.ts';
+import { flagMatch, getMatch, organizerEdit, saveReport } from '#lib/server/matches.ts';
 import { erasePlayer } from '#lib/server/players.ts';
 import { endState, nextPairings, seasonData } from '#lib/server/seasonAdmin.ts';
 import {
@@ -38,6 +38,7 @@ const notFound = (f: () => unknown) => {
 	return false;
 };
 const score = (p1Games: number, p2Games: number): Report => ({
+	games: null, // legacy rows: standings read the counts
 	p1Games,
 	p2Games,
 	p1Legend: 'Jinx',
@@ -219,6 +220,15 @@ describe('auditLines', () => {
 		]);
 		expect(lines[0].actor).toBe('Player 9');
 		expect(auditLines(season.id, 2)).toHaveLength(2);
+	});
+
+	it('names who won each game when the result has them', () => {
+		report(0, { ...score(1, 1), games: '1D2' });
+		organizerEdit(getMatch(season.id, ms[0])!, ORG.id, score(2, 1));
+		expect(auditLines(season.id).map((l) => l.what)).toEqual([
+			'Group A R1 · Player 1 1–1 Player 2 · games Player 1, draw, Player 2 · Jinx vs Viktor · dice: Player 1 → Player 1 2–1 Player 2 · Jinx vs Viktor · dice: Player 1',
+			'Group A R1 · Player 1 1–1 Player 2 · games Player 1, draw, Player 2 · Jinx vs Viktor · dice: Player 1'
+		]);
 	});
 
 	it('shows erased players as former, with their flag reasons removed', () => {

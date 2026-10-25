@@ -55,9 +55,12 @@ export function auditLines(seasonId: number, limit?: number) {
 	return seasonAudit(seasonId)
 		.slice(0, limit)
 		.map((r) => {
+			const winner = (g: string) => (g === 'D' ? 'draw' : name(g === '1' ? r.p1Id : r.p2Id));
+			const games = (c: Change) =>
+				c.games ? ` · games ${[...c.games].map(winner).join(', ')}` : '';
 			const result = (c: Change | null) =>
 				c?.p1Games != null
-					? `${name(r.p1Id)} ${c.p1Games}–${c.p2Games} ${name(r.p2Id)} · ${c.p1Legend} vs ${c.p2Legend} · dice: ${name(c.diceWinnerId)}`
+					? `${name(r.p1Id)} ${c.p1Games}–${c.p2Games} ${name(r.p2Id)}${games(c)} · ${c.p1Legend} vs ${c.p2Legend} · dice: ${name(c.diceWinnerId)}`
 					: '';
 			const [before, after] = [r.before as Change | null, r.after as Change | null];
 			const change = [result(before), result(after)].filter(Boolean).join(' → ');

@@ -18,7 +18,8 @@
 		link,
 		flag = null,
 		resolved = false,
-		mine = false
+		mine = false,
+		games
 	}: {
 		head: string;
 		sides: [Side, Side];
@@ -29,6 +30,7 @@
 		flag?: { by: string; reason: string | null } | null;
 		resolved?: boolean;
 		mine?: boolean;
+		games?: (0 | 1 | null)[]; // side that won each game, null for a draw
 	} = $props();
 
 	const BADGE = {
@@ -94,6 +96,28 @@
 			<span class="pb-match-score">{s.games ?? '–'}</span>
 		</div>
 	{/each}
+	{#if games?.length}
+		<div class="pb-match-games">
+			<span class="pb-match-games-k">Games</span>
+			<ol class="pb-gchips" aria-label="Games">
+				{#each games as g, i (i)}
+					{@const who = g === null ? null : sides[g]}
+					<li
+						class={[
+							'pb-gchip',
+							g === null && 'is-draw',
+							g !== null && g === winner && 'is-match-winner'
+						]}
+						title="Game {i + 1}: {who ? `${who.name} won` : 'draw'}"
+					>
+						<span class="pb-gchip-n" aria-hidden="true">{i + 1}</span><span class="pb-sr"
+							>Game {i + 1}:
+						</span>{who?.name ?? 'Draw'}
+					</li>
+				{/each}
+			</ol>
+		</div>
+	{/if}
 	{#if flag}
 		<figure class="pb-flag-reason">
 			<figcaption>Flagged by {flag.by}</figcaption>

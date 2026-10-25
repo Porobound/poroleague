@@ -22,7 +22,8 @@ export const SEASONS = {
 	legends: 'e2e-legends',
 	drops: 'e2e-drops',
 	erase: 'e2e-erase',
-	privacy: 'e2e-privacy'
+	privacy: 'e2e-privacy',
+	perGame: 'e2e-per-game'
 };
 export type SeasonKey = keyof typeof SEASONS;
 

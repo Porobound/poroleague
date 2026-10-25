@@ -6,33 +6,43 @@ const form = (o: Record<string, string>) => {
 	for (const [k, v] of Object.entries(o)) f.set(k, v);
 	return f;
 };
-const valid = { p1Games: '2', p2Games: '1', p1Legend: 'Jinx', p2Legend: 'Ahri', dice: 'a' };
+const valid = { game1: '1', game2: '2', game3: '1', p1Legend: 'Jinx', p2Legend: 'Ahri', dice: 'a' };
 
 describe('parseReport', () => {
 	it('parses a valid report', () => {
 		expect(parseReport(form(valid), 'a', 'b')).toEqual({
 			ok: true,
-			values: { p1Games: 2, p2Games: 1, p1Legend: 'Jinx', p2Legend: 'Ahri', diceWinnerId: 'a' }
+			values: {
+				games: '121',
+				p1Games: 2,
+				p2Games: 1,
+				p1Legend: 'Jinx',
+				p2Legend: 'Ahri',
+				diceWinnerId: 'a'
+			}
 		});
 	});
 
-	it('accepts a 1-1 draw and a match called at 1-0', () => {
-		expect(parseReport(form({ ...valid, p1Games: '1', p2Games: '1' }), 'a', 'b').ok).toBe(true);
-		expect(parseReport(form({ ...valid, p1Games: '1', p2Games: '0' }), 'a', 'b').ok).toBe(true);
+	it('leaves unplayed games out: 2–0, a 1–0 called on time, a 0–0 draw', () => {
+		const values = (o: Record<string, string>) => {
+			const r = parseReport(form({ ...valid, game2: '', game3: '', ...o }), 'a', 'b');
+			return r.ok && [r.values.games, r.values.p1Games, r.values.p2Games];
+		};
+		expect(values({ game2: '1' })).toEqual(['11', 2, 0]);
+		expect(values({})).toEqual(['1', 1, 0]);
+		expect(values({ game1: 'D', game2: 'D' })).toEqual(['DD', 0, 0]);
 	});
 
-	it('rejects impossible Bo3 scores, and missing scores', () => {
-		for (const [p1Games, p2Games] of [
-			['2', '2'],
-			['0', '0'],
-			['3', '0'],
-			['', '2']
-		]) {
-			const r = parseReport(form({ ...valid, p1Games, p2Games }), 'a', 'b');
-			expect(r.ok ? null : r.errors).toEqual({
-				score: "That isn't a possible Bo3 result."
-			});
+	it('rejects bad sequences with the score error', () => {
+		for (const o of [{ game1: '' }, { game2: '' }, { game2: '1', game3: '2' }, { game1: '3' }]) {
+			const r = parseReport(form({ ...valid, ...o }), 'a', 'b');
+			expect(r.ok ? null : Object.keys(r.errors), JSON.stringify(o)).toEqual(['score']);
 		}
+	});
+
+	it('reports game, legend and dice errors together', () => {
+		const r = parseReport(form({ ...valid, game1: '', p1Legend: '', dice: 'c' }), 'a', 'b');
+		expect(Object.keys(r.ok ? {} : r.errors).sort()).toEqual(['dice', 'p1Legend', 'score']);
 	});
 
 	it('requires listed legends and a dice winner who played the match', () => {

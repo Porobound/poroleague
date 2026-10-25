@@ -67,7 +67,7 @@ async function outcome(p: unknown) {
 }
 const status = async (p: unknown) => ((await outcome(p)).returned as { status?: number })?.status;
 
-const result = { p1Games: '2', p2Games: '1', p1Legend: 'Jinx', p2Legend: 'Viktor' };
+const result = { game1: '1', game2: '2', game3: '1', p1Legend: 'Jinx', p2Legend: 'Viktor' };
 const get = (id: number) => db.select().from(matches).where(eq(matches.id, id)).get()!;
 
 let season: Season;
@@ -102,14 +102,18 @@ describe('player report', () => {
 		expect(await status(report(m1, as('p1')))).toBe(409);
 	});
 
+	it('saves the games and the counts they give', async () => {
+		await report(m1, as('p1'), { ...result, game2: 'D', game3: '', dice: 'p1' });
+		expect(get(m1)).toMatchObject({ games: '1D', p1Games: 1, p2Games: 0 });
+	});
+
 	it('refuses players outside the match', async () => {
 		expect(await status(report(m1, as('p3')))).toBe(409);
 		expect(await status(report(m1, ORG))).toBe(409);
 	});
 
 	it('rejects a bad form and keeps what was typed', async () => {
-		const r = (await outcome(report(m1, as('p1'), { ...result, p1Games: '3', dice: 'p3' })))
-			.returned;
+		const r = (await outcome(report(m1, as('p1'), { ...result, game1: '', dice: 'p3' }))).returned;
 		expect(r).toMatchObject({
 			status: 400,
 			data: { errors: { score: expect.any(String), dice: expect.any(String) } }
@@ -140,6 +144,7 @@ describe('player flag', () => {
 		matchActions.flag!(event({ slug: 's1', id: String(id) }, user, { reason }));
 	const reported = () =>
 		saveReport(get(m1), 'p1', {
+			games: '121',
 			p1Games: 2,
 			p2Games: 1,
 			p1Legend: 'Jinx',
@@ -168,9 +173,9 @@ describe('player flag', () => {
 });
 
 describe('organizer edit and keep', () => {
-	const edit = (matchId: number | string) =>
+	const edit = (matchId: number | string, games = result) =>
 		adminActions.edit!(
-			event({ slug: 's1' }, ORG, { ...result, dice: 'p2', matchId: String(matchId) })
+			event({ slug: 's1' }, ORG, { ...games, dice: 'p2', matchId: String(matchId) })
 		);
 	const keep = (matchId: number) =>
 		adminActions.keep!(event({ slug: 's1' }, ORG, { matchId: String(matchId) }));
@@ -180,6 +185,12 @@ describe('organizer edit and keep', () => {
 			message: 'Result saved and logged.'
 		});
 		expect(get(m1)).toMatchObject({ diceWinnerId: 'p2', reportedBy: 'org' });
+	});
+
+	it('replaces the games and the counts together', async () => {
+		await edit(m1);
+		await edit(m1, { ...result, game1: '2', game2: '2', game3: '' });
+		expect(get(m1)).toMatchObject({ games: '22', p1Games: 0, p2Games: 2 });
 	});
 
 	it('refuses outside play, on void matches and on unpublished rounds', async () => {
@@ -202,6 +213,7 @@ describe('organizer edit and keep', () => {
 	it('keep needs an open flag', async () => {
 		expect(await status(keep(m1))).toBe(409);
 		saveReport(get(m1), 'p1', {
+			games: '121',
 			p1Games: 2,
 			p2Games: 1,
 			p1Legend: 'Jinx',
@@ -252,6 +264,7 @@ describe('season end', () => {
 	it('won’t finalize with an open flag', async () => {
 		setSeason({ deadline: '2020-01-01' });
 		saveReport(get(m1), 'p1', {
+			games: '11',
 			p1Games: 2,
 			p2Games: 0,
 			p1Legend: 'Jinx',

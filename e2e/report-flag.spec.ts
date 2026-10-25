@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { removeSeason, seedSeason } from './db.ts';
 import { ORGANIZER, SEASONS, as, player, playerName, posts } from './fixtures.ts';
 
@@ -9,9 +9,13 @@ const titles = async (channel: 'results' | 'organizers') =>
 	(await posts(channel)).flatMap(
 		(b) => b.embeds?.map((e) => `${e.title} | ${e.description}`) ?? []
 	);
-// The reporter's card, their side first: names, legends and games won.
+// The reporter's card, their side first: names, legends and games won, then who won each game.
 const card = (a: number, b: number) =>
-	new RegExp(`${p1}\\nAhri\\n${a}\\n.*${p2}\\nAnnie\\n${b}`, 's');
+	new RegExp(`${p1}\\nAhri\\n${a}\\n.*${p2}\\nAnnie\\n${b}\\nGames\\n`, 'si');
+// Each chip's title names the game and its winner.
+const chips = (page: Page) => page.getByRole('list', { name: 'Games' }).getByRole('listitem');
+const game = (page: Page, n: number) =>
+	page.getByRole('radiogroup', { name: new RegExp(`^Game ${n}`) });
 
 test.beforeAll(() => {
 	[match] = seedSeason('report', { publishedRound: 3 });
@@ -22,33 +26,35 @@ test('report, flag, organizer fix', async ({ browser }) => {
 	// The player reports 2–1 through the real form.
 	const reporter = await browser.newPage(as(player('report', 1)));
 	await reporter.goto(`/seasons/${slug}/matches/${match}`);
-	const games = reporter.getByRole('group', { name: 'Games won' });
 	const add = reporter.getByRole('button', { name: 'Add result' });
 	await expect(add).toBeDisabled();
-	// 0, 1 and 2 sit on one row, apart.
+	// p1 · Draw · p2 sit on one row, apart.
 	const boxes = await Promise.all(
-		['0', '1', '2'].map(
-			async (n) => (await games.nth(0).getByText(n, { exact: true }).boundingBox())!
+		[p1, 'Draw', p2].map(
+			async (n) => (await game(reporter, 1).getByText(n, { exact: true }).boundingBox())!
 		)
 	);
 	expect(new Set(boxes.map((b) => Math.round(b.y))).size).toBe(1);
 	expect(boxes[0].x + boxes[0].width).toBeLessThan(boxes[1].x);
-	const scoreError = reporter
-		.getByRole('alert')
-		.filter({ hasText: "That isn't a possible Bo3 result" });
-	await games.nth(0).getByLabel('2').check();
-	await expect(scoreError).toHaveCount(0); // waits for the other side
-	await games.nth(1).getByLabel('2').check();
-	await expect(scoreError).toBeVisible();
 	await reporter.getByLabel('Legend').nth(0).selectOption('Ahri');
 	await reporter.getByLabel('Legend').nth(1).selectOption('Annie');
 	await reporter.getByRole('group', { name: 'Who won the dice roll?' }).getByLabel(p2).check();
-	await expect(add).toBeDisabled(); // 2–2 isn't a Bo3 score
-	await games.nth(1).getByLabel('1').check();
+	await game(reporter, 1).getByLabel(p1).check();
+	await game(reporter, 2).getByLabel(p1).check();
+	await game(reporter, 3).getByLabel(p2).check();
+	await expect(reporter.getByRole('alert')).toHaveText(
+		"Game 3 can't be played: the match was already 2–0."
+	);
+	await expect(add).toBeDisabled();
+	await game(reporter, 2).getByLabel(p2).check();
+	await game(reporter, 3).getByLabel(p1).check();
+	await expect(reporter.getByText(`Result: ${p1} 2–1 ${p2}`)).toBeVisible();
 	await add.click();
 	await reporter.getByRole('dialog').getByRole('button', { name: 'Save result' }).click();
 	await expect(reporter.getByRole('status')).toContainText('Result saved');
 	await expect(reporter.getByRole('article')).toHaveText(card(2, 1), { useInnerText: true });
+	for (const [i, who] of [p1, p2, p1].entries())
+		await expect(chips(reporter).nth(i)).toHaveAttribute('title', `Game ${i + 1}: ${who} won`);
 	await expect(reporter.getByText('Reported by you')).toBeVisible();
 	await expect
 		.poll(() => titles('results'))
@@ -74,8 +80,15 @@ test('report, flag, organizer fix', async ({ browser }) => {
 	await expect(flags).toContainText('It was 1-2, not 2-1.');
 	await flags.getByRole('button', { name: 'Edit result' }).click();
 	const edit = organizer.getByRole('dialog', { name: 'Change this result?' });
-	await edit.getByLabel(`${p1} games`).selectOption('1');
-	await edit.getByLabel(`${p2} games`).selectOption('2');
+	// The dialog covers the card, so it repeats the flag and its reason.
+	await expect(edit.getByRole('figure')).toHaveText(
+		new RegExp(`Flagged by ${p2}\\s*It was 1-2, not 2-1.`, 'i')
+	);
+	// It opens with the reported games filled in.
+	await expect(game(organizer, 3).getByLabel(p1)).toBeChecked();
+	await game(organizer, 1).getByLabel(p2).check();
+	await game(organizer, 2).getByLabel(p1).check();
+	await game(organizer, 3).getByLabel(p2).check();
 	await edit.getByRole('button', { name: 'Save result' }).click();
 	await expect(organizer.getByRole('status')).toContainText('Result changed. Flag resolved.');
 	await expect(flags).toHaveCount(0);
@@ -95,6 +108,8 @@ test('report, flag, organizer fix', async ({ browser }) => {
 	await reporter.reload();
 	await expect(reporter.getByText('Flag resolved by an organizer · final')).toBeVisible();
 	await expect(reporter.getByRole('article')).toHaveText(card(1, 2), { useInnerText: true });
+	await expect(chips(reporter)).toHaveCount(3);
+	await expect(chips(reporter).first()).toHaveAttribute('title', `Game 1: ${p2} won`);
 
 	// Match lists mark the resolved flag on that match only.
 	await reporter.goto(`/seasons/${slug}/schedule`);

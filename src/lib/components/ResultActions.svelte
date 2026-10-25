@@ -29,6 +29,12 @@
 				? 'This replaces the reported result.'
 				: 'For a match that was played but never reported.'}
 	</p>
+	{#if r.flag}
+		<figure class="pb-flag-reason">
+			<figcaption>Flagged by {r.flag.by}</figcaption>
+			<blockquote>{r.flag.reason ?? 'Reason removed'}</blockquote>
+		</figure>
+	{/if}
 	<ResultFields p1={r.p1} p2={r.p2} values={r.values} />
 </ConfirmButton>
 {#if r.flag}
