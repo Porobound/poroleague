@@ -1,7 +1,8 @@
 import { LEGENDS } from '#lib/legends.ts';
-import { isValidScore } from './score';
+import { scoreGames } from './score';
 
 export type Report = {
+	games: string | null; // null on results reported before per-game reporting
 	p1Games: number;
 	p2Games: number;
 	p1Legend: string;
@@ -15,20 +16,18 @@ const LEGEND_SET = new Set<string>(LEGENDS);
 
 export function parseReport(form: FormData, p1Id: string, p2Id: string): ReportParse {
 	const get = (k: string) => String(form.get(k) ?? '').trim();
-	const [g1, g2] = [get('p1Games'), get('p2Games')];
-	const p1Games = Number(g1);
-	const p2Games = Number(g2);
+	const score = scoreGames([get('game1'), get('game2'), get('game3')]);
 	const values: Report = {
-		p1Games,
-		p2Games,
+		games: score.ok ? score.games : null,
+		p1Games: score.ok ? score.p1 : 0,
+		p2Games: score.ok ? score.p2 : 0,
 		p1Legend: get('p1Legend'),
 		p2Legend: get('p2Legend'),
 		diceWinnerId: get('dice')
 	};
 
 	const errors: ReportErrors = {};
-	if (!g1 || !g2 || !isValidScore(p1Games, p2Games))
-		errors.score = "That isn't a possible Bo3 result.";
+	if (!score.ok) errors.score = score.error;
 	if (!LEGEND_SET.has(values.p1Legend)) errors.p1Legend = 'Pick a legend.';
 	if (!LEGEND_SET.has(values.p2Legend)) errors.p2Legend = 'Pick a legend.';
 	if (values.diceWinnerId !== p1Id && values.diceWinnerId !== p2Id)
