@@ -121,13 +121,15 @@ export const newPlayerId = () => randomBytes(8).toString('hex');
 // Embed text for each player: a Discord mention, or the plain name once erased (or never linked).
 export function discordMentions(ids: string[]) {
 	const rows = db.select().from(players).where(inArray(players.id, ids)).all();
-	const by = new Map(rows.map((p) => [p.id, p.discordId ? `<@${p.discordId}>` : escapeMd(p.displayName)]));
+	const by = new Map(
+		rows.map((p) => [p.id, p.discordId ? `<@${p.discordId}>` : escapeMd(p.displayName)])
+	);
 	return (id: string) => by.get(id) ?? 'Unknown';
 }
 ```
 
-  - callback: `const { id } = db.insert(players).values({ id: newPlayerId(), ...profile }).onConflictDoUpdate({ target: players.discordId, set: { displayName: profile.displayName, avatar: profile.avatar } }).returning({ id: players.id }).get();` then `createSession(id, …)`.
-  - admin publish: `pairingsPost(title, url, p.byRound, discordMentions(p.byRound.flatMap((r) => r.pairs.flatMap((x) => [x.p1Id, x.p2Id]))))`.
+- callback: `const { id } = db.insert(players).values({ id: newPlayerId(), ...profile }).onConflictDoUpdate({ target: players.discordId, set: { displayName: profile.displayName, avatar: profile.avatar } }).returning({ id: players.id }).get();` then `createSession(id, …)`.
+- admin publish: `pairingsPost(title, url, p.byRound, discordMentions(p.byRound.flatMap((r) => r.pairs.flatMap((x) => [x.p1Id, x.p2Id]))))`.
 - [ ] **Step 4:** `npx vitest run` → pass; `npm run check` → 0 errors.
 - [ ] **Step 5:** Commit `feat: log in by Discord id; pairings mention via discord_id`.
 
@@ -164,9 +166,15 @@ export function erasePlayer(playerId: string, actorId: string) {
 			.set({ after: sql`json_remove(${audit.after}, '$.flagReason')` })
 			.where(and(eq(audit.actorId, playerId), eq(audit.action, 'flag')))
 			.run();
-		const seasonIds = tx.select({ id: entries.seasonId }).from(entries).where(eq(entries.playerId, playerId)).all();
+		const seasonIds = tx
+			.select({ id: entries.seasonId })
+			.from(entries)
+			.where(eq(entries.playerId, playerId))
+			.all();
 		for (const { id } of seasonIds)
-			tx.insert(audit).values({ seasonId: id, actorId, action: 'erase', after: { erased: playerId } }).run();
+			tx.insert(audit)
+				.values({ seasonId: id, actorId, action: 'erase', after: { erased: playerId } })
+				.run();
 		return name;
 	});
 }
@@ -186,7 +194,7 @@ export function erasePlayer(playerId: string, actorId: string) {
   - `groupStandings` rows: add `former: by.get(r.playerId)!.former`.
   - `matchCard.ts`: `Person` gains `former: boolean`; `side()` adds `former: !!person(id)?.former` and `href: person(id)?.former ? null : …`.
   - `seasonAudit`: add `actorFormer: sql<boolean>\`${players.erasedAt} is not null\`.mapWith(Boolean)`.
-  - `auditLog.ts`: `LABEL.erase = 'Erase'`; `Change` gains `erased?: string`; `what` adds `after?.erased ? \`Erased a player · now ${name(after.erased)}\` : ''` and, for `r.action === 'flag' && !after?.flagReason`, `'reason removed'`; pass `actorFormer` through.
+  - `auditLog.ts`: `LABEL.erase = 'Erase'`; `Change` gains `erased?: string`; `what` adds `after?.erased ? \`Erased a player · now ${name(after.erased)}\` : ''`and, for`r.action === 'flag' && !after?.flagReason`, `'reason removed'`; pass `actorFormer` through.
 - [ ] **Step 4:** `npx vitest run` and `npm run check` → pass.
 - [ ] **Step 5:** Commit `feat: mark erased players as former in standings, cards and the audit log`.
 
@@ -229,14 +237,15 @@ export const actions: Actions = {
 		if (!player) error(404, 'Player not found');
 		if (player.former) return fail(409, { message: 'This player is already erased.' });
 		const typed = String((await event.request.formData()).get('confirm') ?? '').trim();
-		if (typed !== player.displayName) return fail(400, { message: "Type the player's name to confirm." });
+		if (typed !== player.displayName)
+			return fail(400, { message: "Type the player's name to confirm." });
 		const name = erasePlayer(player.playerId, user.id);
 		return { message: `Player erased. Their results now show as ${name}.` };
 	}
 };
 ```
 
-  - page: `pb-notice` for `form.message`; when `data.canErase` a section `aria-labelledby` "Erase player" + `Organizers only` badge, the bordered danger box text from the design, and `ConfirmButton variant="danger" confirmVariant="danger" label="Erase player…" title="Erase {name}?" confirmLabel="Erase player" confirmDisabled={typed.trim() !== name}` whose body lists Removed (Name and avatar / Discord link and logins / Their flag reasons), Kept (Their results, shown as "Former player"), "This can't be undone." and a `pb-field` text input `name="confirm"` labelled `Type {name} to confirm`, `autocomplete="off"`, `bind:value={typed}`.
+- page: `pb-notice` for `form.message`; when `data.canErase` a section `aria-labelledby` "Erase player" + `Organizers only` badge, the bordered danger box text from the design, and `ConfirmButton variant="danger" confirmVariant="danger" label="Erase player…" title="Erase {name}?" confirmLabel="Erase player" confirmDisabled={typed.trim() !== name}` whose body lists Removed (Name and avatar / Discord link and logins / Their flag reasons), Kept (Their results, shown as "Former player"), "This can't be undone." and a `pb-field` text input `name="confirm"` labelled `Type {name} to confirm`, `autocomplete="off"`, `bind:value={typed}`.
 - [ ] **Step 4:** `npx vitest run` and `npm run check` → pass.
 - [ ] **Step 5:** Commit `feat: organizers erase a player from the player page`.
 

@@ -10,6 +10,7 @@ import { POST as logoutPOST } from '../../routes/auth/logout/+server.ts';
 import { currentRole, organizerPage } from '#lib/server/auth.ts';
 import { db } from '#lib/server/db/index.ts';
 import { players, sessions } from '#lib/server/db/schema.ts';
+import { erasePlayer } from '#lib/server/players.ts';
 import {
 	createSession,
 	SESSION_COOKIE,
@@ -261,6 +262,20 @@ describe('OAuth callback', () => {
 		expect(p.displayName).toBe('Nick');
 		expect(validateSession(cookies.set_.get(SESSION_COOKIE)!.value)!.player.id).toBe(p.id);
 		expect(db.select().from(players).all()).toHaveLength(2);
+	});
+
+	it('starts an erased player over as a new player', async () => {
+		db.insert(players).values({ id: 'old', discordId: '1001', displayName: 'Nick' }).run();
+		erasePlayer('old', 'old');
+		discord({ token: token(), member: json(member([])) });
+		const cookies = started();
+		await call('code=c&state=st', cookies);
+		const p = db.select().from(players).where(eq(players.discordId, '1001')).get()!;
+		expect(p.id).not.toBe('old');
+		expect(db.select().from(players).where(eq(players.id, 'old')).get()).toMatchObject({
+			displayName: 'Former player 1',
+			discordId: null
+		});
 	});
 
 	it('uses a shorter Discord token lifetime and never redirects off-site', async () => {

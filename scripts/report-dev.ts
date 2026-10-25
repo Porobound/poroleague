@@ -3,17 +3,22 @@
 import Database from 'better-sqlite3';
 
 process.loadEnvFile();
-const [id, me] = process.argv.slice(2);
-if (!id || !me) throw new Error('usage: npm run db:report-dev -- <match-id> <your-discord-id>');
+const [id, discordId] = process.argv.slice(2);
+if (!id || !discordId)
+	throw new Error('usage: npm run db:report-dev -- <match-id> <your-discord-id>');
 
 const db = new Database(process.env.DATABASE_URL!);
+const player = db.prepare('select id from players where discord_id = ?').get(discordId) as
+	{ id: string } | undefined;
+if (!player) throw new Error(`No player with Discord id ${discordId}; log in on the site first`);
+const me = player.id;
 const m = db.prepare('select * from matches where id = ?').get(Number(id)) as
 	| { id: number; season_id: number; p1_id: string; p2_id: string; reported_by: string | null }
 	| undefined;
 if (!m) throw new Error(`No match ${id}`);
 if (m.reported_by) throw new Error(`Match ${id} is already reported`);
 const other = m.p1_id === me ? m.p2_id : m.p2_id === me ? m.p1_id : null;
-if (!other) throw new Error(`${me} doesn't play match ${id}`);
+if (!other) throw new Error(`${discordId} doesn't play match ${id}`);
 
 const after = { p1Games: 2, p2Games: 0, p1Legend: 'Jinx', p2Legend: 'Ahri', diceWinnerId: other };
 db.transaction(() => {
