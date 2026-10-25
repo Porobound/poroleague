@@ -4,6 +4,7 @@
 	import { afterNavigate } from '$app/navigation';
 	import { page } from '$app/state';
 	import Avatar from '#lib/components/Avatar.svelte';
+	import { RIOT_DISCLAIMER } from '#lib/legal.ts';
 	import type { LayoutProps } from './$types';
 
 	let { data, children }: LayoutProps = $props();
@@ -126,6 +127,7 @@
 		<span class="pb-footer-mark">Poroleague</span>
 		<nav class="pb-footer-links" aria-label="Footer"><a href="/privacy">Privacy</a></nav>
 	</div>
+	<p class="footer-legal">{RIOT_DISCLAIMER}</p>
 </footer>
 
 <nav aria-label="Pages" class="tab-bar">

@@ -58,3 +58,12 @@ test('signup, report and flag link to the rules', async ({ browser }) => {
 	await p.getByRole('button', { name: 'Add result' }).click();
 	await expect(reportingRules).toHaveAttribute('href', '/rules#5-reporting-results');
 });
+
+test('the footer and the rules page show the Riot disclaimer', async ({ page }) => {
+	const notice = /created under Riot Games' "Legal Jibber Jabber" policy.*does not endorse/;
+	await page.goto('/');
+	await expect(page.getByRole('contentinfo').getByText(notice)).toBeVisible();
+	await page.goto('/rules');
+	await expect(page.getByRole('main').getByText(notice)).toBeVisible();
+	await expect(page.getByRole('contentinfo').getByText(notice)).toBeVisible();
+});
