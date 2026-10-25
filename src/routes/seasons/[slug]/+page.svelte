@@ -68,7 +68,7 @@
 				<ul class="tiles">
 					<li>
 						<strong>Round-robin groups</strong>
-						<span>One group, or two if 16 or more sign up.</span>
+						<span>One group, or two if 17 or more sign up.</span>
 					</li>
 					<li>
 						<strong>{season.roundsPerWeek} rounds a week</strong>

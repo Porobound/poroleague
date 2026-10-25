@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { addDays, currentWeek, leagueDate, reportingClosed, roundsOfWeek, weekOf } from './time';
+import {
+	addDays,
+	currentWeek,
+	lastRoundDay,
+	leagueDate,
+	reportingClosed,
+	roundsOfWeek,
+	weekOf
+} from './time';
 
 describe('leagueDate', () => {
 	it('gives the calendar date in Helsinki', () => {
@@ -51,5 +59,14 @@ describe('addDays', () => {
 		expect(addDays('2026-03-28', 2)).toBe('2026-03-30');
 		expect(addDays('2026-10-31', 1)).toBe('2026-11-01');
 		expect(addDays('2026-01-07', -7)).toBe('2025-12-31');
+	});
+});
+
+describe('lastRoundDay', () => {
+	it('is the last day of the week holding the final round', () => {
+		// 16 players: 15 rounds at 2 a week fill 8 weeks, so the 56th day.
+		expect(lastRoundDay('2026-11-02', 2, 15)).toBe('2026-12-27');
+		expect(lastRoundDay('2026-11-02', 2, 14)).toBe('2026-12-20');
+		expect(lastRoundDay('2026-11-02', 1, 1)).toBe('2026-11-08');
 	});
 });

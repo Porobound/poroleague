@@ -2,9 +2,16 @@ import { error } from '@sveltejs/kit';
 import { and, asc, count, desc, eq, inArray, isNull, ne, sql } from 'drizzle-orm';
 import { defaultGroupCount, splitGroups } from '#lib/league/groups.ts';
 import { published } from '#lib/league/publish.ts';
+import { roundCount } from '#lib/league/roundRobin.ts';
 import { buildSchedule } from '#lib/league/schedule.ts';
 import { standings } from '#lib/league/standings.ts';
-import { currentWeek, reportingClosed, roundsOfWeek, weekOf } from '#lib/league/time.ts';
+import {
+	currentWeek,
+	lastRoundDay,
+	reportingClosed,
+	roundsOfWeek,
+	weekOf
+} from '#lib/league/time.ts';
 import { seasonFields, seasonPhases, type SeasonFields, type SeasonStatus } from '#lib/season.ts';
 import { db } from '#lib/server/db/index.ts';
 import { audit, entries, former, matches, players, seasons } from '#lib/server/db/schema.ts';
@@ -229,6 +236,12 @@ export function drawGroups(seasonId: number) {
 export function groupsOf(list: SeasonEntry[]): SeasonEntry[][] {
 	const count = Math.max(0, ...list.map((e) => e.group ?? 0));
 	return Array.from({ length: count }, (_, i) => list.filter((e) => e.group === i + 1));
+}
+
+// The earliest deadline that fits every round of the drawn groups; null before the draw.
+export function earliestDeadline(seasonId: number, startDate: string, roundsPerWeek: number) {
+	const rounds = Math.max(0, ...groupsOf(seasonEntries(seasonId)).map((g) => roundCount(g.length)));
+	return rounds ? lastRoundDay(startDate, roundsPerWeek, rounds) : null;
 }
 
 export function lockGroups(seasonId: number) {

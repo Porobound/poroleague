@@ -1,7 +1,9 @@
 import { fail, redirect } from '@sveltejs/kit';
+import { date } from '#lib/format.ts';
 import { organizerAction } from '#lib/server/auth.ts';
 import {
 	drawGroups,
+	earliestDeadline,
 	getSeason,
 	groupsOf,
 	lockGroups,
@@ -56,6 +58,12 @@ export const actions: Actions = {
 		const groups = groupsOf(seasonEntries(season.id));
 		if (!groups.length || groups.some((g) => g.length < 2))
 			return fail(400, { message: 'Every group needs at least 2 players.' });
+		const earliest =
+			season.startDate && earliestDeadline(season.id, season.startDate, season.roundsPerWeek);
+		if (earliest && season.deadline && season.deadline < earliest)
+			return fail(400, {
+				message: `The last round's week ends ${date(earliest)}, after the deadline. Move the deadline on Season first.`
+			});
 		lockGroups(season.id);
 		redirect(303, `/seasons/${season.slug}/admin/groups`);
 	}

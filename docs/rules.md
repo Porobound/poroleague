@@ -11,7 +11,7 @@ Draft v0.1. Items marked **[TBD]** are not decided yet.
 
 ## 2. Season format
 
-- **Groups.** With fewer than 16 players the season has one group. With 16 or more, players are drawn at random into two groups (they can be uneven, e.g. 13 and 12).
+- **Groups.** With up to 16 players the season has one group. With 17 or more, players are drawn at random into two groups (they can be uneven, e.g. 13 and 12).
 - **Round robin.** You play every other player in your group once. In a group of 12 that's 11 matches.
 - **Byes.** If a group has an odd number of players, one player sits out each round. A bye is not a match and gives no points.
 - **Schedule.** The schedule is set when groups are locked. Each week has 2 rounds, so a 12-player group runs about 6 weeks.

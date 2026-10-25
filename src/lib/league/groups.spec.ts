@@ -21,8 +21,9 @@ describe('splitGroups', () => {
 });
 
 describe('defaultGroupCount', () => {
-	it('one group under 16 players, two from 16', () => {
+	it('one group up to 16 players, two from 17', () => {
 		expect(defaultGroupCount(15)).toBe(1);
-		expect(defaultGroupCount(16)).toBe(2);
+		expect(defaultGroupCount(16)).toBe(1);
+		expect(defaultGroupCount(17)).toBe(2);
 	});
 });

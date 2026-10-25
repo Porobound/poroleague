@@ -1,5 +1,8 @@
 export type Pairing = [string, string];
 
+// Rounds a group of n plays: n - 1, or n when odd (everyone sits out once).
+export const roundCount = (n: number) => (n < 2 ? 0 : n % 2 ? n : n - 1);
+
 // Circle method: first slot fixed, the rest rotate. Odd counts get a null bye slot.
 export function roundRobin(players: string[]): Pairing[][] {
 	if (players.length < 2) return [];

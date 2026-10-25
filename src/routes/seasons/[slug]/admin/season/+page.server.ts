@@ -1,11 +1,13 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { seasonDeletedEmbed } from '#lib/discord.ts';
+import { date } from '#lib/format.ts';
 import { editableFields, parseSeasonForm, seasonFields } from '#lib/season.ts';
 import { organizerAction } from '#lib/server/auth.ts';
 import { endState, seasonData } from '#lib/server/seasonAdmin.ts';
 import {
 	deleteSeason,
 	drawGroups,
+	earliestDeadline,
 	finalizeSeason,
 	getSeason,
 	groupStandings,
@@ -43,6 +45,15 @@ export const actions: Actions = {
 		if (!parsed.ok) return fail(400, { errors: parsed.errors, raw: parsed.raw });
 		if (slugTaken(parsed.values.slug, season.id))
 			return fail(400, { errors: { slug: 'Another season already uses this slug.' }, raw: null });
+		const { startDate, roundsPerWeek, deadline } = parsed.values;
+		const earliest = earliestDeadline(season.id, startDate, roundsPerWeek);
+		if (earliest && deadline < earliest)
+			return fail(400, {
+				errors: {
+					deadline: `The last round's week ends ${date(earliest)}. Pick that day or later.`
+				},
+				raw: null
+			});
 		updateSeason(season, parsed.values, user.id);
 		if (parsed.values.slug !== season.slug)
 			redirect(303, `/seasons/${parsed.values.slug}/admin/season`);

@@ -326,6 +326,34 @@ describe('groups', () => {
 	});
 });
 
+// The group of three plays 3 rounds: at 2 a week from 2 Nov, the last week ends 15 Nov.
+describe('deadline fits the schedule', () => {
+	beforeEach(() => setSeason({ startDate: '2026-11-02', deadline: '2026-12-31' }));
+	const save = (deadline: string) =>
+		outcome(
+			seasonActions.save!(
+				event({ slug: 's1' }, ORG, { name: 'Season 1', deadline, topCutSize: '4' })
+			)
+		);
+
+	it('rejects a deadline before the final round’s week ends', async () => {
+		const r = (await save('2026-11-14')).returned as { status: number; data: { errors: object } };
+		expect(r.status).toBe(400);
+		expect(r.data.errors).toHaveProperty('deadline');
+		expect(db.select().from(seasons).get()!.deadline).toBe('2026-12-31');
+		expect((await save('2026-11-15')).returned).toEqual({ saved: true });
+	});
+
+	it('blocks locking groups until the deadline fits', async () => {
+		db.delete(matches).run();
+		setSeason({ status: 'groups', deadline: '2026-11-14' });
+		const lock = () => outcome(groupActions.lock!(event({ slug: 's1' }, ORG)));
+		expect(((await lock()).returned as { status: number }).status).toBe(400);
+		setSeason({ deadline: '2026-11-15' });
+		expect((await lock()).redirect).toBe('/seasons/s1/admin/groups');
+	});
+});
+
 describe('organizer actions', () => {
 	const all = Object.entries({
 		admin: adminActions,
