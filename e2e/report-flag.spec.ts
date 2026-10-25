@@ -80,6 +80,10 @@ test('report, flag, organizer fix', async ({ browser }) => {
 	await expect(flags).toContainText('It was 1-2, not 2-1.');
 	await flags.getByRole('button', { name: 'Edit result' }).click();
 	const edit = organizer.getByRole('dialog', { name: 'Change this result?' });
+	// The dialog covers the card, so it repeats the flag and its reason.
+	await expect(edit.getByRole('figure')).toHaveText(
+		new RegExp(`Flagged by ${p2}\\s*It was 1-2, not 2-1.`, 'i')
+	);
 	// It opens with the reported games filled in.
 	await expect(game(organizer, 3).getByLabel(p1)).toBeChecked();
 	await game(organizer, 1).getByLabel(p2).check();
