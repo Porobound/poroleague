@@ -2,7 +2,6 @@ import { error, fail } from '@sveltejs/kit';
 import { LEGENDS } from '#lib/legends.ts';
 import { flagEmbed, resultEmbed } from '#lib/discord.ts';
 import { matchMode, parseReport } from '#lib/league/report.ts';
-import { reportingClosed } from '#lib/league/time.ts';
 import { playerAction } from '#lib/server/auth.ts';
 import {
 	flagMatch,
@@ -14,7 +13,7 @@ import {
 	resultOf,
 	saveReport
 } from '#lib/server/matches.ts';
-import { cardContext, matchCard } from '#lib/matchCard.ts';
+import { cardContext, liveState, matchCard } from '#lib/matchCard.ts';
 import { getSeason, seasonEntries } from '#lib/server/seasons.ts';
 import { postResult, postToOrganizers } from '#lib/server/webhooks.ts';
 import type { Actions, PageServerLoad } from './$types';
@@ -28,15 +27,11 @@ function context({ params, locals }: Event) {
 	const id = Number(params.id);
 	const match = Number.isInteger(id) ? getMatch(season.id, id) : undefined;
 	// Unpublished pairings stay secret, organizers included; they have Admin → Matches.
-	if (!match || match.round > season.publishedRound) error(404, 'Match not found');
-	const closed = reportingClosed(season.deadline, new Date());
-	const voided = isVoided(match);
-	const mode = matchMode(match, {
-		viewerId: locals.user?.id ?? null,
-		inPlay: season.status === 'play',
-		closed,
-		voided
-	});
+	if (!match || (match.stage === 'group' && match.round > season.publishedRound))
+		error(404, 'Match not found');
+	const { inPlay, closed } = liveState(match, season);
+	const voided = isVoided(match) || !!match.walkoverId;
+	const mode = matchMode(match, { viewerId: locals.user?.id ?? null, inPlay, closed, voided });
 	return { season, match, mode, closed, voided };
 }
 

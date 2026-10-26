@@ -118,3 +118,48 @@ describe('matchCard props', () => {
 		expect(matchCard(match({ p2Id: 'p3' }), ctx()).props.note).toBe('Void: a player dropped');
 	});
 });
+
+describe('playoff cards', () => {
+	it('labels playoff matches and keeps them open after the league deadline', () => {
+		const season = {
+			slug: 's',
+			status: 'topcut',
+			deadline: '2026-01-01',
+			startDate: '2025-12-01',
+			roundsPerWeek: 2
+		};
+		const people = ['p1', 'p2'].map((id) => ({
+			playerId: id,
+			displayName: id,
+			avatar: null,
+			dropped: false,
+			former: false
+		}));
+		const base = {
+			id: 1,
+			group: null,
+			round: 2,
+			slot: 1,
+			stage: 'playoff' as const,
+			p1Id: 'p1',
+			p2Id: 'p2',
+			p1Games: null,
+			p2Games: null,
+			p1Legend: null,
+			p2Legend: null,
+			diceWinnerId: null,
+			reportedBy: null,
+			flaggedBy: null,
+			flagResolvedAt: null,
+			walkoverId: null
+		};
+		const ctx = cardContext(season, people, 'p1', new Date('2026-06-01'), 3);
+		const card = matchCard(base, ctx);
+		expect(card.props.head).toBe('Semifinal 2');
+		expect(card.status).toBe('scheduled');
+		expect(card.props.link.label).toBe('Report');
+		const wo = matchCard({ ...base, walkoverId: 'p2' }, ctx);
+		expect(wo.props.note).toBe('Walkover · p2 advances');
+		expect(wo.props.link.label).toBe('View');
+	});
+});

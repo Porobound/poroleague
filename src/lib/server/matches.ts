@@ -47,6 +47,7 @@ export const playerMatches = (seasonId: number, playerId: string) =>
 		.where(
 			and(
 				eq(matches.seasonId, seasonId),
+				eq(matches.stage, 'group'),
 				or(eq(matches.p1Id, playerId), eq(matches.p2Id, playerId))
 			)
 		)
@@ -57,8 +58,16 @@ export const seasonMatches = (seasonId: number) =>
 	db
 		.select()
 		.from(matches)
-		.where(eq(matches.seasonId, seasonId))
+		.where(and(eq(matches.seasonId, seasonId), eq(matches.stage, 'group')))
 		.orderBy(asc(matches.group), asc(matches.round), asc(matches.id))
+		.all();
+
+export const bracketMatches = (seasonId: number) =>
+	db
+		.select()
+		.from(matches)
+		.where(and(eq(matches.seasonId, seasonId), eq(matches.stage, 'playoff')))
+		.orderBy(asc(matches.round), asc(matches.slot))
 		.all();
 
 export const isVoided = (m: Match) =>
@@ -102,7 +111,7 @@ export function saveReport(m: Match, actorId: string, values: Report) {
 			.set({ ...values, reportedBy: actorId, reportedAt: new Date() })
 			.where(eq(matches.id, m.id))
 			.run();
-		clearTiebreaks(tx, m.seasonId);
+		if (m.stage === 'group') clearTiebreaks(tx, m.seasonId);
 		tx.insert(audit)
 			.values({ seasonId: m.seasonId, matchId: m.id, actorId, action: 'report', after: values })
 			.run();
@@ -146,6 +155,7 @@ export function organizerEdit(m: Match, actorId: string, values: Report) {
 		tx.update(matches)
 			.set({
 				...values,
+				walkoverId: null,
 				...(m.reportedBy ? {} : { reportedBy: actorId, reportedAt: now }),
 				...(m.flaggedBy && !m.flagResolvedAt
 					? { flagResolvedBy: actorId, flagResolvedAt: now }
@@ -153,7 +163,7 @@ export function organizerEdit(m: Match, actorId: string, values: Report) {
 			})
 			.where(eq(matches.id, m.id))
 			.run();
-		clearTiebreaks(tx, m.seasonId);
+		if (m.stage === 'group') clearTiebreaks(tx, m.seasonId);
 		tx.insert(audit)
 			.values({
 				seasonId: m.seasonId,

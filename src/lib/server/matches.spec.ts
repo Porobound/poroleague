@@ -1,6 +1,15 @@
+import { eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
-import { lastLegend } from '#lib/server/matches.ts';
-import { seedMatch, seedPlayers, seedSeason } from '#lib/server/test/seed.ts';
+import { db } from '#lib/server/db/index.ts';
+import { entries } from '#lib/server/db/schema.ts';
+import {
+	bracketMatches,
+	lastLegend,
+	playerMatches,
+	saveReport,
+	seasonMatches
+} from '#lib/server/matches.ts';
+import { seedEntries, seedMatch, seedPlayers, seedSeason } from '#lib/server/test/seed.ts';
 
 describe('lastLegend', () => {
 	it('is the legend of the latest reported match, from either side and any season', () => {
@@ -31,5 +40,42 @@ describe('lastLegend', () => {
 		// Unreported matches don't count, even with a legend set.
 		seedMatch({ seasonId: s2.id, round: 2, p1Id: 'p1', p2Id: 'p2', p1Legend: 'Garen' });
 		expect(lastLegend('p1')).toBe('Annie');
+	});
+});
+
+describe('playoff rows', () => {
+	it('stay out of the group-stage queries', () => {
+		const s = seedSeason({ status: 'topcut' });
+		seedPlayers(2);
+		seedEntries(s.id, ['p1', 'p2'], 1);
+		seedMatch({ seasonId: s.id, group: 1, round: 1, p1Id: 'p1', p2Id: 'p2' });
+		seedMatch({ seasonId: s.id, stage: 'playoff', round: 1, slot: 0, p1Id: 'p1', p2Id: 'p2' });
+		expect(seasonMatches(s.id)).toHaveLength(1);
+		expect(playerMatches(s.id, 'p1')).toHaveLength(1);
+		expect(bracketMatches(s.id)).toHaveLength(1);
+	});
+
+	it('reporting one keeps the group tiebreaks', () => {
+		const s = seedSeason({ status: 'topcut' });
+		seedPlayers(2);
+		seedEntries(s.id, ['p1', 'p2'], 1);
+		db.update(entries).set({ tiebreak: 1 }).where(eq(entries.playerId, 'p1')).run();
+		const m = seedMatch({
+			seasonId: s.id,
+			stage: 'playoff',
+			round: 1,
+			slot: 0,
+			p1Id: 'p1',
+			p2Id: 'p2'
+		});
+		saveReport(m, 'p1', {
+			games: '11',
+			p1Games: 2,
+			p2Games: 0,
+			p1Legend: 'Jinx',
+			p2Legend: 'Viktor',
+			diceWinnerId: 'p1'
+		});
+		expect(db.select().from(entries).where(eq(entries.playerId, 'p1')).get()!.tiebreak).toBe(1);
 	});
 });
