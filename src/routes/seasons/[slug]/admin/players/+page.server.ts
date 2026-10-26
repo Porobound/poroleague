@@ -16,7 +16,8 @@ import type { Actions, PageServerLoad } from './$types';
 export const load: PageServerLoad = async ({ parent }) => {
 	const { season } = await parent();
 	const list = seasonEntries(season.id);
-	const scheduled = season.status !== 'draft' && season.status !== 'signup' && season.status !== 'groups';
+	const scheduled =
+		season.status !== 'draft' && season.status !== 'signup' && season.status !== 'groups';
 	const rows = new Map(
 		scheduled ? groupStandings(season, list).flatMap((g) => g.rows.map((r) => [r.playerId, r])) : []
 	);

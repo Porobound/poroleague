@@ -14,7 +14,8 @@
 			signup: 'You can remove players while signup is open.',
 			groups: 'Signup is closed. Once groups are locked you can drop players.',
 			play: 'Dropping a player voids all their matches.',
-			topcut: 'The top cut is running. A player who withdraws gets a walkover against them on Top cut.',
+			topcut:
+				'The top cut is running. A player who withdraws gets a walkover against them on Top cut.',
 			finished: 'The season is finalized.'
 		}[status]
 	);
