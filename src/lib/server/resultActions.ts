@@ -12,7 +12,7 @@ import {
 } from '#lib/server/matches.ts';
 import { liveState } from '#lib/matchCard.ts';
 import { getSeason } from '#lib/server/seasons.ts';
-import { nextPlayed, waitingOnFlag } from '#lib/server/topCut.ts';
+import { waitingOnFlag } from '#lib/server/topCut.ts';
 import { postResult, postToOrganizers } from '#lib/server/webhooks.ts';
 
 // Organizer result actions, shared by the Matches page and the season page's flagged cards.
@@ -41,8 +41,6 @@ export async function editResult(event: Event) {
 	if (isVoided(match)) return fail(409, { message: 'A player dropped, so this match is void.' });
 	if (match.stage === 'group' && match.round > season.publishedRound)
 		return fail(409, { message: 'Publish this week before entering results.' });
-	if (match.stage === 'playoff' && nextPlayed(season, match))
-		return fail(409, { message: 'The next match is already in; correct that one first.' });
 	if (match.stage === 'playoff' && waitingOnFlag(season, match))
 		return fail(409, { message: 'Settle the flagged result before this match first.' });
 	const parsed = parseReport(form, match.p1Id, match.p2Id);

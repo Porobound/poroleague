@@ -14,10 +14,13 @@ export function seedOrder(size: number): number[] {
 }
 
 // `groups` holds each group's qualifiers best first, all the same length. Seeds go A1, B1, C1, A2…
+export const seedList = (groups: string[][]) =>
+	groups[0].flatMap((_, r) => groups.map((g) => g[r]));
+
 // Returns the first round as slots (pair i = slots 2i, 2i + 1; null = bye). Two players of one group
 // never meet in the first round: the lower seed swaps with the nearest seed that clears the clash.
 export function drawBracket(groups: string[][]): (string | null)[] {
-	const seeds = groups[0].flatMap((_, r) => groups.map((g) => g[r]));
+	const seeds = seedList(groups);
 	const seedNo = new Map(seeds.map((id, i) => [id, i]));
 	const group = new Map(groups.flatMap((g, i) => g.map((id) => [id, i] as const)));
 	const tier = (id: string) => Math.floor(seedNo.get(id)! / groups.length);
@@ -107,6 +110,10 @@ export function bracket<M extends CutMatch>(
 	}
 	return rounds;
 }
+
+// The round being played: the first with an undecided match; -1 once the final has a winner.
+export const currentRound = (rounds: Slot<CutMatch>[][]) =>
+	rounds.findIndex((r) => r.some((x) => !x.bye && !x.winner));
 
 const left = (round: number, rounds: number) => 2 ** (rounds - round + 1);
 

@@ -438,6 +438,19 @@ describe('top cut admin', () => {
 		);
 	const final = () => db.select().from(matches).where(eq(matches.stage, 'playoff')).get()!;
 
+	it('the size can change until the bracket is out, so an erased qualifier doesn’t strand it', async () => {
+		const save = (topCutSize: string) =>
+			outcome(seasonActions.save!(event({ slug: 's1' }, ORG, { name: 'Season 1', topCutSize })));
+		setSeason({ topCutSize: 3, startDate: '2026-01-05', deadline: '2026-02-01' });
+		erasePlayer('p2', 'org');
+		expect(((await run('publish')).returned as { status: number }).status).toBe(400);
+		expect((await save('2')).returned).toEqual({ saved: true });
+		await run('publish');
+		expect(final()).toMatchObject({ p1Id: 'p1', p2Id: 'p3' });
+		await save('1');
+		expect(db.select().from(seasons).get()!.topCutSize).toBe(2);
+	});
+
 	it('publishes once, with an optional date', async () => {
 		expect((await run('publish', { date: '2026-12-05' })).returned).toMatchObject({
 			message: expect.any(String)

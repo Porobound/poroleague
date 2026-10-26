@@ -49,7 +49,15 @@ const EDITABLE: Record<SeasonStatus, SeasonField[]> = {
 	finished: []
 };
 
-export const editableFields = (status: SeasonStatus) => EDITABLE[status];
+// The top cut's size can still change in the top cut, until the bracket is published.
+// From the group lock on, the season has a schedule, standings and results.
+export const hasSchedule = (status: SeasonStatus) =>
+	status !== 'draft' && status !== 'signup' && status !== 'groups';
+
+export const editableFields = (status: SeasonStatus, cutPublished = false) =>
+	status === 'topcut' && !cutPublished
+		? [...EDITABLE.topcut, 'topCutSize' as const]
+		: EDITABLE[status];
 export const groupName = (n: number) => `Group ${String.fromCharCode(64 + n)}`;
 
 export function slugify(s: string): string {

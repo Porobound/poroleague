@@ -19,7 +19,7 @@ import {
 	slugTaken,
 	updateSeason
 } from '#lib/server/seasons.ts';
-import { cutPreview } from '#lib/server/topCut.ts';
+import { cutPreview, cutRounds } from '#lib/server/topCut.ts';
 import { postToOrganizers } from '#lib/server/webhooks.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -41,9 +41,14 @@ export const actions: Actions = {
 		const parsed = parseSeasonForm(
 			await event.request.formData(),
 			seasonFields(season),
-			editableFields(season.status)
+			editableFields(season.status, cutRounds(season.id) > 0)
 		);
 		if (!parsed.ok) return fail(400, { errors: parsed.errors, raw: parsed.raw });
+		if (season.status === 'topcut' && parsed.values.topCutSize < 1)
+			return fail(400, {
+				errors: { topCutSize: 'At least 1 once the top cut has started.' },
+				raw: null
+			});
 		if (slugTaken(parsed.values.slug, season.id))
 			return fail(400, { errors: { slug: 'Another season already uses this slug.' }, raw: null });
 		const { startDate, roundsPerWeek, deadline } = parsed.values;

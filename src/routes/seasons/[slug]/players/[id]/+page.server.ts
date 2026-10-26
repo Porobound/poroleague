@@ -7,7 +7,7 @@ import { organizerAction } from '#lib/server/auth.ts';
 import { playerMatches } from '#lib/server/matches.ts';
 import { erasePlayer } from '#lib/server/players.ts';
 import { postToOrganizers } from '#lib/server/webhooks.ts';
-import { dropEmbed } from '#lib/discord.ts';
+import { cutEraseEmbed, dropEmbed } from '#lib/discord.ts';
 import {
 	groupStandings,
 	playerSeasons,
@@ -63,7 +63,7 @@ export const actions: Actions = {
 		const typed = String((await event.request.formData()).get('confirm') ?? '').trim();
 		if (typed !== player.displayName)
 			return fail(400, { message: "Type the player's name to confirm." });
-		const { name, dropped } = erasePlayer(player.playerId, user.id);
+		const { name, dropped, walkovers } = erasePlayer(player.playerId, user.id);
 		// Same notice as a normal drop, under the new name only.
 		for (const s of dropped)
 			postToOrganizers(
@@ -73,6 +73,15 @@ export const actions: Actions = {
 					where: s.name,
 					url: `${event.url.origin}/seasons/${s.slug}/players/${player.playerId}`,
 					erased: true
+				})
+			);
+		for (const s of walkovers)
+			postToOrganizers(
+				cutEraseEmbed({
+					player: name,
+					by: user.displayName,
+					where: s.name,
+					url: `${event.url.origin}/seasons/${s.slug}/admin/top-cut`
 				})
 			);
 		// Before groups are locked, erasing takes them off the season, so this page is gone.

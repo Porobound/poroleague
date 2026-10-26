@@ -232,7 +232,7 @@
 		<SeasonForm
 			values={form && 'raw' in form && form.raw ? form.raw : seasonFields(season)}
 			errors={form && 'errors' in form ? form.errors : undefined}
-			editable={editableFields(season.status)}
+			editable={editableFields(season.status, data.hasCut)}
 			submit="Save changes"
 			confirm={season.status === 'draft' ? '' : 'Players see the changes right away.'}
 		/>

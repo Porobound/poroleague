@@ -1,6 +1,6 @@
 import { error } from '@sveltejs/kit';
 import { and, asc, count, desc, eq, inArray, isNull, ne, sql } from 'drizzle-orm';
-import { cutFinish } from '#lib/league/bracket.ts';
+import { currentRound, cutFinish, roundName } from '#lib/league/bracket.ts';
 import { defaultGroupCount, splitGroups } from '#lib/league/groups.ts';
 import { published } from '#lib/league/publish.ts';
 import { roundCount } from '#lib/league/roundRobin.ts';
@@ -298,12 +298,10 @@ export function groupStandings(
 export type GroupStanding = ReturnType<typeof groupStandings>[number];
 
 // Where the season stands this week, for the phase bar and the week headline.
-export function seasonProgress(
-	season: Season,
-	groups: GroupStanding[],
-	now = new Date(),
-	cut?: string
-) {
+export function seasonProgress(season: Season, groups: GroupStanding[], now = new Date()) {
+	const cut = season.status === 'topcut' || season.status === 'finished' ? cutState(season) : null;
+	const cutNow = cut?.published ? currentRound(cut.rounds) : -1;
+	const cutRound = cutNow >= 0 ? roundName(cutNow + 1, cut!.rounds.length) : null;
 	const closed = reportingClosed(season.deadline, now);
 	const week = currentWeek(season.startDate, now);
 	const maxRound = Math.max(0, ...groups.map((g) => g.rounds));
@@ -315,7 +313,20 @@ export function seasonProgress(
 		week,
 		weeks,
 		rounds,
-		phases: seasonPhases(season, { week, weeks, rounds, groups: sizes, closed, cut })
+		cut,
+		cutRound,
+		phases: seasonPhases(season, {
+			week,
+			weeks,
+			rounds,
+			groups: sizes,
+			closed,
+			cut: cut?.published
+				? (cutRound ?? 'Done')
+				: season.status === 'topcut'
+					? 'Being set up'
+					: undefined
+		})
 	};
 }
 

@@ -185,6 +185,20 @@ export const walkoverEmbed = (where: string, winner: string, url: string): Embed
 	timestamp: new Date().toISOString()
 });
 
+export const cutEraseEmbed = (o: {
+	player: string;
+	by: string;
+	where: string;
+	url: string;
+}): Embed => ({
+	title: `${escapeMd(o.player)} erased during the top cut`,
+	url: o.url,
+	description: `By ${escapeMd(o.by)}. Erased on request; give their open top-cut match a walkover.`,
+	color: SIGNAL,
+	footer: { text: o.where },
+	timestamp: new Date().toISOString()
+});
+
 export const championEmbed = (season: string, champion: string, url: string): Embed => ({
 	title: `${escapeMd(season)} champion: ${escapeMd(champion)}`,
 	url,

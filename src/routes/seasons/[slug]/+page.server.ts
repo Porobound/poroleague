@@ -2,7 +2,6 @@ import { error, fail } from '@sveltejs/kit';
 import { MAX_PLAYERS } from '#lib/league/groups.ts';
 import { published } from '#lib/league/publish.ts';
 import { addDays, weekOf } from '#lib/league/time.ts';
-import { roundName } from '#lib/league/bracket.ts';
 import { cardContext, matchCard } from '#lib/matchCard.ts';
 import { currentRole, playerAction } from '#lib/server/auth.ts';
 import { playerMatches } from '#lib/server/matches.ts';
@@ -14,7 +13,7 @@ import {
 	seasonEntries,
 	seasonProgress
 } from '#lib/server/seasons.ts';
-import { cutState } from '#lib/server/topCut.ts';
+import { hasSchedule } from '#lib/season.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async (event) => {
@@ -23,27 +22,10 @@ export const load: PageServerLoad = async (event) => {
 	// getSeason only trusts the session flag; drafts also need the role re-checked with Discord.
 	if (season.status === 'draft' && !(await currentRole(event))) error(404, 'Season not found');
 	const list = seasonEntries(season.id);
-	const scheduled =
-		season.status !== 'draft' && season.status !== 'signup' && season.status !== 'groups';
+	const scheduled = hasSchedule(season.status);
 	const groups = scheduled ? groupStandings(season, list) : [];
 	const ctx = cardContext(season, list, locals.user?.id ?? null);
-	const cut = season.status === 'topcut' || season.status === 'finished' ? cutState(season) : null;
-	const cutNow = cut?.published
-		? cut.rounds.findIndex((r) => r.some((x) => !x.bye && !x.winner))
-		: -1;
-	const cutName = (i: number) => roundName(i + 1, cut!.rounds.length);
-	const { closed, weeks, rounds, phases } = seasonProgress(
-		season,
-		groups,
-		new Date(),
-		cut?.published
-			? cut.champion
-				? 'Done'
-				: cutName(cutNow)
-			: season.status === 'topcut'
-				? 'Being set up'
-				: undefined
-	);
+	const { closed, weeks, rounds, phases, cut, cutRound } = seasonProgress(season, groups);
 	const viewer = locals.user?.id ?? null;
 	const myCut = cut?.rounds
 		.flat()
@@ -67,7 +49,7 @@ export const load: PageServerLoad = async (event) => {
 		showTies: season.status === 'finished' || season.status === 'topcut' || closed,
 		topCut: cut?.published
 			? {
-					round: cutNow >= 0 ? cutName(cutNow) : null,
+					round: cutRound,
 					champion: cut.champion
 						? (list.find((e) => e.playerId === cut.champion)?.displayName ?? null)
 						: null,

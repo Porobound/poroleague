@@ -256,8 +256,6 @@
 			<p class="muted">
 				A result before this match is flagged. You can report once an organizer settles it.
 			</p>
-		{:else if data.settled}
-			<p class="muted">The next match is already in, so this result is final.</p>
 		{:else if data.voided}
 			<p class="muted">A player dropped out, so this match doesn't count.</p>
 		{:else if data.closed && data.season.status === 'play' && !m.reportedBy}

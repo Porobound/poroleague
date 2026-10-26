@@ -1,5 +1,5 @@
 import { error } from '@sveltejs/kit';
-import { roundName } from '#lib/league/bracket.ts';
+import { currentRound, roundName } from '#lib/league/bracket.ts';
 import { cardContext, matchCard } from '#lib/matchCard.ts';
 import { publicSeason, seasonEntries } from '#lib/server/seasons.ts';
 import { cutState } from '#lib/server/topCut.ts';
@@ -19,7 +19,7 @@ export const load: PageServerLoad = ({ params, locals }) => {
 			? { id: e.playerId, name: e.displayName, former: e.former, label: s.label(e.playerId) }
 			: null;
 	};
-	const now = s.rounds.findIndex((r) => r.some((x) => !x.bye && !x.winner));
+	const now = currentRound(s.rounds);
 	return {
 		season,
 		champion: who(s.champion),

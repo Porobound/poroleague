@@ -8,16 +8,8 @@ import { erasePlayer } from '#lib/server/players.ts';
 import { load as cutPage } from '../../routes/seasons/[slug]/top-cut/+page.server.ts';
 import { load as matchPage } from '../../routes/seasons/[slug]/matches/[id]/+page.server.ts';
 import { auditLines } from '#lib/server/auditLog.ts';
-import { playerSeasons, seasonHistory } from '#lib/server/seasons.ts';
-import {
-	cutPreview,
-	cutState,
-	finishCut,
-	nextPlayed,
-	publishCut,
-	waitingOnFlag,
-	walkover
-} from './topCut.ts';
+import { playerSeasons, seasonHistory, seasonProgress } from '#lib/server/seasons.ts';
+import { cutPreview, cutState, finishCut, publishCut, waitingOnFlag, walkover } from './topCut.ts';
 
 let id: number;
 // Two groups of three, every group match played: A = p1 > p2 > p3, B = p4 > p5 > p6.
@@ -125,23 +117,44 @@ describe('advancing', () => {
 		expect(slot(2, 0).match).not.toBeNull();
 	});
 
-	it('an edit repoints the next match while it is unreported, then is refused', () => {
-		saveReport(slot(1, 0).match!, 'p1', won(2, 0));
+	const page = (m: { id: number }, playerId: string) =>
+		matchPage({
+			params: { slug: 's1', id: String(m.id) },
+			locals: { user: { id: playerId, displayName: playerId, avatar: null, isOrganizer: false } }
+		} as never) as unknown as { mode: string; waiting: boolean };
+
+	it('an edit that changes the winner clears and repoints the matches after it', () => {
+		saveReport(slot(1, 0).match!, 'p1', won(2, 0)); // p1 beats p5
 		walkover(season(), slot(1, 1).match!, 'p2', 'p1');
-		expect(nextPlayed(season(), slot(1, 0).match!)).toBe(false);
+		saveReport(slot(2, 0).match!, 'p1', won(2, 0)); // p1 beats p2 in the final
+		expect(cutState(season()).champion).toBe('p1');
+
+		// The loser can still flag the semi, and the organizer's fix moves the final on.
+		expect(page(slot(1, 0).match!, 'p5').mode).toBe('flag');
+		flagMatch(slot(1, 0).match!, 'p5', 'It was the other way round.');
 		organizerEdit(slot(1, 0).match!, 'p1', won(0, 2));
-		expect([slot(2, 0).p1, slot(2, 0).p2]).toEqual(['p5', 'p2']);
-		saveReport(slot(2, 0).match!, 'p5', won(2, 1));
-		expect(nextPlayed(season(), slot(1, 0).match!)).toBe(true);
-		expect(cutState(season()).champion).toBe('p5');
+		const final = slot(2, 0);
+		expect([final.p1, final.p2]).toEqual(['p5', 'p2']);
+		expect(final.match).toMatchObject({ reportedBy: null, p1Games: null });
+		expect(cutState(season()).champion).toBeNull();
+
+		// The log keeps who played the cleared final.
+		const lines = auditLines(id).map((l) => l.what);
+		expect(lines).toContain(
+			'Final · Player 1 vs Player 2 · Result cleared: an earlier top-cut result changed'
+		);
+		expect(lines.find((l) => l.startsWith('Final · Player 1 2–0 Player 2'))).toBeTruthy();
 	});
 
-	it('a flagged result holds the next match; flagging closes once it is played', () => {
-		const page = (m: { id: number }, playerId: string) =>
-			matchPage({
-				params: { slug: 's1', id: String(m.id) },
-				locals: { user: { id: playerId, displayName: playerId, avatar: null, isOrganizer: false } }
-			} as never) as unknown as { mode: string; waiting: boolean; settled: boolean };
+	it('an edit that keeps the winner leaves the next match alone', () => {
+		saveReport(slot(1, 0).match!, 'p1', won(2, 0));
+		walkover(season(), slot(1, 1).match!, 'p2', 'p1');
+		saveReport(slot(2, 0).match!, 'p1', won(2, 0));
+		organizerEdit(slot(1, 0).match!, 'p1', won(2, 1));
+		expect(slot(2, 0).match).toMatchObject({ reportedBy: 'p1' });
+	});
+
+	it('a flagged result holds the next match until it is settled', () => {
 		saveReport(slot(1, 0).match!, 'p1', won(2, 0));
 		flagMatch(slot(1, 0).match!, 'p5', 'It was the other way round.');
 		saveReport(slot(1, 1).match!, 'p4', won(2, 0));
@@ -151,10 +164,6 @@ describe('advancing', () => {
 		organizerEdit(slot(1, 0).match!, 'p1', won(0, 2));
 		expect(waitingOnFlag(season(), slot(2, 0).match!)).toBe(false);
 		expect(page(slot(2, 0).match!, 'p5')).toMatchObject({ mode: 'report', waiting: false });
-
-		expect(page(slot(1, 1).match!, 'p2')).toMatchObject({ mode: 'flag', settled: false });
-		saveReport(slot(2, 0).match!, 'p5', won(2, 0));
-		expect(page(slot(1, 1).match!, 'p2')).toMatchObject({ mode: 'view', settled: true });
 	});
 
 	it('a walkover page names who advances and is not void', () => {
@@ -220,5 +229,52 @@ describe('history', () => {
 		walkover(season(), slot(2, 0).match!, 'p1', 'p1');
 		const cut = (p: string) => seasonHistory(playerSeasons(p))[0].cut;
 		expect(['p1', 'p4', 'p5', 'p3'].map(cut)).toEqual(['Champion', 'Runner-up', 'Semifinal', null]);
+	});
+});
+
+describe('three rounds', () => {
+	// Top 3 per group: 6 players in a bracket of 8, A1 and B1 get byes.
+	beforeEach(() => {
+		db.update(seasons).set({ topCutSize: 3 }).run();
+		publishCut(season(), null, 'p1');
+	});
+
+	it('an early edit clears every later match that depended on it', () => {
+		const report = (round: number, s: number, p1: number, p2: number) =>
+			saveReport(slot(round, s).match!, slot(round, s).p1!, won(p1, p2));
+		report(1, 1, 2, 0);
+		report(1, 3, 2, 0);
+		report(2, 0, 0, 2); // the quarterfinal winner beats A1
+		report(2, 1, 2, 0);
+		report(3, 0, 2, 0);
+		const semiWinner = slot(2, 0).winner;
+		expect(cutState(season()).champion).toBe(semiWinner);
+
+		organizerEdit(slot(1, 1).match!, 'p1', won(0, 2));
+		expect(slot(2, 0).match).toMatchObject({ reportedBy: null });
+		expect(slot(3, 0).p1).toBeNull();
+		const oldFinal = db.select().from(matches).where(eq(matches.round, 3)).get()!;
+		expect(oldFinal.reportedBy).toBeNull();
+		expect(cutState(season()).champion).toBeNull();
+		expect(
+			db
+				.select()
+				.from(audit)
+				.all()
+				.filter((a) => a.action === 'reset')
+		).toHaveLength(2);
+	});
+});
+
+describe('phase bar', () => {
+	it('names the top cut step for every page that shows it', () => {
+		const step = () => seasonProgress(season(), []).phases.at(-1)!;
+		expect(step()).toMatchObject({ state: 'current', detail: 'Being set up' });
+		publishCut(season(), null, 'p1');
+		expect(step().detail).toBe('Semifinals');
+		walkover(season(), slot(1, 0).match!, 'p1', 'p1');
+		walkover(season(), slot(1, 1).match!, 'p4', 'p1');
+		walkover(season(), slot(2, 0).match!, 'p1', 'p1');
+		expect(step().detail).toBe('Done');
 	});
 });

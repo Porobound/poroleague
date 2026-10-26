@@ -15,7 +15,7 @@ import {
 } from '#lib/server/matches.ts';
 import { cardContext, liveState, matchCard } from '#lib/matchCard.ts';
 import { getSeason, seasonEntries } from '#lib/server/seasons.ts';
-import { cutRounds, nextPlayed, waitingOnFlag } from '#lib/server/topCut.ts';
+import { cutRounds, waitingOnFlag } from '#lib/server/topCut.ts';
 import { postResult, postToOrganizers } from '#lib/server/webhooks.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -38,17 +38,15 @@ function context({ params, locals }: Event) {
 		closed,
 		voided: voided || !!match.walkoverId
 	});
-	// Top cut: a flag must be settled before the next match is played, so fixes can still move the
-	// bracket. Reporting waits on a flagged feeder; flagging closes once the next match is in.
-	const playoff = match.stage === 'playoff';
-	const waiting = playoff && mode === 'report' && waitingOnFlag(season, match);
-	const settled = playoff && mode === 'flag' && nextPlayed(season, match);
-	if (waiting || settled) mode = 'view';
-	return { season, match, mode, closed, voided, waiting, settled };
+	// Top cut: reporting waits while a result feeding this match is flagged, since the fix may
+	// change who plays it.
+	const waiting = match.stage === 'playoff' && mode === 'report' && waitingOnFlag(season, match);
+	if (waiting) mode = 'view';
+	return { season, match, mode, closed, voided, waiting };
 }
 
 export const load: PageServerLoad = (event) => {
-	const { season, match, mode, closed, voided, waiting, settled } = context(event);
+	const { season, match, mode, closed, voided, waiting } = context(event);
 	const [p1, p2] = matchPlayers(match);
 	const viewer = event.locals.user?.id ?? null;
 	const card = matchCard(
@@ -65,7 +63,6 @@ export const load: PageServerLoad = (event) => {
 		closed,
 		voided,
 		waiting,
-		settled,
 		walkover: match.walkoverId
 			? [p1, p2].find((p) => p.id === match.walkoverId)!.displayName
 			: null,

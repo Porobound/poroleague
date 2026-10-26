@@ -45,7 +45,8 @@ export function erasePlayer(playerId: string, actorId: string) {
 				name: seasons.name,
 				slug: seasons.slug,
 				status: seasons.status,
-				dropped: entries.dropped
+				dropped: entries.dropped,
+				slot: entries.slot
 			})
 			.from(entries)
 			.innerJoin(seasons, eq(entries.seasonId, seasons.id))
@@ -53,6 +54,8 @@ export function erasePlayer(playerId: string, actorId: string) {
 			.all();
 		// Seasons in play they were dropped from, for the organizers' Discord notice.
 		const dropped: { name: string; slug: string }[] = [];
+		// Top cuts with a published bracket they're in: organizers walk their open match over.
+		const walkovers: { name: string; slug: string }[] = [];
 		for (const s of theirs) {
 			const entry = and(eq(entries.seasonId, s.id), eq(entries.playerId, playerId));
 			if (s.status === 'signup' || s.status === 'groups') {
@@ -63,10 +66,11 @@ export function erasePlayer(playerId: string, actorId: string) {
 				dropPlayer(s.id, playerId, actorId, tx);
 				dropped.push({ name: s.name, slug: s.slug });
 			}
+			if (s.status === 'topcut' && s.slot !== null) walkovers.push({ name: s.name, slug: s.slug });
 			tx.insert(audit)
 				.values({ seasonId: s.id, actorId, action: 'erase', after: { erased: playerId } })
 				.run();
 		}
-		return { name, dropped };
+		return { name, dropped, walkovers };
 	});
 }

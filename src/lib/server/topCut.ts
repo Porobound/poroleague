@@ -5,6 +5,7 @@ import {
 	drawBracket,
 	MAX_CUT,
 	seedLabel,
+	seedList,
 	type Slot
 } from '#lib/league/bracket.ts';
 import { groupName } from '#lib/season.ts';
@@ -41,12 +42,9 @@ export function cutPreview(season: Season) {
 					: null;
 	const size = { per, total, bracket: bracketSize(total), byes: bracketSize(total) - total };
 	if (problem) return { problem, size, firstRound: [] };
-	const slots = drawBracket(groups.map((g) => g.map((r) => r.playerId)));
-	const seedOf = new Map(
-		groups[0].flatMap((_, r) =>
-			groups.map((g, i) => [g[r].playerId, r * groups.length + i + 1] as const)
-		)
-	);
+	const ids = groups.map((g) => g.map((r) => r.playerId));
+	const slots = drawBracket(ids);
+	const seedOf = new Map(seedList(ids).map((id, i) => [id, i + 1]));
 	const name = (id: string | null) => {
 		if (!id) return null;
 		const e = list.find((x) => x.playerId === id)!;
@@ -112,18 +110,52 @@ export function cutState(season: { id: number }, tx: Db = db) {
 	};
 }
 
-// The one writer of playoff rows: inserts a match once both players are known, and repoints an
-// unreported match after an upstream edit. ponytail: re-reads after each fix; at most 31 matches.
-export function syncBracket(tx: Tx, season: { id: number }) {
+const CLEARED = {
+	games: null,
+	p1Games: null,
+	p2Games: null,
+	p1Legend: null,
+	p2Legend: null,
+	diceWinnerId: null,
+	reportedBy: null,
+	reportedAt: null,
+	flaggedBy: null,
+	flagReason: null,
+	flagResolvedBy: null,
+	flagResolvedAt: null,
+	walkoverId: null
+};
+
+// The one writer of playoff rows: inserts a match once both players are known. When an edit
+// changes who advanced, every later row that held the old players loses its result (audited) and
+// is repointed once its players are known again. ponytail: re-reads after each fix; ≤ 31 matches.
+export function syncBracket(tx: Tx, season: { id: number }, actorId: string) {
 	for (;;) {
 		const { layout, seedOf } = cutEntries(tx, season.id);
 		if (!layout.length) return;
 		const rows = cutRows(tx, season.id);
-		const stale = bracket(layout, rows, seedOf)
-			.flat()
-			.find((s) => !s.bye && s.p1 && s.p2 && !s.match);
+		const slots = bracket(layout, rows, seedOf).flat();
+		const rowOf = (s: (typeof slots)[number]) =>
+			rows.find((m) => m.round === s.round && m.slot === s.slot);
+		const outdated = slots
+			.map((s) => !s.match && rowOf(s))
+			.find((m) => m && (m.reportedBy || m.walkoverId || m.flaggedBy));
+		if (outdated) {
+			tx.update(matches).set(CLEARED).where(eq(matches.id, outdated.id)).run();
+			tx.insert(audit)
+				.values({
+					seasonId: season.id,
+					matchId: outdated.id,
+					actorId,
+					action: 'reset',
+					after: { cleared: [outdated.p1Id, outdated.p2Id] }
+				})
+				.run();
+			continue;
+		}
+		const stale = slots.find((s) => !s.bye && s.p1 && s.p2 && !s.match);
 		if (!stale) return;
-		const row = rows.find((m) => m.round === stale.round && m.slot === stale.slot);
+		const row = rowOf(stale);
 		if (row)
 			tx.update(matches)
 				.set({ p1Id: stale.p1!, p2Id: stale.p2! })
@@ -169,15 +201,8 @@ export function publishCut(
 				after: { size: p.size.total, date }
 			})
 			.run();
-		syncBracket(tx, season);
+		syncBracket(tx, season, actorId);
 	});
-}
-
-// An edit is allowed only while the winner's next match is unreported (fixes go latest first).
-export function nextPlayed(season: Season, m: Match) {
-	const { rounds } = cutState(season);
-	const next = rounds[m.round]?.[(m.slot ?? 0) >> 1]?.match;
-	return !!next && (!!next.reportedBy || !!next.walkoverId);
 }
 
 // A match waits while a result feeding it is flagged: the organizer's fix may change who plays it.
@@ -202,7 +227,7 @@ export function walkover(season: Season, m: Match, winnerId: string, actorId: st
 				after: { winner: winnerId }
 			})
 			.run();
-		syncBracket(tx, season);
+		syncBracket(tx, season, actorId);
 	});
 }
 

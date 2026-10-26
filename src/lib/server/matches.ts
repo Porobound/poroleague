@@ -117,7 +117,7 @@ export function saveReport(m: Match, actorId: string, values: Report) {
 		tx.insert(audit)
 			.values({ seasonId: m.seasonId, matchId: m.id, actorId, action: 'report', after: values })
 			.run();
-		if (m.stage === 'playoff') syncBracket(tx, { id: m.seasonId });
+		if (m.stage === 'playoff') syncBracket(tx, { id: m.seasonId }, actorId);
 	});
 }
 
@@ -180,7 +180,7 @@ export function organizerEdit(m: Match, actorId: string, values: Report) {
 				after: values
 			})
 			.run();
-		if (m.stage === 'playoff') syncBracket(tx, { id: m.seasonId });
+		if (m.stage === 'playoff') syncBracket(tx, { id: m.seasonId }, actorId);
 	});
 }
 
@@ -225,6 +225,7 @@ export const seasonAudit = (seasonId: number) =>
 	db
 		.select({
 			id: audit.id,
+			matchId: audit.matchId,
 			action: audit.action,
 			before: audit.before,
 			after: audit.after,
