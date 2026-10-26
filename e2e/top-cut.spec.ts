@@ -13,6 +13,14 @@ const confirm = async (page: Page, button: string, confirmLabel: string) => {
 	await page.getByRole('dialog').getByRole('button', { name: confirmLabel }).click();
 };
 
+// The only open match on the page gets one Walkover button; its dialog picks who advances.
+const walkover = async (page: Page, name: string) => {
+	await page.getByRole('button', { name: 'Walkover', exact: true }).click();
+	const dialog = page.getByRole('dialog', { name: 'Advance a player without playing?' });
+	await dialog.getByLabel(name).check();
+	await dialog.getByRole('button', { name: 'Advance' }).click();
+};
+
 test('top cut from setup to champion', async ({ browser }) => {
 	const org = await browser.newPage(as(ORGANIZER));
 	await org.goto(`/seasons/${slug}/admin/top-cut`);
@@ -56,11 +64,11 @@ test('top cut from setup to champion', async ({ browser }) => {
 
 	// The organizer walks over the other semi to Player 4, then the final appears.
 	await org.goto(`/seasons/${slug}/admin/top-cut`);
-	await confirm(org, `Walkover: ${playerName('topCut', 4)}`, `${playerName('topCut', 4)} advances`);
+	await walkover(org, playerName('topCut', 4));
 	await expect(org.getByRole('region', { name: 'Final', exact: true })).toContainText(
 		playerName('topCut', 4)
 	);
-	await confirm(org, `Walkover: ${playerName('topCut', 1)}`, `${playerName('topCut', 1)} advances`);
+	await walkover(org, playerName('topCut', 1));
 	await confirm(org, 'Finish season', 'Finish season');
 	await expect(org.getByRole('status')).toContainText(`${playerName('topCut', 1)} is the champion`);
 

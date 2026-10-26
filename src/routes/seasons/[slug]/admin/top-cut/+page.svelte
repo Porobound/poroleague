@@ -107,21 +107,35 @@
 						<div class="row">
 							<MatchCard {...row.card} flag={row.flag} />
 							<div class="actions">
-								{#if row.walkoverOpen}
-									{#each [row.p1, row.p2] as p (p.id)}
-										<ConfirmButton
-											action="?/walkover"
-											variant={p.id === row.higher ? 'secondary' : 'ghost'}
-											label="Walkover: {p.name}"
-											title="{p.name} advances without playing?"
-											confirmLabel="{p.name} advances"
-											fields={{ matchId: String(row.id), winnerId: p.id }}
-										>
-											Logged in the audit log and posted in the results channel.
-										</ConfirmButton>
-									{/each}
-								{/if}
 								{#if season.status === 'topcut'}<ResultActions {row} />{/if}
+								{#if row.walkoverOpen}
+									<ConfirmButton
+										action="?/walkover"
+										small
+										variant="secondary"
+										label="Walkover"
+										title="Advance a player without playing?"
+										confirmLabel="Advance"
+										fields={{ matchId: String(row.id) }}
+									>
+										<fieldset class="opts">
+											<legend class="eyebrow">Who advances?</legend>
+											{#each [row.p1, row.p2] as p (p.id)}
+												<label class="opt who">
+													<input
+														type="radio"
+														name="winnerId"
+														value={p.id}
+														checked={p.id === row.higher}
+														required
+													/>
+													{p.name}
+												</label>
+											{/each}
+										</fieldset>
+										<p>Logged in the audit log and posted in the results channel.</p>
+									</ConfirmButton>
+								{/if}
 							</div>
 						</div>
 					{/each}
