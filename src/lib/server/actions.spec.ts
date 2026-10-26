@@ -327,6 +327,45 @@ describe('groups', () => {
 	});
 });
 
+describe('move between groups', () => {
+	const move = (playerId: string, to: string) =>
+		groupActions.move!(event({ slug: 's1' }, ORG, { playerId, to }));
+	const groupOf = (id: string) =>
+		db.select().from(entries).where(eq(entries.playerId, id)).get()!.group;
+
+	// Three groups of one: p1 in 1, p2 in 2, p3 in 3.
+	beforeEach(() => {
+		db.delete(matches).run();
+		setSeason({ status: 'groups' });
+		db.update(entries).set({ group: 2 }).where(eq(entries.playerId, 'p2')).run();
+		db.update(entries).set({ group: 3 }).where(eq(entries.playerId, 'p3')).run();
+	});
+
+	it('moves a player to the target group', async () => {
+		expect((await outcome(move('p1', '3'))).returned).toEqual({});
+		expect(groupOf('p1')).toBe(3);
+	});
+
+	it('rejects an unknown target, the own group or a player not in the season', async () => {
+		for (const [id, to] of [
+			['p1', '4'],
+			['p1', '0'],
+			['p1', ''],
+			['p1', '1.5'],
+			['p1', '1'],
+			['nobody', '2']
+		])
+			expect(await status(move(id, to)), `${id} → ${to}`).toBe(400);
+		expect(groupOf('p1')).toBe(1);
+	});
+
+	it('only while groups are unlocked', async () => {
+		setSeason({ status: 'play' });
+		expect(await status(move('p1', '2'))).toBe(409);
+		expect(groupOf('p1')).toBe(1);
+	});
+});
+
 // The group of three plays 3 rounds: at 2 a week from 2 Nov, the last week ends 15 Nov.
 describe('deadline fits the schedule', () => {
 	beforeEach(() => setSeason({ startDate: '2026-11-02', deadline: '2026-12-31' }));
