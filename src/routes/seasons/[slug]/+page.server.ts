@@ -2,6 +2,7 @@ import { error, fail } from '@sveltejs/kit';
 import { MAX_PLAYERS } from '#lib/league/groups.ts';
 import { published } from '#lib/league/publish.ts';
 import { addDays, weekOf } from '#lib/league/time.ts';
+import { roundName } from '#lib/league/bracket.ts';
 import { cardContext, matchCard } from '#lib/matchCard.ts';
 import { currentRole, playerAction } from '#lib/server/auth.ts';
 import { playerMatches } from '#lib/server/matches.ts';
@@ -13,6 +14,7 @@ import {
 	seasonEntries,
 	seasonProgress
 } from '#lib/server/seasons.ts';
+import { cutState } from '#lib/server/topCut.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async (event) => {
@@ -25,7 +27,27 @@ export const load: PageServerLoad = async (event) => {
 		season.status !== 'draft' && season.status !== 'signup' && season.status !== 'groups';
 	const groups = scheduled ? groupStandings(season, list) : [];
 	const ctx = cardContext(season, list, locals.user?.id ?? null);
-	const { closed, weeks, rounds, phases } = seasonProgress(season, groups);
+	const cut = season.status === 'topcut' || season.status === 'finished' ? cutState(season) : null;
+	const cutNow = cut?.published
+		? cut.rounds.findIndex((r) => r.some((x) => !x.bye && !x.winner))
+		: -1;
+	const cutName = (i: number) => roundName(i + 1, cut!.rounds.length);
+	const { closed, weeks, rounds, phases } = seasonProgress(
+		season,
+		groups,
+		new Date(),
+		cut?.published
+			? cut.champion
+				? 'Done'
+				: cutName(cutNow)
+			: season.status === 'topcut'
+				? 'Being set up'
+				: undefined
+	);
+	const viewer = locals.user?.id ?? null;
+	const myCut = cut?.rounds
+		.flat()
+		.find((x) => x.match && !x.winner && viewer && (x.p1 === viewer || x.p2 === viewer));
 	// Week w runs from the start date + 7(w-1) days for 7 days, but never past the deadline.
 	const weekEnd =
 		season.startDate && ctx.week >= 1 ? addDays(season.startDate, ctx.week * 7 - 1) : null;
@@ -42,7 +64,21 @@ export const load: PageServerLoad = async (event) => {
 		entries: list,
 		groups,
 		// Ties only need an organizer once results are in; mid-season they sort themselves out.
-		showTies: season.status === 'finished' || closed,
+		showTies: season.status === 'finished' || season.status === 'topcut' || closed,
+		topCut: cut?.published
+			? {
+					round: cutNow >= 0 ? cutName(cutNow) : null,
+					champion: cut.champion
+						? (list.find((e) => e.playerId === cut.champion)?.displayName ?? null)
+						: null,
+					myMatch: myCut?.match
+						? matchCard(
+								myCut.match,
+								cardContext(season, list, viewer, new Date(), cut.rounds.length)
+							).props
+						: null
+				}
+			: null,
 		closed,
 		week: ctx.week,
 		weeks,

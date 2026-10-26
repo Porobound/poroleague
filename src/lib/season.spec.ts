@@ -136,7 +136,13 @@ describe('seasonPhases', () => {
 		).toEqual(['done:2 groups (13 + 12)', 'done:Done', 'current:15 Nov 2026']);
 		expect(
 			seasonPhases({ status: 'finished', deadline: '2026-11-15' }, closed).map((p) => p.state)
-		).toEqual(['done', 'done', 'done', 'done', 'done', 'todo']);
+		).toEqual(['done', 'done', 'done', 'done', 'done', 'done']);
+	});
+	it('makes the top cut current while it runs', () => {
+		const closed = { ...play, closed: true, cut: 'Semifinals' };
+		expect(
+			view(seasonPhases({ status: 'topcut', deadline: '2026-11-15' }, closed)).slice(4)
+		).toEqual(['done:15 Nov 2026', 'current:Semifinals']);
 	});
 	it('shows signup open before any groups exist', () => {
 		const none = { week: 0, weeks: 0, rounds: null, groups: [], closed: false };

@@ -1,5 +1,6 @@
 import { error } from '@sveltejs/kit';
 import { and, asc, count, desc, eq, inArray, isNull, ne, sql } from 'drizzle-orm';
+import { cutFinish } from '#lib/league/bracket.ts';
 import { defaultGroupCount, splitGroups } from '#lib/league/groups.ts';
 import { published } from '#lib/league/publish.ts';
 import { roundCount } from '#lib/league/roundRobin.ts';
@@ -23,6 +24,7 @@ import {
 	type Match,
 	type Tx
 } from '#lib/server/matches.ts';
+import { cutState } from '#lib/server/topCut.ts';
 
 export type Season = typeof seasons.$inferSelect;
 
@@ -296,7 +298,12 @@ export function groupStandings(
 export type GroupStanding = ReturnType<typeof groupStandings>[number];
 
 // Where the season stands this week, for the phase bar and the week headline.
-export function seasonProgress(season: Season, groups: GroupStanding[], now = new Date()) {
+export function seasonProgress(
+	season: Season,
+	groups: GroupStanding[],
+	now = new Date(),
+	cut?: string
+) {
 	const closed = reportingClosed(season.deadline, now);
 	const week = currentWeek(season.startDate, now);
 	const maxRound = Math.max(0, ...groups.map((g) => g.rounds));
@@ -308,7 +315,7 @@ export function seasonProgress(season: Season, groups: GroupStanding[], now = ne
 		week,
 		weeks,
 		rounds,
-		phases: seasonPhases(season, { week, weeks, rounds, groups: sizes, closed })
+		phases: seasonPhases(season, { week, weeks, rounds, groups: sizes, closed, cut })
 	};
 }
 
@@ -348,7 +355,11 @@ export function playerSeasons(playerId: string) {
 				rank: i + 1,
 				size: g?.size ?? 0,
 				matches: published(playerMatches(season.id, playerId), season.publishedRound),
-				dropped: droppedIds(list)
+				dropped: droppedIds(list),
+				cut:
+					season.status === 'topcut' || season.status === 'finished'
+						? cutFinish(cutState(season).rounds, playerId)
+						: null
 			};
 		});
 }
@@ -356,12 +367,13 @@ export type PlayerSeason = ReturnType<typeof playerSeasons>[number];
 
 // One line per season for the player and career pages.
 export const seasonHistory = (list: PlayerSeason[]) =>
-	list.map(({ season, me, row, rank, size }) => ({
+	list.map(({ season, me, row, rank, size, cut }) => ({
 		slug: season.slug,
 		name: season.name,
 		group: me.group,
 		dropped: me.dropped,
 		place: row?.played ? `#${rank} of ${size}` : '—',
 		points: row?.played ? `${row.points} pts` : '—',
-		record: row?.played ? `${row.wins}–${row.draws}–${row.losses}` : '—'
+		record: row?.played ? `${row.wins}–${row.draws}–${row.losses}` : '—',
+		cut
 	}));

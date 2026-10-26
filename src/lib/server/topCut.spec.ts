@@ -6,6 +6,7 @@ import { seedEntries, seedMatch, seedPlayers, seedSeason } from '#lib/server/tes
 import { organizerEdit, saveReport } from '#lib/server/matches.ts';
 import { load as cutPage } from '../../routes/seasons/[slug]/top-cut/+page.server.ts';
 import { auditLines } from '#lib/server/auditLog.ts';
+import { playerSeasons, seasonHistory } from '#lib/server/seasons.ts';
 import { cutPreview, cutState, finishCut, nextPlayed, publishCut, walkover } from './topCut.ts';
 
 let id: number;
@@ -160,5 +161,16 @@ describe('top cut page', () => {
 		publishCut(season(), null, 'p1');
 		expect(view().rounds.map((r) => r.name)).toEqual(['Semifinals', 'Final']);
 		expect(view().rounds[0].slots[0].p1).toMatchObject({ name: 'Player 1', label: 'A1' });
+	});
+});
+
+describe('history', () => {
+	it('names each player’s top-cut finish', () => {
+		publishCut(season(), null, 'p1');
+		walkover(season(), slot(1, 0).match!, 'p1', 'p1');
+		walkover(season(), slot(1, 1).match!, 'p4', 'p1');
+		walkover(season(), slot(2, 0).match!, 'p1', 'p1');
+		const cut = (p: string) => seasonHistory(playerSeasons(p))[0].cut;
+		expect(['p1', 'p4', 'p5', 'p3'].map(cut)).toEqual(['Champion', 'Runner-up', 'Semifinal', null]);
 	});
 });

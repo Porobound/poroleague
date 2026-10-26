@@ -142,6 +142,7 @@ export type PhaseContext = {
 	rounds: [number, number] | null; // this week's first and last round
 	groups: number[]; // group sizes
 	closed: boolean; // past the season deadline
+	cut?: string; // top cut detail, e.g. the round being played
 };
 
 const groupsLabel = (sizes: number[]) =>
@@ -156,7 +157,7 @@ function roundsDetail(c: PhaseContext) {
 	return `Week ${c.week} of ${c.weeks} · ${a === b ? `round ${a}` : `rounds ${a}–${b}`}`;
 }
 
-// The season page's phase bar. Finished seasons have no current step; top cut is always to come.
+// The season page's phase bar. Finished seasons have no current step.
 export function seasonPhases(
 	s: { status: SeasonStatus; deadline: string | null },
 	c: PhaseContext
@@ -166,8 +167,8 @@ export function seasonPhases(
 		signup: 1,
 		groups: 2,
 		play: c.closed ? 4 : 3,
-		topcut: 4,
-		finished: 5
+		topcut: 5,
+		finished: 6
 	}[s.status];
 	const after = (i: number) => current > i;
 	const steps: [string, string][] = [
@@ -179,11 +180,11 @@ export function seasonPhases(
 		],
 		['Weekly rounds', after(3) ? 'Done' : current === 3 ? roundsDetail(c) : ''],
 		['Deadline', date(s.deadline)],
-		['Top cut', 'Coming later']
+		['Top cut', c.cut ?? (current >= 5 ? 'None' : 'Coming later')]
 	];
 	return steps.map(([label, detail], i) => ({
 		label,
 		detail,
-		state: i === 5 ? 'todo' : i < current ? 'done' : i === current ? 'current' : 'todo'
+		state: i < current ? 'done' : i === current ? 'current' : 'todo'
 	}));
 }

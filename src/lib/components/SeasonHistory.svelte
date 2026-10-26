@@ -22,6 +22,7 @@
 				<th class="pb-num">Rank</th>
 				<th class="pb-num">Points</th>
 				<th class="pb-num"><abbr title="Wins–Draws–Losses">W–D–L</abbr></th>
+				<th>Top cut</th>
 			</tr>
 		</thead>
 		<tbody>
@@ -38,6 +39,7 @@
 					<td class={['pb-num', s.dropped && 'loss']}>{s.dropped ? 'Dropped' : s.place}</td>
 					<td class="pb-num">{s.points}</td>
 					<td class="pb-num">{s.record}</td>
+					<td class={['cut', !s.cut && 'none']}>{s.cut ?? '—'}</td>
 				</tr>
 			{/each}
 		</tbody>
@@ -98,6 +100,17 @@
 		}
 		td:nth-child(5)::before {
 			content: '· ';
+		}
+		.cut {
+			grid-column: 1 / -1;
+			font-size: 13px;
+			color: var(--ink-muted);
+		}
+		.cut::before {
+			content: 'Top cut: ';
+		}
+		.cut.none {
+			display: none;
 		}
 	}
 </style>

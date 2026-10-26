@@ -57,6 +57,21 @@
 						Report anything left before the deadline. Unplayed matches count as a double loss.
 					</p>
 				{/if}
+			{:else if season.status === 'topcut'}
+				<span class="pb-badge">{season.name}</span>
+				<h1>
+					{data.topCut?.round
+						? `Top cut: ${data.topCut.round}`
+						: data.topCut
+							? 'The top cut is decided.'
+							: 'The top cut is being set up.'}
+				</h1>
+				<p class="lede">
+					{data.topCut ? 'Single elimination, Bo3.' : 'The group stage is final.'}{season.topCutDate
+						? ` Top cut on ${date(season.topCutDate)}.`
+						: ''}
+					{#if data.topCut}<a href="/seasons/{season.slug}/top-cut">See the bracket</a>{/if}
+				</p>
 			{:else if season.status === 'finished'}
 				<span class="pb-badge">{season.name}</span>
 				<h1>Final standings.</h1>
@@ -121,6 +136,21 @@
 
 	{#if form?.message}
 		<p class="pb-notice" role="status">{form.message}</p>
+	{/if}
+
+	{#if data.topCut?.champion && season.status === 'finished'}
+		<div class="champ">
+			<span class="eyebrow signal">{season.name} champion</span>
+			<strong>{data.topCut.champion}</strong>
+			<a href="/seasons/{season.slug}/top-cut">See the bracket</a>
+		</div>
+	{/if}
+
+	{#if data.topCut?.myMatch}
+		<section>
+			<div class="section-head"><h2>Your top cut match</h2></div>
+			<div class="cards"><MatchCard {...data.topCut.myMatch} /></div>
+		</section>
 	{/if}
 
 	{#if data.signedUp && season.status === 'play'}
@@ -363,6 +393,21 @@
 	}
 	.hero p {
 		margin: 0;
+	}
+	.champ {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		padding: 20px 24px;
+		border: 1px solid var(--signal);
+		border-radius: var(--radius-md);
+		background: var(--surface-raised);
+	}
+	.champ strong {
+		font: 700 24px/30px var(--font-display);
+	}
+	.signal {
+		color: var(--signal);
 	}
 	.lede {
 		max-width: 600px;
