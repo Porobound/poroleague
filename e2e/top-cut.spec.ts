@@ -17,6 +17,8 @@ test('top cut from setup to champion', async ({ browser }) => {
 	const org = await browser.newPage(as(ORGANIZER));
 	await org.goto(`/seasons/${slug}/admin/top-cut`);
 	await expect(org.getByRole('heading', { name: 'Set up the top cut' })).toBeVisible();
+	const mainNav = (page: Page) => page.getByRole('navigation', { name: 'Main' });
+	await expect(mainNav(org).getByRole('link', { name: 'Top cut' })).toHaveCount(0);
 	const first = org.getByRole('list', { name: 'First round' });
 	await expect(first.getByRole('listitem')).toHaveCount(2);
 	for (const [a, b] of [
@@ -32,7 +34,8 @@ test('top cut from setup to champion', async ({ browser }) => {
 
 	// Player 1 reports their semifinal against Player 5 from the bracket.
 	const p1 = await browser.newPage(as(player('topCut', 1)));
-	await p1.goto(`/seasons/${slug}/top-cut`);
+	await p1.goto(`/seasons/${slug}`);
+	await mainNav(p1).getByRole('link', { name: 'Top cut' }).click();
 	await expect(p1.getByRole('heading', { name: 'Semifinals are up.' })).toBeVisible();
 	await p1
 		.getByRole('region', { name: 'Bracket' })
@@ -78,4 +81,7 @@ test('the bracket on a phone shows round chips and cards', async ({ browser }) =
 		page.getByRole('group', { name: 'Rounds' }).getByRole('button', { name: 'Final', exact: true })
 	).toBeVisible();
 	await expect(page.getByText('Out in the semifinals.')).toBeVisible();
+	await expect(
+		page.getByRole('navigation', { name: 'Pages' }).getByRole('link', { name: 'Top cut' })
+	).toHaveAttribute('aria-current', 'page');
 });

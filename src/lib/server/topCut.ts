@@ -82,6 +82,15 @@ const cutRows = (tx: Db, seasonId: number) =>
 		.where(and(eq(matches.seasonId, seasonId), eq(matches.stage, 'playoff')))
 		.all();
 
+// For the main nav: the season's bracket is out.
+export const cutPublished = (slug: string) =>
+	!!db
+		.select({ id: entries.seasonId })
+		.from(entries)
+		.innerJoin(seasons, eq(entries.seasonId, seasons.id))
+		.where(and(eq(seasons.slug, slug), isNotNull(entries.slot)))
+		.get();
+
 export const cutRounds = (seasonId: number) => {
 	const n = cutEntries(db, seasonId).layout.length;
 	return n ? Math.log2(n) : 0;
