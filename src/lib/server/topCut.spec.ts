@@ -4,6 +4,7 @@ import { db } from '#lib/server/db/index.ts';
 import { audit, entries, matches, seasons } from '#lib/server/db/schema.ts';
 import { seedEntries, seedMatch, seedPlayers, seedSeason } from '#lib/server/test/seed.ts';
 import { organizerEdit, saveReport } from '#lib/server/matches.ts';
+import { load as cutPage } from '../../routes/seasons/[slug]/top-cut/+page.server.ts';
 import { auditLines } from '#lib/server/auditLog.ts';
 import { cutPreview, cutState, finishCut, nextPlayed, publishCut, walkover } from './topCut.ts';
 
@@ -144,5 +145,20 @@ describe('audit lines', () => {
 			['Walkover', 'Semifinal 1 · Player 1 vs Player 5 · Player 1 advances'],
 			['Top cut', 'Top cut published · 4 players · 5 Dec 2026']
 		]);
+	});
+});
+
+describe('top cut page', () => {
+	const view = () =>
+		cutPage({ params: { slug: 's1' }, locals: { user: null } } as never) as ReturnType<
+			typeof cutPage
+		> & {
+			rounds: { name: string; slots: { p1: { name: string; label: string } | null }[] }[];
+		};
+	it('404s until published, then shows rounds with seed labels', () => {
+		expect(() => view()).toThrow();
+		publishCut(season(), null, 'p1');
+		expect(view().rounds.map((r) => r.name)).toEqual(['Semifinals', 'Final']);
+		expect(view().rounds[0].slots[0].p1).toMatchObject({ name: 'Player 1', label: 'A1' });
 	});
 });
