@@ -4,7 +4,6 @@
 	import GameRows from '#lib/components/GameRows.svelte';
 	import MatchCard from '#lib/components/MatchCard.svelte';
 	import { parseReport } from '#lib/league/report.ts';
-	import { groupName } from '#lib/season.ts';
 	import { MediaQuery } from 'svelte/reactivity';
 	import type { PageProps } from './$types';
 
@@ -17,7 +16,7 @@
 	const player = (k: 'p1' | 'p2') => (k === 'p1' ? data.p1 : data.p2);
 	const name = (k: 'p1' | 'p2') => player(k).displayName + (player(k).id === me ? ' (you)' : '');
 	const opponent = $derived(player(order[1]).displayName);
-	const head = $derived(`${m.group ? `${groupName(m.group)} · ` : ''}Round ${m.round}`);
+	const head = $derived(data.head);
 	const values = $derived<Record<string, string>>(
 		form && 'values' in form && form.values
 			? form.values

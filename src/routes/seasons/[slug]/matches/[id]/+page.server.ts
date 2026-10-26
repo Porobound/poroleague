@@ -40,14 +40,16 @@ export const load: PageServerLoad = (event) => {
 	const { season, match, mode, closed, voided } = context(event);
 	const [p1, p2] = matchPlayers(match);
 	const viewer = event.locals.user?.id ?? null;
+	const card = matchCard(
+		match,
+		cardContext(season, seasonEntries(season.id), viewer, new Date(), cutRounds(season.id))
+	);
 	return {
 		season,
 		match,
 		// Same status rule as every match card.
-		status: matchCard(
-			match,
-			cardContext(season, seasonEntries(season.id), viewer, new Date(), cutRounds(season.id))
-		).status,
+		status: card.status,
+		head: card.props.head,
 		mode,
 		closed,
 		voided,

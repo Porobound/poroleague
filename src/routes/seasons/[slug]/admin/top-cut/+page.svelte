@@ -83,7 +83,7 @@
 		{/if}
 	{:else}
 		{#if data.champion}
-			<p class="pb-notice" role="status">Champion: <strong>{data.champion}</strong></p>
+			<p class="pb-notice">Champion: <strong>{data.champion}</strong></p>
 			{#if season.status === 'topcut'}
 				<ConfirmButton
 					action="?/finish"
@@ -101,6 +101,7 @@
 		{#each data.rounds as r (r.name)}
 			<section aria-label={r.name}>
 				<h2>{r.name}</h2>
+				{#if !r.rows.length}<p class="muted">Waiting for the round before.</p>{/if}
 				<div class="cards">
 					{#each r.rows as row (row.id)}
 						<div class="row">
@@ -203,13 +204,13 @@
 	}
 	.cards {
 		display: grid;
-		gap: 12px;
+		grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+		gap: 16px;
 	}
 	.row {
 		display: flex;
-		flex-wrap: wrap;
-		gap: 12px;
-		align-items: flex-start;
+		flex-direction: column;
+		gap: 8px;
 	}
 	.actions {
 		display: flex;
