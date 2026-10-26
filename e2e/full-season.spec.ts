@@ -19,4 +19,5 @@ test('a full season offers no sign-up, logged in or out', async ({ page, browser
 		await expect(p.getByRole('button', { name: /^Sign up for/ })).toHaveCount(0);
 		await expect(p.getByRole('link', { name: 'Log in with Discord to sign up' })).toHaveCount(0);
 	}
+	await late.close();
 });

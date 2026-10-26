@@ -49,7 +49,8 @@ export const load: PageServerLoad = async (event) => {
 		weekEnds,
 		phases,
 		signedUp,
-		full: season.status === 'signup' && list.length >= MAX_PLAYERS,
+		// Full for anyone not already in; they keep their spot and can withdraw.
+		full: season.status === 'signup' && list.length >= MAX_PLAYERS && !signedUp,
 		// This week's matches plus anything overdue; the full list lives on the player page.
 		// Odd groups give someone a bye each round; say so, or a missing match looks like a bug.
 		myByes: rounds

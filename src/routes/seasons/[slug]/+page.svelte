@@ -179,7 +179,7 @@
 			{/if}
 			<hr />
 			<div class="signup-action action-bar">
-				{#if data.full && !data.signedUp}
+				{#if data.full}
 					<p>
 						<strong>Season is full.</strong>
 						<span class="muted"
