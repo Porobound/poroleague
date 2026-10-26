@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
 	authorizeUrl,
+	championEmbed,
 	dropEmbed,
 	escapeMd,
 	flagEmbed,
@@ -10,6 +11,7 @@ import {
 	resultEmbed,
 	safeReturnTo,
 	seasonDeletedEmbed,
+	walkoverEmbed,
 	type GuildMember
 } from './discord';
 
@@ -208,5 +210,23 @@ describe('pairingsPost', () => {
 		]);
 		expect(body.embeds![1].fields![0].value).toBe('<@d1> vs Former player 1');
 		expect(body.embeds!.every((e) => !e.url)).toBe(true);
+	});
+});
+
+describe('top cut posts', () => {
+	it('names pairing rounds and announces walkovers and the champion', () => {
+		const body = pairingsPost(
+			'S · Top cut',
+			'http://x/top-cut',
+			[{ round: 1, name: 'Semifinals', pairs: [{ group: null, p1Id: 'a', p2Id: 'b' }] }],
+			(id) => `<@${id}>`
+		);
+		expect(body.embeds![0].title).toBe('Semifinals');
+		expect(walkoverEmbed('S · Top cut · Final', 'Aino', 'http://x/m/1').title).toBe(
+			'Aino advances (walkover)'
+		);
+		expect(championEmbed('Autumn 2026', 'Aino', 'http://x').title).toBe(
+			'Autumn 2026 champion: Aino'
+		);
 	});
 });

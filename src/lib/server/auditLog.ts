@@ -1,8 +1,10 @@
 import { date, when } from '#lib/format.ts';
+import { matchName } from '#lib/league/bracket.ts';
 import type { Report } from '#lib/league/report.ts';
 import { groupName } from '#lib/season.ts';
 import { seasonAudit } from '#lib/server/matches.ts';
 import { seasonEntries } from '#lib/server/seasons.ts';
+import { cutRounds } from '#lib/server/topCut.ts';
 
 type Change = Partial<Report> & {
 	flagReason?: string;
@@ -17,6 +19,10 @@ type Change = Partial<Report> & {
 	week?: number;
 	rounds?: [number, number];
 	erased?: string;
+	size?: number;
+	date?: string | null;
+	winner?: string;
+	champion?: string;
 };
 const LABEL: Record<string, string> = {
 	report: 'Report',
@@ -29,7 +35,10 @@ const LABEL: Record<string, string> = {
 	finalize: 'Finalize',
 	season: 'Season',
 	publish: 'Publish',
-	erase: 'Erase'
+	erase: 'Erase',
+	topcut: 'Top cut',
+	walkover: 'Walkover',
+	champion: 'Champion'
 };
 export const auditLabel = (action: string) => LABEL[action] ?? action;
 
@@ -52,6 +61,7 @@ const settings = (before: Change | null, after: Change | null) =>
 export function auditLines(seasonId: number, limit?: number) {
 	const names = new Map(seasonEntries(seasonId).map((e) => [e.playerId, e.displayName]));
 	const name = (id: string | null | undefined) => (id && names.get(id)) || 'Unknown';
+	const rounds = cutRounds(seasonId);
 	return seasonAudit(seasonId)
 		.slice(0, limit)
 		.map((r) => {
@@ -64,7 +74,11 @@ export function auditLines(seasonId: number, limit?: number) {
 					: '';
 			const [before, after] = [r.before as Change | null, r.after as Change | null];
 			const change = [result(before), result(after)].filter(Boolean).join(' → ');
-			const where = r.round ? `${r.group ? `${groupName(r.group)} ` : ''}R${r.round}` : '';
+			const where = !r.round
+				? ''
+				: r.stage === 'playoff'
+					? matchName(r.round, r.slot ?? 0, rounds)
+					: `${r.group ? `${groupName(r.group)} ` : ''}R${r.round}`;
 			// A result line already names both players; otherwise (flag, drop) say whose match it was.
 			const match = where && !change ? `${where} · ${name(r.p1Id)} vs ${name(r.p2Id)}` : where;
 			return {
@@ -87,6 +101,11 @@ export function auditLines(seasonId: number, limit?: number) {
 					after?.order ? `Order: ${after.order.map(name).join(', ')}` : '',
 					r.action === 'season' ? settings(before, after) : '',
 					r.action === 'finalize' ? 'Season finalized' : '',
+					r.action === 'topcut'
+						? `Top cut published · ${after?.size} players${after?.date ? ` · ${date(after.date)}` : ''}`
+						: '',
+					after?.winner ? `${name(after.winner)} advances` : '',
+					after?.champion ? `Champion: ${name(after.champion)}` : '',
 					r.action === 'publish' && after?.rounds
 						? `Week ${after.week} published · R${after.rounds[0]}${after.rounds[1] > after.rounds[0] ? `–${after.rounds[1]}` : ''}`
 						: ''

@@ -1,12 +1,13 @@
 import { and, asc, desc, eq, inArray, isNotNull, or } from 'drizzle-orm';
 import type { MatchPost } from '#lib/discord.ts';
+import { matchName } from '#lib/league/bracket.ts';
 import type { Report } from '#lib/league/report.ts';
 import { isVoid } from '#lib/league/status.ts';
 import { cardContext, matchCard } from '#lib/matchCard.ts';
 import { db } from '#lib/server/db/index.ts';
 import { audit, entries, former, matches, players } from '#lib/server/db/schema.ts';
 import { groupName } from '#lib/season.ts';
-import { syncBracket } from '#lib/server/topCut.ts';
+import { cutRounds, syncBracket } from '#lib/server/topCut.ts';
 
 export type Match = typeof matches.$inferSelect;
 export type Player = ReturnType<typeof matchPlayers>[number];
@@ -144,7 +145,10 @@ export function matchPost(
 		p1: { id: p1.id, name: p1.displayName },
 		p2: { id: p2.id, name: p2.displayName },
 		report,
-		where: `${season.name}${group} · Round ${match.round}`,
+		where:
+			match.stage === 'playoff'
+				? `${season.name} · Top cut · ${matchName(match.round, match.slot ?? 0, cutRounds(match.seasonId))}`
+				: `${season.name}${group} · Round ${match.round}`,
 		url: `${origin}/seasons/${season.slug}/matches/${match.id}`,
 		at: new Date()
 	};
@@ -229,6 +233,8 @@ export const seasonAudit = (seasonId: number) =>
 			actorFormer: former(),
 			group: matches.group,
 			round: matches.round,
+			stage: matches.stage,
+			slot: matches.slot,
 			p1Id: matches.p1Id,
 			p2Id: matches.p2Id
 		})

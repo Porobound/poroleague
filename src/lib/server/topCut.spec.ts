@@ -4,7 +4,8 @@ import { db } from '#lib/server/db/index.ts';
 import { audit, entries, matches, seasons } from '#lib/server/db/schema.ts';
 import { seedEntries, seedMatch, seedPlayers, seedSeason } from '#lib/server/test/seed.ts';
 import { organizerEdit, saveReport } from '#lib/server/matches.ts';
-import { cutPreview, cutState, nextPlayed, publishCut, walkover } from './topCut.ts';
+import { auditLines } from '#lib/server/auditLog.ts';
+import { cutPreview, cutState, finishCut, nextPlayed, publishCut, walkover } from './topCut.ts';
 
 let id: number;
 // Two groups of three, every group match played: A = p1 > p2 > p3, B = p4 > p5 > p6.
@@ -34,6 +35,7 @@ beforeEach(() => {
 			});
 });
 const season = () => db.select().from(seasons).where(eq(seasons.id, id)).get()!;
+const slot = (round: number, s: number) => cutState(season()).rounds[round - 1][s];
 
 describe('cutPreview', () => {
 	it('takes the top N per group, cross-seeded', () => {
@@ -92,7 +94,6 @@ const won = (p1: number, p2: number) => ({
 	p2Legend: 'Viktor',
 	diceWinnerId: 'p1'
 });
-const slot = (round: number, s: number) => cutState(season()).rounds[round - 1][s];
 
 describe('advancing', () => {
 	beforeEach(() => publishCut(season(), null, 'p1'));
@@ -126,5 +127,22 @@ describe('advancing', () => {
 				.all()
 				.map((a) => a.action)
 		).toContain('walkover');
+	});
+});
+
+describe('audit lines', () => {
+	it('logs publishing, walkovers and the champion', () => {
+		publishCut(season(), '2026-12-05', 'p1');
+		walkover(season(), slot(1, 0).match!, 'p1', 'p1');
+		walkover(season(), slot(1, 1).match!, 'p4', 'p1');
+		walkover(season(), slot(2, 0).match!, 'p1', 'p1');
+		finishCut(season(), 'p1', 'p1');
+		expect(auditLines(id).map((l) => [l.label, l.what])).toEqual([
+			['Champion', 'Champion: Player 1'],
+			['Walkover', 'Final · Player 1 vs Player 4 · Player 1 advances'],
+			['Walkover', 'Semifinal 2 · Player 4 vs Player 2 · Player 4 advances'],
+			['Walkover', 'Semifinal 1 · Player 1 vs Player 5 · Player 1 advances'],
+			['Top cut', 'Top cut published · 4 players · 5 Dec 2026']
+		]);
 	});
 });

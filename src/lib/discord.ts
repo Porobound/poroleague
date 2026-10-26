@@ -144,7 +144,7 @@ export type WebhookBody = {
 	allowed_mentions: { parse: [] };
 };
 export type Pairing = { group: number | null; p1Id: string; p2Id: string };
-export type PairingRound = { round: number; pairs: Pairing[] };
+export type PairingRound = { round: number; name?: string; pairs: Pairing[] };
 
 // One message per week, an embed per round. `mention` gives each player's text: a mention inside
 // an embed shows as a clickable server name and never pings.
@@ -167,7 +167,7 @@ export function pairingsPost(
 		// <url> keeps Discord from adding a preview card for the link.
 		content: `**${escapeMd(title)}**\n[Full schedule](<${url}>)`,
 		embeds: rounds.map((r) => ({
-			title: `Round ${r.round}`,
+			title: r.name ?? `Round ${r.round}`,
 			color: ACCENT,
 			fields: [...new Set(r.pairs.map((p) => p.group))].map((g) => field(r.pairs, g)),
 			footer: { text: title },
@@ -176,3 +176,19 @@ export function pairingsPost(
 		allowed_mentions: { parse: [] }
 	};
 }
+
+export const walkoverEmbed = (where: string, winner: string, url: string): Embed => ({
+	title: `${escapeMd(winner)} advances (walkover)`,
+	url,
+	color: ACCENT,
+	footer: { text: where },
+	timestamp: new Date().toISOString()
+});
+
+export const championEmbed = (season: string, champion: string, url: string): Embed => ({
+	title: `${escapeMd(season)} champion: ${escapeMd(champion)}`,
+	url,
+	color: SIGNAL,
+	footer: { text: 'Top cut' },
+	timestamp: new Date().toISOString()
+});

@@ -187,3 +187,12 @@ export function walkover(season: Season, m: Match, winnerId: string, actorId: st
 		syncBracket(tx, season);
 	});
 }
+
+export function finishCut(season: Season, championId: string, actorId: string) {
+	db.transaction((tx) => {
+		tx.update(seasons).set({ status: 'finished' }).where(eq(seasons.id, season.id)).run();
+		tx.insert(audit)
+			.values({ seasonId: season.id, actorId, action: 'champion', after: { champion: championId } })
+			.run();
+	});
+}
