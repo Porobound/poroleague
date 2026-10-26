@@ -2,7 +2,6 @@ import { error, fail } from '@sveltejs/kit';
 import { LEGENDS } from '#lib/legends.ts';
 import { flagEmbed, resultEmbed } from '#lib/discord.ts';
 import { matchMode, parseReport } from '#lib/league/report.ts';
-import { reportingClosed } from '#lib/league/time.ts';
 import { playerAction } from '#lib/server/auth.ts';
 import {
 	flagMatch,
@@ -14,8 +13,9 @@ import {
 	resultOf,
 	saveReport
 } from '#lib/server/matches.ts';
-import { cardContext, matchCard } from '#lib/matchCard.ts';
+import { cardContext, liveState, matchCard } from '#lib/matchCard.ts';
 import { getSeason, seasonEntries } from '#lib/server/seasons.ts';
+import { cutRounds, waitingOnFlag } from '#lib/server/topCut.ts';
 import { postResult, postToOrganizers } from '#lib/server/webhooks.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -28,30 +28,44 @@ function context({ params, locals }: Event) {
 	const id = Number(params.id);
 	const match = Number.isInteger(id) ? getMatch(season.id, id) : undefined;
 	// Unpublished pairings stay secret, organizers included; they have Admin → Matches.
-	if (!match || match.round > season.publishedRound) error(404, 'Match not found');
-	const closed = reportingClosed(season.deadline, new Date());
+	if (!match || (match.stage === 'group' && match.round > season.publishedRound))
+		error(404, 'Match not found');
+	const { inPlay, closed } = liveState(match, season);
 	const voided = isVoided(match);
-	const mode = matchMode(match, {
+	let mode = matchMode(match, {
 		viewerId: locals.user?.id ?? null,
-		inPlay: season.status === 'play',
+		inPlay,
 		closed,
-		voided
+		voided: voided || !!match.walkoverId
 	});
-	return { season, match, mode, closed, voided };
+	// Top cut: reporting waits while a result feeding this match is flagged, since the fix may
+	// change who plays it.
+	const waiting = match.stage === 'playoff' && mode === 'report' && waitingOnFlag(season, match);
+	if (waiting) mode = 'view';
+	return { season, match, mode, closed, voided, waiting };
 }
 
 export const load: PageServerLoad = (event) => {
-	const { season, match, mode, closed, voided } = context(event);
+	const { season, match, mode, closed, voided, waiting } = context(event);
 	const [p1, p2] = matchPlayers(match);
 	const viewer = event.locals.user?.id ?? null;
+	const card = matchCard(
+		match,
+		cardContext(season, seasonEntries(season.id), viewer, new Date(), cutRounds(season.id))
+	);
 	return {
 		season,
 		match,
 		// Same status rule as every match card.
-		status: matchCard(match, cardContext(season, seasonEntries(season.id), viewer)).status,
+		status: card.status,
+		head: card.props.head,
 		mode,
 		closed,
 		voided,
+		waiting,
+		walkover: match.walkoverId
+			? [p1, p2].find((p) => p.id === match.walkoverId)!.displayName
+			: null,
 		p1,
 		p2,
 		legends: LEGENDS,

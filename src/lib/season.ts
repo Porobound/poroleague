@@ -1,5 +1,5 @@
 import { date } from '#lib/format.ts';
-export type SeasonStatus = 'draft' | 'signup' | 'groups' | 'play' | 'finished';
+export type SeasonStatus = 'draft' | 'signup' | 'groups' | 'play' | 'topcut' | 'finished';
 export type SeasonFields = {
 	name: string;
 	slug: string;
@@ -36,6 +36,7 @@ export const STATUS_LABEL: Record<SeasonStatus, string> = {
 	signup: 'Signup open',
 	groups: 'Drawing groups',
 	play: 'In play',
+	topcut: 'Top cut',
 	finished: 'Finished'
 };
 
@@ -44,10 +45,19 @@ const EDITABLE: Record<SeasonStatus, SeasonField[]> = {
 	signup: ['name', 'startDate', 'roundsPerWeek', 'deadline', 'topCutSize'],
 	groups: ['name', 'startDate', 'roundsPerWeek', 'deadline', 'topCutSize'],
 	play: ['name', 'deadline', 'topCutSize'],
+	topcut: ['name'],
 	finished: []
 };
 
-export const editableFields = (status: SeasonStatus) => EDITABLE[status];
+// The top cut's size can still change in the top cut, until the bracket is published.
+// From the group lock on, the season has a schedule, standings and results.
+export const hasSchedule = (status: SeasonStatus) =>
+	status !== 'draft' && status !== 'signup' && status !== 'groups';
+
+export const editableFields = (status: SeasonStatus, cutPublished = false) =>
+	status === 'topcut' && !cutPublished
+		? [...EDITABLE.topcut, 'topCutSize' as const]
+		: EDITABLE[status];
 export const groupName = (n: number) => `Group ${String.fromCharCode(64 + n)}`;
 
 export function slugify(s: string): string {
@@ -140,6 +150,7 @@ export type PhaseContext = {
 	rounds: [number, number] | null; // this week's first and last round
 	groups: number[]; // group sizes
 	closed: boolean; // past the season deadline
+	cut?: string; // top cut detail, e.g. the round being played
 };
 
 const groupsLabel = (sizes: number[]) =>
@@ -154,7 +165,7 @@ function roundsDetail(c: PhaseContext) {
 	return `Week ${c.week} of ${c.weeks} · ${a === b ? `round ${a}` : `rounds ${a}–${b}`}`;
 }
 
-// The season page's phase bar. Finished seasons have no current step; top cut is always to come.
+// The season page's phase bar. Finished seasons have no current step.
 export function seasonPhases(
 	s: { status: SeasonStatus; deadline: string | null },
 	c: PhaseContext
@@ -164,7 +175,8 @@ export function seasonPhases(
 		signup: 1,
 		groups: 2,
 		play: c.closed ? 4 : 3,
-		finished: 5
+		topcut: 5,
+		finished: 6
 	}[s.status];
 	const after = (i: number) => current > i;
 	const steps: [string, string][] = [
@@ -176,11 +188,11 @@ export function seasonPhases(
 		],
 		['Weekly rounds', after(3) ? 'Done' : current === 3 ? roundsDetail(c) : ''],
 		['Deadline', date(s.deadline)],
-		['Top cut', 'Coming later']
+		['Top cut', c.cut ?? (current >= 5 ? 'None' : 'Coming later')]
 	];
 	return steps.map(([label, detail], i) => ({
 		label,
 		detail,
-		state: i === 5 ? 'todo' : i < current ? 'done' : i === current ? 'current' : 'todo'
+		state: i < current ? 'done' : i === current ? 'current' : 'todo'
 	}));
 }

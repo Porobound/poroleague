@@ -8,7 +8,9 @@
 
 	let { data, form }: PageProps = $props();
 	const season = $derived(data.season);
-	const hasResults = $derived(season.status === 'play' || season.status === 'finished');
+	const hasResults = $derived(
+		season.status === 'play' || season.status === 'topcut' || season.status === 'finished'
+	);
 	const matchesUrl = $derived(`/seasons/${season.slug}/admin/matches`);
 	const swap = (players: { playerId: string }[], i: number, j: number) => {
 		const ids = players.map((p) => p.playerId);
@@ -230,7 +232,7 @@
 		<SeasonForm
 			values={form && 'raw' in form && form.raw ? form.raw : seasonFields(season)}
 			errors={form && 'errors' in form ? form.errors : undefined}
-			editable={editableFields(season.status)}
+			editable={editableFields(season.status, data.hasCut)}
 			submit="Save changes"
 			confirm={season.status === 'draft' ? '' : 'Players see the changes right away.'}
 		/>

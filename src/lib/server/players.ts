@@ -37,13 +37,16 @@ export function erasePlayer(playerId: string, actorId: string) {
 			.where(and(eq(audit.actorId, playerId), eq(audit.action, 'flag')))
 			.run();
 		// They can't play on: off the list before groups are locked, dropped (matches void) in play.
+		// In the top cut a drop would rewrite the seeding standings, so they stay: they can't qualify,
+		// and once the bracket is out an organizer walks their match over.
 		const theirs = tx
 			.select({
 				id: seasons.id,
 				name: seasons.name,
 				slug: seasons.slug,
 				status: seasons.status,
-				dropped: entries.dropped
+				dropped: entries.dropped,
+				slot: entries.slot
 			})
 			.from(entries)
 			.innerJoin(seasons, eq(entries.seasonId, seasons.id))
@@ -51,6 +54,8 @@ export function erasePlayer(playerId: string, actorId: string) {
 			.all();
 		// Seasons in play they were dropped from, for the organizers' Discord notice.
 		const dropped: { name: string; slug: string }[] = [];
+		// Top cuts with a published bracket they're in: organizers walk their open match over.
+		const walkovers: { name: string; slug: string }[] = [];
 		for (const s of theirs) {
 			const entry = and(eq(entries.seasonId, s.id), eq(entries.playerId, playerId));
 			if (s.status === 'signup' || s.status === 'groups') {
@@ -61,10 +66,11 @@ export function erasePlayer(playerId: string, actorId: string) {
 				dropPlayer(s.id, playerId, actorId, tx);
 				dropped.push({ name: s.name, slug: s.slug });
 			}
+			if (s.status === 'topcut' && s.slot !== null) walkovers.push({ name: s.name, slug: s.slug });
 			tx.insert(audit)
 				.values({ seasonId: s.id, actorId, action: 'erase', after: { erased: playerId } })
 				.run();
 		}
-		return { name, dropped };
+		return { name, dropped, walkovers };
 	});
 }

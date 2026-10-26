@@ -196,6 +196,16 @@ describe('erasePlayer', () => {
 		expect(p2.played).toBe(1);
 	});
 
+	it('in a published top cut: keeps the entry and asks organizers for a walkover', () => {
+		db.update(seasons).set({ status: 'topcut' }).run();
+		db.update(entries).set({ seed: 1, slot: 0 }).where(eq(entries.playerId, 'p1')).run();
+		expect(erasePlayer('p1', ORG)).toMatchObject({
+			dropped: [],
+			walkovers: [{ name: 'Season 1', slug: 's1' }]
+		});
+		expect(entry(season.id)?.dropped).toBe(false);
+	});
+
 	it('keeps an earlier drop as it is', () => {
 		dropPlayer(season.id, 'p1', ORG);
 		expect(erasePlayer('p1', ORG).dropped).toEqual([]);

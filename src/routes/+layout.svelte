@@ -28,6 +28,15 @@
 						label: 'Season',
 						icon: icon('<path d="M4 11l8-6 8 6v8H4z"/>')
 					},
+					...(data.navCut
+						? [
+								{
+									href: `/seasons/${slug}/top-cut`,
+									label: 'Top cut',
+									icon: icon('<path d="M4 5h5v5H4M4 14h5v5H4M9 7.5h4v9H9M13 12h7"/>')
+								}
+							]
+						: []),
 					{
 						href: `/seasons/${slug}/schedule`,
 						label: 'Schedule',
@@ -64,7 +73,7 @@
 		<a href="/" class="brand">Poroleague</a>
 		<span class="desk">
 			{#if slug}
-				{#each [['', 'Season'], ['/schedule', 'Schedule'], ['/legends', 'Legends']] as [path, label] (path)}
+				{#each [['', 'Season'], ...(data.navCut ? [['/top-cut', 'Top cut']] : []), ['/schedule', 'Schedule'], ['/legends', 'Legends']] as [path, label] (path)}
 					<a
 						href="/seasons/{slug}{path}"
 						class="nav-link"

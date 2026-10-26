@@ -1,5 +1,6 @@
 import { error } from '@sveltejs/kit';
 import { and, asc, count, desc, eq, inArray, isNull, ne, sql } from 'drizzle-orm';
+import { currentRound, cutFinish, roundName } from '#lib/league/bracket.ts';
 import { defaultGroupCount, splitGroups } from '#lib/league/groups.ts';
 import { published } from '#lib/league/publish.ts';
 import { roundCount } from '#lib/league/roundRobin.ts';
@@ -23,6 +24,7 @@ import {
 	type Match,
 	type Tx
 } from '#lib/server/matches.ts';
+import { cutState } from '#lib/server/topCut.ts';
 
 export type Season = typeof seasons.$inferSelect;
 
@@ -53,7 +55,11 @@ export const runningSeason = (exceptId: number) =>
 		.select({ name: seasons.name, slug: seasons.slug })
 		.from(seasons)
 		.where(
-			and(inArray(seasons.status, ['signup', 'groups', 'play']), ne(seasons.id, exceptId), live)
+			and(
+				inArray(seasons.status, ['signup', 'groups', 'play', 'topcut']),
+				ne(seasons.id, exceptId),
+				live
+			)
 		)
 		.get();
 
@@ -190,9 +196,12 @@ export function setTiebreaks(seasonId: number, order: string[], actorId: string)
 	});
 }
 
-export function finalizeSeason(seasonId: number, actorId: string) {
+export function finalizeSeason(seasonId: number, actorId: string, topCut: boolean) {
 	db.transaction((tx) => {
-		tx.update(seasons).set({ status: 'finished' }).where(eq(seasons.id, seasonId)).run();
+		tx.update(seasons)
+			.set({ status: topCut ? 'topcut' : 'finished' })
+			.where(eq(seasons.id, seasonId))
+			.run();
 		tx.insert(audit).values({ seasonId, actorId, action: 'finalize' }).run();
 	});
 }
@@ -290,6 +299,9 @@ export type GroupStanding = ReturnType<typeof groupStandings>[number];
 
 // Where the season stands this week, for the phase bar and the week headline.
 export function seasonProgress(season: Season, groups: GroupStanding[], now = new Date()) {
+	const cut = season.status === 'topcut' || season.status === 'finished' ? cutState(season) : null;
+	const cutNow = cut?.published ? currentRound(cut.rounds) : -1;
+	const cutRound = cutNow >= 0 ? roundName(cutNow + 1, cut!.rounds.length) : null;
 	const closed = reportingClosed(season.deadline, now);
 	const week = currentWeek(season.startDate, now);
 	const maxRound = Math.max(0, ...groups.map((g) => g.rounds));
@@ -301,7 +313,20 @@ export function seasonProgress(season: Season, groups: GroupStanding[], now = ne
 		week,
 		weeks,
 		rounds,
-		phases: seasonPhases(season, { week, weeks, rounds, groups: sizes, closed })
+		cut,
+		cutRound,
+		phases: seasonPhases(season, {
+			week,
+			weeks,
+			rounds,
+			groups: sizes,
+			closed,
+			cut: cut?.published
+				? (cutRound ?? 'Done')
+				: season.status === 'topcut'
+					? 'Being set up'
+					: undefined
+		})
 	};
 }
 
@@ -341,7 +366,11 @@ export function playerSeasons(playerId: string) {
 				rank: i + 1,
 				size: g?.size ?? 0,
 				matches: published(playerMatches(season.id, playerId), season.publishedRound),
-				dropped: droppedIds(list)
+				dropped: droppedIds(list),
+				cut:
+					season.status === 'topcut' || season.status === 'finished'
+						? cutFinish(cutState(season).rounds, playerId)
+						: null
 			};
 		});
 }
@@ -349,12 +378,13 @@ export type PlayerSeason = ReturnType<typeof playerSeasons>[number];
 
 // One line per season for the player and career pages.
 export const seasonHistory = (list: PlayerSeason[]) =>
-	list.map(({ season, me, row, rank, size }) => ({
+	list.map(({ season, me, row, rank, size, cut }) => ({
 		slug: season.slug,
 		name: season.name,
 		group: me.group,
 		dropped: me.dropped,
 		place: row?.played ? `#${rank} of ${size}` : '—',
 		points: row?.played ? `${row.points} pts` : '—',
-		record: row?.played ? `${row.wins}–${row.draws}–${row.losses}` : '—'
+		record: row?.played ? `${row.wins}–${row.draws}–${row.losses}` : '—',
+		cut
 	}));

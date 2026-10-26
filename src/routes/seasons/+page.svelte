@@ -24,7 +24,12 @@
 								: ''}
 						</span>
 					</div>
-					{#if s.winners.length}
+					{#if s.champion}
+						<div>
+							<span class="eyebrow">Champion</span>
+							<strong class="winner">{s.champion}</strong>
+						</div>
+					{:else if s.winners.length}
 						<div>
 							<span class="eyebrow">Group winner{s.winners.length > 1 ? 's' : ''}</span>
 							<strong class="winner">{s.winners.join(' · ')}</strong>

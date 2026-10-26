@@ -4,7 +4,6 @@
 	import GameRows from '#lib/components/GameRows.svelte';
 	import MatchCard from '#lib/components/MatchCard.svelte';
 	import { parseReport } from '#lib/league/report.ts';
-	import { groupName } from '#lib/season.ts';
 	import { MediaQuery } from 'svelte/reactivity';
 	import type { PageProps } from './$types';
 
@@ -17,7 +16,7 @@
 	const player = (k: 'p1' | 'p2') => (k === 'p1' ? data.p1 : data.p2);
 	const name = (k: 'p1' | 'p2') => player(k).displayName + (player(k).id === me ? ' (you)' : '');
 	const opponent = $derived(player(order[1]).displayName);
-	const head = $derived(`${m.group ? `${groupName(m.group)} · ` : ''}Round ${m.round}`);
+	const head = $derived(data.head);
 	const values = $derived<Record<string, string>>(
 		form && 'values' in form && form.values
 			? form.values
@@ -196,13 +195,15 @@
 			{head}
 			{...saved}
 			status={data.status}
-			note={m.flagResolvedAt
-				? 'Flag resolved by an organizer · final'
-				: m.flaggedBy
-					? `Flagged by ${flagger.id === me ? 'you' : flagger.displayName} · only organizers can change it now`
-					: m.reportedBy
-						? `Reported by ${!reporter ? 'an organizer' : reporter.id === me ? 'you' : reporter.displayName}`
-						: ''}
+			note={data.walkover
+				? `Walkover · ${data.walkover} advances`
+				: m.flagResolvedAt
+					? 'Flag resolved by an organizer · final'
+					: m.flaggedBy
+						? `Flagged by ${flagger.id === me ? 'you' : flagger.displayName} · only organizers can change it now`
+						: m.reportedBy
+							? `Reported by ${!reporter ? 'an organizer' : reporter.id === me ? 'you' : reporter.displayName}`
+							: ''}
 		/>
 
 		{#if m.flaggedBy && m.flagReason}
@@ -251,6 +252,10 @@
 					in the public audit log.
 				</p>
 			</section>
+		{:else if data.waiting}
+			<p class="muted">
+				A result before this match is flagged. You can report once an organizer settles it.
+			</p>
 		{:else if data.voided}
 			<p class="muted">A player dropped out, so this match doesn't count.</p>
 		{:else if data.closed && data.season.status === 'play' && !m.reportedBy}

@@ -13,6 +13,7 @@ import {
 	seasonEntries,
 	seasonProgress
 } from '#lib/server/seasons.ts';
+import { hasSchedule } from '#lib/season.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async (event) => {
@@ -21,10 +22,14 @@ export const load: PageServerLoad = async (event) => {
 	// getSeason only trusts the session flag; drafts also need the role re-checked with Discord.
 	if (season.status === 'draft' && !(await currentRole(event))) error(404, 'Season not found');
 	const list = seasonEntries(season.id);
-	const scheduled = season.status === 'play' || season.status === 'finished';
+	const scheduled = hasSchedule(season.status);
 	const groups = scheduled ? groupStandings(season, list) : [];
 	const ctx = cardContext(season, list, locals.user?.id ?? null);
-	const { closed, weeks, rounds, phases } = seasonProgress(season, groups);
+	const { closed, weeks, rounds, phases, cut, cutRound } = seasonProgress(season, groups);
+	const viewer = locals.user?.id ?? null;
+	const myCut = cut?.rounds
+		.flat()
+		.find((x) => x.match && !x.winner && viewer && (x.p1 === viewer || x.p2 === viewer));
 	// Week w runs from the start date + 7(w-1) days for 7 days, but never past the deadline.
 	const weekEnd =
 		season.startDate && ctx.week >= 1 ? addDays(season.startDate, ctx.week * 7 - 1) : null;
@@ -41,7 +46,21 @@ export const load: PageServerLoad = async (event) => {
 		entries: list,
 		groups,
 		// Ties only need an organizer once results are in; mid-season they sort themselves out.
-		showTies: season.status === 'finished' || closed,
+		showTies: season.status === 'finished' || season.status === 'topcut' || closed,
+		topCut: cut?.published
+			? {
+					round: cutRound,
+					champion: cut.champion
+						? (list.find((e) => e.playerId === cut.champion)?.displayName ?? null)
+						: null,
+					myMatch: myCut?.match
+						? matchCard(
+								myCut.match,
+								cardContext(season, list, viewer, new Date(), cut.rounds.length)
+							).props
+						: null
+				}
+			: null,
 		closed,
 		week: ctx.week,
 		weeks,

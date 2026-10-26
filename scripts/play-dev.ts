@@ -1,5 +1,7 @@
 // Dev only: plays out a locked season with fake results so standings, schedule, legends and audit
 // have data. Reports only dev-vs-dev matches, so your own matches stay yours to report.
+// --finish publishes every round and reports every open match, yours too, with no gaps or flags:
+// order any ties and Finalize on Admin → Season to reach the top cut.
 // Same seed + same season = same results. Writes audit rows like the app; posts nothing to Discord.
 import Database from 'better-sqlite3';
 import { LEGENDS } from '#lib/legends.ts';
@@ -7,7 +9,9 @@ import { LEGENDS } from '#lib/legends.ts';
 process.loadEnvFile();
 const args = process.argv.slice(2);
 const [slug, share = '0.6'] = args.filter((a) => !a.startsWith('--'));
-if (!slug) throw new Error('usage: npm run db:play-dev -- <season-slug> [share=0.6] [--drop]');
+const finish = args.includes('--finish');
+if (!slug)
+	throw new Error('usage: npm run db:play-dev -- <season-slug> [share=0.6] [--drop] [--finish]');
 
 const db = new Database(process.env.DATABASE_URL!);
 const season = db.prepare('select id, status from seasons where slug = ?').get(slug) as
@@ -27,7 +31,7 @@ const pick = <T>(list: readonly T[]) => list[Math.floor(rand() * list.length)];
 
 // Each dev player has a main legend and sometimes plays something else; a small pool makes mirrors.
 const pool = LEGENDS.slice(0, 12);
-const main = (id: string) => pool[Number(id.slice(4)) % pool.length];
+const main = (id: string) => pool[[...id].reduce((h, c) => h + c.charCodeAt(0), 0) % pool.length];
 const legendOf = (id: string) => (rand() < 0.75 ? main(id) : pick(pool));
 const SCORES = [
 	[2, 0],
@@ -40,11 +44,20 @@ const SCORES = [
 ] as const;
 
 type M = { id: number; p1_id: string; p2_id: string };
+if (finish)
+	db.prepare(
+		`update seasons set published_round = (select max(round) from matches where season_id = ?)
+		 where id = ?`
+	).run(season.id, season.id);
 const open = db
 	.prepare(
 		`select id, p1_id, p2_id from matches where season_id = ? and reported_by is null
-		 and p1_id like 'dev-%' and p2_id like 'dev-%'
-		 and round <= (select published_round from seasons where id = matches.season_id)
+		 and stage = 'group'${
+				finish
+					? ''
+					: ` and p1_id like 'dev-%' and p2_id like 'dev-%'
+		 and round <= (select published_round from seasons where id = matches.season_id)`
+			}
 		 order by round, id`
 	)
 	.all(season.id) as M[];
@@ -59,7 +72,9 @@ const log = db.prepare(
 );
 
 // The first `share` of the schedule gets played, with ~10% left as gaps so some matches go overdue.
-const played = open.slice(0, Math.round(open.length * Number(share))).filter(() => rand() > 0.1);
+const played = finish
+	? open
+	: open.slice(0, Math.round(open.length * Number(share))).filter(() => rand() > 0.1);
 let flags = 0;
 db.transaction(() => {
 	for (const m of played) {
@@ -74,7 +89,7 @@ db.transaction(() => {
 		const by = pick([m.p1_id, m.p2_id]);
 		report.run(r.p1Games, r.p2Games, r.p1Legend, r.p2Legend, r.diceWinnerId, by, m.id);
 		log.run(season.id, m.id, by, 'report', null, JSON.stringify(r));
-		if (rand() < 0.05) {
+		if (!finish && rand() < 0.05) {
 			const who = by === m.p1_id ? m.p2_id : m.p1_id;
 			const reason = 'Wrong score, it was the other way round.';
 			flag.run(who, reason, m.id);
@@ -112,6 +127,8 @@ db.transaction(() => {
 	}
 })();
 console.log(
-	`Reported ${played.length} of ${open.length} open dev matches (${flags} flagged)` +
-		(args.includes('--drop') ? ', dropped one dev player.' : '.')
+	finish
+		? `Reported all ${open.length} open matches; order any ties and finalize on Admin → Season.`
+		: `Reported ${played.length} of ${open.length} open dev matches (${flags} flagged)` +
+				(args.includes('--drop') ? ', dropped one dev player.' : '.')
 );

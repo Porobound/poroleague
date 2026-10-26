@@ -11,12 +11,13 @@ import {
 	seasonEntries
 } from '#lib/server/seasons.ts';
 import { postToOrganizers } from '#lib/server/webhooks.ts';
+import { hasSchedule } from '#lib/season.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ parent }) => {
 	const { season } = await parent();
 	const list = seasonEntries(season.id);
-	const scheduled = season.status === 'play' || season.status === 'finished';
+	const scheduled = hasSchedule(season.status);
 	const rows = new Map(
 		scheduled ? groupStandings(season, list).flatMap((g) => g.rows.map((r) => [r.playerId, r])) : []
 	);

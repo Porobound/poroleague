@@ -178,6 +178,11 @@ describe('season lookups', () => {
 		expect(runningSeason(draft.id)).toBeUndefined();
 	});
 
+	it('runningSeason counts a season in its top cut', () => {
+		db.update(seasons).set({ status: 'topcut' }).run();
+		expect(runningSeason(-1)?.slug).toBe('s1');
+	});
+
 	it('reopenSignup clears the draw', () => {
 		db.update(seasons).set({ status: 'groups' }).run();
 		db.delete(matches).run();

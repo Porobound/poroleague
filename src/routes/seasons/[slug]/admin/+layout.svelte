@@ -10,7 +10,10 @@
 		{ href: `${base}/players`, label: 'Players' },
 		{ href: `${base}/groups`, label: 'Groups' },
 		{ href: `${base}/matches`, label: 'Matches' },
-		{ href: `${base}/season`, label: 'Season' }
+		{ href: `${base}/season`, label: 'Season' },
+		...(data.season.status === 'topcut' || data.hasCut
+			? [{ href: `${base}/top-cut`, label: 'Top cut' }]
+			: [])
 	]);
 </script>
 

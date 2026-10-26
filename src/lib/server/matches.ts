@@ -1,11 +1,13 @@
 import { and, asc, desc, eq, inArray, isNotNull, or } from 'drizzle-orm';
 import type { MatchPost } from '#lib/discord.ts';
+import { matchName } from '#lib/league/bracket.ts';
 import type { Report } from '#lib/league/report.ts';
 import { isVoid } from '#lib/league/status.ts';
 import { cardContext, matchCard } from '#lib/matchCard.ts';
 import { db } from '#lib/server/db/index.ts';
 import { audit, entries, former, matches, players } from '#lib/server/db/schema.ts';
 import { groupName } from '#lib/season.ts';
+import { cutRounds, syncBracket } from '#lib/server/topCut.ts';
 
 export type Match = typeof matches.$inferSelect;
 export type Player = ReturnType<typeof matchPlayers>[number];
@@ -47,6 +49,7 @@ export const playerMatches = (seasonId: number, playerId: string) =>
 		.where(
 			and(
 				eq(matches.seasonId, seasonId),
+				eq(matches.stage, 'group'),
 				or(eq(matches.p1Id, playerId), eq(matches.p2Id, playerId))
 			)
 		)
@@ -57,8 +60,16 @@ export const seasonMatches = (seasonId: number) =>
 	db
 		.select()
 		.from(matches)
-		.where(eq(matches.seasonId, seasonId))
+		.where(and(eq(matches.seasonId, seasonId), eq(matches.stage, 'group')))
 		.orderBy(asc(matches.group), asc(matches.round), asc(matches.id))
+		.all();
+
+export const bracketMatches = (seasonId: number) =>
+	db
+		.select()
+		.from(matches)
+		.where(and(eq(matches.seasonId, seasonId), eq(matches.stage, 'playoff')))
+		.orderBy(asc(matches.round), asc(matches.slot))
 		.all();
 
 export const isVoided = (m: Match) =>
@@ -102,10 +113,11 @@ export function saveReport(m: Match, actorId: string, values: Report) {
 			.set({ ...values, reportedBy: actorId, reportedAt: new Date() })
 			.where(eq(matches.id, m.id))
 			.run();
-		clearTiebreaks(tx, m.seasonId);
+		if (m.stage === 'group') clearTiebreaks(tx, m.seasonId);
 		tx.insert(audit)
 			.values({ seasonId: m.seasonId, matchId: m.id, actorId, action: 'report', after: values })
 			.run();
+		if (m.stage === 'playoff') syncBracket(tx, { id: m.seasonId }, actorId);
 	});
 }
 
@@ -133,7 +145,10 @@ export function matchPost(
 		p1: { id: p1.id, name: p1.displayName },
 		p2: { id: p2.id, name: p2.displayName },
 		report,
-		where: `${season.name}${group} · Round ${match.round}`,
+		where:
+			match.stage === 'playoff'
+				? `${season.name} · Top cut · ${matchName(match.round, match.slot ?? 0, cutRounds(match.seasonId))}`
+				: `${season.name}${group} · Round ${match.round}`,
 		url: `${origin}/seasons/${season.slug}/matches/${match.id}`,
 		at: new Date()
 	};
@@ -146,6 +161,7 @@ export function organizerEdit(m: Match, actorId: string, values: Report) {
 		tx.update(matches)
 			.set({
 				...values,
+				walkoverId: null,
 				...(m.reportedBy ? {} : { reportedBy: actorId, reportedAt: now }),
 				...(m.flaggedBy && !m.flagResolvedAt
 					? { flagResolvedBy: actorId, flagResolvedAt: now }
@@ -153,7 +169,7 @@ export function organizerEdit(m: Match, actorId: string, values: Report) {
 			})
 			.where(eq(matches.id, m.id))
 			.run();
-		clearTiebreaks(tx, m.seasonId);
+		if (m.stage === 'group') clearTiebreaks(tx, m.seasonId);
 		tx.insert(audit)
 			.values({
 				seasonId: m.seasonId,
@@ -164,6 +180,7 @@ export function organizerEdit(m: Match, actorId: string, values: Report) {
 				after: values
 			})
 			.run();
+		if (m.stage === 'playoff') syncBracket(tx, { id: m.seasonId }, actorId);
 	});
 }
 
@@ -208,6 +225,7 @@ export const seasonAudit = (seasonId: number) =>
 	db
 		.select({
 			id: audit.id,
+			matchId: audit.matchId,
 			action: audit.action,
 			before: audit.before,
 			after: audit.after,
@@ -216,6 +234,8 @@ export const seasonAudit = (seasonId: number) =>
 			actorFormer: former(),
 			group: matches.group,
 			round: matches.round,
+			stage: matches.stage,
+			slot: matches.slot,
 			p1Id: matches.p1Id,
 			p2Id: matches.p2Id
 		})
@@ -230,9 +250,10 @@ export const seasonAudit = (seasonId: number) =>
 export function adminRows(
 	season: Parameters<typeof cardContext>[0],
 	people: Parameters<typeof cardContext>[1],
-	ms: Match[]
+	ms: Match[],
+	cutRounds = 0
 ) {
-	const ctx = cardContext(season, people, null);
+	const ctx = cardContext(season, people, null, new Date(), cutRounds);
 	const name = (id: string) => ctx.people.get(id)?.displayName ?? 'Unknown';
 	return ms.map((m) => {
 		const { status, props } = matchCard(m, ctx);
@@ -240,6 +261,7 @@ export function adminRows(
 			id: m.id,
 			round: m.round,
 			group: m.group,
+			playoff: m.stage === 'playoff',
 			status,
 			card: props,
 			reported: !!m.reportedBy,

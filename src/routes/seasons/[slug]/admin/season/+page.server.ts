@@ -19,6 +19,7 @@ import {
 	slugTaken,
 	updateSeason
 } from '#lib/server/seasons.ts';
+import { cutPreview, cutRounds } from '#lib/server/topCut.ts';
 import { postToOrganizers } from '#lib/server/webhooks.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -40,9 +41,14 @@ export const actions: Actions = {
 		const parsed = parseSeasonForm(
 			await event.request.formData(),
 			seasonFields(season),
-			editableFields(season.status)
+			editableFields(season.status, cutRounds(season.id) > 0)
 		);
 		if (!parsed.ok) return fail(400, { errors: parsed.errors, raw: parsed.raw });
+		if (season.status === 'topcut' && parsed.values.topCutSize < 1)
+			return fail(400, {
+				errors: { topCutSize: 'At least 1 once the top cut has started.' },
+				raw: null
+			});
 		if (slugTaken(parsed.values.slug, season.id))
 			return fail(400, { errors: { slug: 'Another season already uses this slug.' }, raw: null });
 		const { startDate, roundsPerWeek, deadline } = parsed.values;
@@ -110,14 +116,23 @@ export const actions: Actions = {
 		if (season.status !== 'play') return fail(409, { message: 'The season is not in play.' });
 		if (!endState(season, seasonData(season.id)).ready)
 			return fail(409, { message: 'Resolve the flags and order the ties before finalizing.' });
-		finalizeSeason(season.id, user.id);
-		return { message: `${season.name} is finalized and in the archive.` };
+		const topCut = (season.topCutSize ?? 0) > 0;
+		// Only the name can change once the top cut starts, so a cut that can't be drawn is fixed now.
+		const problem = topCut && cutPreview(season).problem;
+		if (problem) return fail(409, { message: problem });
+		finalizeSeason(season.id, user.id, topCut);
+		return {
+			message: topCut
+				? `${season.name}'s group stage is final. Set up the top cut on Top cut.`
+				: `${season.name} is finalized and in the archive.`
+		};
 	},
 
 	delete: async (event) => {
 		const user = await organizerAction(event);
 		const season = getSeason(event.params.slug, user);
-		const hasResults = season.status === 'play' || season.status === 'finished';
+		const hasResults =
+			season.status === 'play' || season.status === 'topcut' || season.status === 'finished';
 		const typed = String((await event.request.formData()).get('confirmSlug') ?? '');
 		if (hasResults && typed !== season.slug)
 			return fail(400, { message: `Type ${season.slug} to delete a season that has matches.` });

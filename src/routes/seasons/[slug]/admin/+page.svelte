@@ -14,6 +14,7 @@
 		signup: 'Close signup on the Season page when everyone is in.',
 		groups: 'Check the draw on Groups, then lock it.',
 		play: '',
+		topcut: 'Set up and run the bracket on Top cut.',
 		finished: 'The season is finalized and in the archive.'
 	};
 </script>
@@ -69,6 +70,7 @@
 		<p class="muted">
 			{NEXT[season.status]}
 			{#if season.status === 'groups'}<a href="{base}/groups">Open Groups</a
+				>{:else if season.status === 'topcut'}<a href="{base}/top-cut">Open Top cut</a
 				>{:else if season.status !== 'finished'}<a href="{base}/season">Open Season</a>{/if}
 		</p>
 	{/if}

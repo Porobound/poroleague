@@ -10,7 +10,7 @@ const db = new Database(process.env.DATABASE_URL!);
 const season = db.prepare('select id, status from seasons where slug = ?').get(slug) as
 	{ id: number; status: string } | undefined;
 if (!season) throw new Error(`No season with slug "${slug}"`);
-if (season.status === 'play' || season.status === 'finished')
+if (['play', 'topcut', 'finished'].includes(season.status))
 	throw new Error(`"${slug}" is locked; its schedule already exists.`);
 
 // While groups are being drawn, new players join the smallest group so they show up in the draw.
