@@ -53,7 +53,7 @@ export const runningSeason = (exceptId: number) =>
 		.select({ name: seasons.name, slug: seasons.slug })
 		.from(seasons)
 		.where(
-			and(inArray(seasons.status, ['signup', 'groups', 'play']), ne(seasons.id, exceptId), live)
+			and(inArray(seasons.status, ['signup', 'groups', 'play', 'topcut']), ne(seasons.id, exceptId), live)
 		)
 		.get();
 

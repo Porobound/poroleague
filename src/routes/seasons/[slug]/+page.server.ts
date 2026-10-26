@@ -21,7 +21,7 @@ export const load: PageServerLoad = async (event) => {
 	// getSeason only trusts the session flag; drafts also need the role re-checked with Discord.
 	if (season.status === 'draft' && !(await currentRole(event))) error(404, 'Season not found');
 	const list = seasonEntries(season.id);
-	const scheduled = season.status === 'play' || season.status === 'finished';
+	const scheduled = season.status !== 'draft' && season.status !== 'signup' && season.status !== 'groups';
 	const groups = scheduled ? groupStandings(season, list) : [];
 	const ctx = cardContext(season, list, locals.user?.id ?? null);
 	const { closed, weeks, rounds, phases } = seasonProgress(season, groups);

@@ -14,6 +14,7 @@
 		signup: 'Close signup on the Season page when everyone is in.',
 		groups: 'Check the draw on Groups, then lock it.',
 		play: '',
+		topcut: 'Set up and run the bracket on Top cut.',
 		finished: 'The season is finalized and in the archive.'
 	};
 </script>

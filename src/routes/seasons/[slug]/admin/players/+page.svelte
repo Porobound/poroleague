@@ -6,7 +6,7 @@
 
 	let { data, form }: PageProps = $props();
 	const status = $derived(data.season.status);
-	const scheduled = $derived(status === 'play' || status === 'finished');
+	const scheduled = $derived(status !== 'draft' && status !== 'signup' && status !== 'groups');
 	const active = $derived(data.entries.filter((e) => !e.dropped).length);
 	const intro = $derived(
 		{
@@ -14,6 +14,7 @@
 			signup: 'You can remove players while signup is open.',
 			groups: 'Signup is closed. Once groups are locked you can drop players.',
 			play: 'Dropping a player voids all their matches.',
+			topcut: 'The top cut is running. A player who withdraws gets a walkover against them on Top cut.',
 			finished: 'The season is finalized.'
 		}[status]
 	);

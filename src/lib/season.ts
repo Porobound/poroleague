@@ -1,5 +1,5 @@
 import { date } from '#lib/format.ts';
-export type SeasonStatus = 'draft' | 'signup' | 'groups' | 'play' | 'finished';
+export type SeasonStatus = 'draft' | 'signup' | 'groups' | 'play' | 'topcut' | 'finished';
 export type SeasonFields = {
 	name: string;
 	slug: string;
@@ -36,6 +36,7 @@ export const STATUS_LABEL: Record<SeasonStatus, string> = {
 	signup: 'Signup open',
 	groups: 'Drawing groups',
 	play: 'In play',
+	topcut: 'Top cut',
 	finished: 'Finished'
 };
 
@@ -44,6 +45,7 @@ const EDITABLE: Record<SeasonStatus, SeasonField[]> = {
 	signup: ['name', 'startDate', 'roundsPerWeek', 'deadline', 'topCutSize'],
 	groups: ['name', 'startDate', 'roundsPerWeek', 'deadline', 'topCutSize'],
 	play: ['name', 'deadline', 'topCutSize'],
+	topcut: ['name'],
 	finished: []
 };
 
@@ -164,6 +166,7 @@ export function seasonPhases(
 		signup: 1,
 		groups: 2,
 		play: c.closed ? 4 : 3,
+		topcut: 4,
 		finished: 5
 	}[s.status];
 	const after = (i: number) => current > i;

@@ -117,7 +117,7 @@ export const actions: Actions = {
 	delete: async (event) => {
 		const user = await organizerAction(event);
 		const season = getSeason(event.params.slug, user);
-		const hasResults = season.status === 'play' || season.status === 'finished';
+		const hasResults = season.status === 'play' || season.status === 'topcut' || season.status === 'finished';
 		const typed = String((await event.request.formData()).get('confirmSlug') ?? '');
 		if (hasResults && typed !== season.slug)
 			return fail(400, { message: `Type ${season.slug} to delete a season that has matches.` });

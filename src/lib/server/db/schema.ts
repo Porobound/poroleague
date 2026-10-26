@@ -31,7 +31,7 @@ export const seasons = sqliteTable('seasons', {
 	id: integer('id').primaryKey({ autoIncrement: true }),
 	slug: text('slug').notNull().unique(),
 	name: text('name').notNull(),
-	status: text('status', { enum: ['draft', 'signup', 'groups', 'play', 'finished'] })
+	status: text('status', { enum: ['draft', 'signup', 'groups', 'play', 'topcut', 'finished'] })
 		.notNull()
 		.default('draft'),
 	startDate: text('start_date'), // ISO date
@@ -39,6 +39,7 @@ export const seasons = sqliteTable('seasons', {
 	publishedRound: integer('published_round').notNull().default(0), // players see rounds up to this
 	deadline: text('deadline'), // ISO date
 	topCutSize: integer('top_cut_size'),
+	topCutDate: text('top_cut_date'), // ISO date, display only
 	createdAt: createdAt(),
 	// Soft delete: hidden everywhere, data kept, restorable by clearing these two columns (and the slug suffix).
 	deletedAt: integer('deleted_at', { mode: 'timestamp' }),
@@ -57,6 +58,8 @@ export const entries = sqliteTable(
 		group: integer('group_no'),
 		dropped: integer('dropped', { mode: 'boolean' }).notNull().default(false),
 		tiebreak: integer('tiebreak'), // organizer-set rank for unresolved ties, lower first
+		seed: integer('seed'), // top-cut seed, 1 = best; set when the bracket is published
+		slot: integer('slot'), // position in the first round (0-based); byes leave gaps
 		createdAt: createdAt()
 	},
 	(t) => [primaryKey({ columns: [t.seasonId, t.playerId] })]
@@ -74,6 +77,8 @@ export const matches = sqliteTable(
 			.default('group'),
 		group: integer('group_no'),
 		round: integer('round').notNull(),
+		slot: integer('slot'), // playoff: position within the round (0-based)
+		walkoverId: text('walkover_id').references(() => players.id), // playoff: advanced without playing
 		p1Id: text('p1_id')
 			.notNull()
 			.references(() => players.id),
