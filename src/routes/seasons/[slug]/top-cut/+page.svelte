@@ -5,6 +5,9 @@
 
 	let { data }: PageProps = $props();
 	const season = $derived(data.season);
+	// Two matches feed each match of the next round; a pair draws the bracket line between them.
+	const pairs = <T,>(slots: T[]) =>
+		Array.from({ length: Math.ceil(slots.length / 2) }, (_, i) => slots.slice(2 * i, 2 * i + 2));
 	let pick = $state<number | null>(null);
 	const current = $derived(pick ?? (data.now < 0 ? data.rounds.length - 1 : data.now));
 	const total = $derived(
@@ -90,38 +93,43 @@
 				<div class="col">
 					<div class={['colh', i === data.now && 'now']}>
 						<b>{r.name}</b><span
-							>{i < data.now || data.now < 0 ? 'Done' : i === data.now ? 'Now' : ''}</span
+							>{i < data.now || data.now < 0 ? 'Done' : i === data.now ? 'Now' : 'Next'}</span
 						>
 					</div>
 					<div class="slots">
-						{#each r.slots as s, j (j)}
-							<svelte:element
-								this={s.href ? 'a' : 'div'}
-								href={s.href}
-								class={[
-									'bm',
-									i === data.rounds.length - 1 && 'last',
-									s.mine && 'mine',
-									i === data.now && s.p1 && s.p2 && !s.winner && 'now'
-								]}
-							>
-								{#each [s.p1, s.p2] as p, k (k)}
-									<span
-										class={[
-											'bp',
-											p && s.winner === p.id && 'w',
-											p && s.winner && s.winner !== p.id && 'l',
-											!p && (s.bye ? 'bye' : 'tbd')
-										]}
-									>
-										<span class="sd">{p?.label ?? ''}</span>
-										<span class="nm">{p?.name ?? (s.bye ? 'Bye' : 'TBD')}</span>
-										<span class="sc">{s.games?.[k] ?? ''}</span>
-									</span>
+						{#each pairs(r.slots) as pair, j (j)}
+							<div class={['pair', i < data.rounds.length - 1 && 'joins']}>
+								{#each pair as s, k (k)}
+									<div class="cell">
+										<svelte:element
+											this={s.href ? 'a' : 'div'}
+											href={s.href}
+											class={[
+												'bm',
+												s.mine && 'mine',
+												i === data.now && s.p1 && s.p2 && !s.winner && 'now'
+											]}
+										>
+											{#each [s.p1, s.p2] as p, k (k)}
+												<span
+													class={[
+														'bp',
+														p && s.winner === p.id && 'w',
+														p && s.winner && s.winner !== p.id && 'l',
+														!p && (s.bye ? 'bye' : 'tbd')
+													]}
+												>
+													<span class="sd">{p?.label ?? ''}</span>
+													<span class="nm">{p?.name ?? (s.bye ? 'Bye' : 'TBD')}</span>
+													<span class="sc">{s.games?.[k] ?? ''}</span>
+												</span>
+											{/each}
+											{#if s.level}<span class="note">Level · higher seed advances</span
+												>{:else if s.walkover}<span class="note">Walkover</span>{/if}
+										</svelte:element>
+									</div>
 								{/each}
-								{#if s.level}<span class="note">Level · higher seed advances</span
-									>{:else if s.walkover}<span class="note">Walkover</span>{/if}
-							</svelte:element>
+							</div>
 						{/each}
 					</div>
 				</div>
@@ -205,17 +213,48 @@
 	}
 	.colh span {
 		font-size: 12px;
+		line-height: 16px;
 		color: var(--ink-muted);
 	}
 	.colh.now span {
 		color: var(--signal);
 	}
+	/* Each pair splits its height between two cells and each box sits centred in its cell, so a
+	   box's centre lands at 1/4 and 3/4 of its pair, and the pair's midpoint is exactly where the
+	   next round's box is centred. */
 	.slots {
 		flex: 1;
 		display: flex;
 		flex-direction: column;
-		justify-content: space-around;
-		gap: 8px;
+	}
+	.pair {
+		flex: 1;
+		position: relative;
+		display: flex;
+		flex-direction: column;
+	}
+	.cell {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		padding: 4px 0;
+	}
+	.pair.joins::after {
+		content: '';
+		position: absolute;
+		right: -15px;
+		top: 25%;
+		bottom: 25%;
+		border-right: 1px solid var(--line);
+	}
+	.pair.joins::before {
+		content: '';
+		position: absolute;
+		right: -29px;
+		top: 50%;
+		width: 14px;
+		border-top: 1px solid var(--line);
 	}
 	.bm {
 		position: relative;
@@ -238,7 +277,7 @@
 	.bm.now {
 		box-shadow: inset 3px 0 0 var(--signal);
 	}
-	.bm:not(.last)::after {
+	.joins .bm::after {
 		content: '';
 		position: absolute;
 		right: -15px;
