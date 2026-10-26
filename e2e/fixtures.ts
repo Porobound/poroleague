@@ -25,7 +25,8 @@ export const SEASONS = {
 	erase: 'e2e-erase',
 	privacy: 'e2e-privacy',
 	perGame: 'e2e-per-game',
-	topCut: 'e2e-top-cut'
+	topCut: 'e2e-top-cut',
+	groupGrid: 'e2e-group-grid'
 };
 export type SeasonKey = keyof typeof SEASONS;
 

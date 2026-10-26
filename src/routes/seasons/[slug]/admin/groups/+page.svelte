@@ -60,8 +60,11 @@
 			</div>
 		{:else}
 			<p class="pb-notice" role="status">
-				Groups locked.{#if status === 'play' && !data.season.publishedRound}
-					Publish week 1 from the <a href="/seasons/{data.season.slug}/admin">overview</a>.{/if}
+				<span class="pb-notice-text"
+					>Groups locked.{#if status === 'play' && !data.season.publishedRound}{' '}Publish week 1
+						from the
+						<a href="/seasons/{data.season.slug}/admin">overview</a>.{/if}</span
+				>
 			</p>
 		{/if}
 
