@@ -19,6 +19,7 @@ import {
 	slugTaken,
 	updateSeason
 } from '#lib/server/seasons.ts';
+import { cutPreview } from '#lib/server/topCut.ts';
 import { postToOrganizers } from '#lib/server/webhooks.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -111,6 +112,9 @@ export const actions: Actions = {
 		if (!endState(season, seasonData(season.id)).ready)
 			return fail(409, { message: 'Resolve the flags and order the ties before finalizing.' });
 		const topCut = (season.topCutSize ?? 0) > 0;
+		// Only the name can change once the top cut starts, so a cut that can't be drawn is fixed now.
+		const problem = topCut && cutPreview(season).problem;
+		if (problem) return fail(409, { message: problem });
 		finalizeSeason(season.id, user.id, topCut);
 		return {
 			message: topCut

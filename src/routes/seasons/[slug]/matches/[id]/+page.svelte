@@ -195,13 +195,15 @@
 			{head}
 			{...saved}
 			status={data.status}
-			note={m.flagResolvedAt
-				? 'Flag resolved by an organizer · final'
-				: m.flaggedBy
-					? `Flagged by ${flagger.id === me ? 'you' : flagger.displayName} · only organizers can change it now`
-					: m.reportedBy
-						? `Reported by ${!reporter ? 'an organizer' : reporter.id === me ? 'you' : reporter.displayName}`
-						: ''}
+			note={data.walkover
+				? `Walkover · ${data.walkover} advances`
+				: m.flagResolvedAt
+					? 'Flag resolved by an organizer · final'
+					: m.flaggedBy
+						? `Flagged by ${flagger.id === me ? 'you' : flagger.displayName} · only organizers can change it now`
+						: m.reportedBy
+							? `Reported by ${!reporter ? 'an organizer' : reporter.id === me ? 'you' : reporter.displayName}`
+							: ''}
 		/>
 
 		{#if m.flaggedBy && m.flagReason}
@@ -250,6 +252,12 @@
 					in the public audit log.
 				</p>
 			</section>
+		{:else if data.waiting}
+			<p class="muted">
+				A result before this match is flagged. You can report once an organizer settles it.
+			</p>
+		{:else if data.settled}
+			<p class="muted">The next match is already in, so this result is final.</p>
 		{:else if data.voided}
 			<p class="muted">A player dropped out, so this match doesn't count.</p>
 		{:else if data.closed && data.season.status === 'play' && !m.reportedBy}

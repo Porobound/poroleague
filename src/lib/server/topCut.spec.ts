@@ -3,11 +3,21 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { db } from '#lib/server/db/index.ts';
 import { audit, entries, matches, seasons } from '#lib/server/db/schema.ts';
 import { seedEntries, seedMatch, seedPlayers, seedSeason } from '#lib/server/test/seed.ts';
-import { organizerEdit, saveReport } from '#lib/server/matches.ts';
+import { flagMatch, organizerEdit, saveReport } from '#lib/server/matches.ts';
+import { erasePlayer } from '#lib/server/players.ts';
 import { load as cutPage } from '../../routes/seasons/[slug]/top-cut/+page.server.ts';
+import { load as matchPage } from '../../routes/seasons/[slug]/matches/[id]/+page.server.ts';
 import { auditLines } from '#lib/server/auditLog.ts';
 import { playerSeasons, seasonHistory } from '#lib/server/seasons.ts';
-import { cutPreview, cutState, finishCut, nextPlayed, publishCut, walkover } from './topCut.ts';
+import {
+	cutPreview,
+	cutState,
+	finishCut,
+	nextPlayed,
+	publishCut,
+	waitingOnFlag,
+	walkover
+} from './topCut.ts';
 
 let id: number;
 // Two groups of three, every group match played: A = p1 > p2 > p3, B = p4 > p5 > p6.
@@ -55,6 +65,13 @@ describe('cutPreview', () => {
 		expect(cutPreview(season()).firstRound.flatMap((m) => [m.p1?.id, m.p2?.id])).toContain('p3');
 		db.update(entries).set({ dropped: true }).where(eq(entries.playerId, 'p3')).run();
 		expect(cutPreview(season()).problem).toMatch(/Group A/);
+	});
+
+	it('skips erased players, so the next one moves up', () => {
+		erasePlayer('p2', 'p1');
+		const ids = cutPreview(season()).firstRound.flatMap((m) => [m.p1?.id, m.p2?.id]);
+		expect(ids).not.toContain('p2');
+		expect(ids).toContain('p3');
 	});
 
 	it('refuses more than 32', () => {
@@ -117,6 +134,37 @@ describe('advancing', () => {
 		saveReport(slot(2, 0).match!, 'p5', won(2, 1));
 		expect(nextPlayed(season(), slot(1, 0).match!)).toBe(true);
 		expect(cutState(season()).champion).toBe('p5');
+	});
+
+	it('a flagged result holds the next match; flagging closes once it is played', () => {
+		const page = (m: { id: number }, playerId: string) =>
+			matchPage({
+				params: { slug: 's1', id: String(m.id) },
+				locals: { user: { id: playerId, displayName: playerId, avatar: null, isOrganizer: false } }
+			} as never) as unknown as { mode: string; waiting: boolean; settled: boolean };
+		saveReport(slot(1, 0).match!, 'p1', won(2, 0));
+		flagMatch(slot(1, 0).match!, 'p5', 'It was the other way round.');
+		saveReport(slot(1, 1).match!, 'p4', won(2, 0));
+		expect(waitingOnFlag(season(), slot(2, 0).match!)).toBe(true);
+		expect(page(slot(2, 0).match!, 'p1')).toMatchObject({ mode: 'view', waiting: true });
+
+		organizerEdit(slot(1, 0).match!, 'p1', won(0, 2));
+		expect(waitingOnFlag(season(), slot(2, 0).match!)).toBe(false);
+		expect(page(slot(2, 0).match!, 'p5')).toMatchObject({ mode: 'report', waiting: false });
+
+		expect(page(slot(1, 1).match!, 'p2')).toMatchObject({ mode: 'flag', settled: false });
+		saveReport(slot(2, 0).match!, 'p5', won(2, 0));
+		expect(page(slot(1, 1).match!, 'p2')).toMatchObject({ mode: 'view', settled: true });
+	});
+
+	it('a walkover page names who advances and is not void', () => {
+		walkover(season(), slot(1, 0).match!, 'p5', 'p1');
+		expect(
+			matchPage({
+				params: { slug: 's1', id: String(slot(1, 0).match!.id) },
+				locals: { user: null }
+			} as never)
+		).toMatchObject({ walkover: 'Player 5', voided: false });
 	});
 
 	it('a walkover advances the picked player and is audited', () => {

@@ -15,10 +15,11 @@ import { groupStandings, seasonEntries, type Season } from '#lib/server/seasons.
 
 type Db = typeof db | Tx;
 
-// Each group's top N by the final standings (tiebreaks settled at finalize), dropped players skipped.
+// Each group's top N by the final standings (tiebreaks settled at finalize); dropped and erased
+// players are skipped, so the next one in the group moves up.
 function qualifiers(season: Season) {
 	const list = seasonEntries(season.id);
-	const out = new Set(list.filter((e) => e.dropped).map((e) => e.playerId));
+	const out = new Set(list.filter((e) => e.dropped || e.former).map((e) => e.playerId));
 	const per = season.topCutSize ?? 0;
 	const groups = groupStandings(season, list).map((g) =>
 		g.rows.filter((r) => !out.has(r.playerId)).slice(0, per)
@@ -36,7 +37,7 @@ export function cutPreview(season: Season) {
 			: total > MAX_CUT
 				? `${total} players is more than the ${MAX_CUT} a bracket takes. Lower the top cut per group on Season.`
 				: short >= 0
-					? `${groupName(short + 1)} has only ${groups[short].length} players who can qualify.`
+					? `${groupName(short + 1)} has only ${groups[short].length} players who can qualify. Lower the top cut per group on Season.`
 					: null;
 	const size = { per, total, bracket: bracketSize(total), byes: bracketSize(total) - total };
 	if (problem) return { problem, size, firstRound: [] };
@@ -88,22 +89,25 @@ export const cutRounds = (seasonId: number) => {
 	return n ? Math.log2(n) : 0;
 };
 
-export function cutState(season: Season, tx: Db = db) {
+export function cutState(season: { id: number }, tx: Db = db) {
 	const { layout, seedOf, seeds } = cutEntries(tx, season.id);
 	const rounds: Slot<Match>[][] = layout.length
 		? bracket(layout, cutRows(tx, season.id), seedOf)
 		: [];
-	const groupCount = new Set(
-		seasonEntries(season.id)
-			.map((e) => e.group)
-			.filter(Boolean)
-	).size;
+	// Only the pages that print seed labels need the group count.
+	let groupCount: number | undefined;
+	const groups = () =>
+		(groupCount ??= new Set(
+			seasonEntries(season.id)
+				.map((e) => e.group)
+				.filter(Boolean)
+		).size);
 	const final = rounds.at(-1)?.[0];
 	return {
 		published: layout.length > 0,
 		rounds,
 		seeds,
-		label: (id: string) => seedLabel(seeds.get(id)!, groupCount),
+		label: (id: string) => seedLabel(seeds.get(id)!, groups()),
 		champion: final?.winner ?? null
 	};
 }
@@ -139,8 +143,12 @@ export function syncBracket(tx: Tx, season: { id: number }) {
 	}
 }
 
-export function publishCut(season: Season, date: string | null, actorId: string) {
-	const p = cutPreview(season);
+export function publishCut(
+	season: Season,
+	date: string | null,
+	actorId: string,
+	p = cutPreview(season)
+) {
 	if (p.problem || !p.slots) throw new Error(p.problem ?? 'Nothing to publish');
 	db.transaction((tx) => {
 		if (cutEntries(tx, season.id).layout.length)
@@ -170,6 +178,16 @@ export function nextPlayed(season: Season, m: Match) {
 	const { rounds } = cutState(season);
 	const next = rounds[m.round]?.[(m.slot ?? 0) >> 1]?.match;
 	return !!next && (!!next.reportedBy || !!next.walkoverId);
+}
+
+// A match waits while a result feeding it is flagged: the organizer's fix may change who plays it.
+export function waitingOnFlag(season: { id: number }, m: Match) {
+	const prev = cutState(season).rounds[m.round - 2];
+	const s = m.slot ?? 0;
+	return (
+		!!prev &&
+		[prev[2 * s], prev[2 * s + 1]].some((x) => !!x?.match?.flaggedBy && !x.match.flagResolvedAt)
+	);
 }
 
 export function walkover(season: Season, m: Match, winnerId: string, actorId: string) {

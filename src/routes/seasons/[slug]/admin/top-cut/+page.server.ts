@@ -12,6 +12,7 @@ import {
 	cutState,
 	finishCut,
 	publishCut,
+	waitingOnFlag,
 	walkover
 } from '#lib/server/topCut.ts';
 import { pairingsEnabled, postPairings, postResult } from '#lib/server/webhooks.ts';
@@ -23,7 +24,7 @@ export const load: PageServerLoad = async ({ parent }) => {
 	const { season } = await parent();
 	if (season.status !== 'topcut' && season.status !== 'finished') error(404, 'No top cut yet');
 	const s = cutState(season);
-	const rounds = cutRounds(season.id);
+	const rounds = s.rounds.length;
 	const people = seasonEntries(season.id);
 	return {
 		published: s.published,
@@ -65,9 +66,8 @@ export const actions: Actions = {
 		if (date && !DATE.test(date)) return fail(400, { message: 'Pick a date, or leave it empty.' });
 		const preview = cutPreview(season);
 		if (preview.problem) return fail(400, { message: preview.problem });
-		publishCut(season, date || null, user.id);
+		publishCut(season, date || null, user.id, preview);
 		const s = cutState(season);
-		const rounds = cutRounds(season.id);
 		const discord = pairingsEnabled();
 		if (discord) {
 			const pairs = s.rounds[0]
@@ -76,12 +76,11 @@ export const actions: Actions = {
 			const body = pairingsPost(
 				`${season.name} · Top cut${date ? ` · ${date}` : ''}`,
 				`${event.url.origin}/seasons/${season.slug}/top-cut`,
-				[{ round: 1, name: roundName(1, rounds), pairs }],
+				[{ round: 1, name: roundName(1, s.rounds.length), pairs }],
 				discordMentions(pairs.flatMap((p) => [p.p1Id, p.p2Id]))
 			);
-			const byes = s.rounds[0]
-				.filter((x) => x.bye)
-				.map((x) => seasonEntries(season.id).find((e) => e.playerId === x.winner)!.displayName);
+			const names = new Map(seasonEntries(season.id).map((e) => [e.playerId, e.displayName]));
+			const byes = s.rounds[0].filter((x) => x.bye).map((x) => names.get(x.winner!)!);
 			if (byes.length) body.content += `\nByes: ${byes.join(', ')}`;
 			postPairings(body);
 		}
@@ -98,6 +97,8 @@ export const actions: Actions = {
 			return fail(409, { message: 'This match already has a result.' });
 		if (winnerId !== match.p1Id && winnerId !== match.p2Id)
 			return fail(400, { message: 'Pick one of the two players.' });
+		if (waitingOnFlag(season, match))
+			return fail(409, { message: 'Settle the flagged result before this match first.' });
 		walkover(season, match, winnerId, user.id);
 		const name = seasonEntries(season.id).find((e) => e.playerId === winnerId)!.displayName;
 		postResult(

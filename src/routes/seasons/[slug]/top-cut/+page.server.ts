@@ -2,7 +2,7 @@ import { error } from '@sveltejs/kit';
 import { roundName } from '#lib/league/bracket.ts';
 import { cardContext, matchCard } from '#lib/matchCard.ts';
 import { publicSeason, seasonEntries } from '#lib/server/seasons.ts';
-import { cutRounds, cutState } from '#lib/server/topCut.ts';
+import { cutState } from '#lib/server/topCut.ts';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = ({ params, locals }) => {
@@ -11,7 +11,7 @@ export const load: PageServerLoad = ({ params, locals }) => {
 	if (!s.published) error(404, 'No top cut yet');
 	const people = seasonEntries(season.id);
 	const me = locals.user?.id ?? null;
-	const rounds = cutRounds(season.id);
+	const rounds = s.rounds.length;
 	const ctx = cardContext(season, people, me, new Date(), rounds);
 	const who = (id: string | null) => {
 		const e = id && people.find((x) => x.playerId === id);

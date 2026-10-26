@@ -15,7 +15,7 @@ import {
 } from '#lib/server/matches.ts';
 import { cardContext, liveState, matchCard } from '#lib/matchCard.ts';
 import { getSeason, seasonEntries } from '#lib/server/seasons.ts';
-import { cutRounds } from '#lib/server/topCut.ts';
+import { cutRounds, nextPlayed, waitingOnFlag } from '#lib/server/topCut.ts';
 import { postResult, postToOrganizers } from '#lib/server/webhooks.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -31,13 +31,24 @@ function context({ params, locals }: Event) {
 	if (!match || (match.stage === 'group' && match.round > season.publishedRound))
 		error(404, 'Match not found');
 	const { inPlay, closed } = liveState(match, season);
-	const voided = isVoided(match) || !!match.walkoverId;
-	const mode = matchMode(match, { viewerId: locals.user?.id ?? null, inPlay, closed, voided });
-	return { season, match, mode, closed, voided };
+	const voided = isVoided(match);
+	let mode = matchMode(match, {
+		viewerId: locals.user?.id ?? null,
+		inPlay,
+		closed,
+		voided: voided || !!match.walkoverId
+	});
+	// Top cut: a flag must be settled before the next match is played, so fixes can still move the
+	// bracket. Reporting waits on a flagged feeder; flagging closes once the next match is in.
+	const playoff = match.stage === 'playoff';
+	const waiting = playoff && mode === 'report' && waitingOnFlag(season, match);
+	const settled = playoff && mode === 'flag' && nextPlayed(season, match);
+	if (waiting || settled) mode = 'view';
+	return { season, match, mode, closed, voided, waiting, settled };
 }
 
 export const load: PageServerLoad = (event) => {
-	const { season, match, mode, closed, voided } = context(event);
+	const { season, match, mode, closed, voided, waiting, settled } = context(event);
 	const [p1, p2] = matchPlayers(match);
 	const viewer = event.locals.user?.id ?? null;
 	const card = matchCard(
@@ -53,6 +64,11 @@ export const load: PageServerLoad = (event) => {
 		mode,
 		closed,
 		voided,
+		waiting,
+		settled,
+		walkover: match.walkoverId
+			? [p1, p2].find((p) => p.id === match.walkoverId)!.displayName
+			: null,
 		p1,
 		p2,
 		legends: LEGENDS,

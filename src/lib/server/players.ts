@@ -37,6 +37,8 @@ export function erasePlayer(playerId: string, actorId: string) {
 			.where(and(eq(audit.actorId, playerId), eq(audit.action, 'flag')))
 			.run();
 		// They can't play on: off the list before groups are locked, dropped (matches void) in play.
+		// In the top cut a drop would rewrite the seeding standings, so they stay: they can't qualify,
+		// and once the bracket is out an organizer walks their match over.
 		const theirs = tx
 			.select({
 				id: seasons.id,

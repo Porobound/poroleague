@@ -12,7 +12,7 @@ import {
 } from '#lib/server/matches.ts';
 import { liveState } from '#lib/matchCard.ts';
 import { getSeason } from '#lib/server/seasons.ts';
-import { nextPlayed } from '#lib/server/topCut.ts';
+import { nextPlayed, waitingOnFlag } from '#lib/server/topCut.ts';
 import { postResult, postToOrganizers } from '#lib/server/webhooks.ts';
 
 // Organizer result actions, shared by the Matches page and the season page's flagged cards.
@@ -43,6 +43,8 @@ export async function editResult(event: Event) {
 		return fail(409, { message: 'Publish this week before entering results.' });
 	if (match.stage === 'playoff' && nextPlayed(season, match))
 		return fail(409, { message: 'The next match is already in; correct that one first.' });
+	if (match.stage === 'playoff' && waitingOnFlag(season, match))
+		return fail(409, { message: 'Settle the flagged result before this match first.' });
 	const parsed = parseReport(form, match.p1Id, match.p2Id);
 	if (!parsed.ok) return fail(400, { message: Object.values(parsed.errors).join(' ') });
 	const resolves = !!match.flaggedBy && !match.flagResolvedAt;
