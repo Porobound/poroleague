@@ -18,7 +18,7 @@ import { postResult, postToOrganizers } from '#lib/server/webhooks.ts';
 // Organizer result actions, shared by the Matches page and the season page's flagged cards.
 type Event = RequestEvent<
 	{ slug: string },
-	'/seasons/[slug]/admin' | '/seasons/[slug]/admin/matches'
+	'/seasons/[slug]/admin' | '/seasons/[slug]/admin/matches' | '/seasons/[slug]/admin/top-cut'
 >;
 
 // Reads the form first; callers write with no await after this, so two requests can't interleave.

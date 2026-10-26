@@ -249,9 +249,10 @@ export const seasonAudit = (seasonId: number) =>
 export function adminRows(
 	season: Parameters<typeof cardContext>[0],
 	people: Parameters<typeof cardContext>[1],
-	ms: Match[]
+	ms: Match[],
+	cutRounds = 0
 ) {
-	const ctx = cardContext(season, people, null);
+	const ctx = cardContext(season, people, null, new Date(), cutRounds);
 	const name = (id: string) => ctx.people.get(id)?.displayName ?? 'Unknown';
 	return ms.map((m) => {
 		const { status, props } = matchCard(m, ctx);
@@ -259,6 +260,7 @@ export function adminRows(
 			id: m.id,
 			round: m.round,
 			group: m.group,
+			playoff: m.stage === 'playoff',
 			status,
 			card: props,
 			reported: !!m.reportedBy,

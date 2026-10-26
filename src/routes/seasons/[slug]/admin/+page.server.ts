@@ -2,12 +2,13 @@ import { fail } from '@sveltejs/kit';
 import { pairingsPost } from '#lib/discord.ts';
 import { organizerAction } from '#lib/server/auth.ts';
 import { auditLines } from '#lib/server/auditLog.ts';
-import { adminRows } from '#lib/server/matches.ts';
+import { adminRows, bracketMatches } from '#lib/server/matches.ts';
 import { editResult, keepFlag } from '#lib/server/resultActions.ts';
 import { weekOf } from '#lib/league/time.ts';
 import { nextPairings, seasonData } from '#lib/server/seasonAdmin.ts';
 import { getSeason, groupStandings, publishWeek, seasonProgress } from '#lib/server/seasons.ts';
 import { discordMentions } from '#lib/server/players.ts';
+import { cutRounds } from '#lib/server/topCut.ts';
 import { pairingsEnabled, postPairings } from '#lib/server/webhooks.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -32,7 +33,14 @@ export const load: PageServerLoad = async ({ parent }) => {
 						d.list,
 						d.live.filter((m) => m.flaggedBy && !m.flagResolvedAt)
 					)
-				: [],
+				: season.status === 'topcut'
+					? adminRows(
+							season,
+							d.list,
+							bracketMatches(season.id).filter((m) => m.flaggedBy && !m.flagResolvedAt),
+							cutRounds(season.id)
+						)
+					: [],
 		recent: auditLines(season.id, 5)
 	};
 };

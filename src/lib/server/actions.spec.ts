@@ -6,6 +6,7 @@ import { actions as adminActions } from '../../routes/seasons/[slug]/admin/+page
 import { actions as seasonActions } from '../../routes/seasons/[slug]/admin/season/+page.server.ts';
 import { actions as groupActions } from '../../routes/seasons/[slug]/admin/groups/+page.server.ts';
 import { actions as playerActions } from '../../routes/seasons/[slug]/admin/players/+page.server.ts';
+import { actions as cutActions } from '../../routes/seasons/[slug]/admin/top-cut/+page.server.ts';
 import { actions as createActions } from '../../routes/admin/+page.server.ts';
 import { actions as seasonPageActions } from '../../routes/seasons/[slug]/+page.server.ts';
 import { actions as playerPageActions } from '../../routes/seasons/[slug]/players/[id]/+page.server.ts';
@@ -406,12 +407,61 @@ describe('deadline fits the schedule', () => {
 	});
 });
 
+describe('top cut admin', () => {
+	// p1–p3 in group 1, results in: p1 > p2 > p3; top 2 → final p1 v p2.
+	beforeEach(() => {
+		for (const id of [m1, m2, m3])
+			db.update(matches)
+				.set({ reportedBy: 'p1', p1Games: 2, p2Games: 0 })
+				.where(eq(matches.id, id))
+				.run();
+		setSeason({ status: 'topcut', topCutSize: 2 });
+	});
+	const run = (name: string, form: Record<string, string> = {}) =>
+		outcome(
+			(cutActions as Record<string, (e: never) => unknown>)[name](event({ slug: 's1' }, ORG, form))
+		);
+	const final = () => db.select().from(matches).where(eq(matches.stage, 'playoff')).get()!;
+
+	it('publishes once, with an optional date', async () => {
+		expect((await run('publish', { date: '2026-12-05' })).returned).toMatchObject({
+			message: expect.any(String)
+		});
+		expect(final()).toMatchObject({ p1Id: 'p1', p2Id: 'p2' });
+		expect(((await run('publish')).returned as { status: number }).status).toBe(409);
+	});
+
+	it('walks over only to a player of the match', async () => {
+		await run('publish');
+		expect(
+			(
+				(await run('walkover', { matchId: String(final().id), winnerId: 'p3' })).returned as {
+					status: number;
+				}
+			).status
+		).toBe(400);
+		await run('walkover', { matchId: String(final().id), winnerId: 'p2' });
+		expect(final().walkoverId).toBe('p2');
+	});
+
+	it('finishes with a champion, not before, not with an open flag', async () => {
+		await run('publish');
+		expect(((await run('finish')).returned as { status: number }).status).toBe(409);
+		await run('walkover', { matchId: String(final().id), winnerId: 'p1' });
+		expect((await run('finish')).returned).toMatchObject({
+			message: expect.stringContaining('Player 1')
+		});
+		expect(db.select().from(seasons).get()!.status).toBe('finished');
+	});
+});
+
 describe('organizer actions', () => {
 	const all = Object.entries({
 		admin: adminActions,
 		season: seasonActions,
 		groups: groupActions,
 		players: playerActions,
+		topCut: cutActions,
 		create: createActions
 	}).flatMap(([page, actions]) =>
 		Object.entries(actions).map(([name, action]) => [`${page}.${name}`, action!] as const)

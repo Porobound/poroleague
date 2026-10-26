@@ -22,7 +22,7 @@
 	confirmLabel="Save result"
 >
 	<p>
-		{r.p1.name} vs {r.p2.name}, round {r.round}.
+		{r.p1.name} vs {r.p2.name}, {r.playoff ? r.card.head : `round ${r.round}`}.
 		{r.flag
 			? "This replaces the reported result. It can't be flagged again."
 			: r.reported

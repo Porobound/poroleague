@@ -70,6 +70,7 @@
 		<p class="muted">
 			{NEXT[season.status]}
 			{#if season.status === 'groups'}<a href="{base}/groups">Open Groups</a
+				>{:else if season.status === 'topcut'}<a href="{base}/top-cut">Open Top cut</a
 				>{:else if season.status !== 'finished'}<a href="{base}/season">Open Season</a>{/if}
 		</p>
 	{/if}
