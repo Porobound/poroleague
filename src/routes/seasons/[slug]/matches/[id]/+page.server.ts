@@ -15,6 +15,7 @@ import {
 } from '#lib/server/matches.ts';
 import { cardContext, liveState, matchCard } from '#lib/matchCard.ts';
 import { getSeason, seasonEntries } from '#lib/server/seasons.ts';
+import { cutRounds } from '#lib/server/topCut.ts';
 import { postResult, postToOrganizers } from '#lib/server/webhooks.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -43,7 +44,10 @@ export const load: PageServerLoad = (event) => {
 		season,
 		match,
 		// Same status rule as every match card.
-		status: matchCard(match, cardContext(season, seasonEntries(season.id), viewer)).status,
+		status: matchCard(
+			match,
+			cardContext(season, seasonEntries(season.id), viewer, new Date(), cutRounds(season.id))
+		).status,
 		mode,
 		closed,
 		voided,
