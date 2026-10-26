@@ -9,6 +9,7 @@ import { actions as playerActions } from '../../routes/seasons/[slug]/admin/play
 import { actions as createActions } from '../../routes/admin/+page.server.ts';
 import { actions as seasonPageActions } from '../../routes/seasons/[slug]/+page.server.ts';
 import { actions as playerPageActions } from '../../routes/seasons/[slug]/players/[id]/+page.server.ts';
+import { MAX_PLAYERS } from '#lib/league/groups.ts';
 import { db } from '#lib/server/db/index.ts';
 import { entries, matches, players, seasons } from '#lib/server/db/schema.ts';
 import { flagMatch, saveReport } from '#lib/server/matches.ts';
@@ -326,6 +327,45 @@ describe('groups', () => {
 	});
 });
 
+describe('move between groups', () => {
+	const move = (playerId: string, to: string) =>
+		groupActions.move!(event({ slug: 's1' }, ORG, { playerId, to }));
+	const groupOf = (id: string) =>
+		db.select().from(entries).where(eq(entries.playerId, id)).get()!.group;
+
+	// Three groups of one: p1 in 1, p2 in 2, p3 in 3.
+	beforeEach(() => {
+		db.delete(matches).run();
+		setSeason({ status: 'groups' });
+		db.update(entries).set({ group: 2 }).where(eq(entries.playerId, 'p2')).run();
+		db.update(entries).set({ group: 3 }).where(eq(entries.playerId, 'p3')).run();
+	});
+
+	it('moves a player to the target group', async () => {
+		expect((await outcome(move('p1', '3'))).returned).toEqual({});
+		expect(groupOf('p1')).toBe(3);
+	});
+
+	it('rejects an unknown target, the own group or a player not in the season', async () => {
+		for (const [id, to] of [
+			['p1', '4'],
+			['p1', '0'],
+			['p1', ''],
+			['p1', '1.5'],
+			['p1', '1'],
+			['nobody', '2']
+		])
+			expect(await status(move(id, to)), `${id} → ${to}`).toBe(400);
+		expect(groupOf('p1')).toBe(1);
+	});
+
+	it('only while groups are unlocked', async () => {
+		setSeason({ status: 'play' });
+		expect(await status(move('p1', '2'))).toBe(409);
+		expect(groupOf('p1')).toBe(1);
+	});
+});
+
 // The group of three plays 3 rounds: at 2 a week from 2 Nov, the last week ends 15 Nov.
 describe('deadline fits the schedule', () => {
 	beforeEach(() => setSeason({ startDate: '2026-11-02', deadline: '2026-12-31' }));
@@ -416,6 +456,27 @@ describe('player signup', () => {
 			message: expect.any(String)
 		});
 		expect(entered('p4')).toBe(0);
+	});
+
+	it('takes MAX_PLAYERS, then is full until someone withdraws', async () => {
+		setSeason({ status: 'signup' });
+		const ids = Array.from({ length: MAX_PLAYERS - 3 }, (_, i) => `f${i + 1}`);
+		db.insert(players)
+			.values(ids.map((id) => ({ id, displayName: id })))
+			.run();
+		seedEntries(season.id, ids.slice(0, -1)); // p1–p3 plus these: one spot left
+		db.insert(players).values({ id: 'late', displayName: 'late' }).run();
+		await join(as(ids.at(-1)!));
+		expect(entered(ids.at(-1)!)).toBe(1);
+		expect((await outcome(join(as('late')))).returned).toMatchObject({
+			status: 409,
+			data: { message: 'Season is full.' }
+		});
+		expect(entered('late')).toBe(0);
+		await join(as('p1')); // already in: still fine
+		await withdraw(as('p1'));
+		await join(as('late'));
+		expect(entered('late')).toBe(1);
 	});
 
 	it('is closed outside signup', async () => {

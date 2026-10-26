@@ -11,12 +11,12 @@ Items marked **[TBD]** are not decided yet.
 
 ## 2. Season format
 
-- **Groups.** With up to 16 players the season has one group. With 17 or more, players are drawn at random into two groups (they can be uneven, e.g. 13 and 12).
+- **Groups.** A group has at most 16 players. With up to 16 the season has one group; with more, players are drawn at random into as few groups as fit, up to 8. Groups can be uneven by one (17 players: 9 and 8; 40 players: 14, 13 and 13). A season takes at most 128 players; once it's full, a spot opens only if someone withdraws.
 - **Round robin.** You play every other player in your group once. In a group of 12 that's 11 matches.
 - **Byes.** If a group has an odd number of players, one player sits out each round. A bye is not a match and gives no points.
 - **Schedule.** The schedule is set when groups are locked. Each week has a set number of rounds, shown on the season page. With 2 rounds a week, a 12-player group runs about 6 weeks.
 - **Season deadline.** Every season has a hard deadline at 23:59 Helsinki time (Europe/Helsinki) on the deadline date.
-- **Top cut.** After the group stage, the top players go on to a single-elimination top cut. With one group, it's seeded by the standings: 1st plays the last qualifier, 2nd plays the second-to-last, and so on. With two groups, it's cross-seeded: group A's 1st plays group B's last qualifier, group B's 1st plays group A's last, and so on. The top players of each group qualify; how many is set per season and shown on the season page. When the top cut is played, and prizes: **[TBD]**.
+- **Top cut.** After the group stage, the top players go on to a single-elimination top cut. With one group, it's seeded by the standings: 1st plays the last qualifier, 2nd plays the second-to-last, and so on. With two groups, it's cross-seeded: group A's 1st plays group B's last qualifier, group B's 1st plays group A's last, and so on. With more groups, seeding is set with the top cut. The top players of each group qualify; how many is set per season and shown on the season page. When the top cut is played, and prizes: **[TBD]**.
 
 ## 3. Playing a match
 

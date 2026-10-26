@@ -82,13 +82,26 @@
 										href="/seasons/{data.season.slug}/players/{e.playerId}"
 									/></span
 								>
-								{#if status === 'groups' && data.groups.length === 2}
-									<form method="POST" action="?/move">
+								{#if status === 'groups' && data.groups.length > 1}
+									<form method="POST" action="?/move" class="action-bar">
 										<input type="hidden" name="playerId" value={e.playerId} />
-										<input type="hidden" name="group" value={i + 1} />
-										<button class="pb-btn pb-btn-ghost pb-btn-sm"
-											>Move to {groupName(2 - i).slice(-1)}</button
-										>
+										{#if data.groups.length === 2}
+											<input type="hidden" name="to" value={2 - i} />
+											<button class="pb-btn pb-btn-ghost pb-btn-sm"
+												>Move to {groupName(2 - i).slice(-1)}</button
+											>
+										{:else}
+											<select
+												class="pb-input pb-select"
+												name="to"
+												aria-label="Move {e.displayName} to"
+											>
+												{#each data.groups as _, j (j)}
+													{#if j !== i}<option value={j + 1}>{groupName(j + 1)}</option>{/if}
+												{/each}
+											</select>
+											<button class="pb-btn pb-btn-ghost pb-btn-sm">Move</button>
+										{/if}
 									</form>
 								{/if}
 							</li>

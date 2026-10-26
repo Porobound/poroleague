@@ -29,11 +29,18 @@ export const actions: Actions = {
 		const season = await inGroupsPhase(event);
 		if (!season) return fail(409, { message: 'Groups are locked.' });
 		const form = await event.request.formData();
-		const groups = groupsOf(seasonEntries(season.id));
-		const from = Number(form.get('group'));
-		if (groups.length !== 2 || (from !== 1 && from !== 2))
-			return fail(400, { message: 'Nothing to move between.' });
-		setGroup(season.id, String(form.get('playerId')), 3 - from);
+		const list = seasonEntries(season.id);
+		const entry = list.find((e) => e.playerId === form.get('playerId'));
+		const to = Number(form.get('to'));
+		if (
+			!entry ||
+			!Number.isInteger(to) ||
+			to < 1 ||
+			to > groupsOf(list).length ||
+			to === entry.group
+		)
+			return fail(400, { message: 'Pick another group to move to.' });
+		setGroup(season.id, entry.playerId, to);
 		return {};
 	},
 

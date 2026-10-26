@@ -6,6 +6,7 @@
 	import MatchCard from '#lib/components/MatchCard.svelte';
 	import PhaseBar from '#lib/components/PhaseBar.svelte';
 	import { date, day, tzName } from '#lib/format.ts';
+	import { MAX_PLAYERS } from '#lib/league/groups.ts';
 	import { groupName, STATUS_LABEL } from '#lib/season.ts';
 	import type { PageProps } from './$types';
 
@@ -178,7 +179,14 @@
 			{/if}
 			<hr />
 			<div class="signup-action action-bar">
-				{#if !user}
+				{#if data.full}
+					<p>
+						<strong>Season is full.</strong>
+						<span class="muted"
+							>All {MAX_PLAYERS} spots are taken; one opens if someone withdraws.</span
+						>
+					</p>
+				{:else if !user}
 					<a
 						class="pb-btn pb-btn-primary"
 						href="/auth/login?returnTo={encodeURIComponent(page.url.pathname)}"
@@ -259,7 +267,8 @@
 			</div>
 		</div>
 		<p class="small">
-			{#if season.topCutSize}<span class="muted">Top {season.topCutSize} go to the top cut.</span
+			{#if season.topCutSize}<span class="muted"
+					>Top {season.topCutSize}{data.groups.length > 1 ? ' of each group' : ''} go to the top cut.</span
 				>{/if}
 			<a href="/seasons/{season.slug}/audit">Audit log</a>
 			· <a href="/rules#4-points-and-standings">How standings work</a>
