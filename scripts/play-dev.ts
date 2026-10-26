@@ -31,7 +31,7 @@ const pick = <T>(list: readonly T[]) => list[Math.floor(rand() * list.length)];
 
 // Each dev player has a main legend and sometimes plays something else; a small pool makes mirrors.
 const pool = LEGENDS.slice(0, 12);
-const main = (id: string) => pool[Number(id.slice(4)) % pool.length];
+const main = (id: string) => pool[[...id].reduce((h, c) => h + c.charCodeAt(0), 0) % pool.length];
 const legendOf = (id: string) => (rand() < 0.75 ? main(id) : pick(pool));
 const SCORES = [
 	[2, 0],
