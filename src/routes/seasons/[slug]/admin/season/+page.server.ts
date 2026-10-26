@@ -110,8 +110,13 @@ export const actions: Actions = {
 		if (season.status !== 'play') return fail(409, { message: 'The season is not in play.' });
 		if (!endState(season, seasonData(season.id)).ready)
 			return fail(409, { message: 'Resolve the flags and order the ties before finalizing.' });
-		finalizeSeason(season.id, user.id);
-		return { message: `${season.name} is finalized and in the archive.` };
+		const topCut = (season.topCutSize ?? 0) > 0;
+		finalizeSeason(season.id, user.id, topCut);
+		return {
+			message: topCut
+				? `${season.name}'s group stage is final. Set up the top cut on Top cut.`
+				: `${season.name} is finalized and in the archive.`
+		};
 	},
 
 	delete: async (event) => {

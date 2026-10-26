@@ -194,9 +194,12 @@ export function setTiebreaks(seasonId: number, order: string[], actorId: string)
 	});
 }
 
-export function finalizeSeason(seasonId: number, actorId: string) {
+export function finalizeSeason(seasonId: number, actorId: string, topCut: boolean) {
 	db.transaction((tx) => {
-		tx.update(seasons).set({ status: 'finished' }).where(eq(seasons.id, seasonId)).run();
+		tx.update(seasons)
+			.set({ status: topCut ? 'topcut' : 'finished' })
+			.where(eq(seasons.id, seasonId))
+			.run();
 		tx.insert(audit).values({ seasonId, actorId, action: 'finalize' }).run();
 	});
 }

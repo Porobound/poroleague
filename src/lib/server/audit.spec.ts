@@ -170,7 +170,7 @@ describe('season writes', () => {
 	const status = () => db.select().from(seasons).where(eq(seasons.id, season.id)).get()!;
 
 	it('finalizeSeason: finishes and audits', () => {
-		finalizeSeason(season.id, ORG);
+		finalizeSeason(season.id, ORG, false);
 		expect(only()).toMatchObject({ action: 'finalize', actorId: ORG, matchId: null });
 		expect(status().status).toBe('finished');
 	});

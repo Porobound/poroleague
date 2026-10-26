@@ -262,6 +262,18 @@ describe('season end', () => {
 		expect(db.select().from(seasons).get()!.status).toBe('finished');
 	});
 
+	it('finalizes into the top cut when the season has one', async () => {
+		setSeason({ deadline: '2020-01-01', topCutSize: 2 });
+		for (const id of [m1, m2, m3])
+			db.update(matches)
+				.set({ reportedBy: 'p1', p1Games: 2, p2Games: 0 })
+				.where(eq(matches.id, id))
+				.run();
+		const r = await outcome(finalize());
+		expect(r.returned).toMatchObject({ message: expect.stringContaining('top cut') });
+		expect(db.select().from(seasons).get()!.status).toBe('topcut');
+	});
+
 	it('won’t finalize with an open flag', async () => {
 		setSeason({ deadline: '2020-01-01' });
 		saveReport(get(m1), 'p1', {
