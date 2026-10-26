@@ -14,6 +14,7 @@ export const SEASONS = {
 	visibility: 'e2e-visibility',
 	report: 'e2e-report',
 	setup: 'e2e-setup',
+	full: 'e2e-full',
 	finalize: 'e2e-finalize',
 	csrf: 'e2e-csrf',
 	mobile: 'e2e-mobile',

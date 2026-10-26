@@ -9,6 +9,7 @@ import { actions as playerActions } from '../../routes/seasons/[slug]/admin/play
 import { actions as createActions } from '../../routes/admin/+page.server.ts';
 import { actions as seasonPageActions } from '../../routes/seasons/[slug]/+page.server.ts';
 import { actions as playerPageActions } from '../../routes/seasons/[slug]/players/[id]/+page.server.ts';
+import { MAX_PLAYERS } from '#lib/league/groups.ts';
 import { db } from '#lib/server/db/index.ts';
 import { entries, matches, players, seasons } from '#lib/server/db/schema.ts';
 import { flagMatch, saveReport } from '#lib/server/matches.ts';
@@ -416,6 +417,27 @@ describe('player signup', () => {
 			message: expect.any(String)
 		});
 		expect(entered('p4')).toBe(0);
+	});
+
+	it('takes MAX_PLAYERS, then is full until someone withdraws', async () => {
+		setSeason({ status: 'signup' });
+		const ids = Array.from({ length: MAX_PLAYERS - 3 }, (_, i) => `f${i + 1}`);
+		db.insert(players)
+			.values(ids.map((id) => ({ id, displayName: id })))
+			.run();
+		seedEntries(season.id, ids.slice(0, -1)); // p1–p3 plus these: one spot left
+		db.insert(players).values({ id: 'late', displayName: 'late' }).run();
+		await join(as(ids.at(-1)!));
+		expect(entered(ids.at(-1)!)).toBe(1);
+		expect((await outcome(join(as('late')))).returned).toMatchObject({
+			status: 409,
+			data: { message: 'Season is full.' }
+		});
+		expect(entered('late')).toBe(0);
+		await join(as('p1')); // already in: still fine
+		await withdraw(as('p1'));
+		await join(as('late'));
+		expect(entered('late')).toBe(1);
 	});
 
 	it('is closed outside signup', async () => {
