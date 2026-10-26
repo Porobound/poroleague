@@ -83,7 +83,9 @@
 		{/if}
 	{:else}
 		{#if data.champion}
-			<p class="pb-notice">Champion: <strong>{data.champion}</strong></p>
+			<p class="pb-notice">
+				<span class="pb-notice-text">Champion: <strong>{data.champion}</strong></span>
+			</p>
 			{#if season.status === 'topcut'}
 				<ConfirmButton
 					action="?/finish"

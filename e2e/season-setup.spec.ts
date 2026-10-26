@@ -83,7 +83,14 @@ test('season setup to first publish', async ({ browser }) => {
 
 	// Lock, then publish week 1 from the overview.
 	await confirm(organizer, 'Lock groups & generate schedule', 'Lock groups');
-	await expect(organizer.getByRole('status')).toContainText('Groups locked.');
+	const locked = organizer.getByRole('status');
+	await expect(locked).toHaveText('Groups locked. Publish week 1 from the overview.');
+	// One line of text: the link sits inline, not as its own flex item.
+	const [box, link] = await Promise.all([
+		locked.boundingBox(),
+		locked.getByRole('link', { name: 'overview' }).boundingBox()
+	]);
+	expect(link!.height * 2).toBeGreaterThan(box!.height - 24);
 	await organizer.goto(`/seasons/${slug}/admin`);
 	await confirm(organizer, 'Publish week 1', 'Publish');
 	await expect(organizer.getByRole('status')).toContainText(
