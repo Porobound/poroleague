@@ -1,5 +1,9 @@
+export const GROUP_SIZE = 16;
+export const MAX_PLAYERS = 8 * GROUP_SIZE;
+
+// Fewest groups of at most GROUP_SIZE; splitGroups keeps them within one player of each other.
 export function defaultGroupCount(players: number): number {
-	return players > 16 ? 2 : 1;
+	return Math.max(1, Math.ceil(players / GROUP_SIZE));
 }
 
 export function splitGroups<T>(items: T[], groupCount: number, random = Math.random): T[][] {

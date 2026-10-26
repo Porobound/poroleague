@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { defaultGroupCount, splitGroups } from './groups';
+import { defaultGroupCount, MAX_PLAYERS, splitGroups } from './groups';
 
 const items = Array.from({ length: 25 }, (_, i) => i);
 
@@ -21,9 +21,16 @@ describe('splitGroups', () => {
 });
 
 describe('defaultGroupCount', () => {
-	it('one group up to 16 players, two from 17', () => {
-		expect(defaultGroupCount(15)).toBe(1);
-		expect(defaultGroupCount(16)).toBe(1);
-		expect(defaultGroupCount(17)).toBe(2);
+	it('groups of at most 16', () => {
+		for (const [players, groups] of [
+			[0, 1],
+			[2, 1],
+			[16, 1],
+			[17, 2],
+			[32, 2],
+			[33, 3],
+			[MAX_PLAYERS, 8]
+		])
+			expect(defaultGroupCount(players), `${players} players`).toBe(groups);
 	});
 });
