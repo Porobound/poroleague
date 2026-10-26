@@ -112,6 +112,7 @@ Your test server has one real player: you. These dev-only scripts fill in the re
 5. To fill the season with results (only dev-vs-dev matches, so yours stay open to report):
    ```sh
    npm run db:play-dev -- <season-slug> [share]   # share of the schedule to play, default 0.6; --drop drops a dev player
+   npm run db:play-dev -- <season-slug> 1 --finish   # every match, yours too; then order ties and Finalize
    ```
 
 ### Troubleshooting
