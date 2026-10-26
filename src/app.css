@@ -160,9 +160,10 @@ a:hover {
 	flex: 1;
 	min-width: 0;
 }
+/* Two columns at most (more groups wrap into further rows), one below ~664px. */
 .grid-2 {
 	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+	grid-template-columns: repeat(auto-fit, minmax(max(320px, calc((100% - 24px) / 2)), 1fr));
 	gap: 24px;
 }
 .admin {
