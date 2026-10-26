@@ -31,6 +31,7 @@ Branch: `plan-14-more-groups`.
 ### Task 1: Group count from 16-player groups, player cap
 
 **Files:**
+
 - Modify: `src/lib/league/groups.ts:1-3`
 - Test: `src/lib/league/groups.spec.ts:23-29`
 
@@ -83,6 +84,7 @@ git commit -m "Groups of at most 16, up to 8 groups"
 ### Task 2: Signup stops at 128
 
 **Files:**
+
 - Modify: `src/routes/seasons/[slug]/+page.server.ts` (load return, `join` action)
 - Modify: `src/routes/seasons/[slug]/+page.svelte:180-210` (signup action bar)
 - Test: `src/lib/server/actions.spec.ts` (`player signup` describe)
@@ -90,26 +92,26 @@ git commit -m "Groups of at most 16, up to 8 groups"
 - [ ] **Step 1: Write the failing test** — add to `describe('player signup')`, and `import { MAX_PLAYERS } from '#lib/league/groups.ts';` at the top:
 
 ```ts
-	it('takes MAX_PLAYERS, then is full until someone withdraws', async () => {
-		setSeason({ status: 'signup' });
-		const ids = Array.from({ length: MAX_PLAYERS - 3 }, (_, i) => `f${i + 1}`);
-		db.insert(players)
-			.values(ids.map((id) => ({ id, displayName: id })))
-			.run();
-		seedEntries(season.id, ids.slice(0, -1)); // p1–p3 plus these: one spot left
-		db.insert(players).values({ id: 'late', displayName: 'late' }).run();
-		await join(as(ids.at(-1)!));
-		expect(entered(ids.at(-1)!)).toBe(1);
-		expect((await outcome(join(as('late')))).returned).toMatchObject({
-			status: 409,
-			data: { message: 'Season is full.' }
-		});
-		expect(entered('late')).toBe(0);
-		await join(as('p1')); // already in: still fine
-		await withdraw(as('p1'));
-		await join(as('late'));
-		expect(entered('late')).toBe(1);
+it('takes MAX_PLAYERS, then is full until someone withdraws', async () => {
+	setSeason({ status: 'signup' });
+	const ids = Array.from({ length: MAX_PLAYERS - 3 }, (_, i) => `f${i + 1}`);
+	db.insert(players)
+		.values(ids.map((id) => ({ id, displayName: id })))
+		.run();
+	seedEntries(season.id, ids.slice(0, -1)); // p1–p3 plus these: one spot left
+	db.insert(players).values({ id: 'late', displayName: 'late' }).run();
+	await join(as(ids.at(-1)!));
+	expect(entered(ids.at(-1)!)).toBe(1);
+	expect((await outcome(join(as('late')))).returned).toMatchObject({
+		status: 409,
+		data: { message: 'Season is full.' }
 	});
+	expect(entered('late')).toBe(0);
+	await join(as('p1')); // already in: still fine
+	await withdraw(as('p1'));
+	await join(as('late'));
+	expect(entered('late')).toBe(1);
+});
 ```
 
 (`beforeEach` already enters p1–p3: 3 + 124 seeded = 127, the 125th `f` joins as the 128th.)
@@ -119,10 +121,10 @@ git commit -m "Groups of at most 16, up to 8 groups"
 - [ ] **Step 3: Implement the action** — in `+page.server.ts` add `import { MAX_PLAYERS } from '#lib/league/groups.ts';`, then in `join` after the status check:
 
 ```ts
-		const list = seasonEntries(season.id);
-		if (list.length >= MAX_PLAYERS && !list.some((e) => e.playerId === user.id))
-			return fail(409, { message: 'Season is full.' });
-		addEntry(season.id, user.id);
+const list = seasonEntries(season.id);
+if (list.length >= MAX_PLAYERS && !list.some((e) => e.playerId === user.id))
+	return fail(409, { message: 'Season is full.' });
+addEntry(season.id, user.id);
 ```
 
 and in `load`'s return, next to `signedUp`:
@@ -136,42 +138,42 @@ and in `load`'s return, next to `signedUp`:
 - [ ] **Step 5: Signup panel** — in `+page.svelte` import `import { MAX_PLAYERS } from '#lib/league/groups.ts';` and reorder the `signup-action` branches so a full season offers neither login nor sign-up (signed-up players still see Withdraw):
 
 ```svelte
-			<div class="signup-action action-bar">
-				{#if data.signedUp && user}
-					<p>
-						<span class="pb-badge pb-badge-win">You're in</span> Signed up as
-						<strong>{user.displayName}</strong>. You can withdraw until groups are drawn.
-					</p>
-					<ConfirmButton
-						action="?/withdraw"
-						variant="secondary"
-						label="Withdraw"
-						title="Withdraw from {season.name}?"
-						confirmLabel="Withdraw"
-					>
-						You can sign up again while signup is open.
-					</ConfirmButton>
-				{:else if data.full}
-					<p>
-						<strong>Season is full.</strong>
-						<span class="muted">All {MAX_PLAYERS} spots are taken; one opens if someone withdraws.</span>
-					</p>
-				{:else if !user}
-					<a
-						class="pb-btn pb-btn-primary"
-						href="/auth/login?returnTo={encodeURIComponent(page.url.pathname)}"
-						data-sveltekit-reload>Log in with Discord to sign up</a
-					>
-				{:else}
-					<form method="POST" action="?/join">
-						<button class="pb-btn pb-btn-primary">Sign up for {season.name}</button>
-					</form>
-					<p class="muted small">
-						By signing up you agree to the <a href="/rules">rules</a> and the
-						<a href="/privacy">privacy notice</a>.
-					</p>
-				{/if}
-			</div>
+<div class="signup-action action-bar">
+	{#if data.signedUp && user}
+		<p>
+			<span class="pb-badge pb-badge-win">You're in</span> Signed up as
+			<strong>{user.displayName}</strong>. You can withdraw until groups are drawn.
+		</p>
+		<ConfirmButton
+			action="?/withdraw"
+			variant="secondary"
+			label="Withdraw"
+			title="Withdraw from {season.name}?"
+			confirmLabel="Withdraw"
+		>
+			You can sign up again while signup is open.
+		</ConfirmButton>
+	{:else if data.full}
+		<p>
+			<strong>Season is full.</strong>
+			<span class="muted">All {MAX_PLAYERS} spots are taken; one opens if someone withdraws.</span>
+		</p>
+	{:else if !user}
+		<a
+			class="pb-btn pb-btn-primary"
+			href="/auth/login?returnTo={encodeURIComponent(page.url.pathname)}"
+			data-sveltekit-reload>Log in with Discord to sign up</a
+		>
+	{:else}
+		<form method="POST" action="?/join">
+			<button class="pb-btn pb-btn-primary">Sign up for {season.name}</button>
+		</form>
+		<p class="muted small">
+			By signing up you agree to the <a href="/rules">rules</a> and the
+			<a href="/privacy">privacy notice</a>.
+		</p>
+	{/if}
+</div>
 ```
 
 - [ ] **Step 6: Typecheck** — `npm run check`, expect 0 errors.
@@ -217,6 +219,7 @@ git commit -m "Cap a season at 128 players"
 ### Task 3: Move a player to a chosen group
 
 **Files:**
+
 - Modify: `src/routes/seasons/[slug]/admin/groups/+page.server.ts:27-38` (`move`)
 - Modify: `src/routes/seasons/[slug]/admin/groups/+page.svelte:84-94` (move form)
 - Test: `src/lib/server/actions.spec.ts` (new describe after `groups`)
@@ -288,24 +291,22 @@ describe('move between groups', () => {
 - [ ] **Step 5: Form** — replace the `{#if status === 'groups' && data.groups.length === 2}` block in `groups/+page.svelte`. Two groups keep the one-click "Move to A/B"; more get a plain select:
 
 ```svelte
-								{#if status === 'groups' && data.groups.length > 1}
-									<form method="POST" action="?/move" class="action-bar">
-										<input type="hidden" name="playerId" value={e.playerId} />
-										{#if data.groups.length === 2}
-											<input type="hidden" name="to" value={2 - i} />
-											<button class="pb-btn pb-btn-ghost pb-btn-sm"
-												>Move to {groupName(2 - i).slice(-1)}</button
-											>
-										{:else}
-											<select class="pb-input pb-select" name="to" aria-label="Move {e.displayName} to">
-												{#each data.groups as _, j (j)}
-													{#if j !== i}<option value={j + 1}>{groupName(j + 1)}</option>{/if}
-												{/each}
-											</select>
-											<button class="pb-btn pb-btn-ghost pb-btn-sm">Move</button>
-										{/if}
-									</form>
-								{/if}
+{#if status === 'groups' && data.groups.length > 1}
+	<form method="POST" action="?/move" class="action-bar">
+		<input type="hidden" name="playerId" value={e.playerId} />
+		{#if data.groups.length === 2}
+			<input type="hidden" name="to" value={2 - i} />
+			<button class="pb-btn pb-btn-ghost pb-btn-sm">Move to {groupName(2 - i).slice(-1)}</button>
+		{:else}
+			<select class="pb-input pb-select" name="to" aria-label="Move {e.displayName} to">
+				{#each data.groups as _, j (j)}
+					{#if j !== i}<option value={j + 1}>{groupName(j + 1)}</option>{/if}
+				{/each}
+			</select>
+			<button class="pb-btn pb-btn-ghost pb-btn-sm">Move</button>
+		{/if}
+	</form>
+{/if}
 ```
 
 - [ ] **Step 6: Check + e2e** — `npm run check`, then `npm run test:e2e -- season-setup` (two-group move still passes: label unchanged, it now posts `to`).
@@ -322,15 +323,16 @@ git commit -m "Move a player to any group"
 ### Task 4: Top-cut line says "of each group"
 
 **Files:**
+
 - Modify: `src/routes/seasons/[slug]/+page.svelte:262`
 - Test: `e2e/season-setup.spec.ts` (end of the test)
 
 - [ ] **Step 1: Write the failing test** — append to the test in `season-setup.spec.ts` (two groups, default top cut 4):
 
 ```ts
-	// The cut is per group.
-	await organizer.goto(`/seasons/${slug}`);
-	await expect(organizer.getByText('Top 4 of each group go to the top cut.')).toBeVisible();
+// The cut is per group.
+await organizer.goto(`/seasons/${slug}`);
+await expect(organizer.getByText('Top 4 of each group go to the top cut.')).toBeVisible();
 ```
 
 - [ ] **Step 2: Run, expect FAIL** — `npm run test:e2e -- season-setup`.
@@ -338,9 +340,9 @@ git commit -m "Move a player to any group"
 - [ ] **Step 3: Implement** — line 262:
 
 ```svelte
-			{#if season.topCutSize}<span class="muted"
-					>Top {season.topCutSize}{data.groups.length > 1 ? ' of each group' : ''} go to the top cut.</span
-				>{/if}
+{#if season.topCutSize}<span class="muted"
+		>Top {season.topCutSize}{data.groups.length > 1 ? ' of each group' : ''} go to the top cut.</span
+	>{/if}
 ```
 
 - [ ] **Step 4: Run, expect PASS** — `npm run test:e2e -- season-setup`.
@@ -357,6 +359,7 @@ git commit -m "Say the top cut is per group"
 ### Task 5: Rules
 
 **Files:**
+
 - Modify: `docs/rules.md:14` (Groups bullet), `:19` (Top cut bullet)
 
 - [ ] **Step 1: Groups bullet** — replace line 14:
