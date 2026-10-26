@@ -267,7 +267,8 @@
 			</div>
 		</div>
 		<p class="small">
-			{#if season.topCutSize}<span class="muted">Top {season.topCutSize} go to the top cut.</span
+			{#if season.topCutSize}<span class="muted"
+					>Top {season.topCutSize}{data.groups.length > 1 ? ' of each group' : ''} go to the top cut.</span
 				>{/if}
 			<a href="/seasons/{season.slug}/audit">Audit log</a>
 			· <a href="/rules#4-points-and-standings">How standings work</a>

@@ -101,4 +101,8 @@ test('season setup to first publish', async ({ browser }) => {
 	const mine = groups.filter((f) => f.value.includes(`<@${player('setup', 1)}>`));
 	expect(mine.length).toBeGreaterThan(0);
 	expect(mine.map((f) => f.name)).toEqual(mine.map(() => `Group ${to}`));
+
+	// The cut is per group.
+	await organizer.goto(`/seasons/${slug}`);
+	await expect(organizer.getByText('Top 4 of each group go to the top cut.')).toBeVisible();
 });
