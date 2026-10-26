@@ -6,6 +6,7 @@ import { cardContext, matchCard } from '#lib/matchCard.ts';
 import { db } from '#lib/server/db/index.ts';
 import { audit, entries, former, matches, players } from '#lib/server/db/schema.ts';
 import { groupName } from '#lib/season.ts';
+import { syncBracket } from '#lib/server/topCut.ts';
 
 export type Match = typeof matches.$inferSelect;
 export type Player = ReturnType<typeof matchPlayers>[number];
@@ -115,6 +116,7 @@ export function saveReport(m: Match, actorId: string, values: Report) {
 		tx.insert(audit)
 			.values({ seasonId: m.seasonId, matchId: m.id, actorId, action: 'report', after: values })
 			.run();
+		if (m.stage === 'playoff') syncBracket(tx, { id: m.seasonId });
 	});
 }
 
@@ -174,6 +176,7 @@ export function organizerEdit(m: Match, actorId: string, values: Report) {
 				after: values
 			})
 			.run();
+		if (m.stage === 'playoff') syncBracket(tx, { id: m.seasonId });
 	});
 }
 

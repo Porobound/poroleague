@@ -110,7 +110,7 @@ export function cutState(season: Season, tx: Db = db) {
 
 // The one writer of playoff rows: inserts a match once both players are known, and repoints an
 // unreported match after an upstream edit. ponytail: re-reads after each fix; at most 31 matches.
-export function syncBracket(tx: Tx, season: Season) {
+export function syncBracket(tx: Tx, season: { id: number }) {
 	for (;;) {
 		const { layout, seedOf } = cutEntries(tx, season.id);
 		if (!layout.length) return;
@@ -159,6 +159,29 @@ export function publishCut(season: Season, date: string | null, actorId: string)
 				actorId,
 				action: 'topcut',
 				after: { size: p.size.total, date }
+			})
+			.run();
+		syncBracket(tx, season);
+	});
+}
+
+// An edit is allowed only while the winner's next match is unreported (fixes go latest first).
+export function nextPlayed(season: Season, m: Match) {
+	const { rounds } = cutState(season);
+	const next = rounds[m.round]?.[(m.slot ?? 0) >> 1]?.match;
+	return !!next && (!!next.reportedBy || !!next.walkoverId);
+}
+
+export function walkover(season: Season, m: Match, winnerId: string, actorId: string) {
+	db.transaction((tx) => {
+		tx.update(matches).set({ walkoverId: winnerId }).where(eq(matches.id, m.id)).run();
+		tx.insert(audit)
+			.values({
+				seasonId: season.id,
+				matchId: m.id,
+				actorId,
+				action: 'walkover',
+				after: { winner: winnerId }
 			})
 			.run();
 		syncBracket(tx, season);

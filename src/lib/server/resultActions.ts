@@ -10,7 +10,9 @@ import {
 	organizerEdit,
 	resultOf
 } from '#lib/server/matches.ts';
+import { liveState } from '#lib/matchCard.ts';
 import { getSeason } from '#lib/server/seasons.ts';
+import { nextPlayed } from '#lib/server/topCut.ts';
 import { postResult, postToOrganizers } from '#lib/server/webhooks.ts';
 
 // Organizer result actions, shared by the Matches page and the season page's flagged cards.
@@ -32,11 +34,15 @@ async function target(event: Event) {
 
 export async function editResult(event: Event) {
 	const { user, form, season, match } = await target(event);
-	if (season.status !== 'play')
-		return fail(409, { message: 'Results can only change while the season is in play.' });
+	if (!liveState(match, season).inPlay)
+		return fail(409, {
+			message: 'Results can only change while the season or its top cut is in play.'
+		});
 	if (isVoided(match)) return fail(409, { message: 'A player dropped, so this match is void.' });
-	if (match.round > season.publishedRound)
+	if (match.stage === 'group' && match.round > season.publishedRound)
 		return fail(409, { message: 'Publish this week before entering results.' });
+	if (match.stage === 'playoff' && nextPlayed(season, match))
+		return fail(409, { message: 'The next match is already in; correct that one first.' });
 	const parsed = parseReport(form, match.p1Id, match.p2Id);
 	if (!parsed.ok) return fail(400, { message: Object.values(parsed.errors).join(' ') });
 	const resolves = !!match.flaggedBy && !match.flagResolvedAt;
@@ -49,7 +55,12 @@ export async function editResult(event: Event) {
 
 export async function keepFlag(event: Event) {
 	const { user, season, match } = await target(event);
-	if (season.status !== 'play' || !match.flaggedBy || match.flagResolvedAt || isVoided(match))
+	if (
+		!liveState(match, season).inPlay ||
+		!match.flaggedBy ||
+		match.flagResolvedAt ||
+		isVoided(match)
+	)
 		return fail(409, { message: 'This result has no open flag.' });
 	keepResult(match, user.id);
 	postToOrganizers(
