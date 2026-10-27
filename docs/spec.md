@@ -84,7 +84,7 @@ Career stats across seasons: **deferred**. Wanted: from any player page, see tha
   - No DMs in v1: UI copy says "posted in Discord", never "notified".
 - **Player role sync (in site, no bot repo):** one global Discord role (`PLAYER_ROLE_ID`) marks current players. The site calls Discord REST with a bot token (`DISCORD_BOT_TOKEN`): `PUT`/`DELETE /guilds/{GUILD_ID}/members/{id}/roles/{PLAYER_ROLE_ID}`, one `fetch` per event, skipped when the env vars are unset.
   - A player has the role while entered, not dropped, in a running season (`signup` → `topcut`). Signup, withdraw, removal, drop/undrop, erasure, the season reaching `finished` (after top cut, if any) and season delete re-derive it from the DB, so a stale event can't strip the role from someone still playing.
-  - All role calls go through one in-process queue, in event order, one at a time; a 429 waits `Retry-After` and retries up to twice.
+  - All role calls go through one in-process queue, in event order, one at a time, 10 s timeout each. 429 (after `Retry-After`), 5xx and network errors retry up to twice; other 4xx are final; a 404 on removal (member left) counts as done.
   - A failed call never blocks the league action and is logged; drift is fixed by hand in Discord. No backfill: roles for existing players were filled manually.
   - The app's bot user needs Manage Roles, and its role must sit above the player role.
 

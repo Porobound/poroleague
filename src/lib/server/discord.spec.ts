@@ -20,6 +20,13 @@ const sent = (fetch: ReturnType<typeof vi.fn>) =>
 		init.method,
 		url.slice(base.length)
 	]);
+// Retries wait at least a second: run them on fake time.
+async function settle(p: Promise<void>) {
+	vi.useFakeTimers({ toFake: ['setTimeout'] });
+	await vi.runAllTimersAsync();
+	await p;
+	vi.useRealTimers();
+}
 const rateLimited = () => new Response('{}', { status: 429, headers: { 'retry-after': '0' } });
 
 describe('setPlayerRoles', () => {
@@ -47,7 +54,7 @@ describe('setPlayerRoles', () => {
 		const { discord, fetch } = await load(ON);
 		fetch.mockResolvedValueOnce(rateLimited());
 		void discord.setPlayerRoles([['u1', false]]);
-		await discord.setPlayerRoles([['u1', true]]);
+		await settle(discord.setPlayerRoles([['u1', true]]));
 		expect(sent(fetch)).toEqual([
 			['DELETE', '/u1/roles/r'],
 			['DELETE', '/u1/roles/r'],
@@ -55,28 +62,47 @@ describe('setPlayerRoles', () => {
 		]);
 	});
 
-	it('gives up after three rate limits and logs it', async () => {
+	it('retries rate limits, server errors and network errors, then gives up and logs', async () => {
 		const { discord, fetch } = await load(ON);
 		const log = vi.spyOn(console, 'error').mockImplementation(() => {});
-		fetch.mockImplementation(async () => rateLimited());
-		await discord.setPlayerRoles([['u1', true]]);
-		expect(fetch).toHaveBeenCalledTimes(3);
+		fetch
+			.mockResolvedValueOnce(rateLimited())
+			.mockResolvedValueOnce(new Response('', { status: 502 }))
+			.mockRejectedValueOnce(new Error('offline'))
+			.mockResolvedValueOnce(new Response('', { status: 503 }));
+		await settle(discord.setPlayerRoles([['u1', true]]));
+		await settle(discord.setPlayerRoles([['u2', true]]));
+		expect(sent(fetch).map(([, url]) => url)).toEqual([
+			'/u1/roles/r',
+			'/u1/roles/r',
+			'/u1/roles/r',
+			'/u2/roles/r',
+			'/u2/roles/r'
+		]);
 		expect(log).toHaveBeenCalledOnce();
 		log.mockRestore();
 	});
 
-	it('logs failures and carries on with the next member', async () => {
+	it('gives every call a timeout so a hung request cannot stall the queue', async () => {
+		const { discord, fetch } = await load(ON);
+		await discord.setPlayerRoles([['u1', true]]);
+		const [, init] = fetch.mock.calls[0] as unknown as [string, RequestInit];
+		expect(init.signal).toBeInstanceOf(AbortSignal);
+	});
+
+	it('logs a final 4xx without retrying; a removal from someone gone from the server is fine', async () => {
 		const { discord, fetch } = await load(ON);
 		const log = vi.spyOn(console, 'error').mockImplementation(() => {});
-		fetch.mockResolvedValueOnce(new Response('Missing Permissions', { status: 403 }));
-		fetch.mockRejectedValueOnce(new Error('offline'));
+		fetch
+			.mockResolvedValueOnce(new Response('Missing Permissions', { status: 403 }))
+			.mockResolvedValueOnce(new Response('Unknown Member', { status: 404 }));
 		await discord.setPlayerRoles([
 			['u1', false],
 			['u2', false],
 			['u3', false]
 		]);
 		expect(fetch).toHaveBeenCalledTimes(3);
-		expect(log).toHaveBeenCalledTimes(2);
+		expect(log).toHaveBeenCalledOnce();
 		log.mockRestore();
 	});
 });

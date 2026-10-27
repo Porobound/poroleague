@@ -46,8 +46,7 @@ export async function fetchMember(accessToken: string): Promise<MemberResult> {
 export type RoleChange = [discordId: string, on: boolean];
 
 // Every role call joins one queue, so calls reach Discord in the order the league changes happened,
-// one at a time, which keeps a whole season's worth under the rate limit.
-// Fire-and-forget: failures are logged and never block the league change behind them.
+// one at a time. Fire-and-forget: failures are logged and never block the league change behind them.
 let queue = Promise.resolve();
 export function setPlayerRoles(changes: RoleChange[]) {
 	if (!DISCORD_BOT_TOKEN || !PLAYER_ROLE_ID || !changes.length) return queue;
@@ -56,25 +55,31 @@ export function setPlayerRoles(changes: RoleChange[]) {
 	}));
 }
 
+// 429, 5xx and network errors are retried (3 attempts); other 4xx are final. The timeout keeps one
+// hung request from stalling the queue.
 async function setRole(discordId: string, on: boolean) {
 	for (let attempt = 1; ; attempt++) {
+		let wait = 1;
 		try {
 			const res = await fetch(
 				`${API}/guilds/${GUILD_ID}/members/${discordId}/roles/${PLAYER_ROLE_ID}`,
-				{ method: on ? 'PUT' : 'DELETE', headers: { authorization: `Bot ${DISCORD_BOT_TOKEN}` } }
+				{
+					method: on ? 'PUT' : 'DELETE',
+					headers: { authorization: `Bot ${DISCORD_BOT_TOKEN}` },
+					signal: AbortSignal.timeout(10_000)
+				}
 			);
-			if (res.status === 429 && attempt < 3) {
-				const wait = Number(res.headers.get('retry-after') ?? 1);
-				await new Promise((r) => setTimeout(r, wait * 1000));
-				continue;
-			}
-			if (!res.ok)
-				console.error(
+			// 404 on removal: they left the server, so there's no role to take.
+			if (res.ok || (!on && res.status === 404)) return;
+			const retry = res.status === 429 || res.status >= 500;
+			if (!retry || attempt === 3)
+				return console.error(
 					`Discord role sync failed for ${discordId}: ${res.status} ${await res.text()}`
 				);
+			if (res.status === 429) wait = Number(res.headers.get('retry-after')) || 1;
 		} catch (e) {
-			console.error(e);
+			if (attempt === 3) return console.error(e);
 		}
-		return;
+		await new Promise((r) => setTimeout(r, wait * 1000));
 	}
 }
