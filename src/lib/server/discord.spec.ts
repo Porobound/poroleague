@@ -14,36 +14,55 @@ async function load(env: Record<string, string>) {
 	return { discord: await import('#lib/server/discord.ts'), fetch };
 }
 const ON = { DISCORD_BOT_TOKEN: 'tok', PLAYER_ROLE_ID: 'r' };
+const base = 'https://discord.com/api/v10/guilds/g/members';
+const sent = (fetch: ReturnType<typeof vi.fn>) =>
+	(fetch.mock.calls as unknown as [string, RequestInit][]).map(([url, init]) => [
+		init.method,
+		url.slice(base.length)
+	]);
+const rateLimited = () => new Response('{}', { status: 429, headers: { 'retry-after': '0' } });
 
-describe('setPlayerRole', () => {
+describe('setPlayerRoles', () => {
 	it('does nothing while role sync is off', async () => {
 		const { discord, fetch } = await load({ DISCORD_BOT_TOKEN: 'tok' });
-		await discord.setPlayerRole(['u1'], true);
+		await discord.setPlayerRoles([['u1', true]]);
 		expect(fetch).not.toHaveBeenCalled();
 	});
 
 	it('adds and removes the role per member with the bot token', async () => {
 		const { discord, fetch } = await load(ON);
-		await discord.setPlayerRole(['u1', 'u2'], true);
-		await discord.setPlayerRole(['u3'], false);
-		const calls = (fetch.mock.calls as unknown as [string, RequestInit][]).map(([url, init]) => [
-			init.method,
-			url,
-			(init.headers as Record<string, string>).authorization
+		await discord.setPlayerRoles([
+			['u1', true],
+			['u2', false]
 		]);
-		const base = 'https://discord.com/api/v10/guilds/g/members';
-		expect(calls).toEqual([
-			['PUT', `${base}/u1/roles/r`, 'Bot tok'],
-			['PUT', `${base}/u2/roles/r`, 'Bot tok'],
-			['DELETE', `${base}/u3/roles/r`, 'Bot tok']
+		expect(sent(fetch)).toEqual([
+			['PUT', '/u1/roles/r'],
+			['DELETE', '/u2/roles/r']
+		]);
+		const [, init] = fetch.mock.calls[0] as unknown as [string, RequestInit];
+		expect((init.headers as Record<string, string>).authorization).toBe('Bot tok');
+	});
+
+	it('sends calls in order, even when an earlier one waits out a rate limit', async () => {
+		const { discord, fetch } = await load(ON);
+		fetch.mockResolvedValueOnce(rateLimited());
+		void discord.setPlayerRoles([['u1', false]]);
+		await discord.setPlayerRoles([['u1', true]]);
+		expect(sent(fetch)).toEqual([
+			['DELETE', '/u1/roles/r'],
+			['DELETE', '/u1/roles/r'],
+			['PUT', '/u1/roles/r']
 		]);
 	});
 
-	it('waits out a rate limit and retries', async () => {
+	it('gives up after three rate limits and logs it', async () => {
 		const { discord, fetch } = await load(ON);
-		fetch.mockResolvedValueOnce(Response.json({ retry_after: 0 }, { status: 429 }));
-		await discord.setPlayerRole(['u1'], true);
-		expect(fetch).toHaveBeenCalledTimes(2);
+		const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+		fetch.mockImplementation(async () => rateLimited());
+		await discord.setPlayerRoles([['u1', true]]);
+		expect(fetch).toHaveBeenCalledTimes(3);
+		expect(log).toHaveBeenCalledOnce();
+		log.mockRestore();
 	});
 
 	it('logs failures and carries on with the next member', async () => {
@@ -51,7 +70,11 @@ describe('setPlayerRole', () => {
 		const log = vi.spyOn(console, 'error').mockImplementation(() => {});
 		fetch.mockResolvedValueOnce(new Response('Missing Permissions', { status: 403 }));
 		fetch.mockRejectedValueOnce(new Error('offline'));
-		await discord.setPlayerRole(['u1', 'u2', 'u3'], false);
+		await discord.setPlayerRoles([
+			['u1', false],
+			['u2', false],
+			['u3', false]
+		]);
 		expect(fetch).toHaveBeenCalledTimes(3);
 		expect(log).toHaveBeenCalledTimes(2);
 		log.mockRestore();

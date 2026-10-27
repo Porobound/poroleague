@@ -43,27 +43,38 @@ export async function fetchMember(accessToken: string): Promise<MemberResult> {
 	return { status: 'member', member: (await res.json()) as GuildMember };
 }
 
-// One call per member, in order, so a season's worth of removals stays under the rate limit.
+export type RoleChange = [discordId: string, on: boolean];
+
+// Every role call joins one queue, so calls reach Discord in the order the league changes happened,
+// one at a time, which keeps a whole season's worth under the rate limit.
 // Fire-and-forget: failures are logged and never block the league change behind them.
-export async function setPlayerRole(discordIds: string[], on: boolean) {
-	if (!DISCORD_BOT_TOKEN || !PLAYER_ROLE_ID) return;
-	for (const id of discordIds) {
-		for (let attempt = 0; attempt < 3; attempt++) {
-			try {
-				const res = await fetch(`${API}/guilds/${GUILD_ID}/members/${id}/roles/${PLAYER_ROLE_ID}`, {
-					method: on ? 'PUT' : 'DELETE',
-					headers: { authorization: `Bot ${DISCORD_BOT_TOKEN}` }
-				});
-				if (res.status === 429) {
-					const { retry_after } = (await res.json()) as { retry_after: number };
-					await new Promise((r) => setTimeout(r, retry_after * 1000));
-					continue;
-				}
-				if (!res.ok) console.error(`Discord role sync failed: ${res.status} ${await res.text()}`);
-			} catch (e) {
-				console.error(e);
+let queue = Promise.resolve();
+export function setPlayerRoles(changes: RoleChange[]) {
+	if (!DISCORD_BOT_TOKEN || !PLAYER_ROLE_ID || !changes.length) return queue;
+	return (queue = queue.then(async () => {
+		for (const [id, on] of changes) await setRole(id, on);
+	}));
+}
+
+async function setRole(discordId: string, on: boolean) {
+	for (let attempt = 1; ; attempt++) {
+		try {
+			const res = await fetch(
+				`${API}/guilds/${GUILD_ID}/members/${discordId}/roles/${PLAYER_ROLE_ID}`,
+				{ method: on ? 'PUT' : 'DELETE', headers: { authorization: `Bot ${DISCORD_BOT_TOKEN}` } }
+			);
+			if (res.status === 429 && attempt < 3) {
+				const wait = Number(res.headers.get('retry-after') ?? 1);
+				await new Promise((r) => setTimeout(r, wait * 1000));
+				continue;
 			}
-			break;
+			if (!res.ok)
+				console.error(
+					`Discord role sync failed for ${discordId}: ${res.status} ${await res.text()}`
+				);
+		} catch (e) {
+			console.error(e);
 		}
+		return;
 	}
 }

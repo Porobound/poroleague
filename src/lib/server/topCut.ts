@@ -12,7 +12,12 @@ import { groupName } from '#lib/season.ts';
 import { db } from '#lib/server/db/index.ts';
 import { audit, entries, matches, seasons } from '#lib/server/db/schema.ts';
 import type { Match, Tx } from '#lib/server/matches.ts';
-import { endPlayerRoles, groupStandings, seasonEntries, type Season } from '#lib/server/seasons.ts';
+import {
+	groupStandings,
+	seasonEntries,
+	syncSeasonRoles,
+	type Season
+} from '#lib/server/seasons.ts';
 
 type Db = typeof db | Tx;
 
@@ -247,5 +252,5 @@ export function finishCut(season: Season, championId: string, actorId: string) {
 			.values({ seasonId: season.id, actorId, action: 'champion', after: { champion: championId } })
 			.run();
 	});
-	endPlayerRoles(season.id);
+	syncSeasonRoles(season.id);
 }

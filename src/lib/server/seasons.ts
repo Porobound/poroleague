@@ -15,7 +15,7 @@ import {
 } from '#lib/league/time.ts';
 import { seasonFields, seasonPhases, type SeasonFields, type SeasonStatus } from '#lib/season.ts';
 import { db } from '#lib/server/db/index.ts';
-import { setPlayerRole } from '#lib/server/discord.ts';
+import { setPlayerRoles, type RoleChange } from '#lib/server/discord.ts';
 import { audit, entries, former, matches, players, seasons } from '#lib/server/db/schema.ts';
 import { droppedIds } from '#lib/league/status.ts';
 import {
@@ -31,6 +31,7 @@ export type Season = typeof seasons.$inferSelect;
 
 // Every season lookup goes through this so soft-deleted seasons never show up.
 const live = isNull(seasons.deletedAt);
+const running = inArray(seasons.status, ['signup', 'groups', 'play', 'topcut']);
 
 export function getSeason(slug: string, viewer: App.Locals['user']): Season {
 	const season = db
@@ -55,13 +56,7 @@ export const runningSeason = (exceptId: number) =>
 	db
 		.select({ name: seasons.name, slug: seasons.slug })
 		.from(seasons)
-		.where(
-			and(
-				inArray(seasons.status, ['signup', 'groups', 'play', 'topcut']),
-				ne(seasons.id, exceptId),
-				live
-			)
-		)
+		.where(and(running, ne(seasons.id, exceptId), live))
 		.get();
 
 export const matchCount = (seasonId: number) =>
@@ -73,7 +68,7 @@ export function deleteSeason(season: Season, deletedBy: string) {
 		.set({ deletedAt: new Date(), deletedBy, slug: `${season.slug}~deleted-${season.id}` })
 		.where(eq(seasons.id, season.id))
 		.run();
-	endPlayerRoles(season.id);
+	syncSeasonRoles(season.id);
 }
 
 export const allSeasons = () =>
@@ -147,21 +142,31 @@ export function seasonEntries(seasonId: number) {
 
 export type SeasonEntry = ReturnType<typeof seasonEntries>[number];
 
-// Discord player role follows signups (spec: Player role sync). Fire-and-forget, like the webhooks.
-export function playerRole(on: boolean, playerIds: string[]) {
+// The Discord player role mirrors the DB (spec: Player role sync): a player has it while entered,
+// not dropped, in a running season. Every change re-derives it, so a stale or repeated event
+// can't take the role from someone still playing. Fire-and-forget, like the webhooks.
+export function syncPlayerRoles(playerIds: string[]) {
 	if (!playerIds.length) return;
-	const ids = db
-		.select({ discordId: players.discordId })
+	const playing = new Set(
+		db
+			.select({ id: entries.playerId })
+			.from(entries)
+			.innerJoin(seasons, eq(entries.seasonId, seasons.id))
+			.where(and(inArray(entries.playerId, playerIds), eq(entries.dropped, false), running, live))
+			.all()
+			.map((e) => e.id)
+	);
+	const changes = db
+		.select({ id: players.id, discordId: players.discordId })
 		.from(players)
 		.where(and(inArray(players.id, playerIds), isNotNull(players.discordId)))
 		.all()
-		.map((p) => p.discordId!);
-	if (ids.length) void setPlayerRole(ids, on);
+		.map((p): RoleChange => [p.discordId!, playing.has(p.id)]);
+	if (changes.length) void setPlayerRoles(changes);
 }
 
-export const endPlayerRoles = (seasonId: number) =>
-	playerRole(
-		false,
+export const syncSeasonRoles = (seasonId: number) =>
+	syncPlayerRoles(
 		db
 			.select({ id: entries.playerId })
 			.from(entries)
@@ -172,14 +177,14 @@ export const endPlayerRoles = (seasonId: number) =>
 
 export function addEntry(seasonId: number, playerId: string) {
 	db.insert(entries).values({ seasonId, playerId }).onConflictDoNothing().run();
-	playerRole(true, [playerId]);
+	syncPlayerRoles([playerId]);
 }
 
 export function removeEntry(seasonId: number, playerId: string) {
 	db.delete(entries)
 		.where(and(eq(entries.seasonId, seasonId), eq(entries.playerId, playerId)))
 		.run();
-	playerRole(false, [playerId]);
+	syncPlayerRoles([playerId]);
 }
 
 // Voids every match of the player (derived from `dropped`); kept in the DB, out of the standings.
@@ -188,7 +193,7 @@ export function dropPlayer(seasonId: number, playerId: string, actorId: string, 
 	// Erasure passes `tx` and takes the role itself.
 	if (!tx) {
 		db.transaction((t) => dropPlayer(seasonId, playerId, actorId, t));
-		return playerRole(false, [playerId]);
+		return syncPlayerRoles([playerId]);
 	}
 	tx.update(entries)
 		.set({ dropped: true })
@@ -212,7 +217,7 @@ export function cancelDrop(seasonId: number, playerId: string, actorId: string) 
 			.values({ seasonId, actorId, action: 'undrop', after: { undropped: playerId } })
 			.run();
 	});
-	playerRole(true, [playerId]);
+	syncPlayerRoles([playerId]);
 }
 
 export function setTiebreaks(seasonId: number, order: string[], actorId: string) {
@@ -236,7 +241,7 @@ export function finalizeSeason(seasonId: number, actorId: string, topCut: boolea
 			.run();
 		tx.insert(audit).values({ seasonId, actorId, action: 'finalize' }).run();
 	});
-	if (!topCut) endPlayerRoles(seasonId);
+	if (!topCut) syncSeasonRoles(seasonId);
 }
 
 export function publishWeek(
