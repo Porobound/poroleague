@@ -1,5 +1,5 @@
 import { error } from '@sveltejs/kit';
-import { and, asc, count, desc, eq, inArray, isNull, ne, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, inArray, isNotNull, isNull, ne, sql } from 'drizzle-orm';
 import { currentRound, cutFinish, roundName } from '#lib/league/bracket.ts';
 import { defaultGroupCount, splitGroups } from '#lib/league/groups.ts';
 import { published } from '#lib/league/publish.ts';
@@ -15,6 +15,7 @@ import {
 } from '#lib/league/time.ts';
 import { seasonFields, seasonPhases, type SeasonFields, type SeasonStatus } from '#lib/season.ts';
 import { db } from '#lib/server/db/index.ts';
+import { setPlayerRole } from '#lib/server/discord.ts';
 import { audit, entries, former, matches, players, seasons } from '#lib/server/db/schema.ts';
 import { droppedIds } from '#lib/league/status.ts';
 import {
@@ -72,6 +73,7 @@ export function deleteSeason(season: Season, deletedBy: string) {
 		.set({ deletedAt: new Date(), deletedBy, slug: `${season.slug}~deleted-${season.id}` })
 		.where(eq(seasons.id, season.id))
 		.run();
+	endPlayerRoles(season.id);
 }
 
 export const allSeasons = () =>
@@ -145,20 +147,49 @@ export function seasonEntries(seasonId: number) {
 
 export type SeasonEntry = ReturnType<typeof seasonEntries>[number];
 
+// Discord player role follows signups (spec: Player role sync). Fire-and-forget, like the webhooks.
+export function playerRole(on: boolean, playerIds: string[]) {
+	if (!playerIds.length) return;
+	const ids = db
+		.select({ discordId: players.discordId })
+		.from(players)
+		.where(and(inArray(players.id, playerIds), isNotNull(players.discordId)))
+		.all()
+		.map((p) => p.discordId!);
+	if (ids.length) void setPlayerRole(ids, on);
+}
+
+export const endPlayerRoles = (seasonId: number) =>
+	playerRole(
+		false,
+		db
+			.select({ id: entries.playerId })
+			.from(entries)
+			.where(eq(entries.seasonId, seasonId))
+			.all()
+			.map((e) => e.id)
+	);
+
 export function addEntry(seasonId: number, playerId: string) {
 	db.insert(entries).values({ seasonId, playerId }).onConflictDoNothing().run();
+	playerRole(true, [playerId]);
 }
 
 export function removeEntry(seasonId: number, playerId: string) {
 	db.delete(entries)
 		.where(and(eq(entries.seasonId, seasonId), eq(entries.playerId, playerId)))
 		.run();
+	playerRole(false, [playerId]);
 }
 
 // Voids every match of the player (derived from `dropped`); kept in the DB, out of the standings.
 // Pass `tx` to drop as part of a bigger change (erasure).
 export function dropPlayer(seasonId: number, playerId: string, actorId: string, tx?: Tx): void {
-	if (!tx) return db.transaction((t) => dropPlayer(seasonId, playerId, actorId, t));
+	// Erasure passes `tx` and takes the role itself.
+	if (!tx) {
+		db.transaction((t) => dropPlayer(seasonId, playerId, actorId, t));
+		return playerRole(false, [playerId]);
+	}
 	tx.update(entries)
 		.set({ dropped: true })
 		.where(and(eq(entries.seasonId, seasonId), eq(entries.playerId, playerId)))
@@ -181,6 +212,7 @@ export function cancelDrop(seasonId: number, playerId: string, actorId: string) 
 			.values({ seasonId, actorId, action: 'undrop', after: { undropped: playerId } })
 			.run();
 	});
+	playerRole(true, [playerId]);
 }
 
 export function setTiebreaks(seasonId: number, order: string[], actorId: string) {
@@ -204,6 +236,7 @@ export function finalizeSeason(seasonId: number, actorId: string, topCut: boolea
 			.run();
 		tx.insert(audit).values({ seasonId, actorId, action: 'finalize' }).run();
 	});
+	if (!topCut) endPlayerRoles(seasonId);
 }
 
 export function publishWeek(
