@@ -50,18 +50,20 @@ export type RoleChange = [discordId: string, on: boolean];
 let queue = Promise.resolve();
 export function setPlayerRoles(changes: RoleChange[]) {
 	if (!DISCORD_BOT_TOKEN || !PLAYER_ROLE_ID || !changes.length) return queue;
+	// Taken now, in the action: by the time the queue runs, dev SSR may have wrapped fetch to warn.
+	const send = globalThis.fetch;
 	return (queue = queue.then(async () => {
-		for (const [id, on] of changes) await setRole(id, on);
+		for (const [id, on] of changes) await setRole(send, id, on);
 	}));
 }
 
 // 429, 5xx and network errors are retried (3 attempts); other 4xx are final. The timeout keeps one
 // hung request from stalling the queue.
-async function setRole(discordId: string, on: boolean) {
+async function setRole(send: typeof fetch, discordId: string, on: boolean) {
 	for (let attempt = 1; ; attempt++) {
 		let wait = 1;
 		try {
-			const res = await fetch(
+			const res = await send(
 				`${API}/guilds/${GUILD_ID}/members/${discordId}/roles/${PLAYER_ROLE_ID}`,
 				{
 					method: on ? 'PUT' : 'DELETE',

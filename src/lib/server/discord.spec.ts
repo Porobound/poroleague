@@ -83,6 +83,17 @@ describe('setPlayerRoles', () => {
 		log.mockRestore();
 	});
 
+	// Regression: dev SSR wraps fetch while rendering and warned (ssr_fetch_eager) on queued calls.
+	it('uses the fetch from when the change was queued', async () => {
+		const { discord, fetch } = await load(ON);
+		const queued = discord.setPlayerRoles([['u1', true]]);
+		const wrapped = vi.fn();
+		vi.stubGlobal('fetch', wrapped);
+		await queued;
+		expect(fetch).toHaveBeenCalledOnce();
+		expect(wrapped).not.toHaveBeenCalled();
+	});
+
 	it('gives every call a timeout so a hung request cannot stall the queue', async () => {
 		const { discord, fetch } = await load(ON);
 		await discord.setPlayerRoles([['u1', true]]);
