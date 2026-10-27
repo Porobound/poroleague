@@ -14,7 +14,9 @@ vi.mock('$app/env/private', () => ({
 	ORGANIZER_ROLE_ID: 'test-organizer-role',
 	WEBHOOK_RESULTS_URL: '',
 	WEBHOOK_ORGANIZERS_URL: '',
-	WEBHOOK_PAIRINGS_URL: ''
+	WEBHOOK_PAIRINGS_URL: '',
+	DISCORD_BOT_TOKEN: '',
+	PLAYER_ROLE_ID: ''
 }));
 
 // beforeEach wipes every table: stop before any write unless the mock gave us the in-memory DB.

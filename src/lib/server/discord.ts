@@ -1,8 +1,10 @@
 import {
+	DISCORD_BOT_TOKEN,
 	DISCORD_CLIENT_ID,
 	DISCORD_CLIENT_SECRET,
 	DISCORD_REDIRECT_URI,
-	GUILD_ID
+	GUILD_ID,
+	PLAYER_ROLE_ID
 } from '$app/env/private';
 import type { GuildMember } from '#lib/discord.ts';
 
@@ -39,4 +41,29 @@ export async function fetchMember(accessToken: string): Promise<MemberResult> {
 	if (res.status === 401) return { status: 'unauthorized' };
 	if (!res.ok) throw new Error(`Discord member lookup failed: ${res.status}`);
 	return { status: 'member', member: (await res.json()) as GuildMember };
+}
+
+// One call per member, in order, so a season's worth of removals stays under the rate limit.
+// Fire-and-forget: failures are logged and never block the league change behind them.
+export async function setPlayerRole(discordIds: string[], on: boolean) {
+	if (!DISCORD_BOT_TOKEN || !PLAYER_ROLE_ID) return;
+	for (const id of discordIds) {
+		for (let attempt = 0; attempt < 3; attempt++) {
+			try {
+				const res = await fetch(`${API}/guilds/${GUILD_ID}/members/${id}/roles/${PLAYER_ROLE_ID}`, {
+					method: on ? 'PUT' : 'DELETE',
+					headers: { authorization: `Bot ${DISCORD_BOT_TOKEN}` }
+				});
+				if (res.status === 429) {
+					const { retry_after } = (await res.json()) as { retry_after: number };
+					await new Promise((r) => setTimeout(r, retry_after * 1000));
+					continue;
+				}
+				if (!res.ok) console.error(`Discord role sync failed: ${res.status} ${await res.text()}`);
+			} catch (e) {
+				console.error(e);
+			}
+			break;
+		}
+	}
 }
