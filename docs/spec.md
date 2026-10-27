@@ -82,7 +82,10 @@ Career stats across seasons: **deferred**. Wanted: from any player page, see tha
   - pairings channel: posted by "Publish week N" in admin when `WEBHOOK_PAIRINGS_URL` is set (all rounds of that week): one message, an embed per round, players as `<@id>` mentions inside embeds (clickable names, no pings)
   - Every webhook post disables mentions (`allowed_mentions: none`), since names and flag reasons are user text; nothing pings, pairings included.
   - No DMs in v1: UI copy says "posted in Discord", never "notified".
-- **Bot (separate repo, later):** talks to the site only via its HTTP JSON endpoints with a service token (`BOT_TOKEN`). Site owns DB and all rules; bot never touches the DB. A bot `/report` calls the same endpoint as the web form, acting as the player.
+- **Player role sync (in site, no bot repo):** one global Discord role (`PLAYER_ROLE_ID`) marks current players. The site calls Discord REST with a bot token (`DISCORD_BOT_TOKEN`): `PUT`/`DELETE /guilds/{GUILD_ID}/members/{id}/roles/{PLAYER_ROLE_ID}`, one `fetch` per event, skipped when the env vars are unset.
+  - Add on signup. Remove on withdraw, organizer removal, drop, and for every entrant when the season reaches `finished` (after top cut, if any).
+  - A failed call never blocks the league action; drift is fixed by hand in Discord. No backfill: roles for existing players were filled manually.
+  - The app's bot user needs Manage Roles, and its role must sit above the player role.
 
 ## Stack
 
@@ -109,7 +112,7 @@ Designs come from Claude Design as HTML. Integration rule: **extract, don't past
 
 ## Env vars
 
-`DATABASE_URL`, `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `DISCORD_REDIRECT_URI`, `GUILD_ID`, `ORGANIZER_ROLE_ID`, `WEBHOOK_RESULTS_URL`, `WEBHOOK_ORGANIZERS_URL`, `WEBHOOK_PAIRINGS_URL`, `BOT_TOKEN`, `ORIGIN` (adapter-node), `TUNNEL_TOKEN` (compose, cloudflared).
+`DATABASE_URL`, `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `DISCORD_REDIRECT_URI`, `GUILD_ID`, `ORGANIZER_ROLE_ID`, `WEBHOOK_RESULTS_URL`, `WEBHOOK_ORGANIZERS_URL`, `WEBHOOK_PAIRINGS_URL`, `DISCORD_BOT_TOKEN`, `PLAYER_ROLE_ID`, `ORIGIN` (adapter-node), `TUNNEL_TOKEN` (compose, cloudflared).
 
 ## Open items
 
@@ -125,7 +128,7 @@ Designs come from Claude Design as HTML. Integration rule: **extract, don't past
 5. **Standings & pages** — standings, schedule, player page (incl. per-legend record), legends page, archive, audit page.
 6. **Admin** — organizer edits, drops, flag resolution, deadline/finalize, tiebreak ranks, weekly publishing.
 7. **Deploy** — Dockerfile, compose with cloudflared, GH Actions → GHCR, backup cron.
-8. **Bot API** — service-token JSON endpoints. Deferred to the Backlog milestone until a bot exists; its needs decide the endpoints.
+8. **Player role sync** — signup/withdraw/drop/season end add or remove the Discord player role via bot-token REST calls.
 9. **Mobile sweep** — phone layouts for every view, phone checker script. `docs/superpowers/plans/2026-10-22-mobile.md`
 10. **Weekly publishing** — organizers publish each week's pairings; players see published weeks only. `docs/superpowers/plans/2026-10-23-weekly-publishing.md`
 11. **Design nits** — copy cuts from the 2026-10-23 design pass, compact phone season card. `docs/superpowers/plans/2026-10-23-design-nits.md`
