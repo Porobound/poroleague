@@ -14,7 +14,7 @@ Only one season can be running (signup, groups or play) at a time; drafts and fi
 4. **play** — weeks of `roundsPerWeek` rounds (12-player group: 11 rounds ≈ 6 weeks). A match past its week shows as **overdue** (derived, no stored state); it still reports normally. Weeks are **published** one at a time by an organizer (`seasons.published_round`, the last visible round): players, organizers on public pages and the bot API see only published rounds; Admin → Matches shows all and blocks results for unpublished ones. A published week can't be hidden again. Season deadline is hard: player reporting closes at the deadline. Once groups are drawn, the deadline can't be earlier than the last day of the final round's week: saving such a deadline and locking the groups are both refused. All dates/deadlines are in the league timezone (`LEAGUE_TZ = Europe/Helsinki`, config constant); deadline = 23:59 local on the deadline date.
 5. **finished** — organizer enters results for any unplayed matches (else double loss), breaks unresolved ties, finalizes.
 
-Top cut (top X per group, cross-seeded A1 vs B4 …, single elim, Bo3, online, same report flow) is **deferred**. Data model already carries `stage` + `round` for it.
+**Top cut** (optional, `topCutSize` > 0): finalize moves the season to `topcut` instead of `finished`. Top X non-dropped players per group, seeded by rank then group (A1, B1, A2, …), standard bracket order with first-round same-group rematches swapped away; bracket = next power of two, byes to top seeds. Single elim, Bo3, same report flow; a level result advances the higher seed; no-shows are organizer walkovers. Organizer publishes the bracket and clicks **Finish season** once the final has a winner → `finished`. Plan: `docs/superpowers/plans/2026-10-26-top-cut.md`.
 
 ## Matches & scoring
 
@@ -117,7 +117,7 @@ Designs come from Claude Design as HTML. Integration rule: **extract, don't past
 ## Open items
 
 - Domain (needed for Discord OAuth app redirect URI in prod; dev uses `http://localhost:5173`).
-- Top-cut size X; top-cut feature; career stats.
+- Career stats.
 
 ## Plan roadmap
 
