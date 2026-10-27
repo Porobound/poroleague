@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto';
 import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { escapeMd } from '#lib/discord.ts';
 import { db } from '#lib/server/db/index.ts';
+import { setPlayerRoles } from '#lib/server/discord.ts';
 import { audit, entries, matches, players, seasons, sessions } from '#lib/server/db/schema.ts';
 import { dropPlayer } from '#lib/server/seasons.ts';
 
@@ -19,7 +20,7 @@ export function discordMentions(ids: string[]) {
 // GDPR erasure: the player stays as "Former player 3f9a" so results and standings don't change,
 // but their Discord link, name, avatar, logins and flag reasons go. One audit row per season.
 export function erasePlayer(playerId: string, actorId: string) {
-	return db.transaction((tx) => {
+	const { discordId, ...erased } = db.transaction((tx) => {
 		const p = tx.select().from(players).where(eq(players.id, playerId)).get();
 		if (!p || p.erasedAt) throw new Error(`No player ${playerId} to erase`);
 		// A random suffix tells former players apart without depending on the order of erasures.
@@ -71,6 +72,9 @@ export function erasePlayer(playerId: string, actorId: string) {
 				.values({ seasonId: s.id, actorId, action: 'erase', after: { erased: playerId } })
 				.run();
 		}
-		return { name, dropped, walkovers };
+		return { name, dropped, walkovers, discordId: p.discordId };
 	});
+	// Only once the erasure is saved: the Discord id is gone from the DB by now.
+	if (discordId) void setPlayerRoles([[discordId, false]]);
+	return erased;
 }
