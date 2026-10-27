@@ -14,7 +14,7 @@ Only one season can be running (signup, groups or play) at a time; drafts and fi
 4. **play** — weeks of `roundsPerWeek` rounds (12-player group: 11 rounds ≈ 6 weeks). A match past its week shows as **overdue** (derived, no stored state); it still reports normally. Weeks are **published** one at a time by an organizer (`seasons.published_round`, the last visible round): players, organizers on public pages and the bot API see only published rounds; Admin → Matches shows all and blocks results for unpublished ones. A published week can't be hidden again. Season deadline is hard: player reporting closes at the deadline. Once groups are drawn, the deadline can't be earlier than the last day of the final round's week: saving such a deadline and locking the groups are both refused. All dates/deadlines are in the league timezone (`LEAGUE_TZ = Europe/Helsinki`, config constant); deadline = 23:59 local on the deadline date.
 5. **finished** — organizer enters results for any unplayed matches (else double loss), breaks unresolved ties, finalizes.
 
-Top cut (top X per group, cross-seeded A1 vs B4 …, single elim, Bo3, online, same report flow) is **deferred**. Data model already carries `stage` + `round` for it.
+**Top cut** (optional, `topCutSize` > 0): finalize moves the season to `topcut` instead of `finished`. Top X non-dropped players per group, seeded by rank then group (A1, B1, A2, …), standard bracket order with first-round same-group rematches swapped away; bracket = next power of two, byes to top seeds. Single elim, Bo3, same report flow; a level result advances the higher seed; no-shows are organizer walkovers. Organizer publishes the bracket and clicks **Finish season** once the final has a winner → `finished`. Plan: `docs/superpowers/plans/2026-10-26-top-cut.md`.
 
 ## Matches & scoring
 
@@ -82,7 +82,11 @@ Career stats across seasons: **deferred**. Wanted: from any player page, see tha
   - pairings channel: posted by "Publish week N" in admin when `WEBHOOK_PAIRINGS_URL` is set (all rounds of that week): one message, an embed per round, players as `<@id>` mentions inside embeds (clickable names, no pings)
   - Every webhook post disables mentions (`allowed_mentions: none`), since names and flag reasons are user text; nothing pings, pairings included.
   - No DMs in v1: UI copy says "posted in Discord", never "notified".
-- **Bot (separate repo, later):** talks to the site only via its HTTP JSON endpoints with a service token (`BOT_TOKEN`). Site owns DB and all rules; bot never touches the DB. A bot `/report` calls the same endpoint as the web form, acting as the player.
+- **Player role sync (in site, no bot repo):** one global Discord role (`PLAYER_ROLE_ID`) marks current players. The site calls Discord REST with a bot token (`DISCORD_BOT_TOKEN`): `PUT`/`DELETE /guilds/{GUILD_ID}/members/{id}/roles/{PLAYER_ROLE_ID}`, one `fetch` per event, skipped when the env vars are unset.
+  - A player has the role while entered, not dropped, in a running season (`signup` → `topcut`). Signup, withdraw, removal, drop/undrop, erasure, the season reaching `finished` (after top cut, if any) and season delete re-derive it from the DB, so a stale event can't strip the role from someone still playing.
+  - All role calls go through one in-process queue, in event order, one at a time, 10 s timeout each. 429 (after `Retry-After`), 5xx and network errors retry up to twice; other 4xx are final; a 404 on removal (member left) counts as done.
+  - A failed call never blocks the league action and is logged; drift is fixed by hand in Discord. No backfill: roles for existing players were filled manually.
+  - The app's bot user needs Manage Roles, and its role must sit above the player role.
 
 ## Stack
 
@@ -109,12 +113,12 @@ Designs come from Claude Design as HTML. Integration rule: **extract, don't past
 
 ## Env vars
 
-`DATABASE_URL`, `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `DISCORD_REDIRECT_URI`, `GUILD_ID`, `ORGANIZER_ROLE_ID`, `WEBHOOK_RESULTS_URL`, `WEBHOOK_ORGANIZERS_URL`, `WEBHOOK_PAIRINGS_URL`, `BOT_TOKEN`, `ORIGIN` (adapter-node), `TUNNEL_TOKEN` (compose, cloudflared).
+`DATABASE_URL`, `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `DISCORD_REDIRECT_URI`, `GUILD_ID`, `ORGANIZER_ROLE_ID`, `WEBHOOK_RESULTS_URL`, `WEBHOOK_ORGANIZERS_URL`, `WEBHOOK_PAIRINGS_URL`, `DISCORD_BOT_TOKEN`, `PLAYER_ROLE_ID`, `ORIGIN` (adapter-node), `TUNNEL_TOKEN` (compose, cloudflared).
 
 ## Open items
 
 - Domain (needed for Discord OAuth app redirect URI in prod; dev uses `http://localhost:5173`).
-- Top-cut size X; top-cut feature; career stats.
+- Career stats.
 
 ## Plan roadmap
 
@@ -125,7 +129,7 @@ Designs come from Claude Design as HTML. Integration rule: **extract, don't past
 5. **Standings & pages** — standings, schedule, player page (incl. per-legend record), legends page, archive, audit page.
 6. **Admin** — organizer edits, drops, flag resolution, deadline/finalize, tiebreak ranks, weekly publishing.
 7. **Deploy** — Dockerfile, compose with cloudflared, GH Actions → GHCR, backup cron.
-8. **Bot API** — service-token JSON endpoints. Deferred to the Backlog milestone until a bot exists; its needs decide the endpoints.
+8. **Player role sync** — signup/withdraw/drop/season end add or remove the Discord player role via bot-token REST calls.
 9. **Mobile sweep** — phone layouts for every view, phone checker script. `docs/superpowers/plans/2026-10-22-mobile.md`
 10. **Weekly publishing** — organizers publish each week's pairings; players see published weeks only. `docs/superpowers/plans/2026-10-23-weekly-publishing.md`
 11. **Design nits** — copy cuts from the 2026-10-23 design pass, compact phone season card. `docs/superpowers/plans/2026-10-23-design-nits.md`

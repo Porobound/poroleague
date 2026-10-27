@@ -60,13 +60,21 @@ cp .env.example .env
    - Copy **Client ID** → `DISCORD_CLIENT_ID`.
    - **Reset Secret** and copy it → `DISCORD_CLIENT_SECRET`. Discord shows it only once.
    - Under **Redirects**, add exactly `http://localhost:5173/auth/callback` (not `127.0.0.1`, no trailing slash) and **Save Changes**.
-3. You don't need a bot, and the app doesn't have to join your server.
+3. Logging in needs no bot. Only player role sync (step 4) does.
 
 ### 4. Discord webhooks (optional)
 
 Results and flags are posted to Discord channels. To see them, make a webhook in **your test server**: **Edit Channel → Integrations → Webhooks → New Webhook → Copy Webhook URL**, and paste the **whole URL** (`https://discord.com/api/webhooks/<id>/<token>`, not just the ID). One channel for results, one for organizers, one for weekly pairings (they can be the same channel).
 
 To keep posting off, leave them empty, but keep the lines: `WEBHOOK_RESULTS_URL=`, `WEBHOOK_ORGANIZERS_URL=` and `WEBHOOK_PAIRINGS_URL=`.
+
+**Player role sync (optional).** Signing up gives a Discord role; withdrawing, being dropped or the season ending takes it away. To turn it on:
+
+1. In your app, open **Bot → Reset Token** and copy it → `DISCORD_BOT_TOKEN`.
+2. **OAuth2 → URL Generator**: scope `bot`, permission **Manage Roles**. Open the URL and add the bot to your test server.
+3. In **Server Settings → Roles**, drag the bot's role above the player role (Discord refuses otherwise), then copy the player role's ID → `PLAYER_ROLE_ID`.
+
+Leave either empty or out and role sync is off.
 
 ### 5. Fill in `.env`
 
@@ -80,9 +88,11 @@ ORGANIZER_ROLE_ID=<your Organizer role, step 2>
 WEBHOOK_RESULTS_URL=<optional, step 4>
 WEBHOOK_ORGANIZERS_URL=<optional, step 4>
 WEBHOOK_PAIRINGS_URL=<optional, step 4>
+DISCORD_BOT_TOKEN=<optional, step 4>
+PLAYER_ROLE_ID=<optional, step 4>
 ```
 
-Every variable has to be present or the app refuses to start ("Value is missing"). Only the webhook ones may be empty.
+Every variable has to be present or the app refuses to start ("Value is missing"). Only the webhook ones may be empty; `DISCORD_BOT_TOKEN` and `PLAYER_ROLE_ID` may also be left out.
 
 ### 6. Database and run
 
@@ -139,6 +149,8 @@ Your test server has one real player: you. These dev-only scripts fill in the re
 | `WEBHOOK_RESULTS_URL`    | Discord webhook for reported results (empty = off)        |
 | `WEBHOOK_ORGANIZERS_URL` | Discord webhook for flags (empty = off)                   |
 | `WEBHOOK_PAIRINGS_URL`   | Discord webhook for weekly pairings (empty = off)         |
+| `DISCORD_BOT_TOKEN`      | Bot token for player role sync (empty = off)              |
+| `PLAYER_ROLE_ID`         | Discord role given to signed-up players (empty = off)     |
 | `ORIGIN`                 | Servers only: public URL, e.g. `https://<domain>`         |
 | `TUNNEL_TOKEN`           | Servers only: Cloudflare Tunnel token (compose)           |
 | `IMAGE_TAG`              | Servers only: image tag (empty = `latest`, `dev`, a SHA)  |

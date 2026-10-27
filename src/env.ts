@@ -11,5 +11,14 @@ export const variables = defineEnvVars({
 	WEBHOOK_ORGANIZERS_URL: {
 		description: 'Discord webhook for the organizer channel. Empty = off.'
 	},
-	WEBHOOK_PAIRINGS_URL: { description: 'Discord webhook for the pairings channel. Empty = off.' }
+	WEBHOOK_PAIRINGS_URL: { description: 'Discord webhook for the pairings channel. Empty = off.' },
+	// Optional so deploys without them keep starting.
+	DISCORD_BOT_TOKEN: {
+		description: 'Bot token for player role sync. Empty = off.',
+		schema: (v) => v ?? ''
+	},
+	PLAYER_ROLE_ID: {
+		description: 'Discord role given to signed-up players. Empty = off.',
+		schema: (v) => v ?? ''
+	}
 });
