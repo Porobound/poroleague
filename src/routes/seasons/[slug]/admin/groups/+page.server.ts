@@ -47,7 +47,7 @@ export const actions: Actions = {
 	redraw: async (event) => {
 		const season = await inGroupsPhase(event);
 		if (!season) return fail(409, { message: 'Groups are locked.' });
-		drawGroups(season.id);
+		drawGroups(season.id, season.groupSize);
 		return { message: 'Groups redrawn at random.' };
 	},
 

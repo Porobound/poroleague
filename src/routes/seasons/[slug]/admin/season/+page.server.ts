@@ -51,6 +51,14 @@ export const actions: Actions = {
 			});
 		if (slugTaken(parsed.values.slug, season.id))
 			return fail(400, { errors: { slug: 'Another season already uses this slug.' }, raw: null });
+		const signed = seasonEntries(season.id).length;
+		if (parsed.values.maxPlayers !== season.maxPlayers && parsed.values.maxPlayers < signed)
+			return fail(400, {
+				errors: {
+					maxPlayers: `${signed} already signed up. Remove players or set ${signed} or more.`
+				},
+				raw: null
+			});
 		const { startDate, roundsPerWeek, deadline } = parsed.values;
 		const earliest = earliestDeadline(season.id, startDate, roundsPerWeek);
 		if (earliest && deadline < earliest)
@@ -84,7 +92,7 @@ export const actions: Actions = {
 		const season = getSeason(event.params.slug, user);
 		if (season.status !== 'signup') return fail(409, { message: 'Signup is not open.' });
 		setStatus(season.id, 'groups');
-		drawGroups(season.id);
+		drawGroups(season.id, season.groupSize);
 		redirect(303, `/seasons/${season.slug}/admin/groups`);
 	},
 

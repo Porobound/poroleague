@@ -281,9 +281,9 @@ export function reopenSignup(seasonId: number) {
 	});
 }
 
-export function drawGroups(seasonId: number) {
+export function drawGroups(seasonId: number, groupSize: number) {
 	const ids = seasonEntries(seasonId).map((e) => e.playerId);
-	const groups = splitGroups(ids, defaultGroupCount(ids.length));
+	const groups = splitGroups(ids, defaultGroupCount(ids.length, groupSize));
 	db.transaction(() => groups.forEach((g, i) => g.forEach((id) => setGroup(seasonId, id, i + 1))));
 }
 

@@ -1,5 +1,4 @@
 import { error, fail } from '@sveltejs/kit';
-import { MAX_PLAYERS } from '#lib/league/groups.ts';
 import { published } from '#lib/league/publish.ts';
 import { addDays, weekOf } from '#lib/league/time.ts';
 import { cardContext, matchCard } from '#lib/matchCard.ts';
@@ -69,7 +68,7 @@ export const load: PageServerLoad = async (event) => {
 		phases,
 		signedUp,
 		// Full for anyone not already in; they keep their spot and can withdraw.
-		full: season.status === 'signup' && list.length >= MAX_PLAYERS && !signedUp,
+		full: season.status === 'signup' && list.length >= season.maxPlayers && !signedUp,
 		// This week's matches plus anything overdue; the full list lives on the player page.
 		// Odd groups give someone a bye each round; say so, or a missing match looks like a bug.
 		myByes: rounds
@@ -98,7 +97,7 @@ export const actions: Actions = {
 		const season = getSeason(event.params.slug, user);
 		if (season.status !== 'signup') return fail(409, { message: 'Signup is closed.' });
 		const list = seasonEntries(season.id);
-		if (list.length >= MAX_PLAYERS && !list.some((e) => e.playerId === user.id))
+		if (list.length >= season.maxPlayers && !list.some((e) => e.playerId === user.id))
 			return fail(409, { message: 'Season is full.' });
 		addEntry(season.id, user.id);
 		return { message: "You're in. See you in the groups." };
