@@ -1,6 +1,7 @@
 <script lang="ts">
 	import PlayerName from '#lib/components/PlayerName.svelte';
 	import ConfirmButton from '#lib/components/ConfirmButton.svelte';
+	import { when } from '#lib/format.ts';
 	import { groupName, hasSchedule } from '#lib/season.ts';
 	import type { PageProps } from './$types';
 
@@ -11,7 +12,7 @@
 	const intro = $derived(
 		{
 			draft: 'Signup has not opened yet.',
-			signup: 'You can remove players while signup is open.',
+			signup: 'In signup order. You can remove players while signup is open.',
 			groups: 'Signup is closed. Once groups are locked you can drop players.',
 			play: 'Dropping a player voids all their matches.',
 			topcut:
@@ -100,8 +101,9 @@
 		</div>
 	{:else}
 		<ul class="player-list">
-			{#each data.entries as e (e.playerId)}
+			{#each data.entries as e, i (e.playerId)}
 				<li>
+					<span class="order">#{i + 1}</span>
 					<span class="grow"
 						><PlayerName
 							name={e.displayName}
@@ -111,6 +113,7 @@
 							href="/seasons/{data.season.slug}/players/{e.playerId}"
 						/></span
 					>
+					<span class="muted small">{when(e.joinedAt)}</span>
 					{#if status === 'signup'}
 						<ConfirmButton
 							action="?/remove"
@@ -133,6 +136,11 @@
 </div>
 
 <style>
+	.order {
+		font: 500 14px/20px var(--font-mono);
+		color: var(--ink-muted);
+		min-width: 3ch;
+	}
 	.nowrap {
 		white-space: nowrap;
 	}

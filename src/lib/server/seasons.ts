@@ -139,7 +139,8 @@ export function seasonEntries(seasonId: number) {
 			former: former(),
 			group: entries.group,
 			dropped: entries.dropped,
-			tiebreak: entries.tiebreak
+			tiebreak: entries.tiebreak,
+			joinedAt: entries.createdAt
 		})
 		.from(entries)
 		.innerJoin(players, eq(entries.playerId, players.id))

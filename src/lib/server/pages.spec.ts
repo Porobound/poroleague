@@ -6,10 +6,12 @@ import { load as seasonPage } from '../../routes/seasons/[slug]/+page.server.ts'
 import { load as legendsPage } from '../../routes/seasons/[slug]/legends/+page.server.ts';
 import { load as playerPage } from '../../routes/seasons/[slug]/players/[id]/+page.server.ts';
 import { load as schedulePage } from '../../routes/seasons/[slug]/schedule/+page.server.ts';
+import { load as adminPlayersPage } from '../../routes/seasons/[slug]/admin/players/+page.server.ts';
 import type { Card } from '#lib/matchCard.ts';
 import { db } from '#lib/server/db/index.ts';
-import { players } from '#lib/server/db/schema.ts';
+import { entries, players, seasons } from '#lib/server/db/schema.ts';
 import { createSession, validateSession } from '#lib/server/session.ts';
+import { and, eq } from 'drizzle-orm';
 import { seedEntries, seedMatch, seedPlayers, seedSeason } from '#lib/server/test/seed.ts';
 
 // PageServerLoad's type allows void; these loads always return data.
@@ -22,6 +24,7 @@ const seasonLoad = loaded(seasonPage);
 const legendsLoad = loaded(legendsPage);
 const playerLoad = loaded(playerPage);
 const scheduleLoad = loaded(schedulePage);
+const adminPlayersLoad = loaded(adminPlayersPage);
 
 // Unpublished pairings stay secret, organizers included, and drafts are hidden on every public page.
 type User = NonNullable<App.Locals['user']>;
@@ -146,5 +149,29 @@ describe('drafts on public sub-pages', () => {
 		const d = await careerLoad(event({ id: 'p1' }, null));
 		expect(d.history.map((h: { slug: string }) => h.slug)).toEqual(['s1']);
 		expect(await notFound(() => careerLoad(event({ id: 'org' }, null)))).toBe(true);
+	});
+});
+
+describe('admin players', () => {
+	it('lists signups in signup order until the schedule exists', async () => {
+		const s = seedSeason({ slug: 'sp', status: 'signup' });
+		seedEntries(s.id, ['p1', 'p2', 'p3']);
+		for (const [id, at] of [
+			['p3', 100],
+			['p1', 200],
+			['p2', 300]
+		] as const)
+			db.update(entries)
+				.set({ createdAt: new Date(at * 1000) })
+				.where(and(eq(entries.seasonId, s.id), eq(entries.playerId, id)))
+				.run();
+		const ids = async () => {
+			const season = db.select().from(seasons).where(eq(seasons.id, s.id)).get()!;
+			const data = await adminPlayersLoad({ parent: async () => ({ season }) } as never);
+			return data.entries.map((e: { playerId: string }) => e.playerId);
+		};
+		expect(await ids()).toEqual(['p3', 'p1', 'p2']);
+		db.update(seasons).set({ status: 'play' }).where(eq(seasons.id, s.id)).run();
+		expect(await ids()).toEqual(['p1', 'p2', 'p3']);
 	});
 });

@@ -22,8 +22,10 @@ export const load: PageServerLoad = async ({ parent }) => {
 		scheduled ? groupStandings(season, list).flatMap((g) => g.rows.map((r) => [r.playerId, r])) : []
 	);
 	const ms = scheduled ? seasonMatches(season.id) : [];
+	// Signup order until the schedule exists; stable, so same-second signups stay alphabetical.
+	const ordered = scheduled ? list : list.toSorted((a, b) => +a.joinedAt - +b.joinedAt);
 	return {
-		entries: list.map((e) => {
+		entries: ordered.map((e) => {
 			const r = rows.get(e.playerId);
 			return {
 				...e,
