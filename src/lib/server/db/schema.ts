@@ -40,6 +40,8 @@ export const seasons = sqliteTable('seasons', {
 	deadline: text('deadline'), // ISO date
 	topCutSize: integer('top_cut_size'),
 	topCutDate: text('top_cut_date'), // ISO date, display only
+	maxPlayers: integer('max_players').notNull().default(128),
+	groupSize: integer('group_size').notNull().default(16),
 	createdAt: createdAt(),
 	// Soft delete: hidden everywhere, data kept, restorable by clearing these two columns (and the slug suffix).
 	deletedAt: integer('deleted_at', { mode: 'timestamp' }),

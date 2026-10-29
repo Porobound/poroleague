@@ -43,6 +43,13 @@
       "when": 1792986748810,
       "tag": "0005_uneven_ozymandias",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1793252285999,
+      "tag": "0006_fluffy_mauler",
+      "breakpoints": true
     }
   ]
 }

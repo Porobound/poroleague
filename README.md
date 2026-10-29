@@ -112,7 +112,7 @@ Your test server has one real player: you. These dev-only scripts fill in the re
 1. **Admin → New season**, then **Open signup**, and sign up yourself on the season page.
 2. Add fake players. Use the season's **slug** (from its URL, e.g. `autumn-2026`), not its name:
    ```sh
-   npm run db:seed-dev -- <season-slug> [count]   # default 24, max 128; groups of at most 16 (17+ makes two, 33+ three…)
+   npm run db:seed-dev -- <season-slug> [count]   # default 24, up to the season's max players; groups follow its group size
    ```
 3. **Close signup** (draws groups) → **Groups → Lock** (builds the schedule).
 4. Your matches are listed on the season page. To test flagging, have a fake opponent report one of your matches (the match id is the number at the end of the match URL; your Discord id via right-click yourself → **Copy User ID**):
