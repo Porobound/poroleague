@@ -8,9 +8,20 @@ Public name: **Poroleague** (the league site). **Porobound** is the private Disc
 
 Only one season can be running (signup, groups or play) at a time; drafts and finished seasons are unlimited.
 
-1. **draft** — organizer creates season: name, slug, start date, rounds per week (default 2), season deadline, top-cut size X (editable until the season finishes, since it only moves the line in the standings).
-2. **signup** — any member of the Discord guild can join until an organizer closes signup. Players can withdraw while signup is open; organizers can remove a signup.
-3. **groups** — group count is automatic (1 up to 16 signups, else 2); organizer draws random groups, previews, swaps players, locks. Uneven sizes allowed (25 → 13 + 12). Locking generates the round-robin schedule (circle method, byes on odd counts).
+1. **draft** — organizer creates season: name, slug, start date, rounds per week (default 2), season deadline, top-cut size X (editable until the season finishes, since it only moves the line in the standings), signup limits (below).
+2. **signup** — any member of the Discord guild can join until the season is full or an organizer closes signup. Players can withdraw while signup is open; organizers can remove a signup.
+3. **groups** — group count is automatic: the fewest groups of at most the season's group size, kept within one player of each other (25 at size 16 → 13 + 12); organizer draws random groups, previews, swaps players, locks. Locking generates the round-robin schedule (circle method, byes on odd counts).
+
+**Signup limits** (per season, `seasons.max_players` default 128, `seasons.group_size` default 16):
+
+- Editable in draft and signup; locked from groups on (reopening signup unlocks them). Audited like other season fields.
+- Group size 4–32. Max players 2 to `min(128, 8 × group size)`: at most 8 groups (`MAX_GROUPS`), never more than 128 players.
+- Saving a max below the current signup count is refused ("30 already signed up. Remove players or set 30 or more."); nobody is removed automatically.
+- Joining is refused once the season is full; a spot opens when someone withdraws or is removed. No waitlist.
+- Signup page shows players: the count against the cap ("23 / 32 · 9 spots left"; just the count when the cap is 128), "Groups of up to N" with a live projection ("23 signed up → 2 groups of 11–12"), and the rough length ("2 rounds a week · about 6 weeks at this size": rounds of the largest projected group ÷ rounds per week, rounded up).
+- Admin → Players lists signups in signup order (`entries.created_at`) with a `#` and the signup time until groups are locked; alphabetical by group from then on. A refused save keeps what the organizer typed. Withdrawing deletes the entry, so signing up again goes to the back.
+- Out of scope: waitlist, a direct group-count setting, changing limits after the draw.
+
 4. **play** — weeks of `roundsPerWeek` rounds (12-player group: 11 rounds ≈ 6 weeks). A match past its week shows as **overdue** (derived, no stored state); it still reports normally. Weeks are **published** one at a time by an organizer (`seasons.published_round`, the last visible round): players, organizers on public pages and the bot API see only published rounds; Admin → Matches shows all and blocks results for unpublished ones. A published week can't be hidden again. Season deadline is hard: player reporting closes at the deadline. Once groups are drawn, the deadline can't be earlier than the last day of the final round's week: saving such a deadline and locking the groups are both refused. All dates/deadlines are in the league timezone (`LEAGUE_TZ = Europe/Helsinki`, config constant); deadline = 23:59 local on the deadline date.
 5. **finished** — organizer enters results for any unplayed matches (else double loss), breaks unresolved ties, finalizes.
 
@@ -51,7 +62,7 @@ Only one season can be running (signup, groups or play) at a time; drafts and fi
 | Phase  | Actions                                                                                                                                 |
 | ------ | --------------------------------------------------------------------------------------------------------------------------------------- |
 | Setup  | Create season, edit settings, delete season (soft: hidden, data kept, `deletedBy`/`deletedAt` recorded; typed slug once it has matches) |
-| Signup | Open/close signup (closing draws the groups), remove signup                                                                             |
+| Signup | Open/close signup (closing draws the groups), remove signup, change max players / group size                                            |
 | Groups | Redraw, move player between groups, reopen signup (clears the draw), lock (generates schedule)                                          |
 | Play   | Edit any result, resolve flags, mark player dropped, publish the next week (posted to Discord when the webhook is set)                  |
 | End    | Enter unplayed results, set tiebreak ranks, finalize season                                                                             |

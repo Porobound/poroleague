@@ -1,9 +1,18 @@
-export const GROUP_SIZE = 16;
-export const MAX_PLAYERS = 8 * GROUP_SIZE;
+export const MAX_GROUPS = 8;
+export const MAX_PLAYERS = 128;
+export const DEFAULT_GROUP_SIZE = 16;
 
-// Fewest groups of at most GROUP_SIZE; splitGroups keeps them within one player of each other.
-export function defaultGroupCount(players: number): number {
-	return Math.max(1, Math.ceil(players / GROUP_SIZE));
+// Most players a season can take with groups of `groupSize`.
+export const maxPlayersFor = (groupSize: number) => Math.min(MAX_PLAYERS, MAX_GROUPS * groupSize);
+
+// Fewest groups of at most groupSize; splitGroups keeps them within one player of each other.
+export function defaultGroupCount(players: number, groupSize = DEFAULT_GROUP_SIZE): number {
+	return Math.max(1, Math.ceil(players / groupSize));
+}
+
+export function groupPlan(players: number, groupSize: number) {
+	const count = defaultGroupCount(players, groupSize);
+	return { count, min: Math.floor(players / count), max: Math.ceil(players / count) };
 }
 
 export function splitGroups<T>(items: T[], groupCount: number, random = Math.random): T[][] {

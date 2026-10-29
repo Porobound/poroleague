@@ -1,7 +1,7 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { seasonDeletedEmbed } from '#lib/discord.ts';
 import { date } from '#lib/format.ts';
-import { editableFields, parseSeasonForm, seasonFields } from '#lib/season.ts';
+import { asRaw, editableFields, parseSeasonForm, seasonFields } from '#lib/season.ts';
 import { organizerAction } from '#lib/server/auth.ts';
 import { endState, seasonData } from '#lib/server/seasonAdmin.ts';
 import {
@@ -47,10 +47,21 @@ export const actions: Actions = {
 		if (season.status === 'topcut' && parsed.values.topCutSize < 1)
 			return fail(400, {
 				errors: { topCutSize: 'At least 1 once the top cut has started.' },
-				raw: null
+				raw: asRaw(parsed.values)
 			});
 		if (slugTaken(parsed.values.slug, season.id))
-			return fail(400, { errors: { slug: 'Another season already uses this slug.' }, raw: null });
+			return fail(400, {
+				errors: { slug: 'Another season already uses this slug.' },
+				raw: asRaw(parsed.values)
+			});
+		const signed = seasonEntries(season.id).length;
+		if (parsed.values.maxPlayers !== season.maxPlayers && parsed.values.maxPlayers < signed)
+			return fail(400, {
+				errors: {
+					maxPlayers: `${signed} already signed up. Remove players or set ${signed} or more.`
+				},
+				raw: asRaw(parsed.values)
+			});
 		const { startDate, roundsPerWeek, deadline } = parsed.values;
 		const earliest = earliestDeadline(season.id, startDate, roundsPerWeek);
 		if (earliest && deadline < earliest)
@@ -58,7 +69,7 @@ export const actions: Actions = {
 				errors: {
 					deadline: `The last round's week ends ${date(earliest)}. Pick that day or later.`
 				},
-				raw: null
+				raw: asRaw(parsed.values)
 			});
 		updateSeason(season, parsed.values, user.id);
 		if (parsed.values.slug !== season.slug)
@@ -84,7 +95,7 @@ export const actions: Actions = {
 		const season = getSeason(event.params.slug, user);
 		if (season.status !== 'signup') return fail(409, { message: 'Signup is not open.' });
 		setStatus(season.id, 'groups');
-		drawGroups(season.id);
+		drawGroups(season.id, season.groupSize);
 		redirect(303, `/seasons/${season.slug}/admin/groups`);
 	},
 

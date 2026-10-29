@@ -10,7 +10,6 @@ import { actions as cutActions } from '../../routes/seasons/[slug]/admin/top-cut
 import { actions as createActions } from '../../routes/admin/+page.server.ts';
 import { actions as seasonPageActions } from '../../routes/seasons/[slug]/+page.server.ts';
 import { actions as playerPageActions } from '../../routes/seasons/[slug]/players/[id]/+page.server.ts';
-import { MAX_PLAYERS } from '#lib/league/groups.ts';
 import { db } from '#lib/server/db/index.ts';
 import { entries, matches, players, seasons } from '#lib/server/db/schema.ts';
 import { flagMatch, saveReport } from '#lib/server/matches.ts';
@@ -422,6 +421,52 @@ describe('deadline fits the schedule', () => {
 	});
 });
 
+describe('signup limits', () => {
+	const form = {
+		name: 'Season 1',
+		startDate: '2026-11-02',
+		roundsPerWeek: '2',
+		deadline: '2026-12-31',
+		topCutSize: '4'
+	};
+	const save = (limits: Record<string, string>) =>
+		outcome(seasonActions.save!(event({ slug: 's1' }, ORG, { ...form, ...limits })));
+	beforeEach(() => {
+		db.delete(matches).run();
+		setSeason({ status: 'signup', startDate: '2026-11-02', deadline: '2026-12-31' });
+	});
+
+	it('a lower max can’t go under the signups', async () => {
+		const r = (await save({ maxPlayers: '2', groupSize: '16' })).returned as {
+			status: number;
+			data: { errors: object; raw: Record<string, string> };
+		};
+		expect(r.status).toBe(400);
+		// The form keeps what was typed, not the saved season.
+		expect(r.data.raw).toMatchObject({ maxPlayers: '2', deadline: '2026-12-31' });
+		expect(r.data.errors).toEqual({
+			maxPlayers: '3 already signed up. Remove players or set 3 or more.'
+		});
+		expect(db.select().from(seasons).get()!.maxPlayers).toBe(128);
+		expect((await save({ maxPlayers: '3', groupSize: '4' })).returned).toEqual({ saved: true });
+		expect(db.select().from(seasons).get()).toMatchObject({ maxPlayers: 3, groupSize: 4 });
+	});
+
+	it('closing signup draws groups of at most the group size', async () => {
+		const ids = Array.from({ length: 6 }, (_, i) => `g${i + 1}`);
+		db.insert(players)
+			.values(ids.map((id) => ({ id, displayName: id })))
+			.run();
+		seedEntries(season.id, ids);
+		setSeason({ groupSize: 4 });
+		await outcome(seasonActions.closeSignup!(event({ slug: 's1' }, ORG)));
+		const sizes = Object.values(
+			Object.groupBy(seasonEntries(season.id), (e) => String(e.group))
+		).map((g) => g!.length);
+		expect(sizes).toEqual([3, 3, 3]);
+	});
+});
+
 describe('top cut admin', () => {
 	// p1–p3 in group 1, results in: p1 > p2 > p3; top 2 → final p1 v p2.
 	beforeEach(() => {
@@ -548,16 +593,13 @@ describe('player signup', () => {
 		expect(entered('p4')).toBe(0);
 	});
 
-	it('takes MAX_PLAYERS, then is full until someone withdraws', async () => {
-		setSeason({ status: 'signup' });
-		const ids = Array.from({ length: MAX_PLAYERS - 3 }, (_, i) => `f${i + 1}`);
+	it("takes the season's max, then is full until someone withdraws", async () => {
+		setSeason({ status: 'signup', maxPlayers: 4 });
 		db.insert(players)
-			.values(ids.map((id) => ({ id, displayName: id })))
+			.values(['f1', 'late'].map((id) => ({ id, displayName: id })))
 			.run();
-		seedEntries(season.id, ids.slice(0, -1)); // p1–p3 plus these: one spot left
-		db.insert(players).values({ id: 'late', displayName: 'late' }).run();
-		await join(as(ids.at(-1)!));
-		expect(entered(ids.at(-1)!)).toBe(1);
+		await join(as('f1')); // p1–p3 plus f1: full
+		expect(entered('f1')).toBe(1);
 		expect((await outcome(join(as('late')))).returned).toMatchObject({
 			status: 409,
 			data: { message: 'Season is full.' }

@@ -6,8 +6,7 @@
 	import MatchCard from '#lib/components/MatchCard.svelte';
 	import PhaseBar from '#lib/components/PhaseBar.svelte';
 	import { date, day, tzName } from '#lib/format.ts';
-	import { MAX_PLAYERS } from '#lib/league/groups.ts';
-	import { groupName, STATUS_LABEL } from '#lib/season.ts';
+	import { groupName, signupInfo, STATUS_LABEL } from '#lib/season.ts';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -16,6 +15,7 @@
 	const roundsText = ([a, b]: [number, number]) =>
 		a === b ? `round ${a}` : b === a + 1 ? `rounds ${a} and ${b}` : `rounds ${a}–${b}`;
 	const AVATARS = 12;
+	const info = $derived(signupInfo(data.entries.length, season));
 	const fresh = $derived(data.groups.every((g) => g.rows.every((r) => !r.played)));
 	// Every match of this week is reported; flagged, void or overdue ones keep the cards showing.
 	const allDone = $derived(
@@ -83,12 +83,12 @@
 				</p>
 				<ul class="tiles">
 					<li>
-						<strong>Round-robin groups</strong>
-						<span>One group, or two if 17 or more sign up.</span>
+						<strong>Groups of up to {season.groupSize}</strong>
+						<span>{info.groups}</span>
 					</li>
 					<li>
 						<strong>{season.roundsPerWeek} rounds a week</strong>
-						<span>Starts {date(season.startDate)}.</span>
+						<span>{info.length} Starts {date(season.startDate)}.</span>
 					</li>
 				</ul>
 			{:else}
@@ -194,7 +194,8 @@
 	{:else if season.status === 'signup'}
 		<section class="panel signup">
 			<span class="eyebrow">Signed up so far</span>
-			<span class="count">{data.entries.length}</span>
+			<span class="count">{info.count}</span>
+			{#if info.spots}<span class="muted">{info.spots}</span>{/if}
 			{#if data.entries.length}
 				<div class="avatars">
 					{#each data.entries.slice(0, AVATARS) as e (e.playerId)}
@@ -213,7 +214,7 @@
 					<p>
 						<strong>Season is full.</strong>
 						<span class="muted"
-							>All {MAX_PLAYERS} spots are taken; one opens if someone withdraws.</span
+							>All {season.maxPlayers} spots are taken; one opens if someone withdraws.</span
 						>
 					</p>
 				{:else if !user}

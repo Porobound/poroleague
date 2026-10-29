@@ -227,6 +227,11 @@ describe('auditLines', () => {
 		expect(auditLines(season.id, 2)).toHaveLength(2);
 	});
 
+	it('names changed signup limits', () => {
+		updateSeason(season, { ...seasonFields(season), maxPlayers: 32, groupSize: 12 }, ORG.id);
+		expect(auditLines(season.id)[0].what).toBe('Max players 128 → 32 · Group size 16 → 12');
+	});
+
 	it('names who won each game when the result has them', () => {
 		report(0, { ...score(1, 1), games: '1D2' });
 		organizerEdit(getMatch(season.id, ms[0])!, ORG.id, score(2, 1));
