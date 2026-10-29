@@ -19,13 +19,28 @@
 - [ ] Tests first: replace the `defaultGroupCount` describe and add `groupPlan` / `maxPlayersFor`:
 
 ```ts
-import { DEFAULT_GROUP_SIZE, defaultGroupCount, groupPlan, MAX_PLAYERS, maxPlayersFor, splitGroups } from './groups';
+import {
+	DEFAULT_GROUP_SIZE,
+	defaultGroupCount,
+	groupPlan,
+	MAX_PLAYERS,
+	maxPlayersFor,
+	splitGroups
+} from './groups';
 
 describe('defaultGroupCount', () => {
 	it('fewest groups of at most the group size', () => {
 		for (const [players, size, groups] of [
-			[0, 16, 1], [2, 16, 1], [16, 16, 1], [17, 16, 2], [33, 16, 3], [MAX_PLAYERS, 16, 8],
-			[13, 12, 2], [32, 32, 1], [33, 32, 2], [48, 6, 8]
+			[0, 16, 1],
+			[2, 16, 1],
+			[16, 16, 1],
+			[17, 16, 2],
+			[33, 16, 3],
+			[MAX_PLAYERS, 16, 8],
+			[13, 12, 2],
+			[32, 32, 1],
+			[33, 32, 2],
+			[48, 6, 8]
 		])
 			expect(defaultGroupCount(players, size), `${players} at ${size}`).toBe(groups);
 		expect(defaultGroupCount(17)).toBe(defaultGroupCount(17, DEFAULT_GROUP_SIZE));
@@ -93,18 +108,20 @@ export function groupPlan(players: number, groupSize: number) {
 - [ ] Tests (`season.spec.ts`): add `maxPlayers: '128', groupSize: '16'` to `valid`; expected parsed values gain `maxPlayers: 128, groupSize: 16`; the all-invalid test also sends `maxPlayers: '1', groupSize: '3'` and expects both keys; locked-fields test's `current` gains both and the form sends `maxPlayers: '4'` (ignored in play). New cases:
 
 ```ts
-	it('bounds the limits: groups 4–32, at most 8 groups and 128 players', () => {
-		const errs = (o: Record<string, string>) => {
-			const r = parseSeasonForm(form({ ...valid, ...o }), NEW_SEASON, all);
-			return r.ok ? {} : r.errors;
-		};
-		expect(errs({ groupSize: '33' })).toEqual({ groupSize: 'Between 4 and 32.' });
-		expect(errs({ maxPlayers: '129', groupSize: '32' })).toEqual({ maxPlayers: 'Between 2 and 128.' });
-		expect(errs({ maxPlayers: '49', groupSize: '6' })).toEqual({
-			maxPlayers: 'With groups of up to 6, at most 48 (8 groups).'
-		});
-		expect(errs({ maxPlayers: '48', groupSize: '6' })).toEqual({});
+it('bounds the limits: groups 4–32, at most 8 groups and 128 players', () => {
+	const errs = (o: Record<string, string>) => {
+		const r = parseSeasonForm(form({ ...valid, ...o }), NEW_SEASON, all);
+		return r.ok ? {} : r.errors;
+	};
+	expect(errs({ groupSize: '33' })).toEqual({ groupSize: 'Between 4 and 32.' });
+	expect(errs({ maxPlayers: '129', groupSize: '32' })).toEqual({
+		maxPlayers: 'Between 2 and 128.'
 	});
+	expect(errs({ maxPlayers: '49', groupSize: '6' })).toEqual({
+		maxPlayers: 'With groups of up to 6, at most 48 (8 groups).'
+	});
+	expect(errs({ maxPlayers: '48', groupSize: '6' })).toEqual({});
+});
 ```
 
 `editableFields` test: `editableFields('signup')` contains `maxPlayers` and `groupSize`; `editableFields('groups')` contains neither.
@@ -116,17 +133,18 @@ export function groupPlan(players: number, groupSize: number) {
   - In `parseSeasonForm`:
 
 ```ts
-	const groupSize = int(raw.groupSize, 4, 32);
-	if (groupSize === null) errors.groupSize = 'Between 4 and 32.';
-	let maxPlayers = int(raw.maxPlayers, 2, MAX_PLAYERS);
-	if (maxPlayers === null) errors.maxPlayers = `Between 2 and ${MAX_PLAYERS}.`;
-	else if (groupSize !== null && maxPlayers > maxPlayersFor(groupSize)) {
-		errors.maxPlayers = `With groups of up to ${groupSize}, at most ${maxPlayersFor(groupSize)} (${MAX_GROUPS} groups).`;
-		maxPlayers = null;
-	}
+const groupSize = int(raw.groupSize, 4, 32);
+if (groupSize === null) errors.groupSize = 'Between 4 and 32.';
+let maxPlayers = int(raw.maxPlayers, 2, MAX_PLAYERS);
+if (maxPlayers === null) errors.maxPlayers = `Between 2 and ${MAX_PLAYERS}.`;
+else if (groupSize !== null && maxPlayers > maxPlayersFor(groupSize)) {
+	errors.maxPlayers = `With groups of up to ${groupSize}, at most ${maxPlayersFor(groupSize)} (${MAX_GROUPS} groups).`;
+	maxPlayers = null;
+}
 ```
 
-  and include both in the null check and the returned values.
+and include both in the null check and the returned values.
+
 - [ ] `routes/admin/+page.server.ts` slug-taken branch: `raw: Object.fromEntries(Object.entries(parsed.values).map(([k, v]) => [k, String(v)]))`.
 - [ ] `SeasonForm.svelte`: fields become `$derived` so the max hint follows the current group size; add both fields after `topCutSize`, plus a `lockedHint` shown when locked:
 
@@ -139,6 +157,7 @@ export function groupPlan(players: number, groupSize: number) {
 ```
 
 where `gs = Number(values.groupSize) || DEFAULT_GROUP_SIZE`; markup: `{:else if locked && f.lockedHint && editable.length}<span class="pb-hint">{f.lockedHint}</span>`.
+
 - [ ] Audit: `AUDITED` appends `'maxPlayers', 'groupSize'`; `auditLog.ts` `Change` gains `maxPlayers?: number; groupSize?: number`, settings gain `['maxPlayers', 'Max players', String]`, `['groupSize', 'Group size', String]`. Test in `seasons.spec.ts` auditLines: a second `updateSeason` with `maxPlayers: 32, groupSize: 12` → line `'Max players 128 → 32 · Group size 16 → 12'`.
 - [ ] Lock note in `admin/season/+page.svelte` (play): "Groups are locked, so slug, start date, rounds per week and player limits can't change."
 - [ ] `npx vitest run` + `npm run check` → PASS. Commit `Signup limits: season form fields`.
@@ -155,16 +174,16 @@ where `gs = Number(values.groupSize) || DEFAULT_GROUP_SIZE`; markup: `{:else if 
   - season save, after `slugTaken`:
 
 ```ts
-		const signed = seasonEntries(season.id).length;
-		if (parsed.values.maxPlayers !== season.maxPlayers && parsed.values.maxPlayers < signed)
-			return fail(400, {
-				errors: { maxPlayers: `${signed} already signed up. Remove players or set ${signed} or more.` },
-				raw: null
-			});
+const signed = seasonEntries(season.id).length;
+if (parsed.values.maxPlayers !== season.maxPlayers && parsed.values.maxPlayers < signed)
+	return fail(400, {
+		errors: { maxPlayers: `${signed} already signed up. Remove players or set ${signed} or more.` },
+		raw: null
+	});
 ```
 
-  - `drawGroups(seasonId: number, groupSize: number)` → `splitGroups(ids, defaultGroupCount(ids.length, groupSize))`; callers pass `season.groupSize`.
-  - season page: `full` and `join` use `season.maxPlayers`; drop the `MAX_PLAYERS` import.
+- `drawGroups(seasonId: number, groupSize: number)` → `splitGroups(ids, defaultGroupCount(ids.length, groupSize))`; callers pass `season.groupSize`.
+- season page: `full` and `join` use `season.maxPlayers`; drop the `MAX_PLAYERS` import.
 - [ ] Run → PASS. Commit `Signup limits: enforce on save, join and draw`.
 
 ### Task 5: Signup page
@@ -189,7 +208,10 @@ describe('signupInfo', () => {
 	});
 	it('drops the cap at 128 and the projection before anyone signs up', () => {
 		expect(signupInfo(0, { ...s, maxPlayers: 128 })).toEqual({
-			count: '0', spots: '', groups: 'Round-robin, random draw.', length: ''
+			count: '0',
+			spots: '',
+			groups: 'Round-robin, random draw.',
+			length: ''
 		});
 		expect(signupInfo(12, s).groups).toBe('12 signed up → 1 group of 12.');
 	});
@@ -202,7 +224,10 @@ describe('signupInfo', () => {
 const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`;
 
 // The signup page's cap, projected groups and season length for n signups.
-export function signupInfo(n: number, s: { maxPlayers: number; groupSize: number; roundsPerWeek: number }) {
+export function signupInfo(
+	n: number,
+	s: { maxPlayers: number; groupSize: number; roundsPerWeek: number }
+) {
 	const capped = s.maxPlayers < MAX_PLAYERS;
 	const left = s.maxPlayers - n;
 	const plan = groupPlan(n, s.groupSize);
@@ -218,7 +243,8 @@ export function signupInfo(n: number, s: { maxPlayers: number; groupSize: number
 }
 ```
 
-  (`plural(2,'group') + ' of'` reads "2 groups of"; keep.)
+(`plural(2,'group') + ' of'` reads "2 groups of"; keep.)
+
 - [ ] Page: `const info = $derived(signupInfo(data.entries.length, season))`. Tiles: `<strong>Groups of up to {season.groupSize}</strong><span>{info.groups}</span>` and `<strong>{season.roundsPerWeek} rounds a week</strong><span>{info.length} Starts {date(season.startDate)}.</span>`. Panel: `<span class="count">{info.count}</span>{#if info.spots}<span class="muted small">{info.spots}</span>{/if}`. Full copy: `All {season.maxPlayers} spots are taken; one opens if someone withdraws.`
 - [ ] Run unit + check → PASS. Commit `Signup limits: signup page shows cap, groups and length`.
 
