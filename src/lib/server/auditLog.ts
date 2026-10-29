@@ -16,6 +16,8 @@ type Change = Partial<Report> & {
 	roundsPerWeek?: number;
 	deadline?: string | null;
 	topCutSize?: number | null;
+	maxPlayers?: number;
+	groupSize?: number;
 	week?: number;
 	rounds?: [number, number];
 	erased?: string;
@@ -52,7 +54,9 @@ const settings = (before: Change | null, after: Change | null) =>
 			['startDate', 'Start', (v: unknown) => date(v as string | null) || '—'],
 			['roundsPerWeek', 'Rounds a week', (v: unknown) => String(v)],
 			['deadline', 'Deadline', (v: unknown) => date(v as string | null) || '—'],
-			['topCutSize', 'Top cut', (v: unknown) => String(v ?? '—')]
+			['topCutSize', 'Top cut', (v: unknown) => String(v ?? '—')],
+			['maxPlayers', 'Max players', (v: unknown) => String(v)],
+			['groupSize', 'Group size', (v: unknown) => String(v)]
 		] as const
 	)
 		.filter(([k]) => after && k in after)

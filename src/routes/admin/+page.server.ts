@@ -18,11 +18,9 @@ export const actions: Actions = {
 		if (slugTaken(parsed.values.slug))
 			return fail(400, {
 				errors: { slug: 'Another season already uses this slug.' },
-				raw: {
-					...parsed.values,
-					roundsPerWeek: String(parsed.values.roundsPerWeek),
-					topCutSize: String(parsed.values.topCutSize)
-				}
+				raw: Object.fromEntries(
+					Object.entries(parsed.values).map(([k, v]) => [k, String(v)])
+				) as Record<keyof typeof parsed.values, string>
 			});
 		createSeason(parsed.values);
 		redirect(303, `/seasons/${parsed.values.slug}/admin/season`);

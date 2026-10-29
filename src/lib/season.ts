@@ -1,4 +1,5 @@
 import { date } from '#lib/format.ts';
+import { DEFAULT_GROUP_SIZE, MAX_GROUPS, MAX_PLAYERS, maxPlayersFor } from '#lib/league/groups.ts';
 export type SeasonStatus = 'draft' | 'signup' | 'groups' | 'play' | 'topcut' | 'finished';
 export type SeasonFields = {
 	name: string;
@@ -7,6 +8,8 @@ export type SeasonFields = {
 	roundsPerWeek: number;
 	deadline: string;
 	topCutSize: number;
+	maxPlayers: number;
+	groupSize: number;
 };
 export type SeasonField = keyof SeasonFields;
 export type FieldErrors = Partial<Record<SeasonField, string>>;
@@ -20,7 +23,9 @@ export const FIELDS: SeasonField[] = [
 	'startDate',
 	'roundsPerWeek',
 	'deadline',
-	'topCutSize'
+	'topCutSize',
+	'maxPlayers',
+	'groupSize'
 ];
 export const NEW_SEASON: SeasonFields = {
 	name: '',
@@ -28,7 +33,9 @@ export const NEW_SEASON: SeasonFields = {
 	startDate: '',
 	roundsPerWeek: 2,
 	deadline: '',
-	topCutSize: 4
+	topCutSize: 4,
+	maxPlayers: MAX_PLAYERS,
+	groupSize: DEFAULT_GROUP_SIZE
 };
 
 export const STATUS_LABEL: Record<SeasonStatus, string> = {
@@ -42,7 +49,15 @@ export const STATUS_LABEL: Record<SeasonStatus, string> = {
 
 const EDITABLE: Record<SeasonStatus, SeasonField[]> = {
 	draft: FIELDS,
-	signup: ['name', 'startDate', 'roundsPerWeek', 'deadline', 'topCutSize'],
+	signup: [
+		'name',
+		'startDate',
+		'roundsPerWeek',
+		'deadline',
+		'topCutSize',
+		'maxPlayers',
+		'groupSize'
+	],
 	groups: ['name', 'startDate', 'roundsPerWeek', 'deadline', 'topCutSize'],
 	play: ['name', 'deadline', 'topCutSize'],
 	topcut: ['name'],
@@ -76,6 +91,8 @@ export function seasonFields(s: {
 	roundsPerWeek: number;
 	deadline: string | null;
 	topCutSize: number | null;
+	maxPlayers: number;
+	groupSize: number;
 }): SeasonFields {
 	return {
 		name: s.name,
@@ -83,7 +100,9 @@ export function seasonFields(s: {
 		startDate: s.startDate ?? '',
 		roundsPerWeek: s.roundsPerWeek,
 		deadline: s.deadline ?? '',
-		topCutSize: s.topCutSize ?? NEW_SEASON.topCutSize
+		topCutSize: s.topCutSize ?? NEW_SEASON.topCutSize,
+		maxPlayers: s.maxPlayers,
+		groupSize: s.groupSize
 	};
 }
 
@@ -127,8 +146,20 @@ export function parseSeasonForm(
 	if (roundsPerWeek === null) errors.roundsPerWeek = 'Between 1 and 4.';
 	const topCutSize = int(raw.topCutSize, 0, 16);
 	if (topCutSize === null) errors.topCutSize = 'Between 0 and 16.';
+	const groupSize = int(raw.groupSize, 4, 32);
+	if (groupSize === null) errors.groupSize = 'Between 4 and 32.';
+	const maxPlayers = int(raw.maxPlayers, 2, MAX_PLAYERS);
+	if (maxPlayers === null) errors.maxPlayers = `Between 2 and ${MAX_PLAYERS}.`;
+	else if (groupSize !== null && maxPlayers > maxPlayersFor(groupSize))
+		errors.maxPlayers = `With groups of up to ${groupSize}, at most ${maxPlayersFor(groupSize)} (${MAX_GROUPS} groups).`;
 
-	if (roundsPerWeek === null || topCutSize === null || Object.keys(errors).length)
+	if (
+		roundsPerWeek === null ||
+		topCutSize === null ||
+		groupSize === null ||
+		maxPlayers === null ||
+		Object.keys(errors).length
+	)
 		return { ok: false, errors, raw };
 	return {
 		ok: true,
@@ -138,7 +169,9 @@ export function parseSeasonForm(
 			startDate: raw.startDate,
 			roundsPerWeek,
 			deadline: raw.deadline,
-			topCutSize
+			topCutSize,
+			maxPlayers,
+			groupSize
 		}
 	};
 }

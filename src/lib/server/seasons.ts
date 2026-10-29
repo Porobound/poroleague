@@ -97,7 +97,15 @@ export function createSeason(values: SeasonFields) {
 }
 
 // Changes to a public season are audited; a draft is private and edited freely.
-const AUDITED = ['name', 'startDate', 'roundsPerWeek', 'deadline', 'topCutSize'] as const;
+const AUDITED = [
+	'name',
+	'startDate',
+	'roundsPerWeek',
+	'deadline',
+	'topCutSize',
+	'maxPlayers',
+	'groupSize'
+] as const;
 export function updateSeason(season: Season, values: SeasonFields, actorId: string) {
 	// Compare form-shaped values, so a NULL column the form fills with a default isn't a change.
 	const before = seasonFields(season);

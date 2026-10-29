@@ -1,5 +1,11 @@
 <script lang="ts">
 	import ConfirmButton from '#lib/components/ConfirmButton.svelte';
+	import {
+		DEFAULT_GROUP_SIZE,
+		MAX_GROUPS,
+		MAX_PLAYERS,
+		maxPlayersFor
+	} from '#lib/league/groups.ts';
 	import type { FieldErrors, SeasonField } from '#lib/season.ts';
 
 	let {
@@ -17,14 +23,17 @@
 		confirm?: string;
 	} = $props();
 
+	// Follows the saved (or just submitted) group size; the server re-checks on save.
+	const gs = $derived(Number(values.groupSize) || DEFAULT_GROUP_SIZE);
 	const fields: {
 		name: SeasonField;
 		label: string;
 		type: string;
 		hint?: string;
+		lockedHint?: string;
 		min?: number;
 		max?: number;
-	}[] = [
+	}[] = $derived([
 		{
 			name: 'name',
 			label: 'Season name',
@@ -58,8 +67,25 @@
 			min: 0,
 			max: 16,
 			hint: 'The top cut itself comes later.'
+		},
+		{
+			name: 'maxPlayers',
+			label: 'Max players',
+			type: 'number',
+			min: 2,
+			max: MAX_PLAYERS,
+			hint: `Up to ${maxPlayersFor(gs)}. With groups of ${gs}, up to ${MAX_GROUPS} groups.`,
+			lockedHint: 'Locked once groups are drawn.'
+		},
+		{
+			name: 'groupSize',
+			label: 'Players per group',
+			type: 'number',
+			min: 4,
+			max: 32,
+			lockedHint: 'Locked once groups are drawn.'
 		}
-	];
+	]);
 </script>
 
 <div class="season-form">
@@ -81,6 +107,8 @@
 				<span class="pb-hint is-error">{errors[f.name]}</span>
 			{:else if !locked && f.hint}
 				<span class="pb-hint">{f.hint}</span>
+			{:else if locked && f.lockedHint && editable.length}
+				<span class="pb-hint">{f.lockedHint}</span>
 			{/if}
 		</label>
 	{/each}
