@@ -1,5 +1,5 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { editableFields, NEW_SEASON, parseSeasonForm } from '#lib/season.ts';
+import { asRaw, editableFields, NEW_SEASON, parseSeasonForm } from '#lib/season.ts';
 import { organizerAction, organizerPage } from '#lib/server/auth.ts';
 import { allSeasons, createSeason, slugTaken } from '#lib/server/seasons.ts';
 import type { Actions, PageServerLoad } from './$types';
@@ -18,9 +18,7 @@ export const actions: Actions = {
 		if (slugTaken(parsed.values.slug))
 			return fail(400, {
 				errors: { slug: 'Another season already uses this slug.' },
-				raw: Object.fromEntries(
-					Object.entries(parsed.values).map(([k, v]) => [k, String(v)])
-				) as Record<keyof typeof parsed.values, string>
+				raw: asRaw(parsed.values)
 			});
 		createSeason(parsed.values);
 		redirect(303, `/seasons/${parsed.values.slug}/admin/season`);

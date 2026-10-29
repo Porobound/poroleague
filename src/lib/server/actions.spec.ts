@@ -439,9 +439,11 @@ describe('signup limits', () => {
 	it('a lower max can’t go under the signups', async () => {
 		const r = (await save({ maxPlayers: '2', groupSize: '16' })).returned as {
 			status: number;
-			data: { errors: object };
+			data: { errors: object; raw: Record<string, string> };
 		};
 		expect(r.status).toBe(400);
+		// The form keeps what was typed, not the saved season.
+		expect(r.data.raw).toMatchObject({ maxPlayers: '2', deadline: '2026-12-31' });
 		expect(r.data.errors).toEqual({
 			maxPlayers: '3 already signed up. Remove players or set 3 or more.'
 		});

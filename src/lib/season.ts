@@ -128,6 +128,10 @@ function int(s: string, min: number, max: number): number | null {
 	return s !== '' && Number.isInteger(n) && n >= min && n <= max ? n : null;
 }
 
+// Parsed values back in form shape, so a refused save keeps what the organizer typed.
+export const asRaw = (v: SeasonFields) =>
+	Object.fromEntries(FIELDS.map((k) => [k, String(v[k])])) as Record<SeasonField, string>;
+
 // Locked fields always keep their current value, so a crafted form can't change them.
 export function parseSeasonForm(
 	form: FormData,
