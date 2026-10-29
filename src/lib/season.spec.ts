@@ -4,6 +4,7 @@ import {
 	NEW_SEASON,
 	parseSeasonForm,
 	seasonPhases,
+	signupInfo,
 	slugify,
 	type SeasonFields
 } from './season';
@@ -179,5 +180,31 @@ describe('seasonPhases', () => {
 			'current:Open',
 			'todo:After signup'
 		]);
+	});
+});
+
+describe('signupInfo', () => {
+	const s = { maxPlayers: 32, groupSize: 12, roundsPerWeek: 2 };
+	it('shows the cap, the projected groups and the rough length', () => {
+		expect(signupInfo(23, s)).toEqual({
+			count: '23 / 32',
+			spots: '9 spots left',
+			groups: '23 signed up → 2 groups of 11–12.',
+			length: 'About 6 weeks at this size.'
+		});
+		expect(signupInfo(31, s).spots).toBe('1 spot left');
+		expect(signupInfo(32, s).spots).toBe('No spots left');
+		// An odd group plays one round per player: 5 rounds at 1 a week.
+		expect(signupInfo(5, { ...s, roundsPerWeek: 1 }).length).toBe('About 5 weeks at this size.');
+	});
+	it('drops the cap at 128 and the projection before anyone signs up', () => {
+		expect(signupInfo(0, { ...s, maxPlayers: 128 })).toEqual({
+			count: '0',
+			spots: '',
+			groups: 'Round-robin, random draw.',
+			length: ''
+		});
+		expect(signupInfo(12, s).groups).toBe('12 signed up → 1 group of 12.');
+		expect(signupInfo(1, s).length).toBe('');
 	});
 });

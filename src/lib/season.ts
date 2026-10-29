@@ -1,5 +1,13 @@
 import { date } from '#lib/format.ts';
-import { DEFAULT_GROUP_SIZE, MAX_GROUPS, MAX_PLAYERS, maxPlayersFor } from '#lib/league/groups.ts';
+import {
+	DEFAULT_GROUP_SIZE,
+	groupPlan,
+	MAX_GROUPS,
+	MAX_PLAYERS,
+	maxPlayersFor
+} from '#lib/league/groups.ts';
+import { roundCount } from '#lib/league/roundRobin.ts';
+import { weekOf } from '#lib/league/time.ts';
 export type SeasonStatus = 'draft' | 'signup' | 'groups' | 'play' | 'topcut' | 'finished';
 export type SeasonFields = {
 	name: string;
@@ -173,6 +181,28 @@ export function parseSeasonForm(
 			maxPlayers,
 			groupSize
 		}
+	};
+}
+
+const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`;
+
+// The signup page's cap, projected groups and rough season length for n signups.
+export function signupInfo(
+	n: number,
+	s: { maxPlayers: number; groupSize: number; roundsPerWeek: number }
+) {
+	const capped = s.maxPlayers < MAX_PLAYERS;
+	const left = s.maxPlayers - n;
+	const plan = groupPlan(n, s.groupSize);
+	const size = plan.min === plan.max ? `${plan.max}` : `${plan.min}–${plan.max}`;
+	const weeks = weekOf(roundCount(plan.max), s.roundsPerWeek);
+	return {
+		count: capped ? `${n} / ${s.maxPlayers}` : `${n}`,
+		spots: !capped ? '' : left > 0 ? `${plural(left, 'spot')} left` : 'No spots left',
+		groups: n
+			? `${n} signed up → ${plural(plan.count, 'group')} of ${size}.`
+			: 'Round-robin, random draw.',
+		length: weeks ? `About ${plural(weeks, 'week')} at this size.` : ''
 	};
 }
 
