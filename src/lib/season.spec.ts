@@ -4,6 +4,7 @@ import {
 	NEW_SEASON,
 	parseSeasonForm,
 	seasonPhases,
+	signupInfo,
 	slugify,
 	type SeasonFields
 } from './season';
@@ -19,7 +20,9 @@ const valid = {
 	startDate: '2026-11-02',
 	roundsPerWeek: '2',
 	deadline: '2026-12-20',
-	topCutSize: '4'
+	topCutSize: '4',
+	maxPlayers: '128',
+	groupSize: '16'
 };
 const all = editableFields('draft');
 
@@ -39,7 +42,9 @@ describe('parseSeasonForm', () => {
 				startDate: '2026-11-02',
 				roundsPerWeek: 2,
 				deadline: '2026-12-20',
-				topCutSize: 4
+				topCutSize: 4,
+				maxPlayers: 128,
+				groupSize: 16
 			}
 		});
 	});
@@ -52,13 +57,17 @@ describe('parseSeasonForm', () => {
 				slug: 'Bad Slug!',
 				startDate: '2026-02-30',
 				roundsPerWeek: '0',
-				topCutSize: '17'
+				topCutSize: '17',
+				maxPlayers: '1',
+				groupSize: '3'
 			}),
 			NEW_SEASON,
 			all
 		);
 		expect(result.ok).toBe(false);
 		expect(Object.keys(result.ok ? {} : result.errors).sort()).toEqual([
+			'groupSize',
+			'maxPlayers',
 			'name',
 			'roundsPerWeek',
 			'slug',
@@ -81,7 +90,9 @@ describe('parseSeasonForm', () => {
 			startDate: '2026-11-02',
 			roundsPerWeek: 2,
 			deadline: '2026-12-20',
-			topCutSize: 4
+			topCutSize: 4,
+			maxPlayers: 128,
+			groupSize: 16
 		};
 		const result = parseSeasonForm(
 			form({
@@ -89,7 +100,8 @@ describe('parseSeasonForm', () => {
 				slug: 'hacked',
 				roundsPerWeek: '4',
 				deadline: '2026-12-27',
-				topCutSize: '6'
+				topCutSize: '6',
+				maxPlayers: '4'
 			}),
 			current,
 			editableFields('play')
@@ -99,11 +111,29 @@ describe('parseSeasonForm', () => {
 			values: { ...current, name: 'Autumn', deadline: '2026-12-27', topCutSize: 6 }
 		});
 	});
+
+	it('bounds the limits: groups 4–32, at most 8 groups and 128 players', () => {
+		const errs = (o: Record<string, string>) => {
+			const r = parseSeasonForm(form({ ...valid, ...o }), NEW_SEASON, all);
+			return r.ok ? {} : r.errors;
+		};
+		expect(errs({ groupSize: '33' })).toEqual({ groupSize: 'Between 4 and 32.' });
+		expect(errs({ maxPlayers: '129', groupSize: '32' })).toEqual({
+			maxPlayers: 'Between 2 and 128.'
+		});
+		expect(errs({ maxPlayers: '49', groupSize: '6' })).toEqual({
+			maxPlayers: 'With groups of up to 6, at most 48 (8 groups).'
+		});
+		expect(errs({ maxPlayers: '48', groupSize: '6' })).toEqual({});
+	});
 });
 
 describe('editableFields', () => {
 	it('narrows as the season progresses', () => {
 		expect(editableFields('signup')).not.toContain('slug');
+		expect(editableFields('signup')).toEqual(expect.arrayContaining(['maxPlayers', 'groupSize']));
+		expect(editableFields('groups')).not.toContain('maxPlayers');
+		expect(editableFields('groups')).not.toContain('groupSize');
 		expect(editableFields('play')).toEqual(['name', 'deadline', 'topCutSize']);
 		expect(editableFields('finished')).toEqual([]);
 	});
@@ -150,5 +180,31 @@ describe('seasonPhases', () => {
 			'current:Open',
 			'todo:After signup'
 		]);
+	});
+});
+
+describe('signupInfo', () => {
+	const s = { maxPlayers: 32, groupSize: 12, roundsPerWeek: 2 };
+	it('shows the cap, the projected groups and the rough length', () => {
+		expect(signupInfo(23, s)).toEqual({
+			count: '23 / 32',
+			spots: '9 spots left',
+			groups: '23 signed up → 2 groups of 11–12.',
+			length: 'About 6 weeks at this size.'
+		});
+		expect(signupInfo(31, s).spots).toBe('1 spot left');
+		expect(signupInfo(32, s).spots).toBe('No spots left');
+		// An odd group plays one round per player: 5 rounds at 1 a week.
+		expect(signupInfo(5, { ...s, roundsPerWeek: 1 }).length).toBe('About 5 weeks at this size.');
+	});
+	it('drops the cap at 128 and the projection before anyone signs up', () => {
+		expect(signupInfo(0, { ...s, maxPlayers: 128 })).toEqual({
+			count: '0',
+			spots: '',
+			groups: 'Round-robin, random draw.',
+			length: ''
+		});
+		expect(signupInfo(12, s).groups).toBe('12 signed up → 1 group of 12.');
+		expect(signupInfo(1, s).length).toBe('');
 	});
 });

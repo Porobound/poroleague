@@ -1,14 +1,14 @@
 // Dev only: signs up N fake players to a season so group draws can be tested with one real account.
 import Database from 'better-sqlite3';
-import { GROUP_SIZE, MAX_PLAYERS } from '#lib/league/groups.ts';
 
 process.loadEnvFile();
 const [slug, count = '24'] = process.argv.slice(2);
 if (!slug) throw new Error('usage: npm run db:seed-dev -- <season-slug> [count]');
 
 const db = new Database(process.env.DATABASE_URL!);
-const season = db.prepare('select id, status from seasons where slug = ?').get(slug) as
-	{ id: number; status: string } | undefined;
+const season = db
+	.prepare('select id, status, max_players as max, group_size as size from seasons where slug = ?')
+	.get(slug) as { id: number; status: string; max: number; size: number } | undefined;
 if (!season) throw new Error(`No season with slug "${slug}"`);
 if (['play', 'topcut', 'finished'].includes(season.status))
 	throw new Error(`"${slug}" is locked; its schedule already exists.`);
@@ -36,10 +36,10 @@ db.transaction(() => {
 		addEntry.run(season.id, `dev-${i}`, group);
 	}
 	const n = (total.get(season.id) as { n: number }).n;
-	if (n > MAX_PLAYERS)
-		throw new Error(`That makes ${n} players; a season takes at most ${MAX_PLAYERS}.`);
+	if (n > season.max)
+		throw new Error(`That makes ${n} players; this season takes at most ${season.max}.`);
 	const biggest = (biggestGroup.get(season.id) as { n: number } | undefined)?.n ?? 0;
-	if (biggest > GROUP_SIZE)
-		throw new Error(`A group would have ${biggest} players; groups hold at most ${GROUP_SIZE}.`);
+	if (biggest > season.size)
+		throw new Error(`A group would have ${biggest} players; groups hold at most ${season.size}.`);
 })();
 console.log(`Signed up ${count} dev players to ${slug}.`);

@@ -32,7 +32,7 @@
 	<h1>{season.name}</h1>
 	{#if season.status === 'play'}
 		<p class="lock-note">
-			Groups are locked, so slug, start date and rounds per week can't change.
+			Groups are locked, so slug, start date, rounds per week and player limits can't change.
 		</p>
 	{/if}
 

@@ -97,7 +97,15 @@ export function createSeason(values: SeasonFields) {
 }
 
 // Changes to a public season are audited; a draft is private and edited freely.
-const AUDITED = ['name', 'startDate', 'roundsPerWeek', 'deadline', 'topCutSize'] as const;
+const AUDITED = [
+	'name',
+	'startDate',
+	'roundsPerWeek',
+	'deadline',
+	'topCutSize',
+	'maxPlayers',
+	'groupSize'
+] as const;
 export function updateSeason(season: Season, values: SeasonFields, actorId: string) {
 	// Compare form-shaped values, so a NULL column the form fills with a default isn't a change.
 	const before = seasonFields(season);
@@ -173,6 +181,17 @@ export const syncSeasonRoles = (seasonId: number) =>
 			.where(eq(entries.seasonId, seasonId))
 			.all()
 			.map((e) => e.id)
+	);
+
+// When each player signed up. Organizers only: public pages never get these.
+export const signupTimes = (seasonId: number) =>
+	new Map(
+		db
+			.select({ playerId: entries.playerId, at: entries.createdAt })
+			.from(entries)
+			.where(eq(entries.seasonId, seasonId))
+			.all()
+			.map((r) => [r.playerId, r.at])
 	);
 
 export function addEntry(seasonId: number, playerId: string) {
@@ -273,9 +292,9 @@ export function reopenSignup(seasonId: number) {
 	});
 }
 
-export function drawGroups(seasonId: number) {
+export function drawGroups(seasonId: number, groupSize: number) {
 	const ids = seasonEntries(seasonId).map((e) => e.playerId);
-	const groups = splitGroups(ids, defaultGroupCount(ids.length));
+	const groups = splitGroups(ids, defaultGroupCount(ids.length, groupSize));
 	db.transaction(() => groups.forEach((g, i) => g.forEach((id) => setGroup(seasonId, id, i + 1))));
 }
 
