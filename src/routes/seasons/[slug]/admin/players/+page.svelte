@@ -113,7 +113,7 @@
 							href="/seasons/{data.season.slug}/players/{e.playerId}"
 						/></span
 					>
-					<span class="muted small">{when(e.joinedAt)}</span>
+					{#if e.joinedAt}<span class="muted small">{when(e.joinedAt)}</span>{/if}
 					{#if status === 'signup'}
 						<ConfirmButton
 							action="?/remove"

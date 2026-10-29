@@ -8,7 +8,8 @@ import {
 	getSeason,
 	groupStandings,
 	removeEntry,
-	seasonEntries
+	seasonEntries,
+	signupTimes
 } from '#lib/server/seasons.ts';
 import { postToOrganizers } from '#lib/server/webhooks.ts';
 import { hasSchedule } from '#lib/season.ts';
@@ -23,12 +24,15 @@ export const load: PageServerLoad = async ({ parent }) => {
 	);
 	const ms = scheduled ? seasonMatches(season.id) : [];
 	// Signup order until the schedule exists; stable, so same-second signups stay alphabetical.
-	const ordered = scheduled ? list : list.toSorted((a, b) => +a.joinedAt - +b.joinedAt);
+	const times = signupTimes(season.id);
+	const at = (id: string) => +(times.get(id) ?? 0);
+	const ordered = scheduled ? list : list.toSorted((a, b) => at(a.playerId) - at(b.playerId));
 	return {
 		entries: ordered.map((e) => {
 			const r = rows.get(e.playerId);
 			return {
 				...e,
+				joinedAt: times.get(e.playerId) ?? null,
 				record: r ? { played: r.played, wdl: `${r.wins}–${r.draws}–${r.losses}` } : null,
 				matches: ms.filter((m) => m.p1Id === e.playerId || m.p2Id === e.playerId).length,
 				canCancel: season.status === 'play' && e.dropped && !e.former

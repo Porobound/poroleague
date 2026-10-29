@@ -121,6 +121,12 @@ describe('season page', () => {
 		expect(mine.myWeek.map((c: Card) => c.id)).toEqual([published]);
 	});
 
+	it('never sends signup times to the public', async () => {
+		const d = await seasonLoad(event({ slug: 's1' }, null));
+		expect(d.entries.length).toBeGreaterThan(0);
+		for (const e of d.entries) expect(e).not.toHaveProperty('joinedAt');
+	});
+
 	it('hides a draft from visitors and players', async () => {
 		expect(await notFound(() => seasonLoad(event({ slug: 'd' }, null)))).toBe(true);
 		expect(await notFound(() => seasonLoad(event({ slug: 'd' }, as('p1'))))).toBe(true);

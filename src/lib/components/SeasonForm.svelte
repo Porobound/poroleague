@@ -74,7 +74,7 @@
 			type: 'number',
 			min: 2,
 			max: MAX_PLAYERS,
-			hint: `Up to ${maxPlayersFor(gs)}. With groups of ${gs}, up to ${MAX_GROUPS} groups.`,
+			hint: `Up to ${maxPlayersFor(gs)} with groups of ${gs} (at most ${MAX_GROUPS} groups).`,
 			lockedHint: 'Locked once groups are drawn.'
 		},
 		{

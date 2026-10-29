@@ -36,10 +36,11 @@ test('an organizer caps the season, never below the signups', async ({ browser }
 	await save(org);
 	await expect(org.getByRole('status')).toHaveText('Saved.');
 	await expect(org.getByLabel('Max players')).toHaveValue('4');
+	await expect(org.getByText('Up to 32 with groups of 4 (at most 8 groups).')).toBeVisible();
 	await org.close();
 });
 
-test('players see the cap and the groups, until the season is full', async ({ browser }) => {
+test('players see the cap and the groups, until the season is full', async ({ page, browser }) => {
 	const fourth = await browser.newPage(as(player('full', 4)));
 	await fourth.goto(`/seasons/${slug}`);
 	await expect(fourth.getByText('3 / 4')).toBeVisible();
@@ -51,11 +52,15 @@ test('players see the cap and the groups, until the season is full', async ({ br
 	await expect(fourth.getByText('No spots left')).toBeVisible();
 	await fourth.close();
 
+	// Full for everyone not in, logged in or out.
 	const late = await browser.newPage(as(player('full', 5)));
-	await late.goto(`/seasons/${slug}`);
-	await expect(late.getByText('Season is full.')).toBeVisible();
-	await expect(late.getByText('All 4 spots are taken')).toBeVisible();
-	await expect(late.getByRole('button', { name: /^Sign up for/ })).toHaveCount(0);
+	for (const p of [page, late]) {
+		await p.goto(`/seasons/${slug}`);
+		await expect(p.getByText('Season is full.')).toBeVisible();
+		await expect(p.getByText('All 4 spots are taken')).toBeVisible();
+		await expect(p.getByRole('button', { name: /^Sign up for/ })).toHaveCount(0);
+		await expect(p.getByRole('link', { name: 'Log in with Discord to sign up' })).toHaveCount(0);
+	}
 	await late.close();
 });
 

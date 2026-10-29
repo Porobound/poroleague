@@ -139,8 +139,7 @@ export function seasonEntries(seasonId: number) {
 			former: former(),
 			group: entries.group,
 			dropped: entries.dropped,
-			tiebreak: entries.tiebreak,
-			joinedAt: entries.createdAt
+			tiebreak: entries.tiebreak
 		})
 		.from(entries)
 		.innerJoin(players, eq(entries.playerId, players.id))
@@ -182,6 +181,17 @@ export const syncSeasonRoles = (seasonId: number) =>
 			.where(eq(entries.seasonId, seasonId))
 			.all()
 			.map((e) => e.id)
+	);
+
+// When each player signed up. Organizers only: public pages never get these.
+export const signupTimes = (seasonId: number) =>
+	new Map(
+		db
+			.select({ playerId: entries.playerId, at: entries.createdAt })
+			.from(entries)
+			.where(eq(entries.seasonId, seasonId))
+			.all()
+			.map((r) => [r.playerId, r.at])
 	);
 
 export function addEntry(seasonId: number, playerId: string) {
