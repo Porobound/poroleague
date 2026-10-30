@@ -13,20 +13,15 @@ SvelteKit (adapter-node) · TypeScript · SQLite via Drizzle (better-sqlite3) ·
 
 ## Commands
 
-- `npm run dev` — dev server
-- `npm run check` — typecheck
-- `npx vitest run` — unit tests · `npm run test:coverage` — with coverage
-- `npm run test:e2e` — browser tests (build + throwaway DB + preview on :4317; safe beside `npm run dev`)
-- `npm run db:generate` / `npm run db:migrate` — migrations
+`npm run check` · `npx vitest run` · `npm run test:e2e` (throwaway DB on :4317, safe beside `npm run dev`) · `npm run db:generate`. Full list and dev-data scripts: README.
 
 ## Rules
 
 - Dependencies are pinned to exact versions (no `^`/`~`). `.npmrc` sets `save-exact=true`; keep it that way when adding or upgrading.
-
 - League rules stay pure in `src/lib/league/`; routes and the future bot API call them, never reimplement.
 - Every result change writes an `audit` row.
 - Every change ships with tests in the same PR: unit (vitest) for logic and server code, e2e (`e2e/`, Playwright) for pages and flows. Bugfixes get a regression test; break the fix once to see it fail.
-- e2e: select by role, label and text, never CSS classes. Each spec seeds its own season in `beforeAll` and removes it in `afterAll` (`e2e/db.ts`); only one season can be running.
+- e2e: select by role, label and text, never CSS classes. Each spec seeds its own season and players in `beforeAll` and soft-deletes the season in `afterAll` (`e2e/db.ts`); only one season can be running, and the startup seed adds only the organizer `org`. Log in with `test.use(as(id))` or `browser.newPage(as(id))`. Env comes from `playwright.config.ts`, not `.env`; webhooks post to a listener on :4318, read them with `posts(channel)` (`e2e/fixtures.ts`). `e2e/mobile.spec.ts` fails any page that scrolls sideways at 390 × 844.
 - Tests: `src/lib/server/test/setup.ts` mocks `$app/env/private` (in-memory DB, no webhooks) and wipes every table before each test; seed with `src/lib/server/test/seed.ts`. Without the mock, vitest reads the real `.env`.
 - Design from Claude Design HTML: extract tokens into `src/app.css` and components — don't paste raw HTML.
 - Import app code as `#lib/<path>.ts` (extension required); there is no `$lib`.
