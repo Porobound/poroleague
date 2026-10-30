@@ -132,7 +132,12 @@ export function leaderboard() {
 
 	const rows = new Map(
 		db
-			.select({ playerId: players.id, displayName: players.displayName, former: former() })
+			.select({
+				playerId: players.id,
+				displayName: players.displayName,
+				avatar: players.avatar,
+				former: former()
+			})
 			.from(players)
 			.where(
 				inArray(

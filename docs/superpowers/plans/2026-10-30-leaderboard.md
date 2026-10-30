@@ -14,13 +14,13 @@
 
 ### Task 1: Rating (`rating.ts`)
 
-- [ ] `ratings(matches)` + unit tests: win/draw/loss deltas, `0-0` draw, order matters, zero-sum.
+- [x] `ratings(matches)` + unit tests: win/draw/loss deltas, `0-0` draw, order matters, zero-sum.
 
 ### Task 2: Leaderboard query (`players.ts`)
 
-- [ ] `leaderboard()` + server tests: walkovers, unreported and deleted-season matches excluded; dropped players' matches counted; W-D-L, game-win %, seasons, best finish, sort.
+- [x] `leaderboard()` + server tests: walkovers, unreported and deleted-season matches excluded; dropped players' matches counted; W-D-L, game-win %, seasons, best finish, sort.
 
 ### Task 3: Page `/admin/players`
 
-- [ ] `organizerPage` load, table, link from `/admin`.
-- [ ] e2e: organizer sees the table, a player is refused; add to `e2e/mobile.spec.ts` organizer pages.
+- [x] `organizerPage` load, table, link from `/admin`.
+- [x] e2e: organizer sees the table, a player is refused; add to `e2e/mobile.spec.ts` organizer pages.
