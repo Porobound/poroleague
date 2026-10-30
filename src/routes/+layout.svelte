@@ -1,6 +1,6 @@
 <script lang="ts">
 	import '../app.css';
-	import favicon from '#lib/assets/favicon.svg';
+	import favicon from '#lib/assets/favicon.png';
 	import { afterNavigate } from '$app/navigation';
 	import { page } from '$app/state';
 	import Avatar from '#lib/components/Avatar.svelte';
