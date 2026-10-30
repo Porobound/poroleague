@@ -1,0 +1,111 @@
+# Operations
+
+Running the site: hosts, deploys, backups, restores, and keeping rules and legends current.
+
+## Deploy
+
+CI builds the image on every PR without pushing it. A passing push to `main` publishes `ghcr.io/porobound/poroleague:latest`, a push to `dev` publishes `:dev`, and both also get a commit-SHA tag. The host runs the image with Docker Compose next to a `cloudflared` tunnel, so no ports are open. The container applies migrations on start, then serves on port 3000.
+
+### First-time host setup
+
+The image is public, so the host needs no registry login.
+
+1. Make a directory, e.g. `/opt/poroleague`, and copy in `compose.yaml` and `scripts/backup.sh`.
+2. `mkdir data && sudo chown 1000:1000 data`. The app runs as uid 1000 and keeps the database in `data/poroleague.db`.
+3. In Cloudflare **Zero Trust → Networks → Tunnels**, create a tunnel, copy its token, and add a public hostname pointing to `http://app:3000`.
+4. Write `.env`: every variable from `.env.example`, plus `ORIGIN=https://<domain>` and `TUNNEL_TOKEN`. Use the production Discord application with `DISCORD_REDIRECT_URI=https://<domain>/auth/callback`, and set the same redirect in the developer portal. Compose sets `DATABASE_URL`.
+5. `docker compose up -d`.
+6. Set up [backups](#backups).
+
+**Cloning an existing host's LXC?** First regenerate its SSH host keys (`rm /etc/ssh/ssh_host_* && ssh-keygen -A && systemctl restart ssh`), delete the copied `/root/.config/rclone/rclone.conf`, `/root/.poroleague-hc-url`, `data/*` and `backups/*`, run `crontab -r`, and write a fresh `.env`. A clone that keeps the other host's tunnel token joins that tunnel and serves its traffic from the wrong database.
+
+### Update and roll back
+
+```sh
+docker compose pull && docker compose up -d
+```
+
+To roll back, set `IMAGE_TAG=<sha>` of the last good commit in `.env` and run the same command. Clear it to go back to `latest`.
+
+### Dev server
+
+Same setup in its own directory (e.g. `/opt/poroleague-dev`) with its own tunnel and hostname (e.g. `dev.<domain>`), and `IMAGE_TAG=dev`. Use your **dev** Discord application and test server, never the real Porobound ones, and add `https://dev.<domain>/auth/callback` as a redirect there. Backups use the dev bucket and their own healthchecks check, at `30 4 * * *` so the two hosts don't overlap.
+
+To start from demo data, copy a `local.db` to `data/poroleague.db` before the first `up`, then `chown 1000:1000 data/poroleague.db`. A root-owned database serves pages but fails on the first write (login) with `attempt to write a readonly database`.
+
+Every passing push to `main` is merged into `dev` and builds `:dev`. A conflict fails the `sync-dev` job: merge `main` into `dev` by hand. To put any branch on it instead:
+
+```sh
+git push --force origin HEAD:dev
+```
+
+Then on the dev server, run the update command above.
+
+## Backups
+
+`scripts/backup.sh` runs nightly from root's crontab. It writes `backups/poroleague-<date>.db` (root-only, 14 kept), uploads it with rclone to an encrypted R2 bucket, then pings healthchecks.io. If any step fails, including a missing `data/poroleague.db`, it skips the ping so healthchecks alerts. Decisions: [#32](https://github.com/Porobound/poroleague/issues/32).
+
+Set this up after the first `docker compose up -d` has created the database.
+
+1. Cloudflare R2: one bucket per environment (`poroleague-backups`, `poroleague-dev-backups`), with a lifecycle rule deleting objects after 30 days (dev: 7). Create an **Object Read & Write** API token scoped to that bucket. Endpoint: `https://<account-id>.r2.cloudflarestorage.com`.
+2. Install `cron`, `sqlite3`, `curl`, and rclone from rclone.org (Debian's apt rclone gets `501 NotImplemented` from R2).
+3. As root, `rclone config`: remote `r2` (s3, provider Cloudflare, region `auto`, the endpoint, advanced `no_check_bucket = true`) and remote `r2crypt` (crypt over `r2:<bucket>`, generated password and salt). Save the keys, password and salt in the password manager: without them the backups can't be decrypted. No `r2crypt` remote = upload skipped.
+4. healthchecks.io: one check per environment, cron schedule matching the crontab (UTC), 1 hour grace. Put its ping URL in `/root/.poroleague-hc-url` (`chmod 600`). No file = ping skipped.
+5. `crontab -e`: `0 4 * * * /opt/poroleague/scripts/backup.sh >> /var/log/poroleague-backup.log 2>&1`
+6. Check under cron's bare environment: `env -i HOME=/root PATH=/usr/bin:/bin /opt/poroleague/scripts/backup.sh && echo OK`, then `rclone cryptcheck backups r2crypt:` shows 0 differences.
+
+R2 credentials stay in root's rclone config, never in `.env`: compose passes `.env` into the app container, and the app never needs R2.
+
+## Restore
+
+If the host is gone, recreate the rclone remotes from the password manager and fetch the backup:
+
+```sh
+rclone copy r2crypt:poroleague-<date>.db backups/
+sqlite3 backups/poroleague-<date>.db "pragma integrity_check;"   # ok
+```
+
+Then swap it in. The database runs in WAL mode, so delete its `-wal` and `-shm` files first, or SQLite replays the old log onto the restored file:
+
+```sh
+docker compose stop app
+rm -f data/poroleague.db-wal data/poroleague.db-shm
+cp backups/poroleague-<date>.db data/poroleague.db
+chown 1000:1000 data/poroleague.db
+docker compose start app
+```
+
+Log in to check: it's the first write, so a wrong owner shows up as `attempt to write a readonly database`. If players were erased after the backup was made, follow [erasure.md](erasure.md#after-restoring-a-backup) before the site goes live.
+
+### Restore drill
+
+On the dev server, when testers are idle. It restores from R2 only, which proves the off-box copy and the password-manager credentials work:
+
+```sh
+cd /opt/poroleague-dev
+scripts/backup.sh                                         # fresh backup, uploaded
+sqlite3 data/poroleague.db ".backup /root/pre-drill.db"   # undo point
+mv backups backups.bak && mkdir -m 700 backups            # force the restore to come from R2
+```
+
+Run both blocks under [Restore](#restore) with today's date, compare row counts against `/root/pre-drill.db`, and log in. Clean up: `rm -rf backups && mv backups.bak backups && rm /root/pre-drill.db`.
+
+## Updating the rules
+
+Edit [`rules.md`](rules.md) in a PR. The site renders it at `/rules` from the next deploy, up to the "Ideas for future seasons" heading.
+
+Headings become link targets: `## 5. Reporting results` is `/rules#5-reporting-results`. The site links to `#4-points-and-standings` and `#5-reporting-results`, so when you rename or renumber those, update the links. Unit and e2e tests fail if they break.
+
+## Updating legends
+
+New Riftbound sets come out about every quarter. Add their legends to `src/lib/legends.ts`:
+
+1. Find the new set's legends in [Piltover Archive's legend list](https://piltoverarchive.com/cards?types=legend&rarities=rare).
+2. Add each by champion name, in A–Z order. If a champion gets a second legend, give both entries the community nickname, like `Master Yi (PG)` and `Master Yi (XP)`. That renames the existing entry; see below.
+3. `npm run check && npx vitest run`, then open a PR.
+
+Matches store the legend's name as text. Never remove a legend that has been picked, and when you rename one, rename its old picks too, or its stats start from zero. On the server, with the app stopped:
+
+```sh
+sqlite3 data/poroleague.db "UPDATE matches SET p1_legend = 'Jinx (A)' WHERE p1_legend = 'Jinx'; UPDATE matches SET p2_legend = 'Jinx (A)' WHERE p2_legend = 'Jinx';"
+```
