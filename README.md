@@ -260,6 +260,8 @@ git push --force origin HEAD:dev
 
 CI checks it and builds `:dev`. Then on the dev server: `docker compose pull && docker compose up -d`.
 
+Every push to `main` that passes is merged into `dev` and builds `:dev`, so a branch under test keeps up with `main`. A conflict fails the `sync-dev` job: merge `main` into `dev` by hand.
+
 ### Restore
 
 If the host is gone, recreate the rclone remotes from the password manager and fetch the backup first:
