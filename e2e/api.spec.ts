@@ -49,6 +49,15 @@ test('misses answer in JSON with the same headers', async ({ request }) => {
 	}
 });
 
+test('serves its OpenAPI spec', async ({ request }) => {
+	const res = await request.get('/api/v1/openapi.json');
+	expect(res.status()).toBe(200);
+	shared(res);
+	const spec = await res.json();
+	expect(spec.openapi).toBe('3.1.0');
+	expect(Object.keys(spec.paths)).toContain('/seasons/{slug}/matches');
+});
+
 test('is read-only', async ({ request }) => {
 	// A JSON body skips the form CSRF check, so this reaches the route.
 	const res = await request.post(API, { data: {} });
