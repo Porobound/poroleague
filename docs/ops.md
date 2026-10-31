@@ -17,16 +17,13 @@ Each host runs the image with Docker Compose next to a `cloudflared` tunnel, so 
 
 The image is public, so the host needs no registry login.
 
-1. Make a directory, e.g. `/opt/poroleague`, and copy in `compose.yaml` and `scripts/backup.sh`.
+1. Make a directory, e.g. `/opt/poroleague`, and copy in `compose.yaml`, `scripts/backup.sh` and `scripts/deploy.sh`.
 2. `mkdir data && sudo chown 1000:1000 data`. The app runs as uid 1000 and keeps the database in `data/poroleague.db`.
 3. In Cloudflare **Zero Trust → Networks → Tunnels**, create a tunnel, copy its token, and add a public hostname pointing to `http://app:3000`.
 4. Write `.env`: every variable from `.env.example`, plus `ORIGIN=https://<domain>` and `TUNNEL_TOKEN`. Use the production Discord application with `DISCORD_REDIRECT_URI=https://<domain>/auth/callback`, and set the same redirect in the developer portal. Compose sets `DATABASE_URL`.
 5. `docker compose up -d`.
-6. Auto-deploy, in root's crontab (`crontab -e`). `up -d` restarts the app only when the pull got a new image:
-   ```
-   */5 * * * * cd /opt/poroleague && (docker compose pull -q app && docker compose up -d && docker image prune -f) >> /var/log/poroleague-deploy.log 2>&1
-   ```
-7. Set up [backups](#backups).
+6. Set up [backups](#backups).
+7. Auto-deploy: add `scripts/deploy.sh` to root's crontab: `*/5 * * * * /opt/poroleague/scripts/deploy.sh >> /var/log/poroleague-deploy.log 2>&1`. It pulls, and only when that brings a new image does it run a backup (`backups/poroleague-<date>-predeploy.db`, uploaded like the nightly one) and restart the app. A failed backup stops the deploy and the next run retries; the log has a line per deploy and errors only.
 
 **Cloning an existing host's LXC?** First regenerate its SSH host keys (`rm /etc/ssh/ssh_host_* && ssh-keygen -A && systemctl restart ssh`), delete the copied `/root/.config/rclone/rclone.conf`, `/root/.poroleague-hc-url`, `data/*` and `backups/*`, run `crontab -r`, and write a fresh `.env`. A clone that keeps the other host's tunnel token joins that tunnel and serves its traffic from the wrong database.
 
@@ -34,9 +31,9 @@ The image is public, so the host needs no registry login.
 
 **Actions → promote → Run workflow** on `main` points `:prod` at that commit's image, with no rebuild: prod gets the exact image the dev server ran. Prod picks it up within 5 minutes. To roll back, run promote again with the last good commit's full SHA in `sha`. The repo's **Deployments** list (`production`) shows every promote.
 
-The container applies migrations on start, so promoting is also when prod's database migrates. Rolling back to an image from before a migration doesn't undo it: the old code runs against the new schema. Check `drizzle/` in the diff before promoting, and take a backup first (`scripts/backup.sh`) when it has a migration.
+The container applies migrations on start, so promoting is also when prod's database migrates. Rolling back to an image from before a migration doesn't undo it: the old code runs against the new schema. The deploy takes a backup just before the new image starts (`poroleague-<date>-predeploy.db`): restore that one together with the old image to undo a migration.
 
-To deploy by hand instead of waiting: `docker compose pull && docker compose up -d`.
+To deploy by hand instead of waiting: `scripts/deploy.sh`.
 
 ### Dev server
 
@@ -44,7 +41,7 @@ Same setup in its own directory (e.g. `/opt/poroleague-dev`, also in its cron li
 
 To start from demo data, copy a `local.db` to `data/poroleague.db` before the first `up`, then `chown 1000:1000 data/poroleague.db`. A root-owned database serves pages but fails on the first write (login) with `attempt to write a readonly database`.
 
-To put a branch on it: **Actions → ci → Run workflow** on that branch pushes `:<sha>` only. Set `IMAGE_TAG=<sha>` in the dev server's `.env` and it deploys on the next cron run. Set it back to `main` when done.
+To put a branch on it: **Actions → ci → Run workflow** on that branch pushes `:<sha>` only. Set `IMAGE_TAG=<sha>` in the dev server's `.env` and it deploys on the next `deploy.sh` run. Set it back to `main` when done.
 
 ## Backups
 
