@@ -4,7 +4,14 @@ Running the site: hosts, deploys, backups, restores, and keeping rules and legen
 
 ## Deploy
 
-CI builds the image on every PR without pushing it. A passing push to `main` publishes `ghcr.io/porobound/poroleague:latest`, a push to `dev` publishes `:dev`, and both also get a commit-SHA tag. The host runs the image with Docker Compose next to a `cloudflared` tunnel, so no ports are open. The container applies migrations on start, then serves on port 3000.
+CI builds the image on every PR without pushing it. A passing push to `main` publishes `ghcr.io/porobound/poroleague:main` and a commit-SHA tag. The dev server runs `:main`; prod runs `:prod`, which only moves when you promote. Both hosts pull new images on their own every 5 minutes.
+
+```
+merge to main ──► :main + :<sha> ──► dev server
+Actions → promote ──► :prod = :<sha> ──► prod
+```
+
+Each host runs the image with Docker Compose next to a `cloudflared` tunnel, so no ports are open. The container applies migrations on start, then serves on port 3000.
 
 ### First-time host setup
 
@@ -15,31 +22,29 @@ The image is public, so the host needs no registry login.
 3. In Cloudflare **Zero Trust → Networks → Tunnels**, create a tunnel, copy its token, and add a public hostname pointing to `http://app:3000`.
 4. Write `.env`: every variable from `.env.example`, plus `ORIGIN=https://<domain>` and `TUNNEL_TOKEN`. Use the production Discord application with `DISCORD_REDIRECT_URI=https://<domain>/auth/callback`, and set the same redirect in the developer portal. Compose sets `DATABASE_URL`.
 5. `docker compose up -d`.
-6. Set up [backups](#backups).
+6. Auto-deploy, in root's crontab (`crontab -e`). `up -d` restarts the app only when the pull got a new image:
+   ```
+   */5 * * * * cd /opt/poroleague && (docker compose pull -q app && docker compose up -d && docker image prune -f) >> /var/log/poroleague-deploy.log 2>&1
+   ```
+7. Set up [backups](#backups).
 
 **Cloning an existing host's LXC?** First regenerate its SSH host keys (`rm /etc/ssh/ssh_host_* && ssh-keygen -A && systemctl restart ssh`), delete the copied `/root/.config/rclone/rclone.conf`, `/root/.poroleague-hc-url`, `data/*` and `backups/*`, run `crontab -r`, and write a fresh `.env`. A clone that keeps the other host's tunnel token joins that tunnel and serves its traffic from the wrong database.
 
-### Update and roll back
+### Promote and roll back
 
-```sh
-docker compose pull && docker compose up -d
-```
+**Actions → promote → Run workflow** on `main` points `:prod` at that commit's image, with no rebuild: prod gets the exact image the dev server ran. Prod picks it up within 5 minutes. To roll back, run promote again with the last good commit's full SHA in `sha`. The repo's **Deployments** list (`production`) shows every promote.
 
-To roll back, set `IMAGE_TAG=<sha>` of the last good commit in `.env` and run the same command. Clear it to go back to `latest`.
+The container applies migrations on start, so promoting is also when prod's database migrates. Rolling back to an image from before a migration doesn't undo it: the old code runs against the new schema. Check `drizzle/` in the diff before promoting, and take a backup first (`scripts/backup.sh`) when it has a migration.
+
+To deploy by hand instead of waiting: `docker compose pull && docker compose up -d`.
 
 ### Dev server
 
-Same setup in its own directory (e.g. `/opt/poroleague-dev`) with its own tunnel and hostname (e.g. `dev.<domain>`), and `IMAGE_TAG=dev`. Use your **dev** Discord application and test server, never the real Porobound ones, and add `https://dev.<domain>/auth/callback` as a redirect there. Backups use the dev bucket and their own healthchecks check, at `30 4 * * *` so the two hosts don't overlap.
+Same setup in its own directory (e.g. `/opt/poroleague-dev`, also in its cron line) with its own tunnel and hostname (e.g. `dev.<domain>`), and `IMAGE_TAG=main`. Use your **dev** Discord application and test server, never the real Porobound ones, and add `https://dev.<domain>/auth/callback` as a redirect there. Backups use the dev bucket and their own healthchecks check, at `30 4 * * *` so the two hosts don't overlap.
 
 To start from demo data, copy a `local.db` to `data/poroleague.db` before the first `up`, then `chown 1000:1000 data/poroleague.db`. A root-owned database serves pages but fails on the first write (login) with `attempt to write a readonly database`.
 
-Every passing push to `main` is merged into `dev` and builds `:dev`. A conflict fails the `sync-dev` job: merge `main` into `dev` by hand. To put any branch on it instead:
-
-```sh
-git push --force origin HEAD:dev
-```
-
-Then on the dev server, run the update command above.
+To put a branch on it: **Actions → ci → Run workflow** on that branch pushes `:<sha>` only. Set `IMAGE_TAG=<sha>` in the dev server's `.env` and it deploys on the next cron run. Set it back to `main` when done.
 
 ## Backups
 
