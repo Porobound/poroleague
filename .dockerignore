@@ -7,10 +7,9 @@ node_modules
 data
 backups
 docs
-# Rendered at /rules, /privacy and /api; inlined at build time.
+# Rendered at /rules and /privacy; inlined at build time.
 !docs/rules.md
 !docs/privacy.md
-!docs/api.md
 *.db
 *.db-journal
 *.db-wal
