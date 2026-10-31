@@ -29,22 +29,34 @@ type PlayerRef = { id: string; name: string; former: boolean };
 
 // GET /api/v1/seasons — newest first
 type SeasonSummary = {
-	slug: string; name: string;
+	slug: string;
+	name: string;
 	status: 'signup' | 'groups' | 'play' | 'topcut' | 'finished';
-	startDate: string | null; deadline: string | null;
+	startDate: string | null;
+	deadline: string | null;
 };
 
 // GET /api/v1/seasons/:slug
 type SeasonDetail = SeasonSummary & {
-	roundsPerWeek: number; publishedRound: number;
-	topCutSize: number | null; topCutDate: string | null;
+	roundsPerWeek: number;
+	publishedRound: number;
+	topCutSize: number | null;
+	topCutDate: string | null;
 	players: (PlayerRef & { group: number | null; dropped: boolean })[];
 	groups: {
-		group: number; name: string; // "Group A"
+		group: number;
+		name: string; // "Group A"
 		standings: {
-			rank: number; player: PlayerRef;
-			played: number; wins: number; draws: number; losses: number; points: number;
-			gameWins: number; gameLosses: number; gameWinPct: number;
+			rank: number;
+			player: PlayerRef;
+			played: number;
+			wins: number;
+			draws: number;
+			losses: number;
+			points: number;
+			gameWins: number;
+			gameLosses: number;
+			gameWinPct: number;
 			unresolvedTie: boolean;
 		}[];
 	}[]; // empty before groups are locked
@@ -52,18 +64,25 @@ type SeasonDetail = SeasonSummary & {
 
 // GET /api/v1/seasons/:slug/matches — group stage (published rounds), then playoffs (if published)
 type MatchDto = {
-	id: number; stage: 'group' | 'playoff';
-	group: number | null; round: number; week: number | null; // week: group stage only
-	p1: PlayerRef; p2: PlayerRef;
+	id: number;
+	stage: 'group' | 'playoff';
+	group: number | null;
+	round: number;
+	week: number | null; // week: group stage only
+	p1: PlayerRef;
+	p2: PlayerRef;
 	result: {
-		p1Games: number; p2Games: number;
+		p1Games: number;
+		p2Games: number;
 		games: ('1' | '2' | 'D')[] | null;
-		p1Legend: string | null; p2Legend: string | null;
+		p1Legend: string | null;
+		p2Legend: string | null;
 		diceWinner: string | null; // player id
 		reportedAt: string;
 	} | null;
 	walkover: string | null; // playoff: player id that advanced without playing
-	void: boolean; overdue: boolean;
+	void: boolean;
+	overdue: boolean;
 	flag: 'open' | 'resolved' | null;
 };
 
@@ -72,16 +91,29 @@ type TopCut = {
 	champion: PlayerRef | null;
 	rounds: {
 		name: string; // "Final", "Semifinals", …
-		slots: { p1: PlayerRef | null; p2: PlayerRef | null; bye: boolean;
-			winner: string | null; matchId: number | null }[];
+		slots: {
+			p1: PlayerRef | null;
+			p2: PlayerRef | null;
+			bye: boolean;
+			winner: string | null;
+			matchId: number | null;
+		}[];
 	}[];
 };
 
 // GET /api/v1/seasons/:slug/legends — same exclusions as the legends page
 type LegendRow = {
-	legend: string; picks: number; players: number; mirrors: number;
-	wins: number; draws: number; losses: number; gameWins: number; gameLosses: number;
-	matchWinPct: number | null; gameWinPct: number | null; // null under MIN_RATED non-mirror matches
+	legend: string;
+	picks: number;
+	players: number;
+	mirrors: number;
+	wins: number;
+	draws: number;
+	losses: number;
+	gameWins: number;
+	gameLosses: number;
+	matchWinPct: number | null;
+	gameWinPct: number | null; // null under MIN_RATED non-mirror matches
 };
 ```
 
@@ -90,6 +122,7 @@ type LegendRow = {
 - Create `src/lib/server/api.ts`: `apiSeason(slug)` (live, non-draft season or `null`), `notFound(message)` (`json({ error }, { status: 404 })`), and one mapper per shape.
 - Modify `src/hooks.server.ts`: for paths under `/api/v1/`, skip the session lookup (anonymous) and set the two headers on whatever `resolve` returns, 404s and 405s included.
 - Create `src/lib/server/api.spec.ts`: shape and visibility tests on the handlers.
+- Create `src/routes/api/v1/[...rest]/+server.ts` (unknown API paths → JSON 404).
 - Create `src/routes/api/v1/seasons/+server.ts`, `.../[slug]/+server.ts`, `.../[slug]/matches/+server.ts`, `.../[slug]/top-cut/+server.ts`, `.../[slug]/legends/+server.ts`.
 - Create `e2e/api.spec.ts`. Add `api: 'e2e-api'` to `SEASONS` in `e2e/fixtures.ts`.
 - Create `docs/api.md`, `src/routes/api/+page.server.ts`, `src/routes/api/+page.svelte`.
@@ -99,24 +132,24 @@ type LegendRow = {
 
 ### Task A1: Response helper and season lookup
 
-- [ ] `hooks.server.ts`: `/api/v1/` requests get `locals.user = null` without reading the cookie, and `Access-Control-Allow-Origin: *` + `Cache-Control: public, max-age=60` on the response.
-- [ ] `apiSeason(slug)`: same live/non-draft query as `getSeason`, returning `null` instead of throwing; handlers do `if (!season) return notFound('Season not found')`.
-- [ ] Test: a draft, a soft-deleted and an unknown slug each give 404 with `{ error: 'Season not found' }`. Headers are checked in e2e (A4), since the hook doesn't run in handler unit tests.
+- [x] `hooks.server.ts`: `/api/v1/` requests get `locals.user = null` without reading the cookie, and `Access-Control-Allow-Origin: *` + `Cache-Control: public, max-age=60` on the response.
+- [x] `apiSeason(slug)`: same live/non-draft query as `getSeason`, returning `null` instead of throwing; handlers do `if (!season) return notFound('Season not found')`.
+- [x] Test: a draft, a soft-deleted and an unknown slug each give 404 with `{ error: 'Season not found' }`. Headers are checked in e2e (A4), since the hook doesn't run in handler unit tests.
 
 ### Task A2: `GET /api/v1/seasons`
 
-- [ ] `allSeasons()` minus drafts, mapped to `SeasonSummary`.
-- [ ] Test: drafts and deleted seasons are absent, newest first, exact key set (`Object.keys` snapshot) so additions are deliberate.
+- [x] `allSeasons()` minus drafts, mapped to `SeasonSummary`.
+- [x] Test: drafts and deleted seasons are absent, newest first, exact key set (`Object.keys` snapshot) so additions are deliberate.
 
 ### Task A3: `GET /api/v1/seasons/:slug`
 
-- [ ] Season fields + `players` from `seasonEntries` + `groups` from `groupStandings` when `hasSchedule(status)`; `rank` = row index + 1, `gameWinPct` = row `gwp`.
-- [ ] Tests: standings order and numbers match `groupStandings` for a seeded group; a dropped player is in `players` with `dropped: true` and not in `standings`; an erased player shows as `Former player …` with `former: true`; no `avatar`/`discordId` key anywhere in the JSON (string search on `JSON.stringify`).
+- [x] Season fields + `players` from `seasonEntries` + `groups` from `groupStandings` when `hasSchedule(status)`; `rank` = row index + 1, `gameWinPct` = row `gwp`.
+- [x] Tests: standings order and numbers match `groupStandings` for a seeded group; a dropped player is in `players` with `dropped: true` and not in `standings`; an erased player shows as `Former player …` with `former: true`; no `avatar`/`discordId` key anywhere in the JSON (string search on `JSON.stringify`).
 
 ### Task A4: e2e
 
-- [ ] `e2e/api.spec.ts`: seed `api` season (`seedSeason('api', { publishedRound: 2 })`) plus a draft; via `request`: `/api/v1/seasons` lists the season and not the draft, `Access-Control-Allow-Origin: *` and `Cache-Control: public, max-age=60` on 200 and 404, `POST` gives 405.
-- [ ] `npm run check`, `npx vitest run`, `npm run test:e2e` green.
+- [x] `e2e/api.spec.ts`: seed `api` season (`seedSeason('api', { publishedRound: 2 })`) plus a draft; via `request`: `/api/v1/seasons` lists the season and not the draft, `Access-Control-Allow-Origin: *` and `Cache-Control: public, max-age=60` on 200 and 404, `POST` gives 405.
+- [x] `npm run check`, `npx vitest run`, `npm run test:e2e` green.
 
 ## Issue B: Matches, top cut and legends endpoints
 

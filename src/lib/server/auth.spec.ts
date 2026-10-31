@@ -193,11 +193,18 @@ describe('currentRole', () => {
 });
 
 describe('hooks.server handle', () => {
-	const run = (cookies: ReturnType<typeof cookieJar>) => {
-		const event = { cookies, locals: {} } as unknown as Parameters<typeof handle>[0]['event'];
-		handle({ event, resolve: async () => new Response() } as Parameters<typeof handle>[0]);
-		return event.locals;
+	const call = (cookies: ReturnType<typeof cookieJar>, path = '/') => {
+		const event = {
+			cookies,
+			locals: {},
+			url: new URL(`http://localhost${path}`)
+		} as unknown as Parameters<typeof handle>[0]['event'];
+		const res = handle({ event, resolve: async () => new Response() } as Parameters<
+			typeof handle
+		>[0]);
+		return { locals: event.locals, res };
 	};
+	const run = (cookies: ReturnType<typeof cookieJar>) => call(cookies).locals;
 
 	it('fills locals from a valid session', () => {
 		const [id] = seedPlayers(1);
@@ -213,6 +220,22 @@ describe('hooks.server handle', () => {
 		expect(locals.user).toBeNull();
 		expect(locals.session).toBeNull();
 		expect(cookies.deleted.get(SESSION_COOKIE)).toEqual({ path: '/' });
+	});
+
+	it('keeps the public API anonymous and shareable', async () => {
+		const [id] = seedPlayers(1);
+		const token = createSession(id, 'access', true, new Date(Date.now() + 60_000));
+		const { locals, res } = call(cookieJar({ [SESSION_COOKIE]: token }), '/api/v1/seasons');
+		expect(locals.user).toBeNull();
+		expect(locals.session).toBeNull();
+		const headers = (await res).headers;
+		expect(headers.get('access-control-allow-origin')).toBe('*');
+		expect(headers.get('cache-control')).toBe('public, max-age=60');
+	});
+
+	it('leaves page responses alone', async () => {
+		const { res } = call(cookieJar(), '/seasons');
+		expect((await res).headers.get('access-control-allow-origin')).toBeNull();
 	});
 });
 
