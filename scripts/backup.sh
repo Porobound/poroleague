@@ -1,5 +1,5 @@
 #!/bin/sh
-# Nightly from root's crontab:
+# Nightly from root's crontab, and from deploy.sh with a suffix (poroleague-<date>-predeploy.db):
 # 0 4 * * * /opt/poroleague/scripts/backup.sh >> /var/log/poroleague-backup.log 2>&1
 set -eu
 umask 077
@@ -7,8 +7,8 @@ cd "$(dirname "$0")/.."
 mkdir -p backups
 # sqlite3 would create a missing DB as an empty root-owned file, which the app then can't write.
 [ -s data/poroleague.db ] || { echo "backup.sh: no database at data/poroleague.db" >&2; exit 1; }
-sqlite3 data/poroleague.db ".backup backups/poroleague-$(date +%F).db"
-# -mtime +13: older than 14 full days, so the 14 newest nightly backups stay.
+sqlite3 data/poroleague.db ".backup backups/poroleague-$(date +%F)${1:+-$1}.db"
+# -mtime +13: older than 14 full days, so the 14 newest nightly backups (and any pre-deploy ones) stay.
 find backups -name 'poroleague-*.db' -mtime +13 -delete
 # copy, never sync: sync would mirror a wiped backups/ and delete the off-box copies.
 # --max-age: retry the last few nights, but never re-upload what R2's lifecycle rule (dev: 7 days) deleted.

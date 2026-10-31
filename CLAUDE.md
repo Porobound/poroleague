@@ -39,4 +39,5 @@ Enforced on PRs by `.github/workflows/pr.yml`. PRs squash-merge, so the PR title
 - Env vars: declare in `src/env.ts`, import from `$app/env/private`.
 - Styles: `src/lib/styles/porobound.css` is a verbatim design-system snapshot (`pb-` classes); replace it wholesale to re-sync, put app styles in `src/app.css`.
 - Auth: `locals.user` is set in `hooks.server.ts`. Admin pages use `organizerPage` and admin actions `organizerAction` (`src/lib/server/auth.ts`): Discord re-check at most once a minute per session, last known role kept on 429. Discord's member endpoint rate-limits hard: never call it per request. Never gate admin work on `locals.user.isOrganizer` alone.
+- Deploys: merging to `main` ships to the dev server; prod moves only via the `promote` workflow (`docs/ops.md`). Never push to `dev` (gone) or retag `:prod` by hand.
 - CSRF origin checks run only in production builds (`npm run build && npm run preview`), never in `npm run dev`; test cross-site POST behaviour there.

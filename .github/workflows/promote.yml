@@ -1,0 +1,33 @@
+name: promote
+
+# Points :prod at an image main already built; the prod host pulls it within 5 minutes.
+# Rollback: run again with an older sha.
+on:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: Full commit SHA to put on prod. Empty = the commit this runs on.
+        required: false
+
+permissions: {}
+
+concurrency: promote
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      packages: write
+    steps:
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - env:
+          SHA: ${{ inputs.sha || github.sha }}
+        run: |
+          [[ $SHA =~ ^[0-9a-f]{40}$ ]] || { echo "::error::sha must be a full 40-character commit SHA"; exit 1; }
+          docker buildx imagetools create -t ghcr.io/porobound/poroleague:prod "ghcr.io/porobound/poroleague:$SHA"
+          echo "Promoted [\`${SHA:0:7}\`](https://github.com/$GITHUB_REPOSITORY/commit/$SHA) to \`:prod\`." >> "$GITHUB_STEP_SUMMARY"

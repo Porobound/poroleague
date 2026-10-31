@@ -2,7 +2,7 @@ name: ci
 
 on:
   push:
-    branches: [main, dev]
+    branches: [main]
   pull_request:
   workflow_dispatch:
 
@@ -36,30 +36,9 @@ jobs:
       # Uses the runner's Google Chrome, no browser download.
       - run: npm run test:e2e
 
-  # Keeps dev current with main. A conflict fails the job: merge by hand.
-  # Pushes with GITHUB_TOKEN don't trigger workflows, so dispatch CI on dev to build :dev.
-  sync-dev:
-    if: github.event_name == 'push' && github.ref_name == 'main'
-    needs: test
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      actions: write
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          ref: dev
-          fetch-depth: 0
-      - run: |
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git merge --no-edit origin/main
-          git push origin dev
-          gh workflow run ci.yml --ref dev
-        env:
-          GH_TOKEN: ${{ github.token }}
-
   # PRs build the image too (without pushing), so a broken Docker build fails before merge.
+  # main pushes :main (the dev server) and :<sha>; a manual run on any branch pushes :<sha> only.
+  # Prod runs :prod, moved by promote.yml.
   image:
     needs: test
     runs-on: ubuntu-latest
@@ -78,6 +57,7 @@ jobs:
         with:
           context: .
           push: ${{ github.event_name != 'pull_request' }}
+          labels: org.opencontainers.image.revision=${{ github.sha }}
           tags: |
-            ghcr.io/porobound/poroleague:${{ github.ref_name == 'main' && 'latest' || 'dev' }}
             ghcr.io/porobound/poroleague:${{ github.sha }}
+            ${{ github.event_name == 'push' && 'ghcr.io/porobound/poroleague:main' || '' }}
