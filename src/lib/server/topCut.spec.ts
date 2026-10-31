@@ -4,7 +4,7 @@ import { db } from '#lib/server/db/index.ts';
 import { audit, entries, matches, seasons } from '#lib/server/db/schema.ts';
 import { seedEntries, seedMatch, seedPlayers, seedSeason } from '#lib/server/test/seed.ts';
 import { flagMatch, organizerEdit, saveReport } from '#lib/server/matches.ts';
-import { erasePlayer } from '#lib/server/players.ts';
+import { erasePlayer, leaderboard } from '#lib/server/players.ts';
 import { load as cutPage } from '../../routes/seasons/[slug]/top-cut/+page.server.ts';
 import { load as matchPage } from '../../routes/seasons/[slug]/matches/[id]/+page.server.ts';
 import { auditLines } from '#lib/server/auditLog.ts';
@@ -229,6 +229,13 @@ describe('history', () => {
 		walkover(season(), slot(2, 0).match!, 'p1', 'p1');
 		const cut = (p: string) => seasonHistory(playerSeasons(p))[0].cut;
 		expect(['p1', 'p4', 'p5', 'p3'].map(cut)).toEqual(['Champion', 'Runner-up', 'Semifinal', null]);
+		const best = new Map(leaderboard().map((r) => [r.playerId, r.best]));
+		expect(['p1', 'p4', 'p5', 'p3'].map((p) => best.get(p))).toEqual([
+			'Champion',
+			'Runner-up',
+			'Semifinal',
+			'#3 of 3'
+		]);
 	});
 });
 
