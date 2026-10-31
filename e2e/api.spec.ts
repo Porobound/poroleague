@@ -114,12 +114,14 @@ test('the reference tries a request against the API', async ({ page }) => {
 test('the reference follows the site theme', async ({ page }) => {
 	await page.goto('/api');
 	await expect(page.getByRole('heading', { name: 'Poroleague API' })).toBeVisible();
+	// Scalar marks its colour mode on <body>.
 	const body = page.locator('body');
+	const nav = page.getByRole('navigation', { name: 'Main' });
 	await expect(body).toHaveClass(/\bdark-mode\b/);
-	await page.evaluate(() => (document.documentElement.dataset.theme = 'light'));
+	await nav.getByRole('button', { name: 'Switch to light mode' }).click();
 	await expect(body).toHaveClass(/\blight-mode\b/);
 	await expect(page.getByRole('heading', { name: 'Poroleague API' })).toBeVisible();
-	await page.evaluate(() => (document.documentElement.dataset.theme = 'dark'));
+	await nav.getByRole('button', { name: 'Switch to dark mode' }).click();
 	await expect(body).toHaveClass(/\bdark-mode\b/);
 });
 

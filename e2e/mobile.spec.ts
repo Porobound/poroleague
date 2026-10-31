@@ -137,7 +137,7 @@ for (const role of ['visitor', 'player', 'organizer'] as const) {
 test('API reference fits a phone', async ({ page }) => {
 	await page.goto('/api');
 	for (const theme of ['dark', 'light']) {
-		await page.evaluate((t) => (document.documentElement.dataset.theme = t), theme);
+		if (theme === 'light') await page.getByRole('button', { name: 'Switch to light mode' }).click();
 		await expect(page.getByRole('heading', { name: 'Poroleague API' })).toBeVisible();
 		const r = await page.evaluate(probe, W);
 		expect.soft(r.scroll, `${theme}: scrolls sideways`).toBe(false);
