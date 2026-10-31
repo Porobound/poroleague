@@ -23,7 +23,7 @@ The image is public, so the host needs no registry login.
 4. Write `.env`: every variable from `.env.example`, plus `ORIGIN=https://<domain>` and `TUNNEL_TOKEN`. Use the production Discord application with `DISCORD_REDIRECT_URI=https://<domain>/auth/callback`, and set the same redirect in the developer portal. Compose sets `DATABASE_URL`.
 5. `docker compose up -d`.
 6. Set up [backups](#backups).
-7. Auto-deploy: add `scripts/deploy.sh` to root's crontab: `*/5 * * * * /opt/poroleague/scripts/deploy.sh >> /var/log/poroleague-deploy.log 2>&1`. It pulls, and only when that brings a new image does it run a backup (`backups/poroleague-<date>-predeploy.db`, uploaded like the nightly one) and restart the app. A failed backup stops the deploy and the next run retries; the log has a line per deploy and errors only.
+7. Auto-deploy: add `scripts/deploy.sh` to root's crontab: `*/5 * * * * /opt/poroleague/scripts/deploy.sh >> /var/log/poroleague-deploy.log 2>&1`. It pulls, and only when that brings a new image does it run a backup (`backups/poroleague-<date>-predeploy.db`, uploaded like the nightly one) and restart the app. A failed backup stops the deploy and the next run retries; the log has a line per deploy and errors only. Each deploy, and the first failure per image, is posted to `WEBHOOK_ORGANIZERS_URL` from `.env` with a link to the commit.
 
 **Cloning an existing host's LXC?** First regenerate its SSH host keys (`rm /etc/ssh/ssh_host_* && ssh-keygen -A && systemctl restart ssh`), delete the copied `/root/.config/rclone/rclone.conf`, `/root/.poroleague-hc-url`, `data/*` and `backups/*`, run `crontab -r`, and write a fresh `.env`. A clone that keeps the other host's tunnel token joins that tunnel and serves its traffic from the wrong database.
 
