@@ -1,0 +1,10 @@
+name: Bug
+description: Something on the site or bot is wrong
+labels: [bug]
+body:
+  - type: textarea
+    attributes:
+      label: What happens
+      description: What you saw, what you expected, how to reproduce.
+    validations:
+      required: true
