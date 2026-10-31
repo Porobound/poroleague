@@ -33,12 +33,16 @@ export type Season = typeof seasons.$inferSelect;
 const live = isNull(seasons.deletedAt);
 const running = inArray(seasons.status, ['signup', 'groups', 'play', 'topcut']);
 
-export function getSeason(slug: string, viewer: App.Locals['user']): Season {
-	const season = db
+// The season by slug, drafts included; null if missing or deleted.
+export const findSeason = (slug: string) =>
+	db
 		.select()
 		.from(seasons)
 		.where(and(eq(seasons.slug, slug), live))
-		.get();
+		.get() ?? null;
+
+export function getSeason(slug: string, viewer: App.Locals['user']): Season {
+	const season = findSeason(slug);
 	if (!season || (season.status === 'draft' && !viewer?.isOrganizer))
 		error(404, 'Season not found');
 	return season;
