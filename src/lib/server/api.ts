@@ -135,8 +135,8 @@ export function seasonMatchList(s: Season) {
 			flag: m.flaggedBy ? (m.flagResolvedAt ? 'resolved' : 'open') : null
 		};
 	};
-	const playoffs = cutState(s).published ? bracketMatches(s.id) : [];
-	return [...published(seasonMatches(s.id), s.publishedRound), ...playoffs].map(dto);
+	// Playoff rows only exist once the bracket is published (syncBracket writes them).
+	return [...published(seasonMatches(s.id), s.publishedRound), ...bracketMatches(s.id)].map(dto);
 }
 
 // null until the bracket is published.
