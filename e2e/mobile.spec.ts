@@ -61,6 +61,7 @@ const pages = () => ({
 	],
 	organizer: [
 		'/admin',
+		'/admin/players',
 		`${s}/admin`,
 		`${s}/admin/players`,
 		`${s}/admin/groups`,

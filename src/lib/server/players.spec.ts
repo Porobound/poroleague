@@ -4,7 +4,7 @@ import type { Report } from '#lib/league/report.ts';
 import { db } from '#lib/server/db/index.ts';
 import { audit, entries, matches, players, seasons, sessions } from '#lib/server/db/schema.ts';
 import { adminRows, flagMatch, getMatch, matchPlayers, saveReport } from '#lib/server/matches.ts';
-import { discordMentions, erasePlayer } from '#lib/server/players.ts';
+import { discordMentions, erasePlayer, leaderboard } from '#lib/server/players.ts';
 import {
 	deleteSeason,
 	dropPlayer,
@@ -279,5 +279,89 @@ describe('erasePlayer', () => {
 		// The audit rows come last; an unknown actor fails their foreign key.
 		expect(() => erasePlayer('p1', 'nobody')).toThrow();
 		expect(dump()).toBe(before);
+	});
+});
+
+describe('leaderboard', () => {
+	const won = (seasonId: number, p1Id: string, p2Id: string, at: number, extra = {}) =>
+		seedMatch({
+			seasonId,
+			group: 1,
+			round: 1,
+			p1Id,
+			p2Id,
+			p1Games: 2,
+			p2Games: 1,
+			reportedBy: p1Id,
+			reportedAt: new Date(at * 1000),
+			...extra
+		});
+	const row = (id: string) => leaderboard().find((r) => r.playerId === id)!;
+
+	it('rates every counted match across live seasons, and nothing else', () => {
+		seedPlayers(5);
+		const s1 = seedSeason({ status: 'finished' }).id;
+		const s2 = seedSeason({ slug: 's2', status: 'play' }).id;
+		const gone = seedSeason({ slug: 's3', status: 'finished', deletedAt: new Date() }).id;
+		const signup = seedSeason({ slug: 's4', status: 'signup' }).id;
+		seedEntries(s1, ['p1', 'p2', 'p3'], 1);
+		seedEntries(s2, ['p1', 'p2', 'p3', 'p4'], 1);
+		seedEntries(gone, ['p1', 'p2'], 1);
+		seedEntries(signup, ['p5']);
+		won(s1, 'p1', 'p2', 1);
+		won(s2, 'p2', 'p3', 2);
+		won(s2, 'p4', 'p1', 3);
+		won(gone, 'p2', 'p1', 4);
+		seedMatch({ seasonId: s2, group: 1, round: 2, p1Id: 'p1', p2Id: 'p3' }); // unreported
+		won(s1, 'p1', 'p3', 6, { stage: 'playoff', group: null, walkoverId: 'p3' });
+		// A match with a since-dropped player is voided in the standings but still rated.
+		db.update(entries).set({ dropped: true }).where(eq(entries.playerId, 'p4')).run();
+
+		const board = leaderboard();
+		expect(board.map((r) => r.playerId)).toEqual(['p4', 'p2', 'p1', 'p3']);
+		expect(row('p1')).toMatchObject({
+			played: 2,
+			wins: 1,
+			draws: 0,
+			losses: 1,
+			gameWins: 3,
+			gameLosses: 3,
+			gwp: 0.5,
+			seasons: 2
+		});
+		expect(board.reduce((n, r) => n + r.rating!, 0)).toBeCloseTo(1500 * 4);
+	});
+
+	it('orders by report time, then id', () => {
+		seedPlayers(3);
+		const s = seedSeason({ status: 'play' }).id;
+		seedEntries(s, ['p1', 'p2', 'p3'], 1);
+		won(s, 'p2', 'p3', 5);
+		won(s, 'p1', 'p2', 5);
+		const first = row('p1').rating;
+		db.update(matches)
+			.set({ reportedAt: new Date(1000) })
+			.where(eq(matches.p1Id, 'p1'))
+			.run();
+		expect(row('p1').rating).not.toBeCloseTo(first!);
+	});
+
+	it('lists unrated players last with their best finish', () => {
+		seedPlayers(4);
+		const a = seedSeason({ status: 'finished' }).id;
+		const b = seedSeason({ slug: 's2', status: 'play' }).id;
+		seedEntries(a, ['p1', 'p2', 'p3', 'p4'], 1);
+		seedEntries(b, ['p1', 'p2'], 1);
+		won(a, 'p2', 'p1', 1);
+		won(b, 'p1', 'p2', 2);
+		won(b, 'p1', 'p2', 3);
+		const board = leaderboard();
+		expect(board.map((r) => [r.playerId, r.best])).toEqual([
+			['p1', '#1 of 2'],
+			['p2', '#1 of 4'],
+			['p3', null],
+			['p4', null]
+		]);
+		expect(board[2].rating).toBeNull();
 	});
 });

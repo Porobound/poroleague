@@ -26,6 +26,7 @@
 	{:else}
 		<p class="muted">No seasons yet.</p>
 	{/if}
+	<p><a href="/admin/players">All players, ranked across seasons</a></p>
 
 	<h2>New season</h2>
 	<p class="muted">Nothing is public until you open signup.</p>
