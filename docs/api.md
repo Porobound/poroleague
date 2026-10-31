@@ -6,6 +6,7 @@ Poroleague's public data as JSON, for stat sites, bots and tools. It's the same 
 - **Base URL:** `https://league.porobound.com/api/v1`
 - **Browser-friendly:** responses allow any origin (`Access-Control-Allow-Origin: *`).
 - **Cached for 60 seconds.** A new result can take up to a minute to show. Errors aren't cached.
+- **Rate limited:** 30 requests per 10 seconds per IP. Over that you get `429` for 10 seconds.
 - **Stable within v1:** fields may be added; nothing is renamed or removed without a new version (`/api/v2`).
 
 ## Conventions
