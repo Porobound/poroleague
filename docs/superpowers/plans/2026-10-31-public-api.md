@@ -16,7 +16,7 @@
 - Dropped players: listed with `dropped: true`; their matches stay in `/matches` with `void: true`.
 - Flags: `flag: "open" | "resolved" | null`, never the reason.
 - `overdue`: derived with `isOverdue`, same as the match cards.
-- Headers on every API response (success and error): `Access-Control-Allow-Origin: *`, `Cache-Control: public, max-age=60`. No credentials, so `*` is safe.
+- Headers on every API response (`/api/v1` and below): `Access-Control-Allow-Origin: *`; `Cache-Control: public, max-age=60` on success, `no-store` on errors. No credentials, so `*` is safe.
 - Errors: `{ "error": string }` with the HTTP status. No pagination (≈30 players a season).
 - Dates `YYYY-MM-DD` (league timezone `Europe/Helsinki`), timestamps ISO 8601 UTC.
 - Rate limit: Cloudflare Free rule on `porobound.com` (the zone's only free rule), `http.host eq "league.porobound.com" and starts_with(http.request.uri.path, "/api/")` (apex `porobound.com` is another site), 30 requests / 10 s per IP, block 10 s. Created after the API is on prod.

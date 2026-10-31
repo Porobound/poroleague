@@ -1,16 +1,18 @@
 import type { Handle } from '@sveltejs/kit/hooks';
 import { SESSION_COOKIE, validateSession } from '#lib/server/session.ts';
 
-export const handle: Handle = ({ event, resolve }) => {
+const api = (path: string) => path === '/api/v1' || path.startsWith('/api/v1/');
+
+export const handle: Handle = async ({ event, resolve }) => {
 	// The public API is anonymous: no session, same answer for everyone, so caches can share it.
-	if (event.url.pathname.startsWith('/api/v1/')) {
+	// Errors aren't cached, so a 404 or 500 clears as soon as the cause does.
+	if (api(event.url.pathname)) {
 		event.locals.user = null;
 		event.locals.session = null;
-		return Promise.resolve(resolve(event)).then((res) => {
-			res.headers.set('Access-Control-Allow-Origin', '*');
-			res.headers.set('Cache-Control', 'public, max-age=60');
-			return res;
-		});
+		const res = await resolve(event);
+		res.headers.set('Access-Control-Allow-Origin', '*');
+		res.headers.set('Cache-Control', res.ok ? 'public, max-age=60' : 'no-store');
+		return res;
 	}
 	const token = event.cookies.get(SESSION_COOKIE);
 	const row = token ? validateSession(token) : null;
