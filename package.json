@@ -27,6 +27,7 @@
 	},
 	"devDependencies": {
 		"@playwright/test": "1.64.1",
+		"@scalar/api-reference": "1.75.0",
 		"@sveltejs/adapter-node": "6.0.0",
 		"@sveltejs/kit": "3.1.0",
 		"@sveltejs/vite-plugin-svelte": "7.3.1",
