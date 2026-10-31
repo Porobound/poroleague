@@ -146,20 +146,19 @@ export type WebhookBody = {
 export type Pairing = { group: number | null; p1Id: string; p2Id: string };
 export type PairingRound = { round: number; name?: string; pairs: Pairing[] };
 
-// One message per week, an embed per round. `mention` gives each player's text: a mention inside
-// an embed shows as a clickable server name and never pings.
+// One message per week, an embed per round. `name` gives each player's (escaped) text.
 export function pairingsPost(
 	title: string,
 	url: string,
 	rounds: PairingRound[],
-	mention: (playerId: string) => string,
+	name: (playerId: string) => string,
 	at = new Date()
 ): WebhookBody {
 	const field = (pairs: Pairing[], group: number | null) => ({
 		name: group ? groupName(group) : 'Matches',
 		value: pairs
 			.filter((p) => p.group === group)
-			.map((p) => `${mention(p.p1Id)} vs ${mention(p.p2Id)}`)
+			.map((p) => `${name(p.p1Id)} vs ${name(p.p2Id)}`)
 			.join('\n'),
 		inline: true
 	});

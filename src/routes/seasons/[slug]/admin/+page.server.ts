@@ -7,7 +7,7 @@ import { editResult, keepFlag } from '#lib/server/resultActions.ts';
 import { weekOf } from '#lib/league/time.ts';
 import { nextPairings, seasonData } from '#lib/server/seasonAdmin.ts';
 import { getSeason, groupStandings, publishWeek, seasonProgress } from '#lib/server/seasons.ts';
-import { discordMentions } from '#lib/server/players.ts';
+import { playerNames } from '#lib/server/players.ts';
 import { cutRounds } from '#lib/server/topCut.ts';
 import { pairingsEnabled, postPairings } from '#lib/server/webhooks.ts';
 import type { Actions, PageServerLoad } from './$types';
@@ -68,7 +68,7 @@ export const actions: Actions = {
 					`${season.name} · Week ${p.week}`,
 					`${event.url.origin}/seasons/${season.slug}/schedule`,
 					p.byRound,
-					discordMentions(p.byRound.flatMap((r) => r.pairs.flatMap((x) => [x.p1Id, x.p2Id])))
+					playerNames(p.byRound.flatMap((r) => r.pairs.flatMap((x) => [x.p1Id, x.p2Id])))
 				)
 			);
 		return { message: `Week ${p.week} published${discord ? ' and posted in Discord' : ''}.` };
