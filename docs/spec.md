@@ -74,6 +74,7 @@ Not in UI: managing organizers (Discord role), legend list (config file), messag
 - `/` — the newest non-draft season if it's still running (redirect); else "next season coming soon" if a draft exists; else the newest finished season; no seasons → empty state
 - `/admin` — organizers: season list, create season
 - `/seasons` — archive
+- `/api` — public API docs (`docs/api.md`)
 - `/seasons/[slug]` — groups + standings
 - `/seasons/[slug]/schedule` — rounds and results
 - `/seasons/[slug]/players/[id]` — player page: this season's matches, per-legend record ("played as": W-D-L + game-win % per legend; "against": W-D-L vs each opponent legend), "report" buttons, "who do I play this week"
@@ -98,6 +99,18 @@ Career stats across seasons: **deferred**. Wanted: from any player page, see tha
   - All role calls go through one in-process queue, in event order, one at a time, 10 s timeout each. 429 (after `Retry-After`), 5xx and network errors retry up to twice; other 4xx are final; a 404 on removal (member left) counts as done.
   - A failed call never blocks the league action and is logged; drift is fixed by hand in Discord. No backfill: roles for existing players were filled manually.
   - The app's bot user needs Manage Roles, and its role must sit above the player role.
+
+## Public API
+
+Read-only JSON at `/api/v1` for third parties; consumer docs in `docs/api.md`, rendered at `/api`.
+
+- Anonymous `GET` only: `/api/v1/*` skips the session, so every viewer gets the same answer. `Access-Control-Allow-Origin: *`.
+- Endpoints: `/seasons`, `/seasons/{slug}`, `/seasons/{slug}/matches`, `/seasons/{slug}/top-cut`, `/seasons/{slug}/legends`. Not exposed: player pages (derivable), audit log (flag reasons), the Elo leaderboard (organizers only).
+- Visibility is the public pages': no drafts or deleted seasons, published rounds only, the bracket once published, flag state (`open`/`resolved`) but never the reason.
+- Players are `{ id, name, former }`: no avatars (their URL holds the Discord id), no Discord ids.
+- Shapes are fixed DTOs in `src/lib/server/api.ts`, separate from page data. v1 only grows; renames or removals mean `/api/v2`.
+- Successful responses are cached 60 s; errors are `no-store`. `/api/v1` itself counts as API.
+- Rate limit (planned, #124): a Cloudflare rule on `league.porobound.com/api/*`, 30 requests / 10 s per IP, documented in `docs/ops.md` and `docs/api.md` once live.
 
 ## Stack
 
@@ -144,5 +157,6 @@ Designs come from Claude Design as HTML. Integration rule: **extract, don't past
 9. **Mobile sweep** — phone layouts for every view, phone checker script. `docs/superpowers/plans/2026-10-22-mobile.md`
 10. **Weekly publishing** — organizers publish each week's pairings; players see published weeks only. `docs/superpowers/plans/2026-10-23-weekly-publishing.md`
 11. **Design nits** — copy cuts from the 2026-10-23 design pass, compact phone season card. `docs/superpowers/plans/2026-10-23-design-nits.md`
+12. **Public API** — read-only `/api/v1` for third parties, docs page, Cloudflare rate limit. `docs/superpowers/plans/2026-10-31-public-api.md`
 
 Each plan is written when the previous one lands, against the real code.

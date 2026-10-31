@@ -134,7 +134,9 @@
 <footer class="pb-footer">
 	<div class="pb-footer-in">
 		<span class="pb-footer-mark">Poroleague</span>
-		<nav class="pb-footer-links" aria-label="Footer"><a href="/privacy">Privacy</a></nav>
+		<nav class="pb-footer-links" aria-label="Footer">
+			<a href="/privacy">Privacy</a><a href="/api">API</a>
+		</nav>
 	</div>
 	<p class="footer-legal">{RIOT_DISCLAIMER}</p>
 </footer>
