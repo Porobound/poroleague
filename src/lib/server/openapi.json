@@ -1,0 +1,496 @@
+{
+	"openapi": "3.1.0",
+	"info": {
+		"title": "Poroleague API",
+		"version": "1",
+		"description": "Poroleague's public data as JSON, for stat sites, bots and tools. It's the same data the site shows to anyone: seasons, standings, results, the top cut and legend stats.\n\n- **Read-only and anonymous.** `GET` only, no key, no login. Requests are answered the same whether you're logged in or not.\n- **Base URL:** `https://league.porobound.com/api/v1`\n- **Browser-friendly:** responses allow any origin (`Access-Control-Allow-Origin: *`).\n- **Cached for 60 seconds.** A new result can take up to a minute to show. Errors aren't cached.\n- **Rate limited:** 30 requests per 10 seconds per IP. Over that you get `429` for 10 seconds.\n- **Stable within v1:** fields may be added; nothing is renamed or removed without a new version (`/api/v2`).\n\n## Conventions\n\n- Dates are `YYYY-MM-DD` in league time (Europe/Helsinki). Timestamps are ISO 8601 in UTC.\n- Players appear as `{ \"id\": \"…\", \"name\": \"…\", \"former\": false }`. The `id` is the site's own id, stable across seasons and names. `former` is true for a player who asked to be erased; their name is then \"Former player\" with a short code.\n- A missing season or path is a `404` with a JSON body: `{ \"error\": \"Season not found\" }`. Any method but `GET` is refused with `405` (plain text).\n- Draft and deleted seasons don't exist as far as the API is concerned.\n\n## Example: legend meta across seasons\n\n```js\nconst API = 'https://league.porobound.com/api/v1';\nconst seasons = await (await fetch(`${API}/seasons`)).json();\nfor (const s of seasons) {\n\tconst legends = await (await fetch(`${API}/seasons/${s.slug}/legends`)).json();\n\tconsole.log(`\\n${s.name} (${s.status})`);\n\tfor (const l of legends)\n\t\tconsole.log(\n\t\t\t`${l.legend.padEnd(12)} ${String(l.picks).padStart(3)} picks  ${l.wins}-${l.draws}-${l.losses}  ` +\n\t\t\t\t(l.matchWinPct === null ? '—' : `${Math.round(l.matchWinPct * 100)}%`)\n\t\t);\n}\n```"
+	},
+	"servers": [{ "url": "/api/v1" }],
+	"tags": [
+		{ "name": "Seasons" },
+		{ "name": "Matches" },
+		{ "name": "Top cut" },
+		{ "name": "Legends" },
+		{ "name": "Spec" }
+	],
+	"paths": {
+		"/seasons": {
+			"get": {
+				"tags": ["Seasons"],
+				"operationId": "listSeasons",
+				"summary": "List seasons",
+				"description": "Every season, newest first.",
+				"responses": {
+					"200": {
+						"description": "The seasons.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "array",
+									"items": { "$ref": "#/components/schemas/SeasonSummary" }
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/seasons/{slug}": {
+			"parameters": [{ "$ref": "#/components/parameters/slug" }],
+			"get": {
+				"tags": ["Seasons"],
+				"operationId": "getSeason",
+				"summary": "Get a season",
+				"description": "The season, its players and the standings of each group.",
+				"responses": {
+					"200": {
+						"description": "The season.",
+						"content": {
+							"application/json": { "schema": { "$ref": "#/components/schemas/SeasonDetail" } }
+						}
+					},
+					"404": { "$ref": "#/components/responses/SeasonNotFound" }
+				}
+			}
+		},
+		"/seasons/{slug}/matches": {
+			"parameters": [{ "$ref": "#/components/parameters/slug" }],
+			"get": {
+				"tags": ["Matches"],
+				"operationId": "listMatches",
+				"summary": "List matches",
+				"description": "Group matches of published rounds, then top-cut matches once the bracket is out.",
+				"responses": {
+					"200": {
+						"description": "The matches.",
+						"content": {
+							"application/json": {
+								"schema": { "type": "array", "items": { "$ref": "#/components/schemas/Match" } }
+							}
+						}
+					},
+					"404": { "$ref": "#/components/responses/SeasonNotFound" }
+				}
+			}
+		},
+		"/seasons/{slug}/top-cut": {
+			"parameters": [{ "$ref": "#/components/parameters/slug" }],
+			"get": {
+				"tags": ["Top cut"],
+				"operationId": "getTopCut",
+				"summary": "Get the top cut",
+				"description": "The bracket. `404` (`No top cut yet`) until it's published.",
+				"responses": {
+					"200": {
+						"description": "The bracket.",
+						"content": {
+							"application/json": { "schema": { "$ref": "#/components/schemas/TopCut" } }
+						}
+					},
+					"404": {
+						"description": "`Season not found`, or `No top cut yet` until the bracket is published.",
+						"content": {
+							"application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+						}
+					}
+				}
+			}
+		},
+		"/seasons/{slug}/legends": {
+			"parameters": [{ "$ref": "#/components/parameters/slug" }],
+			"get": {
+				"tags": ["Legends"],
+				"operationId": "listLegends",
+				"summary": "List legend stats",
+				"description": "One row per legend played this season, most picked first.\n\n- Void and unplayed matches are left out, so a deadline double loss doesn't count against a legend.\n- A mirror match counts as two picks (and in `mirrors`), never as a win or loss.",
+				"responses": {
+					"200": {
+						"description": "The legends.",
+						"content": {
+							"application/json": {
+								"schema": { "type": "array", "items": { "$ref": "#/components/schemas/LegendRow" } }
+							}
+						}
+					},
+					"404": { "$ref": "#/components/responses/SeasonNotFound" }
+				}
+			}
+		},
+		"/openapi.json": {
+			"get": {
+				"tags": ["Spec"],
+				"operationId": "getSpec",
+				"summary": "Get this spec",
+				"description": "This OpenAPI 3.1 document.",
+				"responses": {
+					"200": {
+						"description": "The spec.",
+						"content": { "application/json": { "schema": { "type": "object" } } }
+					}
+				}
+			}
+		}
+	},
+	"components": {
+		"parameters": {
+			"slug": {
+				"name": "slug",
+				"in": "path",
+				"required": true,
+				"description": "The season's slug, from `/seasons`.",
+				"schema": { "type": "string" },
+				"example": "season-2"
+			}
+		},
+		"responses": {
+			"SeasonNotFound": {
+				"description": "No such season, or it's a draft or deleted.",
+				"content": {
+					"application/json": {
+						"schema": { "$ref": "#/components/schemas/Error" },
+						"example": { "error": "Season not found" }
+					}
+				}
+			}
+		},
+		"schemas": {
+			"Error": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": ["error"],
+				"properties": { "error": { "type": "string" } }
+			},
+			"PlayerRef": {
+				"type": "object",
+				"description": "A player. `id` is the site's own id, stable across seasons and names.",
+				"additionalProperties": false,
+				"required": ["id", "name", "former"],
+				"properties": {
+					"id": { "type": "string", "examples": ["k3x9"] },
+					"name": { "type": "string", "examples": ["Alice"] },
+					"former": {
+						"type": "boolean",
+						"description": "True for a player who asked to be erased; their name is then \"Former player\" with a short code."
+					}
+				}
+			},
+			"PlayerId": {
+				"type": "string",
+				"description": "A player's `id`.",
+				"examples": ["k3x9"]
+			},
+			"Date": {
+				"type": "string",
+				"format": "date",
+				"description": "`YYYY-MM-DD` in league time (Europe/Helsinki)."
+			},
+			"SeasonStatus": {
+				"type": "string",
+				"enum": ["signup", "groups", "play", "topcut", "finished"],
+				"description": "`groups`: drawn, not locked."
+			},
+			"SeasonSummary": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": ["slug", "name", "status", "startDate", "deadline"],
+				"properties": {
+					"slug": { "type": "string", "examples": ["season-2"] },
+					"name": { "type": "string", "examples": ["Season 2"] },
+					"status": { "$ref": "#/components/schemas/SeasonStatus" },
+					"startDate": { "oneOf": [{ "$ref": "#/components/schemas/Date" }, { "type": "null" }] },
+					"deadline": { "oneOf": [{ "$ref": "#/components/schemas/Date" }, { "type": "null" }] }
+				}
+			},
+			"SeasonDetail": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": [
+					"slug",
+					"name",
+					"status",
+					"startDate",
+					"deadline",
+					"roundsPerWeek",
+					"publishedRound",
+					"topCutSize",
+					"topCutDate",
+					"players",
+					"groups"
+				],
+				"properties": {
+					"slug": { "type": "string", "examples": ["season-2"] },
+					"name": { "type": "string", "examples": ["Season 2"] },
+					"status": { "$ref": "#/components/schemas/SeasonStatus" },
+					"startDate": { "oneOf": [{ "$ref": "#/components/schemas/Date" }, { "type": "null" }] },
+					"deadline": { "oneOf": [{ "$ref": "#/components/schemas/Date" }, { "type": "null" }] },
+					"roundsPerWeek": { "type": "integer", "examples": [2] },
+					"publishedRound": {
+						"type": "integer",
+						"description": "The last round whose pairings are out. Later rounds aren't in the API yet.",
+						"examples": [4]
+					},
+					"topCutSize": {
+						"type": ["integer", "null"],
+						"description": "Players per group who go through to the top cut; `null` for no top cut.",
+						"examples": [2]
+					},
+					"topCutDate": { "oneOf": [{ "$ref": "#/components/schemas/Date" }, { "type": "null" }] },
+					"players": {
+						"type": "array",
+						"items": {
+							"type": "object",
+							"additionalProperties": false,
+							"required": ["id", "name", "former", "group", "dropped"],
+							"properties": {
+								"id": { "type": "string", "examples": ["k3x9"] },
+								"name": { "type": "string", "examples": ["Alice"] },
+								"former": { "type": "boolean", "description": "An erased player." },
+								"group": {
+									"type": ["integer", "null"],
+									"description": "`null` until the groups are locked: before that the draw can still change.",
+									"examples": [1]
+								},
+								"dropped": {
+									"type": "boolean",
+									"description": "A dropped player stays here and is left out of the standings."
+								}
+							}
+						}
+					},
+					"groups": {
+						"type": "array",
+						"description": "Empty until the groups are locked.",
+						"items": {
+							"type": "object",
+							"additionalProperties": false,
+							"required": ["group", "name", "standings"],
+							"properties": {
+								"group": { "type": "integer", "examples": [1] },
+								"name": { "type": "string", "examples": ["Group A"] },
+								"standings": {
+									"type": "array",
+									"description": "Ranked as on the site: points, then the league's tiebreakers.",
+									"items": { "$ref": "#/components/schemas/Standing" }
+								}
+							}
+						}
+					}
+				}
+			},
+			"Standing": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": [
+					"rank",
+					"player",
+					"played",
+					"wins",
+					"draws",
+					"losses",
+					"points",
+					"gameWins",
+					"gameLosses",
+					"gameWinPct",
+					"unresolvedTie"
+				],
+				"properties": {
+					"rank": { "type": "integer", "examples": [1] },
+					"player": { "$ref": "#/components/schemas/PlayerRef" },
+					"played": { "type": "integer", "examples": [4] },
+					"wins": { "type": "integer", "examples": [3] },
+					"draws": { "type": "integer", "examples": [1] },
+					"losses": { "type": "integer", "examples": [0] },
+					"points": { "type": "integer", "examples": [10] },
+					"gameWins": { "type": "integer", "examples": [7] },
+					"gameLosses": { "type": "integer", "examples": [2] },
+					"gameWinPct": { "type": "number", "examples": [0.778] },
+					"unresolvedTie": {
+						"type": "boolean",
+						"description": "Still level on everything, until an organizer ranks them."
+					}
+				}
+			},
+			"Match": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": [
+					"id",
+					"stage",
+					"group",
+					"round",
+					"week",
+					"p1",
+					"p2",
+					"result",
+					"walkover",
+					"void",
+					"overdue",
+					"flag"
+				],
+				"properties": {
+					"id": { "type": "integer", "examples": [41] },
+					"stage": { "type": "string", "enum": ["group", "playoff"] },
+					"group": {
+						"type": ["integer", "null"],
+						"description": "`null` for playoff matches.",
+						"examples": [1]
+					},
+					"round": { "type": "integer", "examples": [1] },
+					"week": {
+						"type": ["integer", "null"],
+						"description": "`null` for playoff matches.",
+						"examples": [1]
+					},
+					"p1": { "$ref": "#/components/schemas/PlayerRef" },
+					"p2": { "$ref": "#/components/schemas/PlayerRef" },
+					"result": {
+						"oneOf": [{ "$ref": "#/components/schemas/Result" }, { "type": "null" }],
+						"description": "`null` until reported."
+					},
+					"walkover": {
+						"oneOf": [{ "$ref": "#/components/schemas/PlayerId" }, { "type": "null" }],
+						"description": "In the top cut, the id of a player who went through without playing."
+					},
+					"void": {
+						"type": "boolean",
+						"description": "A player dropped, so the match doesn't count."
+					},
+					"overdue": {
+						"type": "boolean",
+						"description": "Unreported and from an earlier week, while reporting is still open. After the season deadline an unplayed match counts as a loss for both."
+					},
+					"flag": {
+						"type": ["string", "null"],
+						"enum": ["open", "resolved", null],
+						"description": "`open` while a player disputes the result, `resolved` once an organizer has settled it, else `null`."
+					}
+				}
+			},
+			"Result": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": [
+					"p1Games",
+					"p2Games",
+					"games",
+					"p1Legend",
+					"p2Legend",
+					"diceWinner",
+					"reportedAt"
+				],
+				"properties": {
+					"p1Games": { "type": "integer", "examples": [2] },
+					"p2Games": { "type": "integer", "examples": [1] },
+					"games": {
+						"type": ["array", "null"],
+						"items": { "type": "string", "enum": ["1", "2", "D"] },
+						"description": "The winner of each game in order (`1`, `2` or `D` for a draw), or `null` for results reported as a score only.",
+						"examples": [["1", "2", "1"]]
+					},
+					"p1Legend": { "type": ["string", "null"], "examples": ["Jinx"] },
+					"p2Legend": { "type": ["string", "null"], "examples": ["Ahri"] },
+					"diceWinner": {
+						"oneOf": [{ "$ref": "#/components/schemas/PlayerId" }, { "type": "null" }],
+						"description": "A player id."
+					},
+					"reportedAt": {
+						"type": ["string", "null"],
+						"format": "date-time",
+						"description": "ISO 8601, UTC.",
+						"examples": ["2026-11-03T18:22:05.000Z"]
+					}
+				}
+			},
+			"TopCut": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": ["champion", "rounds"],
+				"properties": {
+					"champion": {
+						"oneOf": [{ "$ref": "#/components/schemas/PlayerRef" }, { "type": "null" }]
+					},
+					"rounds": {
+						"type": "array",
+						"description": "First to last.",
+						"items": {
+							"type": "object",
+							"additionalProperties": false,
+							"required": ["name", "slots"],
+							"properties": {
+								"name": { "type": "string", "examples": ["Semifinals"] },
+								"slots": { "type": "array", "items": { "$ref": "#/components/schemas/Slot" } }
+							}
+						}
+					}
+				}
+			},
+			"Slot": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": ["p1", "p2", "bye", "winner", "matchId"],
+				"properties": {
+					"p1": {
+						"oneOf": [{ "$ref": "#/components/schemas/PlayerRef" }, { "type": "null" }],
+						"description": "`null` until decided."
+					},
+					"p2": {
+						"oneOf": [{ "$ref": "#/components/schemas/PlayerRef" }, { "type": "null" }],
+						"description": "`null` until decided."
+					},
+					"bye": {
+						"type": "boolean",
+						"description": "One side goes through without a match (first round only)."
+					},
+					"winner": { "oneOf": [{ "$ref": "#/components/schemas/PlayerId" }, { "type": "null" }] },
+					"matchId": {
+						"type": ["integer", "null"],
+						"description": "Links to the match in `/matches`.",
+						"examples": [57]
+					}
+				}
+			},
+			"LegendRow": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": [
+					"legend",
+					"picks",
+					"players",
+					"mirrors",
+					"wins",
+					"draws",
+					"losses",
+					"gameWins",
+					"gameLosses",
+					"matchWinPct",
+					"gameWinPct"
+				],
+				"properties": {
+					"legend": { "type": "string", "examples": ["Jinx"] },
+					"picks": { "type": "integer", "examples": [14] },
+					"players": {
+						"type": "integer",
+						"description": "Distinct players who picked it this season, so it doesn't add up across seasons.",
+						"examples": [5]
+					},
+					"mirrors": { "type": "integer", "examples": [2] },
+					"wins": { "type": "integer", "examples": [8] },
+					"draws": { "type": "integer", "examples": [1] },
+					"losses": { "type": "integer", "examples": [3] },
+					"gameWins": { "type": "integer", "examples": [17] },
+					"gameLosses": { "type": "integer", "examples": [9] },
+					"matchWinPct": {
+						"type": ["number", "null"],
+						"description": "`null` under 5 non-mirror matches.",
+						"examples": [0.667]
+					},
+					"gameWinPct": {
+						"type": ["number", "null"],
+						"description": "`null` under 5 non-mirror matches.",
+						"examples": [0.654]
+					}
+				}
+			}
+		}
+	}
+}
