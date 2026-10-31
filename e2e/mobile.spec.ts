@@ -40,6 +40,7 @@ const pages = () => ({
 	visitor: [
 		'/seasons',
 		'/rules',
+		'/api',
 		s,
 		`${s}/schedule`,
 		`${s}/legends`,

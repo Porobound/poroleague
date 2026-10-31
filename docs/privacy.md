@@ -21,7 +21,7 @@ When you play:
 
 ## Why
 
-To run the league: sign-ups, schedules, standings and settling disputes. This is our legitimate interest in running the league you signed up for. Results, standings and the change log are public on the site, so every player can check them.
+To run the league: sign-ups, schedules, standings and settling disputes. This is our legitimate interest in running the league you signed up for. Results, standings and the change log are public on the site, so every player can check them. The same public data is also available through the site's [API](/api), without avatars or Discord ids.
 
 ## Discord posts
 

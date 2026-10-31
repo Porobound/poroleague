@@ -81,3 +81,16 @@ test('legends and top cut', async ({ request }) => {
 	expect(cut.status()).toBe(404);
 	expect(await cut.json()).toEqual({ error: 'No top cut yet' });
 });
+
+test('the footer links to the API docs', async ({ page }) => {
+	await page.goto('/');
+	await page.getByRole('navigation', { name: 'Footer' }).getByRole('link', { name: 'API' }).click();
+	await expect(page).toHaveURL('/api');
+	await expect(page.getByRole('heading', { level: 1, name: 'API' })).toBeVisible();
+	await expect(page.getByRole('heading', { level: 2, name: 'Matches' })).toBeVisible();
+});
+
+test('the privacy notice mentions the API', async ({ page }) => {
+	await page.goto('/privacy');
+	await expect(page.getByRole('link', { name: 'API' }).first()).toHaveAttribute('href', '/api');
+});

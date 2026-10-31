@@ -339,7 +339,7 @@ a:hover {
 	background: var(--surface);
 }
 
-/* Prose pages rendered from docs/ (rules, privacy). */
+/* Prose pages rendered from docs/ (rules, privacy, api). */
 .doc h2 {
 	scroll-margin-top: 80px;
 }
@@ -353,6 +353,20 @@ a:hover {
 .doc li,
 .doc p {
 	line-height: 1.55;
+}
+.doc pre {
+	overflow-x: auto;
+	padding: var(--space-4);
+	background: var(--surface-raised);
+	border: 1px solid var(--line);
+	border-radius: var(--radius-md);
+	font-size: 13px;
+	line-height: 1.5;
+	tab-size: 2;
+}
+.doc code {
+	font-family: var(--font-mono);
+	font-size: 0.9em;
 }
 .doc .legal {
 	margin-top: var(--space-8);

@@ -178,15 +178,15 @@ type LegendRow = {
 
 ### Task C1: `docs/api.md`
 
-- [ ] Intro (read-only, anonymous, JSON, cached 60 s, rate limited, versioning promise), then one section per endpoint: path, example response, field notes (visibility rules, `former`, `void`/`overdue`/`flag`, date/timezone formats, null cases).
+- [x] Intro (read-only, anonymous, JSON, cached 60 s, rate limited, versioning promise), then one section per endpoint: path, example response, field notes (visibility rules, `former`, `void`/`overdue`/`flag`, date/timezone formats, null cases).
 
 ### Task C2: `/api` page
 
-- [ ] `src/routes/api/+page.server.ts` renders `docs/api.md?raw` with `renderDoc` (same as privacy); page copies `src/routes/privacy/+page.svelte` with title `API · Poroleague`.
-- [ ] Footer link "API" next to Privacy in `src/routes/+layout.svelte`.
-- [ ] Privacy: one line under what's public: results, standings and the change log are on the site, and the public data is also available through the API (no avatars or Discord ids).
-- [ ] e2e: footer link opens `/api` with heading; add `/api` to `e2e/mobile.spec.ts` pages.
-- [ ] `docs/spec.md`: "Public API" section (decisions above, short) and roadmap entry 12.
+- [x] `src/routes/api/+page.server.ts` renders `docs/api.md?raw` with `renderDoc` (same as privacy); page copies `src/routes/privacy/+page.svelte` with title `API · Poroleague`.
+- [x] Footer link "API" next to Privacy in `src/routes/+layout.svelte`.
+- [x] Privacy: one line under what's public: results, standings and the change log are on the site, and the public data is also available through the API (no avatars or Discord ids).
+- [x] e2e: footer link opens `/api` with heading; add `/api` to `e2e/mobile.spec.ts` pages.
+- [x] `docs/spec.md`: "Public API" section (decisions above, short) and roadmap entry 12.
 
 ## Issue D: Rate-limit the public API at Cloudflare
 
