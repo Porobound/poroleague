@@ -59,6 +59,15 @@ describe('GET /api/v1/seasons/:slug', () => {
 		]);
 	});
 
+	it('hides a draw that is not locked yet', async () => {
+		seedPlayers(2);
+		const s = seedSeason({ status: 'groups' });
+		seedEntries(s.id, ['p1', 'p2'], 1);
+		const { body } = await season('s1');
+		expect(body.groups).toEqual([]);
+		expect(body.players.map((p: { group: number | null }) => p.group)).toEqual([null, null]);
+	});
+
 	describe('in play', () => {
 		beforeEach(() => {
 			seedPlayers(4);

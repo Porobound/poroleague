@@ -193,15 +193,16 @@ describe('currentRole', () => {
 });
 
 describe('hooks.server handle', () => {
-	const call = (cookies: ReturnType<typeof cookieJar>, path = '/') => {
+	const call = (cookies: ReturnType<typeof cookieJar>, path = '/', status = 200) => {
 		const event = {
 			cookies,
 			locals: {},
 			url: new URL(`http://localhost${path}`)
 		} as unknown as Parameters<typeof handle>[0]['event'];
-		const res = handle({ event, resolve: async () => new Response() } as Parameters<
-			typeof handle
-		>[0]);
+		const res = handle({
+			event,
+			resolve: async () => new Response(null, { status })
+		} as Parameters<typeof handle>[0]);
 		return { locals: event.locals, res };
 	};
 	const run = (cookies: ReturnType<typeof cookieJar>) => call(cookies).locals;
@@ -231,6 +232,14 @@ describe('hooks.server handle', () => {
 		const headers = (await res).headers;
 		expect(headers.get('access-control-allow-origin')).toBe('*');
 		expect(headers.get('cache-control')).toBe('public, max-age=60');
+	});
+
+	it('covers the bare API root, and never caches an error', async () => {
+		const { locals, res } = call(cookieJar(), '/api/v1', 404);
+		expect(locals.user).toBeNull();
+		const headers = (await res).headers;
+		expect(headers.get('access-control-allow-origin')).toBe('*');
+		expect(headers.get('cache-control')).toBe('no-store');
 	});
 
 	it('leaves page responses alone', async () => {
