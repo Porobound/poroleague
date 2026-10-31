@@ -240,12 +240,14 @@ describe('GET /api/v1/seasons/:slug/matches', () => {
 		expect(await find('open')).toMatchObject({ overdue: false, void: true });
 	});
 
-	it('404s a draft', async () => {
+	it('404s a draft or unknown season on every season sub-route', async () => {
 		db.update(seasons).set({ status: 'draft' }).run();
-		expect(await call(matchesGet, { slug: 's1' })).toEqual({
-			status: 404,
-			body: { error: 'Season not found' }
-		});
+		for (const get of [matchesGet, legendsGet, topCutGet])
+			for (const slug of ['s1', 'nope'])
+				expect(await call(get, { slug })).toEqual({
+					status: 404,
+					body: { error: 'Season not found' }
+				});
 	});
 });
 
@@ -319,6 +321,55 @@ describe('top cut', () => {
 		const playoffs = (await matchesOf()).filter((x) => x.stage === 'playoff');
 		expect(playoffs).toHaveLength(3);
 		expect(playoffs.every((x) => x.week === null)).toBe(true);
+	});
+	it('shows byes and undecided slots in an uneven bracket', async () => {
+		// A third group: 6 qualifiers in a bracket of 8, so the top two seeds get a bye.
+		db.insert(players)
+			.values(['p7', 'p8', 'p9'].map((p) => ({ id: p, displayName: `Player ${p.slice(1)}` })))
+			.run();
+		seedEntries(id, ['p7', 'p8', 'p9'], 3);
+		for (const [x, y] of [
+			['p7', 'p8'],
+			['p7', 'p9'],
+			['p8', 'p9']
+		])
+			seedMatch({
+				seasonId: id,
+				group: 3,
+				round: 1,
+				p1Id: x,
+				p2Id: y,
+				p1Games: 2,
+				p2Games: 0,
+				reportedBy: x
+			});
+		publishCut(season(), null, 'p1');
+
+		const { body } = await call(topCutGet, { slug: 's1' });
+		expect(body.champion).toBeNull();
+		expect(body.rounds.map((r: { name: string }) => r.name)).toEqual([
+			'Quarterfinals',
+			'Semifinals',
+			'Final'
+		]);
+		type S = {
+			p1: unknown;
+			p2: unknown;
+			bye: boolean;
+			winner: string | null;
+			matchId: number | null;
+		};
+		const first: S[] = body.rounds[0].slots;
+		const byes = first.filter((x) => x.bye);
+		expect(byes).toHaveLength(2);
+		for (const x of byes) {
+			expect([x.p1, x.p2].filter((p) => p === null)).toHaveLength(1);
+			expect(x.matchId).toBeNull();
+			expect(x.winner).not.toBeNull();
+		}
+		expect(body.rounds[2].slots).toEqual([
+			{ p1: null, p2: null, bye: false, winner: null, matchId: null }
+		]);
 	});
 });
 
