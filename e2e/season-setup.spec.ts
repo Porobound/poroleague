@@ -105,7 +105,7 @@ test('season setup to first publish', async ({ browser }) => {
 	expect(post.embeds!.map((e) => e.title)).toEqual(['Round 1', 'Round 2']);
 	const groups = post.embeds!.flatMap((e) => e.fields ?? []);
 	// 17 players always leave one group odd, so a week can hold a bye: at least one match, all in Group <to>.
-	const mine = groups.filter((f) => f.value.includes(`<@${player('setup', 1)}>`));
+	const mine = groups.filter((f) => f.value.split('\n').some((l) => l.split(' vs ').includes(playerName('setup', 1))));
 	expect(mine.length).toBeGreaterThan(0);
 	expect(mine.map((f) => f.name)).toEqual(mine.map(() => `Group ${to}`));
 

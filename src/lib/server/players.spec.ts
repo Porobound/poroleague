@@ -4,7 +4,7 @@ import type { Report } from '#lib/league/report.ts';
 import { db } from '#lib/server/db/index.ts';
 import { audit, entries, matches, players, seasons, sessions } from '#lib/server/db/schema.ts';
 import { adminRows, flagMatch, getMatch, matchPlayers, saveReport } from '#lib/server/matches.ts';
-import { discordMentions, erasePlayer } from '#lib/server/players.ts';
+import { playerNames, erasePlayer } from '#lib/server/players.ts';
 import {
 	deleteSeason,
 	dropPlayer,
@@ -16,17 +16,17 @@ import {
 import { createSession } from '#lib/server/session.ts';
 import { seedEntries, seedMatch, seedPlayers, seedSeason } from '#lib/server/test/seed.ts';
 
-describe('discordMentions', () => {
-	it('mentions linked players by Discord id, others by escaped name', () => {
+describe('playerNames', () => {
+	it('names every player by escaped display name, linked or not', () => {
 		db.insert(players)
 			.values([
 				{ id: 'a', discordId: '111', displayName: 'Aki' },
 				{ id: 'b', displayName: 'Former_player 1' }
 			])
 			.run();
-		const mention = discordMentions(['a', 'b']);
-		expect([mention('a'), mention('b'), mention('zz')]).toEqual([
-			'<@111>',
+		const name = playerNames(['a', 'b']);
+		expect([name('a'), name('b'), name('zz')]).toEqual([
+			'Aki',
 			'Former\\_player 1',
 			'Unknown'
 		]);

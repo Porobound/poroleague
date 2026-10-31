@@ -3,7 +3,7 @@ import { championEmbed, pairingsPost, walkoverEmbed } from '#lib/discord.ts';
 import { matchName, roundName } from '#lib/league/bracket.ts';
 import { organizerAction } from '#lib/server/auth.ts';
 import { adminRows, getMatch } from '#lib/server/matches.ts';
-import { discordMentions } from '#lib/server/players.ts';
+import { playerNames } from '#lib/server/players.ts';
 import { editResult, keepFlag } from '#lib/server/resultActions.ts';
 import { getSeason, seasonEntries } from '#lib/server/seasons.ts';
 import {
@@ -77,7 +77,7 @@ export const actions: Actions = {
 				`${season.name} · Top cut${date ? ` · ${date}` : ''}`,
 				`${event.url.origin}/seasons/${season.slug}/top-cut`,
 				[{ round: 1, name: roundName(1, s.rounds.length), pairs }],
-				discordMentions(pairs.flatMap((p) => [p.p1Id, p.p2Id]))
+				playerNames(pairs.flatMap((p) => [p.p1Id, p.p2Id]))
 			);
 			const names = new Map(seasonEntries(season.id).map((e) => [e.playerId, e.displayName]));
 			const byes = s.rounds[0].filter((x) => x.bye).map((x) => names.get(x.winner!)!);
