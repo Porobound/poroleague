@@ -19,7 +19,7 @@ test.afterAll(() => {
 
 const shared = (res: APIResponse) => {
 	expect(res.headers()['access-control-allow-origin']).toBe('*');
-	expect(res.headers()['cache-control']).toBe('public, max-age=60');
+	expect(res.headers()['cache-control']).toBe(res.ok() ? 'public, max-age=60' : 'no-store');
 };
 
 test('lists the season but not the draft', async ({ request }) => {
@@ -41,7 +41,7 @@ test('a season has its players and group', async ({ request }) => {
 });
 
 test('misses answer in JSON with the same headers', async ({ request }) => {
-	for (const path of [`${API}/${SEASONS.apiDraft}`, `${API}/nope`, '/api/v1/nope']) {
+	for (const path of [`${API}/${SEASONS.apiDraft}`, `${API}/nope`, '/api/v1/nope', '/api/v1']) {
 		const res = await request.get(path);
 		expect(res.status()).toBe(404);
 		shared(res);

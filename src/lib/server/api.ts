@@ -1,7 +1,6 @@
 // Public read-only API (`/api/v1`, docs/api.md): fixed shapes over the same data the public pages
 // show, so a page redesign can't break a consumer. Avatars and Discord ids never leave here.
 import { json } from '@sveltejs/kit';
-import { and, eq, isNull, ne } from 'drizzle-orm';
 import { roundName } from '#lib/league/bracket.ts';
 import { gameWinPct, legendMatches, legendStats, matchWinPct } from '#lib/league/legendStats.ts';
 import { published } from '#lib/league/publish.ts';
@@ -9,21 +8,23 @@ import { droppedIds, isOverdue, isVoid } from '#lib/league/status.ts';
 import { currentWeek, weekOf } from '#lib/league/time.ts';
 import { liveState } from '#lib/matchCard.ts';
 import { groupName, hasSchedule } from '#lib/season.ts';
-import { db } from '#lib/server/db/index.ts';
-import { seasons } from '#lib/server/db/schema.ts';
 import { bracketMatches, seasonMatches, type Match } from '#lib/server/matches.ts';
-import { allSeasons, groupStandings, seasonEntries, type Season } from '#lib/server/seasons.ts';
+import {
+	allSeasons,
+	findSeason,
+	groupStandings,
+	seasonEntries,
+	type Season
+} from '#lib/server/seasons.ts';
 import { cutState } from '#lib/server/topCut.ts';
 
 export const notFound = (error: string) => json({ error }, { status: 404 });
 
 // A season the public pages show: not a draft, not deleted.
-export const apiSeason = (slug: string) =>
-	db
-		.select()
-		.from(seasons)
-		.where(and(eq(seasons.slug, slug), ne(seasons.status, 'draft'), isNull(seasons.deletedAt)))
-		.get() ?? null;
+export const apiSeason = (slug: string) => {
+	const s = findSeason(slug);
+	return s && s.status !== 'draft' ? s : null;
+};
 
 export const playerRef = (p: { playerId: string; displayName: string; former: boolean }) => ({
 	id: p.playerId,
@@ -46,14 +47,20 @@ export const seasonList = () =>
 
 export function seasonDetail(s: Season) {
 	const list = seasonEntries(s.id);
+	// A draw isn't final until the groups are locked: organizers can still redraw.
+	const locked = hasSchedule(s.status);
 	return {
 		...summary(s),
 		roundsPerWeek: s.roundsPerWeek,
 		publishedRound: s.publishedRound,
 		topCutSize: s.topCutSize,
 		topCutDate: s.topCutDate,
-		players: list.map((e) => ({ ...playerRef(e), group: e.group, dropped: e.dropped })),
-		groups: hasSchedule(s.status)
+		players: list.map((e) => ({
+			...playerRef(e),
+			group: locked ? e.group : null,
+			dropped: e.dropped
+		})),
+		groups: locked
 			? groupStandings(s, list).map((g) => ({
 					group: g.group,
 					name: groupName(g.group),
