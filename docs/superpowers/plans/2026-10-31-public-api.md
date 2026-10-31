@@ -155,24 +155,24 @@ type LegendRow = {
 
 ### Task B1: `GET /api/v1/seasons/:slug/matches`
 
-- [ ] `published(seasonMatches(id), publishedRound)` mapped with a `cardContext`-equivalent context (`droppedIds`, `currentWeek`, `reportingClosed`, `liveState`) for `void`/`overdue`; then `bracketMatches(id)` when `cutState(season).published`. `games` split from the stored string; `flag` = `flaggedBy ? (flagResolvedAt ? 'resolved' : 'open') : null`.
-- [ ] Regression test (break once to see it fail): with `publishedRound: 2`, no round-3 match appears.
-- [ ] Tests: flagged match has `flag: 'open'` and no `flagReason` text in the JSON; resolved → `'resolved'`; dropped player's match `void: true`; an unreported past-week match `overdue: true`; playoff rows absent until the bracket is published, present after.
+- [x] `published(seasonMatches(id), publishedRound)` mapped with a `cardContext`-equivalent context (`droppedIds`, `currentWeek`, `reportingClosed`, `liveState`) for `void`/`overdue`; then `bracketMatches(id)` when `cutState(season).published`. `games` split from the stored string; `flag` = `flaggedBy ? (flagResolvedAt ? 'resolved' : 'open') : null`.
+- [x] Regression test (break once to see it fail): with `publishedRound: 2`, no round-3 match appears.
+- [x] Tests: flagged match has `flag: 'open'` and no `flagReason` text in the JSON; resolved → `'resolved'`; dropped player's match `void: true`; an unreported past-week match `overdue: true`; playoff rows absent until the bracket is published, present after.
 
 ### Task B2: `GET /api/v1/seasons/:slug/top-cut`
 
-- [ ] 404 `{ error: 'No top cut yet' }` until `cutState(season).published`; then rounds via `roundName`, slots mapped to `PlayerRef`s, `champion`.
-- [ ] Tests: 404 before publish; after a finished final, `champion` is the winner and round names run `…`, `Final`.
+- [x] 404 `{ error: 'No top cut yet' }` until `cutState(season).published`; then rounds via `roundName`, slots mapped to `PlayerRef`s, `champion`.
+- [x] Tests: 404 before publish; after a finished final, `champion` is the winner and round names run `…`, `Final`.
 
 ### Task B3: `GET /api/v1/seasons/:slug/legends`
 
-- [ ] `legendStats(legendMatches(seasonMatches(id), droppedIds(entries)))` mapped to `LegendRow`, sorted by picks desc then legend; percentages via `matchWinPct`/`gameWinPct`.
-- [ ] Tests: void matches excluded; a legend under 5 non-mirror matches has `null` percentages; mirrors counted in `picks` and `mirrors`, not in W-D-L.
+- [x] `legendStats(legendMatches(seasonMatches(id), droppedIds(entries)))` mapped to `LegendRow`, sorted by picks desc then legend; percentages via `matchWinPct`/`gameWinPct`.
+- [x] Tests: void matches excluded; a legend under 5 non-mirror matches has `null` percentages; mirrors counted in `picks` and `mirrors`, not in W-D-L.
 
 ### Task B4: e2e
 
-- [ ] Extend `e2e/api.spec.ts`: round 3 not in `/matches` for `publishedRound: 2`; a seeded flagged result shows `flag: 'open'` without its reason; `/top-cut` 404s.
-- [ ] Full test suite green.
+- [x] Extend `e2e/api.spec.ts`: round 3 not in `/matches` for `publishedRound: 2`; a seeded flagged result shows `flag: 'open'` without its reason; `/top-cut` 404s.
+- [x] Full test suite green.
 
 ## Issue C: Public API docs page
 

@@ -1,12 +1,15 @@
 // The public API over HTTP: the headers come from hooks.server.ts, so only a real server shows them.
 import { expect, test, type APIResponse } from '@playwright/test';
-import { removeSeason, seedEmptySeason, seedSeason } from './db.ts';
+import { removeSeason, seedEmptySeason, seedResult, seedSeason } from './db.ts';
 import { ORGANIZER, SEASONS, as } from './fixtures.ts';
 
 const API = '/api/v1/seasons';
 
+const REASON = 'Game two was conceded after a misclick.';
+
 test.beforeAll(() => {
-	seedSeason('api', { publishedRound: 2 });
+	const [first] = seedSeason('api', { publishedRound: 2 });
+	seedResult(first, 2, 1, { flag: REASON, legends: ['Jinx', 'Ahri'] });
 	seedEmptySeason('apiDraft', 'draft');
 });
 test.afterAll(() => {
@@ -56,4 +59,25 @@ test('hides drafts from organizers too', async ({ browser }) => {
 	const page = await browser.newPage(as(ORGANIZER));
 	const res = await page.request.get(`${API}/${SEASONS.apiDraft}`);
 	expect(res.status()).toBe(404);
+});
+
+test('matches cover published rounds only, with flags but no reasons', async ({ request }) => {
+	const res = await request.get(`${API}/${SEASONS.api}/matches`);
+	expect(res.status()).toBe(200);
+	shared(res);
+	const ms = await res.json();
+	expect(ms.map((m: { round: number }) => m.round)).toEqual([1, 1, 2, 2]);
+	expect(ms[0]).toMatchObject({
+		flag: 'open',
+		result: { p1Games: 2, p2Games: 1, p1Legend: 'Jinx', p2Legend: 'Ahri' }
+	});
+	expect(JSON.stringify(ms)).not.toContain(REASON);
+});
+
+test('legends and top cut', async ({ request }) => {
+	const legends = await (await request.get(`${API}/${SEASONS.api}/legends`)).json();
+	expect(legends.map((l: { legend: string }) => l.legend).sort()).toEqual(['Ahri', 'Jinx']);
+	const cut = await request.get(`${API}/${SEASONS.api}/top-cut`);
+	expect(cut.status()).toBe(404);
+	expect(await cut.json()).toEqual({ error: 'No top cut yet' });
 });
