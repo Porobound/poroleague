@@ -5,15 +5,14 @@ Poroleague's public data as JSON, for stat sites, bots and tools. It's the same 
 - **Read-only and anonymous.** `GET` only, no key, no login. Requests are answered the same whether you're logged in or not.
 - **Base URL:** `https://league.porobound.com/api/v1`
 - **Browser-friendly:** responses allow any origin (`Access-Control-Allow-Origin: *`).
-- **Cached for 60 seconds.** A new result can take up to a minute to show.
-- **Rate limited:** about 30 requests per 10 seconds per IP. Over that you get `429` for 10 seconds.
+- **Cached for 60 seconds.** A new result can take up to a minute to show. Errors aren't cached.
 - **Stable within v1:** fields may be added; nothing is renamed or removed without a new version (`/api/v2`).
 
 ## Conventions
 
 - Dates are `YYYY-MM-DD` in league time (Europe/Helsinki). Timestamps are ISO 8601 in UTC.
 - Players appear as `{ "id": "…", "name": "…", "former": false }`. The `id` is the site's own id, stable across seasons and names. `former` is true for a player who asked to be erased; their name is then "Former player" with a short code.
-- Errors are `{ "error": "Season not found" }` with the matching status: `404` for an unknown season or path, `405` for anything but `GET`.
+- A missing season or path is a `404` with a JSON body: `{ "error": "Season not found" }`. Any method but `GET` is refused with `405` (plain text).
 - Draft and deleted seasons don't exist as far as the API is concerned.
 
 ## Seasons
@@ -76,7 +75,7 @@ Poroleague's public data as JSON, for stat sites, bots and tools. It's the same 
 
 - `publishedRound`: the last round whose pairings are out. Later rounds aren't in the API yet.
 - `topCutSize`: players per group who go through to the top cut; `null` for no top cut.
-- `groups` is empty until the groups are locked.
+- `groups` is empty, and each player's `group` is `null`, until the groups are locked: before that the draw can still change.
 - Standings are ranked as on the site: points, then the league's tiebreakers. `unresolvedTie` marks players still level on everything, until an organizer ranks them.
 - A dropped player is in `players` with `dropped: true` and left out of the standings.
 

@@ -104,12 +104,13 @@ Career stats across seasons: **deferred**. Wanted: from any player page, see tha
 
 Read-only JSON at `/api/v1` for third parties; consumer docs in `docs/api.md`, rendered at `/api`.
 
-- Anonymous `GET` only: `/api/v1/*` skips the session, so every viewer gets the same answer. `Access-Control-Allow-Origin: *`, `Cache-Control: public, max-age=60`.
+- Anonymous `GET` only: `/api/v1/*` skips the session, so every viewer gets the same answer. `Access-Control-Allow-Origin: *`.
 - Endpoints: `/seasons`, `/seasons/{slug}`, `/seasons/{slug}/matches`, `/seasons/{slug}/top-cut`, `/seasons/{slug}/legends`. Not exposed: player pages (derivable), audit log (flag reasons), the Elo leaderboard (organizers only).
 - Visibility is the public pages': no drafts or deleted seasons, published rounds only, the bracket once published, flag state (`open`/`resolved`) but never the reason.
 - Players are `{ id, name, former }`: no avatars (their URL holds the Discord id), no Discord ids.
 - Shapes are fixed DTOs in `src/lib/server/api.ts`, separate from page data. v1 only grows; renames or removals mean `/api/v2`.
-- Rate limit: a Cloudflare rule on `league.porobound.com/api/*`, 30 requests / 10 s per IP (`docs/ops.md`).
+- Successful responses are cached 60 s; errors are `no-store`. `/api/v1` itself counts as API.
+- Rate limit (planned, #124): a Cloudflare rule on `league.porobound.com/api/*`, 30 requests / 10 s per IP, documented in `docs/ops.md` and `docs/api.md` once live.
 
 ## Stack
 
