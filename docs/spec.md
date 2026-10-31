@@ -110,7 +110,7 @@ Read-only JSON at `/api/v1` for third parties; consumer docs in `docs/api.md`, r
 - Players are `{ id, name, former }`: no avatars (their URL holds the Discord id), no Discord ids.
 - Shapes are fixed DTOs in `src/lib/server/api.ts`, separate from page data. v1 only grows; renames or removals mean `/api/v2`.
 - Successful responses are cached 60 s; errors are `no-store`. `/api/v1` itself counts as API.
-- Rate limit (planned, #124): a Cloudflare rule on `league.porobound.com/api/*`, 30 requests / 10 s per IP, documented in `docs/ops.md` and `docs/api.md` once live.
+- Rate limit: a Cloudflare rule on `league.porobound.com/api/*`, 30 requests / 10 s per IP, block 10 s (`docs/ops.md`).
 
 ## Stack
 

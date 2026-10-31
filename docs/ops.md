@@ -43,7 +43,16 @@ To start from demo data, copy a `local.db` to `data/poroleague.db` before the fi
 
 To put a branch on it: **Actions → ci → Run workflow** on that branch pushes `:<sha>` only. Set `IMAGE_TAG=<sha>` in the dev server's `.env` and it deploys on the next `deploy.sh` run. Set it back to `main` when done.
 
-## Backups
+## API rate limit
+
+The public API (`/api/v1`, `docs/api.md`) is rate-limited at Cloudflare, not in the app. Zone `porobound.com` → **Security → WAF → Rate limiting rules**, rule "Poroleague public API: 30 req / 10 s per IP":
+
+- Match: `http.host eq "league.porobound.com" and starts_with(http.request.uri.path, "/api/")`. The host check matters: the apex `porobound.com` is another site. The `/api` docs page has no trailing slash, so it isn't counted.
+- Counted per IP and Cloudflare data centre: 30 requests per 10 s, then block (`429`) for 10 s. Those are the Free plan's fixed period and timeout.
+- It's the zone's only Free-plan rate-limit rule. Another limit would have to share it (widen the expression) or needs a paid plan.
+- The dev server isn't limited: it's on another zone.
+
+Check after changing it: 40 quick requests to `/api/v1/seasons` should give 30 × `200`, then `429`, and pages should still load.
 
 `scripts/backup.sh` runs nightly from root's crontab. It writes `backups/poroleague-<date>.db` (root-only, 14 kept), uploads it with rclone to an encrypted R2 bucket, then pings healthchecks.io. If any step fails, including a missing `data/poroleague.db`, it skips the ping so healthchecks alerts. Decisions: [#32](https://github.com/Porobound/poroleague/issues/32).
 

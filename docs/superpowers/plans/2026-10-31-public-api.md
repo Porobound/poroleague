@@ -192,7 +192,7 @@ type LegendRow = {
 
 Runs after A–C are promoted to prod.
 
-- [ ] Create the rule on zone `porobound.com` (`http_ratelimit` phase entrypoint, none exists yet): expression `http.host eq "league.porobound.com" and starts_with(http.request.uri.path, "/api/")` (apex `porobound.com` is another site), characteristics `ip.src` + `cf.colo.id`, 30 requests / 10 s, block 10 s. Confirm with the owner before writing.
-- [ ] Check: a burst of 40 requests to `/api/v1/seasons` gets 429s after ~30; normal page loads are unaffected.
-- [ ] `docs/ops.md`: the rule, why, and that it is the zone's only Free-plan rate-limit rule.
-- [ ] `docs/api.md`: add the rate-limit bullet (about 30 requests / 10 s per IP, `429` for 10 s) once the rule is live.
+- [x] Create the rule on zone `porobound.com` (`http_ratelimit` phase entrypoint, none exists yet): expression `http.host eq "league.porobound.com" and starts_with(http.request.uri.path, "/api/")` (apex `porobound.com` is another site), characteristics `ip.src` + `cf.colo.id`, 30 requests / 10 s, block 10 s. Confirm with the owner before writing.
+- [x] Check: a burst of 40 requests to `/api/v1/seasons` gets 429s after ~30; normal page loads are unaffected.
+- [x] `docs/ops.md`: the rule, why, and that it is the zone's only Free-plan rate-limit rule.
+- [x] `docs/api.md`: add the rate-limit bullet (about 30 requests / 10 s per IP, `429` for 10 s) once the rule is live.
