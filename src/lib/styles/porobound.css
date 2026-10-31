@@ -1,4 +1,4 @@
-/* Porobound design system (Claude Design, version 1792915906-c30f). Snapshot: tokens.css + components/bundle.css (minus font @import, body and demo helpers). Re-sync by replacing this file; keep app overrides in app.css. */
+/* Porobound design system (Claude Design, version 1793485399-984c). Snapshot: tokens.css + components/bundle.css (minus font @import, body and demo helpers). Re-sync by replacing this file; keep app overrides in app.css. */
 :root,
 [data-theme='dark'] {
 	--surface: #10141a;
@@ -21,7 +21,7 @@
 	--ink-muted: #5a6370;
 	--brand: #c22f45;
 	--on-brand: #ffffff;
-	--accent: #0f7a66;
+	--accent: #0e7461;
 	--signal: #8a5a00;
 }
 :root {
@@ -1237,4 +1237,15 @@ th abbr[title] {
 	flex-direction: column;
 	align-items: flex-start;
 	gap: 4px;
+}
+/* Themes: native controls (date pickers, number spinners, scrollbars) follow the theme */
+:root,
+[data-theme='dark'] {
+	color-scheme: dark;
+}
+[data-theme='light'] {
+	color-scheme: light;
+}
+[data-theme='light'] .pb-overlay {
+	background: rgba(22, 26, 32, 0.45);
 }

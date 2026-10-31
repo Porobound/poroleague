@@ -91,6 +91,9 @@
 	dialog::backdrop {
 		background: rgba(5, 8, 12, 0.72);
 	}
+	:global([data-theme='light']) dialog::backdrop {
+		background: rgba(22, 26, 32, 0.45);
+	}
 	.body {
 		display: contents;
 	}
