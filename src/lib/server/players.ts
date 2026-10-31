@@ -19,12 +19,11 @@ import { cutState } from '#lib/server/topCut.ts';
 
 export const newPlayerId = () => randomBytes(8).toString('hex');
 
-// Embed text per player: a Discord mention, or the plain name once erased (or never linked).
-export function discordMentions(ids: string[]) {
+// Embed text per player: the escaped display name. Mentions in embeds render as raw ids for
+// members the viewer's client hasn't cached, and never ping anyway.
+export function playerNames(ids: string[]) {
 	const rows = db.select().from(players).where(inArray(players.id, ids)).all();
-	const by = new Map(
-		rows.map((p) => [p.id, p.discordId ? `<@${p.discordId}>` : escapeMd(p.displayName)])
-	);
+	const by = new Map(rows.map((p) => [p.id, escapeMd(p.displayName)]));
 	return (id: string) => by.get(id) ?? 'Unknown';
 }
 
