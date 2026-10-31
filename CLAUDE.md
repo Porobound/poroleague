@@ -15,6 +15,17 @@ SvelteKit (adapter-node) · TypeScript · SQLite via Drizzle (better-sqlite3) ·
 
 `npm run check` · `npx vitest run` · `npm run test:e2e` (throwaway DB on :4317, safe beside `npm run dev`) · `npm run db:generate`. Full list and dev-data scripts: README.
 
+## Naming
+
+Enforced on PRs by `.github/workflows/pr.yml`. PRs squash-merge, so the PR title is the commit on `main`.
+
+- Types: `feat fix docs test refactor chore ci`.
+- PR title: `type(scope): summary` — scope optional, lowercase area (`discord`, `leaderboard`); ≤72 chars, no trailing period, no plan numbers.
+- Branch: `type/<issue>-slug`, e.g. `fix/112-pairings-names`. Every PR has an issue.
+- PR body contains `Closes #<issue>` for the branch's issue.
+- Branch commits: same format as the title.
+- Issues: plain sentence title, no prefix; type via label (`bug`, `enhancement`, `chore`), set by the issue forms.
+
 ## Rules
 
 - Dependencies are pinned to exact versions (no `^`/`~`). `.npmrc` sets `save-exact=true`; keep it that way when adding or upgrading.

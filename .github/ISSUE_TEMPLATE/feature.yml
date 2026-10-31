@@ -1,0 +1,9 @@
+name: Feature
+description: New behaviour or a change to how something works
+labels: [enhancement]
+body:
+  - type: textarea
+    attributes:
+      label: What and why
+    validations:
+      required: true
