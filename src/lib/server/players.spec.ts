@@ -25,11 +25,7 @@ describe('playerNames', () => {
 			])
 			.run();
 		const name = playerNames(['a', 'b']);
-		expect([name('a'), name('b'), name('zz')]).toEqual([
-			'Aki',
-			'Former\\_player 1',
-			'Unknown'
-		]);
+		expect([name('a'), name('b'), name('zz')]).toEqual(['Aki', 'Former\\_player 1', 'Unknown']);
 	});
 });
 
