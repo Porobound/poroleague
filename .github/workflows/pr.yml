@@ -1,0 +1,30 @@
+name: pr
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+permissions: {}
+
+jobs:
+  # Squash merges make the PR title the commit on main. Schema: CLAUDE.md "Naming".
+  naming:
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          TITLE: ${{ github.event.pull_request.title }}
+          BRANCH: ${{ github.head_ref }}
+          BODY: ${{ github.event.pull_request.body }}
+        run: |
+          types='feat|fix|docs|test|refactor|chore|ci'
+          ok=1
+          [[ $TITLE =~ ^($types)(\([a-z0-9-]+\))?!?:\ [^\ ].*[^.]$ && ${#TITLE} -le 72 ]] ||
+            { echo "::error::Title must be 'type(scope): summary', ≤72 chars, no trailing period. Types: $types"; ok=0; }
+          if [[ $BRANCH =~ ^($types)/([0-9]+)-[a-z0-9-]+$ ]]; then
+            n=${BASH_REMATCH[2]}
+            grep -qiE "\b(closes|fixes|resolves) #$n\b" <<<"$BODY" ||
+              { echo "::error::Body must contain 'Closes #$n' (the branch's issue)"; ok=0; }
+          else
+            echo "::error::Branch must be 'type/<issue>-slug', e.g. fix/112-pairings-names"; ok=0
+          fi
+          ((ok))
