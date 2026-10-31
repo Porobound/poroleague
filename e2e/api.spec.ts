@@ -91,12 +91,44 @@ test('legends and top cut', async ({ request }) => {
 	expect(await cut.json()).toEqual({ error: 'No top cut yet' });
 });
 
-test('the footer links to the API docs', async ({ page }) => {
+test('the footer links to the API reference', async ({ page }) => {
 	await page.goto('/');
 	await page.getByRole('navigation', { name: 'Footer' }).getByRole('link', { name: 'API' }).click();
 	await expect(page).toHaveURL('/api');
-	await expect(page.getByRole('heading', { level: 1, name: 'API' })).toBeVisible();
-	await expect(page.getByRole('heading', { level: 2, name: 'Matches' })).toBeVisible();
+	await expect(page.getByRole('heading', { level: 1, name: 'Poroleague API' })).toBeVisible();
+	const sidebar = page.getByRole('complementary', { name: 'Sidebar for Poroleague API' });
+	for (const tag of ['Seasons', 'Matches', 'Top cut', 'Legends'])
+		await expect(sidebar.getByRole('link', { name: tag, exact: true })).toBeVisible();
+});
+
+test('the reference tries a request against the API', async ({ page }) => {
+	await page.goto('/api');
+	await page.getByRole('link', { name: 'List seasons' }).click();
+	await page.getByRole('button', { name: 'Test Request (get /seasons)' }).click();
+	await page.getByRole('button', { name: /^Send get request to .*\/api\/v1\/seasons$/ }).click();
+	const response = page.getByRole('region', { name: 'Response' });
+	await expect(response.getByRole('link', { name: '200 OK' })).toBeVisible();
+	await expect(response).toContainText(SEASONS.api);
+});
+
+test('the reference follows the site theme', async ({ page }) => {
+	await page.goto('/api');
+	await expect(page.getByRole('heading', { name: 'Poroleague API' })).toBeVisible();
+	// Scalar marks its colour mode on <body>.
+	const body = page.locator('body');
+	const nav = page.getByRole('navigation', { name: 'Main' });
+	await expect(body).toHaveClass(/\bdark-mode\b/);
+	await nav.getByRole('button', { name: 'Switch to light mode' }).click();
+	await expect(body).toHaveClass(/\blight-mode\b/);
+	await expect(page.getByRole('heading', { name: 'Poroleague API' })).toBeVisible();
+	await nav.getByRole('button', { name: 'Switch to dark mode' }).click();
+	await expect(body).toHaveClass(/\bdark-mode\b/);
+});
+
+// Playwright's javaScriptEnabled: false still parses <noscript> as if scripts ran, so check the HTML.
+test('without JavaScript, /api links the spec', async ({ request }) => {
+	const html = await (await request.get('/api')).text();
+	expect(html).toMatch(/<noscript>[^]*<a href="\/api\/v1\/openapi.json">[^]*<\/noscript>/);
 });
 
 test('the privacy notice mentions the API', async ({ page }) => {

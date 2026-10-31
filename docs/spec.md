@@ -74,7 +74,7 @@ Not in UI: managing organizers (Discord role), legend list (config file), messag
 - `/` — the newest non-draft season if it's still running (redirect); else "next season coming soon" if a draft exists; else the newest finished season; no seasons → empty state
 - `/admin` — organizers: season list, create season
 - `/seasons` — archive
-- `/api` — public API docs (`docs/api.md`)
+- `/api` — interactive API reference (Scalar) over the OpenAPI spec
 - `/seasons/[slug]` — groups + standings
 - `/seasons/[slug]/schedule` — rounds and results
 - `/seasons/[slug]/players/[id]` — player page: this season's matches, per-legend record ("played as": W-D-L + game-win % per legend; "against": W-D-L vs each opponent legend), "report" buttons, "who do I play this week"
@@ -102,7 +102,7 @@ Career stats across seasons: **deferred**. Wanted: from any player page, see tha
 
 ## Public API
 
-Read-only JSON at `/api/v1` for third parties; consumer docs in `docs/api.md`, rendered at `/api`.
+Read-only JSON at `/api/v1` for third parties. The OpenAPI 3.1 spec `src/lib/server/openapi.json` is the consumer docs: served at `/api/v1/openapi.json`, rendered at `/api` by Scalar.
 
 - Anonymous `GET` only: `/api/v1/*` skips the session, so every viewer gets the same answer. `Access-Control-Allow-Origin: *`.
 - Endpoints: `/seasons`, `/seasons/{slug}`, `/seasons/{slug}/matches`, `/seasons/{slug}/top-cut`, `/seasons/{slug}/legends`. Not exposed: player pages (derivable), audit log (flag reasons), the Elo leaderboard (organizers only).
@@ -110,6 +110,8 @@ Read-only JSON at `/api/v1` for third parties; consumer docs in `docs/api.md`, r
 - Players are `{ id, name, former }`: no avatars (their URL holds the Discord id), no Discord ids.
 - Shapes are fixed DTOs in `src/lib/server/api.ts`, separate from page data. v1 only grows; renames or removals mean `/api/v2`.
 - Successful responses are cached 60 s; errors are `no-store`. `/api/v1` itself counts as API.
+- Contract tests (`src/lib/server/openapi.spec.ts`) hold the spec to the code: real responses validate against it, every object schema is closed, routes match `paths`, and the spec passes the OpenAPI 3.1 meta-schema. A new field fails until it's documented.
+- `/api`: `@scalar/api-reference` (exact pin), loaded with `import()` in the browser only, inside the site layout, coloured from Porobound tokens and following `data-theme`. Try-it calls the API on the same origin; no proxy, agent, telemetry or CDN. `<noscript>` links the spec.
 - Rate limit: a Cloudflare rule on `league.porobound.com/api/*`, 30 requests / 10 s per IP, block 10 s (`docs/ops.md`).
 
 ## Stack

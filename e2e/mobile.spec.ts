@@ -40,7 +40,6 @@ const pages = () => ({
 	visitor: [
 		'/seasons',
 		'/rules',
-		'/api',
 		s,
 		`${s}/schedule`,
 		`${s}/legends`,
@@ -133,6 +132,18 @@ for (const role of ['visitor', 'player', 'organizer'] as const) {
 		});
 	});
 }
+
+// Scalar renders after load, so /api waits for it; checked in both themes.
+test('API reference fits a phone', async ({ page }) => {
+	await page.goto('/api');
+	for (const theme of ['dark', 'light']) {
+		if (theme === 'light') await page.getByRole('button', { name: 'Switch to light mode' }).click();
+		await expect(page.getByRole('heading', { name: 'Poroleague API' })).toBeVisible();
+		const r = await page.evaluate(probe, W);
+		expect.soft(r.scroll, `${theme}: scrolls sideways`).toBe(false);
+		expect.soft(r.outer, `${theme}: cut off at the right edge`).toEqual([]);
+	}
+});
 
 // Runs last: only one season can be running, so the season in play makes way for one in signup.
 test('signup page fits a phone', async ({ page, browser }) => {

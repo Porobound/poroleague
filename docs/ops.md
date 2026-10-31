@@ -45,9 +45,9 @@ To put a branch on it: **Actions → ci → Run workflow** on that branch pushes
 
 ## API rate limit
 
-The public API (`/api/v1`, `docs/api.md`) is rate-limited at Cloudflare, not in the app. Zone `porobound.com` → **Security → WAF → Rate limiting rules**, rule "Poroleague public API: 30 req / 10 s per IP":
+The public API (`/api/v1`, documented in `src/lib/server/openapi.json`) is rate-limited at Cloudflare, not in the app. Zone `porobound.com` → **Security → WAF → Rate limiting rules**, rule "Poroleague public API: 30 req / 10 s per IP":
 
-- Match: `http.host eq "league.porobound.com" and starts_with(http.request.uri.path, "/api/")`. The host check matters: the apex `porobound.com` is another site. The `/api` docs page has no trailing slash, so it isn't counted.
+- Match: `http.host eq "league.porobound.com" and starts_with(http.request.uri.path, "/api/")`. The host check matters: the apex `porobound.com` is another site. The `/api` reference page has no trailing slash, so it isn't counted; its spec and try-it requests are.
 - Counted per IP and Cloudflare data centre: 30 requests per 10 s, then block (`429`) for 10 s. Those are the Free plan's fixed period and timeout.
 - It's the zone's only Free-plan rate-limit rule. Another limit would have to share it (widen the expression) or needs a paid plan.
 - The dev server isn't limited: it's on another zone.

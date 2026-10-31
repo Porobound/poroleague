@@ -1,4 +1,4 @@
-// Public read-only API (`/api/v1`, docs/api.md): fixed shapes over the same data the public pages
+// Public read-only API (`/api/v1`, documented in openapi.json): fixed shapes over the same data the public pages
 // show, so a page redesign can't break a consumer. Avatars and Discord ids never leave here.
 import { json } from '@sveltejs/kit';
 import { roundName } from '#lib/league/bracket.ts';
