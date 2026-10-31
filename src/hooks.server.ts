@@ -27,5 +27,6 @@ export const handle: Handle = async ({ event, resolve }) => {
 			}
 		: null;
 	event.locals.session = row ? { id: row.session.id, accessToken: row.session.accessToken } : null;
-	return resolve(event);
+	const theme = event.cookies.get('theme') === 'light' ? 'light' : 'dark';
+	return resolve(event, { transformPageChunk: ({ html }) => html.replace('%theme%', theme) });
 };

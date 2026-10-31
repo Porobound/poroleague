@@ -18,8 +18,8 @@
 	const returnTo = $derived(page.url.pathname.startsWith('/login') ? '/' : page.url.pathname);
 	const loginHref = $derived(`/auth/login?returnTo=${encodeURIComponent(returnTo)}`);
 
-	const icon = (d: string) =>
-		`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+	const icon = (d: string, size = 22) =>
+		`<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 	const tabs = $derived([
 		...(slug
 			? [
@@ -60,6 +60,22 @@
 		}
 	]);
 
+	let theme = $derived(data.theme);
+	const themeAria = $derived(theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode');
+	const themeIcon = $derived(
+		theme === 'light'
+			? icon('<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>', 20)
+			: icon(
+					'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+					20
+				)
+	);
+	function toggleTheme() {
+		theme = theme === 'light' ? 'dark' : 'light';
+		document.cookie = `theme=${theme}; path=/; max-age=31536000; samesite=lax`;
+		document.documentElement.dataset.theme = theme;
+	}
+
 	let menuOpen = $state(false);
 	afterNavigate(() => (menuOpen = false));
 </script>
@@ -83,6 +99,13 @@
 			{/if}
 			<a href="/seasons" class="nav-link" aria-current={here('/seasons')}>Archive</a>
 			<a href="/rules" class="nav-link" aria-current={here('/rules')}>Rules</a>
+			<button
+				type="button"
+				class="theme-btn"
+				onclick={toggleTheme}
+				aria-label={themeAria}
+				title={themeAria}>{@html themeIcon}</button
+			>
 			{#if data.user}
 				{#if data.user.isOrganizer}
 					<a href="/admin" class="nav-link">Admin</a>
@@ -115,10 +138,20 @@
 					<div class="me-items">
 						{#if data.myPage}<a href={data.myPage}>Your page</a>{/if}
 						{#if data.user.isOrganizer}<a href="/admin">Admin</a>{/if}
+						<button type="button" onclick={toggleTheme}
+							>{@html themeIcon}{theme === 'light' ? 'Dark mode' : 'Light mode'}</button
+						>
 						<form method="POST" action="/auth/logout"><button>Log out</button></form>
 					</div>
 				</details>
 			{:else}
+				<button
+					type="button"
+					class="theme-btn"
+					onclick={toggleTheme}
+					aria-label={themeAria}
+					title={themeAria}>{@html themeIcon}</button
+				>
 				<a class="pb-btn pb-btn-secondary pb-btn-sm" href={loginHref} data-sveltekit-reload
 					>Log in with Discord</a
 				>
