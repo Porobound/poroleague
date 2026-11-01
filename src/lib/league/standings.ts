@@ -103,9 +103,7 @@ function breakTie(
 		}
 	const rank = (r: Row) => entries.get(r.playerId)!.tiebreak ?? Number.MAX_SAFE_INTEGER;
 	const base = (x: Row, y: Row) =>
-		+!x.played - +!y.played ||
-		h2h.get(y.playerId)! - h2h.get(x.playerId)! ||
-		y.gwp - x.gwp;
+		+!x.played - +!y.played || h2h.get(y.playerId)! - h2h.get(x.playerId)! || y.gwp - x.gwp;
 	const cmp = (x: Row, y: Row) => base(x, y) || rank(x) - rank(y);
 
 	const sorted = [...tied].sort(cmp);
