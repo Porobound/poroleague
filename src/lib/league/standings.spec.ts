@@ -47,6 +47,46 @@ describe('standings', () => {
 		expect(order(rows)).toEqual(['B', 'A', 'D', 'C']);
 	});
 
+	it('head-to-head waits until every tied pair has met', () => {
+		// Radiance week 1: Lat, San, Kym, Sep on 3 pts; only Lat–Sep met, so GW% decides.
+		const rows = standings(
+			['Lat', 'San', 'Kym', 'Sep', 'X', 'Y', 'Z'].map((id) => entry(id)),
+			[
+				m('Lat', 2, 1, 'Sep'),
+				m('X', 0, 2, 'San'),
+				m('Y', 1, 2, 'Kym'),
+				m('Z', 0, 2, 'Sep'),
+				m('Lat', null, null, 'San')
+			]
+		);
+		expect(order(rows).slice(0, 4)).toEqual(['San', 'Lat', 'Kym', 'Sep']);
+	});
+
+	it('after the deadline, an unplayed tied pair counts as met', () => {
+		// A, B, C on 3 pts; B beat A, A–C and B–C never played. GW%: C 1, B .67, A .6.
+		const rows = standings(
+			['A', 'B', 'C', 'D'].map((id) => entry(id)),
+			[
+				m('B', 2, 1, 'A'),
+				m('A', 2, 0, 'D'),
+				m('C', 2, 0, 'D'),
+				m('A', null, null, 'C'),
+				m('B', null, null, 'C'),
+				m('B', null, null, 'D')
+			],
+			true
+		);
+		expect(order(rows)).toEqual(['B', 'C', 'A', 'D']);
+	});
+
+	it('players who lost rank above players yet to play', () => {
+		const rows = standings(
+			['A', 'B', 'C', 'D'].map((id) => entry(id)),
+			[m('C', 2, 0, 'D'), m('A', null, null, 'B')]
+		);
+		expect(order(rows)).toEqual(['C', 'D', 'A', 'B']);
+	});
+
 	it('three-way cycle falls through to game-win %', () => {
 		// A beat B, B beat C, C beat A: all 3 pts, h2h all equal. GW%: A .6, C .5, B .4
 		const rows = standings(
