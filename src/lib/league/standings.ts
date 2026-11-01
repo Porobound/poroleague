@@ -65,7 +65,7 @@ export function standings(entries: Entry[], matches: MatchResult[], deadlinePass
 	for (let i = 0; i < byPoints.length;) {
 		let j = i;
 		while (j < byPoints.length && byPoints[j].points === byPoints[i].points) j++;
-		result.push(...breakTie(byPoints.slice(i, j), counted, active));
+		result.push(...breakTie(byPoints.slice(i, j), counted, active, deadlinePassed));
 		i = j;
 	}
 	return result;
@@ -82,18 +82,30 @@ function tally(r: Row, points: number, won: number, lost: number) {
 }
 
 // ponytail: single-pass mini-league; a still-tied subset isn't re-run through h2h. Recurse if that ever matters.
-function breakTie(tied: Row[], matches: MatchResult[], entries: Map<string, Entry>): Row[] {
+function breakTie(
+	tied: Row[],
+	matches: MatchResult[],
+	entries: Map<string, Entry>,
+	deadlinePassed: boolean
+): Row[] {
 	if (tied.length === 1) return tied;
 	const ids = new Set(tied.map((r) => r.playerId));
+	const among = matches.filter((m) => ids.has(m.p1) && ids.has(m.p2));
 	const h2h = new Map(tied.map((r) => [r.playerId, 0]));
-	for (const m of matches) {
-		if (!played(m) || !ids.has(m.p1) || !ids.has(m.p2)) continue;
-		const [pa, pb] = matchPoints(m.p1Games, m.p2Games);
-		h2h.set(m.p1, h2h.get(m.p1)! + pa);
-		h2h.set(m.p2, h2h.get(m.p2)! + pb);
-	}
+	// Head-to-head counts only once every tied pair has met; until then it rewards an early draw.
+	const met = among.filter((m) => played(m) || deadlinePassed).length;
+	if (met === (tied.length * (tied.length - 1)) / 2)
+		for (const m of among) {
+			if (!played(m)) continue;
+			const [pa, pb] = matchPoints(m.p1Games, m.p2Games);
+			h2h.set(m.p1, h2h.get(m.p1)! + pa);
+			h2h.set(m.p2, h2h.get(m.p2)! + pb);
+		}
 	const rank = (r: Row) => entries.get(r.playerId)!.tiebreak ?? Number.MAX_SAFE_INTEGER;
-	const base = (x: Row, y: Row) => h2h.get(y.playerId)! - h2h.get(x.playerId)! || y.gwp - x.gwp;
+	const base = (x: Row, y: Row) =>
+		+!x.played - +!y.played ||
+		h2h.get(y.playerId)! - h2h.get(x.playerId)! ||
+		y.gwp - x.gwp;
 	const cmp = (x: Row, y: Row) => base(x, y) || rank(x) - rank(y);
 
 	const sorted = [...tied].sort(cmp);
