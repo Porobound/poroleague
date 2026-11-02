@@ -398,7 +398,9 @@
 		flex-direction: column;
 		gap: 12px;
 	}
+	/* Positioned, so the visually hidden header text scrolls with the table instead of widening the page. */
 	.table-wrap {
+		position: relative;
 		overflow-x: auto;
 	}
 	.mono {
