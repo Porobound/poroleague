@@ -38,7 +38,15 @@ export function erasePlayer(playerId: string, actorId: string) {
 		do name = `Former player ${randomBytes(2).toString('hex')}`;
 		while (tx.select().from(players).where(eq(players.displayName, name)).get());
 		tx.update(players)
-			.set({ displayName: name, avatar: null, discordId: null, erasedAt: new Date() })
+			.set({
+				displayName: name,
+				avatar: null,
+				discordId: null,
+				erasedAt: new Date(),
+				titleAchievement: null,
+				badgeAchievement: null,
+				frameAchievement: null
+			})
 			.where(eq(players.id, playerId))
 			.run();
 		tx.delete(sessions).where(eq(sessions.playerId, playerId)).run();
