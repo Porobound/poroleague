@@ -81,6 +81,10 @@ export const load: PageServerLoad = async (event) => {
 		// Same status rule as every match card.
 		status: card.status,
 		head: card.props.head,
+		// On holiday name tags, p1 then p2.
+		tags: { p1: card.props.sides[0].tag, p2: card.props.sides[1].tag },
+		// "Played early, hidden from standings until week N is published" before its week is out.
+		earlyNote: isPublished(match, season.publishedRound) ? null : card.props.note,
 		mode,
 		closed,
 		voided,

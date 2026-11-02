@@ -428,6 +428,11 @@ describe('unlocked matches', () => {
 			p2Games: 2
 		});
 		expect(hooks.postResult).not.toHaveBeenCalled();
+		const page = (await match(m13, as('p1'))).returned as Record<string, unknown>;
+		expect(page).toMatchObject({
+			earlyNote: 'Played early, hidden from standings until week 2 is published',
+			tags: { p1: 'On holiday', p2: null }
+		});
 		await matchActions.flag!(
 			event({ slug: 's1', id: String(m13) }, as('p1'), { reason: 'Wrong legend' })
 		);
