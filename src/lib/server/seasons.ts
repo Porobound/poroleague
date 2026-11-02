@@ -2,7 +2,7 @@ import { error } from '@sveltejs/kit';
 import { and, asc, count, desc, eq, inArray, isNotNull, isNull, ne, sql } from 'drizzle-orm';
 import { currentRound, cutFinish, roundName } from '#lib/league/bracket.ts';
 import { defaultGroupCount, splitGroups } from '#lib/league/groups.ts';
-import { published } from '#lib/league/publish.ts';
+import { isPublished, published } from '#lib/league/publish.ts';
 import { roundCount } from '#lib/league/roundRobin.ts';
 import { buildSchedule } from '#lib/league/schedule.ts';
 import { standings } from '#lib/league/standings.ts';
@@ -336,12 +336,16 @@ export function groupStandings(
 	return groupsOf(list).map((g, i) => {
 		const by = new Map(g.map((e) => [e.playerId, e]));
 		const ms = all.filter((m) => m.group === i + 1);
-		const results = ms.map((m) => ({
-			p1: m.p1Id,
-			p2: m.p2Id,
-			p1Games: m.p1Games,
-			p2Games: m.p2Games
-		}));
+		// An early (holiday) result counts as unplayed until its round is published.
+		const results = ms.map((m) => {
+			const shown = isPublished(m, season.publishedRound);
+			return {
+				p1: m.p1Id,
+				p2: m.p2Id,
+				p1Games: shown ? m.p1Games : null,
+				p2Games: shown ? m.p2Games : null
+			};
+		});
 		return {
 			group: i + 1,
 			size: g.length,

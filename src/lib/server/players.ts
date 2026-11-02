@@ -11,6 +11,7 @@ import {
 	former,
 	matches,
 	players,
+	publishedMatch,
 	seasons,
 	sessions
 } from '#lib/server/db/schema.ts';
@@ -122,7 +123,8 @@ export function leaderboard() {
 				isNotNull(matches.reportedBy),
 				isNotNull(matches.p1Games),
 				isNotNull(matches.p2Games),
-				isNull(matches.walkoverId)
+				isNull(matches.walkoverId),
+				publishedMatch()
 			)
 		)
 		.orderBy(asc(matches.reportedAt), asc(matches.id))

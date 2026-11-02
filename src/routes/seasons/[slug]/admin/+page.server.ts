@@ -41,7 +41,7 @@ export const load: PageServerLoad = async ({ parent }) => {
 							cutRounds(season.id)
 						)
 					: [],
-		recent: auditLines(season.id, 5)
+		recent: auditLines(season.id, { limit: 5 })
 	};
 };
 
