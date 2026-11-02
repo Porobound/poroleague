@@ -35,12 +35,16 @@ export function nextPairings(season: Season, { all, live }: SeasonData) {
 	return { ...next, byRound, count: byRound.reduce((n, r) => n + r.pairs.length, 0) };
 }
 
-// End of season opens at the deadline, or earlier once every live match is reported.
-export function endState(season: Season, { list, all, live }: SeasonData, now = new Date()) {
+// End of season opens at the deadline, or earlier once every live match is reported, and only
+// once every week is published: early (holiday) results count only then, and nothing can be
+// published after finalizing.
+export function endState(season: Season, data: SeasonData, now = new Date()) {
+	const { list, all, live } = data;
 	const closed = reportingClosed(season.deadline, now);
 	const unplayed = live.filter((m) => !m.reportedBy).length;
 	const openFlags = live.filter((m) => m.flaggedBy && !m.flagResolvedAt).length;
-	const ending = closed || unplayed === 0;
+	const unpublishedWeek = nextPairings(season, data)?.week ?? null;
+	const ending = (closed || unplayed === 0) && unpublishedWeek === null;
 	type Tie = {
 		group: number;
 		resolved: boolean;
@@ -90,5 +94,5 @@ export function endState(season: Season, { list, all, live }: SeasonData, now = 
 			})
 		: [];
 	const ready = ending && !openFlags && ties.every((t) => t.resolved);
-	return { closed, unplayed, openFlags, ending, ties, ready };
+	return { closed, unplayed, openFlags, unpublishedWeek, ending, ties, ready };
 }

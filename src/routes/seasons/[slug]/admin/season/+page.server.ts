@@ -161,7 +161,12 @@ export const actions: Actions = {
 		const user = await organizerAction(event);
 		const season = getSeason(event.params.slug, user);
 		if (season.status !== 'play') return fail(409, { message: 'The season is not in play.' });
-		if (!endState(season, seasonData(season)).ready)
+		const end = endState(season, seasonData(season));
+		if (end.unpublishedWeek !== null)
+			return fail(409, {
+				message: `Publish every week before finalizing; week ${end.unpublishedWeek} is still unpublished.`
+			});
+		if (!end.ready)
 			return fail(409, { message: 'Resolve the flags and order the ties before finalizing.' });
 		const topCut = (season.topCutSize ?? 0) > 0;
 		// Only the name can change once the top cut starts, so a cut that can't be drawn is fixed now.

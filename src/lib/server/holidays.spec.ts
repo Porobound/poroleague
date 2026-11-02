@@ -678,6 +678,26 @@ describe('publishing a week with early results', () => {
 		expect(hooks.postResult.mock.calls.map((c) => c[0].title)).toEqual(['Player 1 0–2 Player 4']);
 	});
 
+	it("can't be finalized past the deadline while a week is unpublished", async () => {
+		vi.setSystemTime(new Date('2026-10-27T10:00:00Z')); // deadline 25 Oct
+		const finalize = () => seasonActions.finalize!(event({ slug: 's1' }, ORG));
+		const s = () => db.select().from(seasons).where(eq(seasons.id, season.id)).get()!;
+		expect(endState(s(), seasonData(s()))).toMatchObject({
+			closed: true,
+			ending: false,
+			ready: false
+		});
+		expect(await returned(finalize())).toMatchObject({
+			status: 409,
+			data: { message: 'Publish every week before finalizing; week 2 is still unpublished.' }
+		});
+		expect(s().status).toBe('play');
+		await publish();
+		expect(endState(s(), seasonData(s())).ending).toBe(true);
+		const [g] = groupStandings(s(), seasonEntries(season.id));
+		expect(g.rows.find((r) => r.playerId === 'p4')!.points).toBe(3);
+	});
+
 	it("the season can't end early while results wait for their week", async () => {
 		db.update(matches)
 			.set({ reportedBy: 'p1', p1Games: 2, p2Games: 0 })

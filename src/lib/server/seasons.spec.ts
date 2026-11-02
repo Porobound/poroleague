@@ -133,7 +133,7 @@ describe('endState', () => {
 	});
 
 	it('ends early once every live match is reported, and waits on open flags', () => {
-		publish(1);
+		publish(2);
 		report(0, score(2, 0));
 		dropPlayer(season.id, 'p3', ORG.id); // voids both of p3's matches
 		expect(end()).toMatchObject({ unplayed: 0, ending: true, ready: true });
@@ -169,6 +169,7 @@ describe('endState', () => {
 
 	it('at the deadline unplayed matches count and a three-way tie is "level"', () => {
 		db.update(seasons).set({ deadline: '2020-01-01' }).run();
+		publish(2);
 		const e = end();
 		expect(e).toMatchObject({ closed: true, ending: true, unplayed: 3, ready: false });
 		expect(e.ties).toMatchObject([{ h2h: 'level', points: 0 }]);
@@ -177,21 +178,20 @@ describe('endState', () => {
 
 	it('a tie between players who never met says "not played"', () => {
 		db.update(seasons).set({ deadline: '2020-01-01' }).run();
-		publish(1);
+		publish(2);
 		report(0, score(2, 0)); // p1 beats p2; p2 and p3 never play and tie on zero
 		const tie = end().ties.find((t) => t.players.some((p) => p.playerId === 'p3'));
 		expect(tie).toMatchObject({ h2h: 'not played' });
 	});
 
-	it('an early result in an unpublished round counts as unplayed, in the tie panel too', () => {
+	it('an early result in an unpublished round counts as unplayed, and blocks the end', () => {
 		publish(1);
 		report(0, score(2, 0));
 		report(1, score(2, 0));
 		report(2, score(2, 0)); // round 3, unpublished: p2 beats p3 early
 		expect(end()).toMatchObject({ unplayed: 1, ending: false, ready: false });
 		db.update(seasons).set({ deadline: '2020-01-01' }).run();
-		const tie = end().ties.find((t) => t.players.some((p) => p.playerId === 'p3'));
-		expect(tie).toMatchObject({ points: 0, h2h: 'not played' });
+		expect(end()).toMatchObject({ closed: true, unpublishedWeek: 2, ending: false, ties: [] });
 	});
 });
 
