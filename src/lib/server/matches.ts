@@ -5,7 +5,15 @@ import type { Report } from '#lib/league/report.ts';
 import { isVoid } from '#lib/league/status.ts';
 import { cardContext, matchCard } from '#lib/matchCard.ts';
 import { db } from '#lib/server/db/index.ts';
-import { audit, entries, former, matches, players } from '#lib/server/db/schema.ts';
+import {
+	audit,
+	entries,
+	former,
+	matches,
+	players,
+	publishedMatch,
+	seasons
+} from '#lib/server/db/schema.ts';
 import { groupName } from '#lib/season.ts';
 import { cutRounds, syncBracket } from '#lib/server/topCut.ts';
 
@@ -91,13 +99,19 @@ export const isVoided = (m: Match) =>
 		)
 	);
 
-// Pre-fills the report form: the legend the player last reported with, in any season.
+// Pre-fills the report form: the legend the player last reported with, in any season. Early
+// (holiday) results stay out until published, or the form would leak their legends.
 export function lastLegend(playerId: string): string | null {
 	const m = db
 		.select({ p1Id: matches.p1Id, p1Legend: matches.p1Legend, p2Legend: matches.p2Legend })
 		.from(matches)
+		.innerJoin(seasons, eq(matches.seasonId, seasons.id))
 		.where(
-			and(or(eq(matches.p1Id, playerId), eq(matches.p2Id, playerId)), isNotNull(matches.reportedAt))
+			and(
+				or(eq(matches.p1Id, playerId), eq(matches.p2Id, playerId)),
+				isNotNull(matches.reportedAt),
+				publishedMatch()
+			)
 		)
 		.orderBy(desc(matches.reportedAt))
 		.limit(1)

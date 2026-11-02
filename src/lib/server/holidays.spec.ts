@@ -28,6 +28,7 @@ import {
 	requestHoliday,
 	seasonUnlocks
 } from '#lib/server/holidays.ts';
+import { lastLegend } from '#lib/server/matches.ts';
 import type { Season } from '#lib/server/seasons.ts';
 import {
 	seedEntries,
@@ -432,6 +433,25 @@ describe('unlocked matches', () => {
 		);
 		expect(hooks.postToOrganizers).toHaveBeenCalledOnce();
 		expect(hooks.postResult).not.toHaveBeenCalled();
+	});
+
+	it("an early result's legends don't leak through the report form's prefill", async () => {
+		await report(as('p4')); // Player 1 on Jinx, Player 4 on Ahri
+		expect([lastLegend('p1'), lastLegend('p4')]).toEqual([null, null]);
+		// Player 4's published, open round 2 match vs Player 2.
+		const [m24] = db
+			.select()
+			.from(matches)
+			.where(and(eq(matches.round, 2), eq(matches.p1Id, 'p2')))
+			.all();
+		const prefill = async (user: User | null) =>
+			((await match(m24.id, user)).returned as { prefill: unknown }).prefill;
+		expect(await prefill(null)).toBeNull();
+		expect(await prefill(as('p3'))).toBeNull();
+		expect(await prefill(as('p2'))).toEqual({ p1Legend: '', p2Legend: '' });
+		db.update(seasons).set({ publishedRound: 3 }).where(eq(seasons.id, season.id)).run();
+		expect(lastLegend('p4')).toBe('Ahri');
+		expect(await prefill(as('p2'))).toEqual({ p1Legend: '', p2Legend: 'Ahri' });
 	});
 
 	it('the player pages list it for its two players only', async () => {
