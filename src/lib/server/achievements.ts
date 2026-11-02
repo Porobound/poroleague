@@ -72,11 +72,17 @@ export function playerHistory(db: Db, playerId: string): History {
 	};
 }
 
-// The one award entry point: inserts what each player has newly earned and never removes
-// anything (award-only), so it's safe after any write and on every start. One insert per
-// player keeps it under SQLite's variable limit.
-// ponytail: rebuilds each player's history; fine at league size.
-export function awardAchievements(db: Db, playerIds: string[]) {
+// A failed award must never fail the result write before it or the server start: it's logged,
+// and the next start's backfill retries it.
+function safely(what: string, fn: () => void) {
+	try {
+		fn();
+	} catch (e) {
+		console.error(`Achievement award failed (${what}):`, e);
+	}
+}
+
+function award(db: Db, playerIds: string[]) {
 	db.transaction((tx) => {
 		for (const playerId of new Set(playerIds)) {
 			const rows = evaluate(playerHistory(tx, playerId)).flatMap((p) =>
@@ -89,25 +95,36 @@ export function awardAchievements(db: Db, playerIds: string[]) {
 	});
 }
 
+// The award entry points: insert what each player has newly earned and never remove anything
+// (award-only), so they're safe after any write and on every start. One insert per player keeps
+// it under SQLite's variable limit. They never throw.
+// ponytail: rebuilds each player's history; fine at league size.
+export const awardAchievements = (db: Db, playerIds: string[]) =>
+	safely('players', () => award(db, playerIds));
+
 export const awardSeason = (db: Db, seasonId: number) =>
-	awardAchievements(
-		db,
-		db
-			.select({ id: entries.playerId })
-			.from(entries)
-			.where(eq(entries.seasonId, seasonId))
-			.all()
-			.map((e) => e.id)
+	safely(`season ${seasonId}`, () =>
+		award(
+			db,
+			db
+				.select({ id: entries.playerId })
+				.from(entries)
+				.where(eq(entries.seasonId, seasonId))
+				.all()
+				.map((e) => e.id)
+		)
 	);
 
 export const backfillAchievements = (db: Db) =>
-	awardAchievements(
-		db,
-		db
-			.select({ id: players.id })
-			.from(players)
-			.all()
-			.map((p) => p.id)
+	safely('backfill', () =>
+		award(
+			db,
+			db
+				.select({ id: players.id })
+				.from(players)
+				.all()
+				.map((p) => p.id)
+		)
 	);
 
 export type Tile = {
