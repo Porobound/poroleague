@@ -144,3 +144,18 @@ export const holidays = sqliteTable(
 	},
 	(t) => [index('holidays_season_idx').on(t.seasonId)]
 );
+
+// Earned once, kept forever: later edits, flags, drops and voids never remove a row. Ids are
+// definitions in src/lib/league/achievements.ts.
+export const playerAchievements = sqliteTable(
+	'player_achievements',
+	{
+		playerId: text('player_id')
+			.notNull()
+			.references(() => players.id),
+		achievementId: text('achievement_id').notNull(),
+		unlockedAt: integer('unlocked_at', { mode: 'timestamp' }).notNull(), // the triggering result or season event
+		seasonId: integer('season_id').references(() => seasons.id)
+	},
+	(t) => [primaryKey({ columns: [t.playerId, t.achievementId] })]
+);
