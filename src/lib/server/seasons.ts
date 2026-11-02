@@ -14,6 +14,7 @@ import {
 	weekOf
 } from '#lib/league/time.ts';
 import { seasonFields, seasonPhases, type SeasonFields, type SeasonStatus } from '#lib/season.ts';
+import { awardSeason } from '#lib/server/achievements.ts';
 import { db } from '#lib/server/db/index.ts';
 import { setPlayerRoles, type RoleChange } from '#lib/server/discord.ts';
 import { audit, entries, former, matches, players, seasons } from '#lib/server/db/schema.ts';
@@ -240,6 +241,7 @@ export function cancelDrop(seasonId: number, playerId: string, actorId: string) 
 			.values({ seasonId, actorId, action: 'undrop', after: { undropped: playerId } })
 			.run();
 	});
+	awardSeason(db, seasonId);
 	syncPlayerRoles([playerId]);
 }
 
@@ -264,6 +266,7 @@ export function finalizeSeason(seasonId: number, actorId: string, topCut: boolea
 			.run();
 		tx.insert(audit).values({ seasonId, actorId, action: 'finalize' }).run();
 	});
+	awardSeason(db, seasonId);
 	if (!topCut) syncSeasonRoles(seasonId);
 }
 
@@ -279,6 +282,7 @@ export function publishWeek(
 			.values({ seasonId, actorId, action: 'publish', after: { week, rounds } })
 			.run();
 	});
+	awardSeason(db, seasonId);
 }
 
 export function setGroup(seasonId: number, playerId: string, group: number) {
