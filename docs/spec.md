@@ -113,6 +113,18 @@ Long-term goals across seasons, shown on the career page (`/players/[id]`). Defi
 - **Display:** earned tiles with their date; locked ones greyed with progress ("7/10"), derived on load. Legend tracks show only once started.
 - Not in Discord posts or the API. No manual or organizer awards.
 
+## Profile cosmetics
+
+Players show off what they earned. Rules are pure, in `src/lib/league/cosmetics.ts`; the ownership check is `equip` in `src/lib/server/cosmetics.ts`.
+
+- **Slots:** one title, one badge, one avatar frame, each from one earned achievement; all optional. None equipped = plain name.
+- **Title:** the achievement's `title` text, in its tier colour (accent for one-offs). **Badge:** the achievement's icon in a small chip. **Frame:** the tier's rank ring around the avatar, so only tiered (Bronze / Silver / Gold) achievements can be frames.
+- **Model:** `players.title_achievement`, `badge_achievement`, `frame_achievement` hold achievement ids (no FK: ids are code). An id no longer in the list draws nothing.
+- **Equipping:** owner only, from **Customize profile** on their career page (three selects listing only what they earned, live preview). The server saves all three slots or none: each is empty or an achievement the player owns, and a frame needs a tier. Anyone else gets 403. No audit row (not a result change), no organizer moderation. Achievements are never revoked, so equipped items stay valid.
+- **Where:** career and season player page headers show frame, badge and title. Season standings and the top cut (bracket and phone cards) show the badge only. Everything else (schedule, match, audit, admin, leaderboard) shows plain names, and so do Discord posts and the API (#144 adds them there).
+- Name and avatar stay synced from Discord; login never touches cosmetics.
+- Erasure clears all three; a former player shows a plain name.
+
 ## Discord integration
 
 - **v1 (in site):** webhooks, URLs in env vars, one `fetch` per event.
