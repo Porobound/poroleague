@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Flair from '#lib/components/Flair.svelte';
 	import MatchCard from '#lib/components/MatchCard.svelte';
 	import { date } from '#lib/format.ts';
 	import type { PageProps } from './$types';
@@ -120,7 +121,10 @@
 													]}
 												>
 													<span class="sd">{p?.label ?? ''}</span>
-													<span class="nm">{p?.name ?? (s.bye ? 'Bye' : 'TBD')}</span>
+													<span class="nm"
+														><span class="t">{p?.name ?? (s.bye ? 'Bye' : 'TBD')}</span
+														>{#if p?.badge && !p.former}<Flair badge={p.badge} />{/if}</span
+													>
 													<span class="sc">{s.games?.[k] ?? ''}</span>
 												</span>
 											{/each}
@@ -300,21 +304,28 @@
 		color: var(--ink-muted);
 	}
 	.nm {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		min-width: 0;
+	}
+	.nm > .t {
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
+		min-width: 0;
 	}
 	.sc {
 		font: 500 14px/20px var(--font-mono);
 		color: var(--ink-muted);
 	}
-	.bp.w .nm {
+	.bp.w .t {
 		font-weight: 700;
 	}
 	.bp.w .sc {
 		color: var(--accent);
 	}
-	.bp.l .nm {
+	.bp.l .t {
 		color: var(--ink-muted);
 	}
 	.bp.tbd .nm,

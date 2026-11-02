@@ -5,6 +5,7 @@ import { isPublished } from '#lib/league/publish.ts';
 import { currentWeek, reportingClosed, weekOf } from '#lib/league/time.ts';
 import { matchName } from '#lib/league/bracket.ts';
 import { groupName } from '#lib/season.ts';
+import type { Badge } from '#lib/league/cosmetics.ts';
 
 export type CardMatch = {
 	id: number;
@@ -151,3 +152,18 @@ export function matchCard(m: CardMatch, c: CardContext) {
 	};
 }
 export type Card = ReturnType<typeof matchCard>;
+
+type Badged = Card['props']['sides'][number] & { badge: Badge | null };
+// Top cut only: every other card keeps plain names.
+export function withBadges(
+	card: Card,
+	badge: (id: string) => Badge | null,
+	m: { p1Id: string; p2Id: string }
+) {
+	const [a, b] = card.props.sides;
+	const sides: [Badged, Badged] = [
+		{ ...a, badge: badge(m.p1Id) },
+		{ ...b, badge: badge(m.p2Id) }
+	];
+	return { ...card, props: { ...card.props, sides } };
+}
