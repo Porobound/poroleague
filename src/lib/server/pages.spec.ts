@@ -134,7 +134,7 @@ describe('an early result in an unpublished round', () => {
 	const publish = () =>
 		db.update(seasons).set({ publishedRound: 2 }).where(eq(seasons.slug, 's1')).run();
 	const api = async (get: (e: never) => Response | Promise<Response>) =>
-		(await get({ params: { slug: 's1' } } as never)).json();
+		(await get({ params: { slug: 's1' }, url: new URL('http://localhost/api') } as never)).json();
 
 	it('counts nowhere, not even for its own players, until its round is published', async () => {
 		for (const user of [null, as('p1'), as('p3')]) {
