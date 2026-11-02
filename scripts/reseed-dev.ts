@@ -1,6 +1,7 @@
 // Dev only: backs up the dev DB, wipes it (keeping your player and session) and seeds three seasons:
 // Summer finished (counts-only results), Autumn in play (per-game results, flags, a drop, an erased
-// player; your rounds 5+ left open), Winter draft. Same run = same data. Posts nothing to Discord.
+// player; your rounds 5+ left open; holidays: yours approved for week 5, one pending, one approved
+// with a hidden early result, one revoked), Winter draft. Same run = same data. Posts nothing to Discord.
 // DEV_DISCORD_IDS (comma-separated, in .env) gives the first fake players real Discord ids.
 import Database from 'better-sqlite3';
 import { LEGENDS } from '#lib/legends.ts';
@@ -75,8 +76,8 @@ type M = { id: number; round: number; a: string; b: string; reported?: Result; b
 db.transaction(() => {
 	db.prepare(`delete from sessions where player_id <> ?`).run(ME);
 	db.exec(`
-		delete from audit; delete from matches; delete from entries; delete from seasons;
-		delete from sqlite_sequence where name in ('audit', 'matches', 'seasons');
+		delete from holidays; delete from audit; delete from matches; delete from entries; delete from seasons;
+		delete from sqlite_sequence where name in ('holidays', 'audit', 'matches', 'seasons');
 	`);
 	db.prepare('delete from players where id <> ?').run(ME);
 	const ids = NICKS.map((n, i) => {
@@ -316,6 +317,88 @@ db.transaction(() => {
 		if (db.prepare('select 1 from entries where season_id = ? and player_id = ?').get(s, erased))
 			log.run(s, null, ME, 'erase', null, JSON.stringify({ erased }), at('2026-10-05', 7));
 
+	// Holidays in Autumn (published to week 4; week 5 = 2–8 Nov, rounds 9–10; week 6 = 9–15 Nov, round 11).
+	const addHoliday = db.prepare(
+		`insert into holidays (season_id, player_id, from_date, to_date, status, decided_by, decided_at, created_at)
+		 values (?, ?, ?, ?, ?, ?, ?, ?)`
+	);
+	const holidayLog = (who: string, from: string, to: string, status: string, t: number) =>
+		log.run(
+			autumn.sid,
+			null,
+			ME,
+			'holiday',
+			null,
+			JSON.stringify({ holiday: who, from, to, status }),
+			t
+		);
+	const asked = at('2026-10-05', 7); // during week 4
+	const gone = new Set([ME, dropped, erased]);
+	const [pendingId, earlyId, revokedId] = shuffle(
+		(
+			db
+				.prepare(`select player_id as id from entries where season_id = ? and dropped = 0`)
+				.all(autumn.sid) as { id: string }[]
+		)
+			.map((r) => r.id)
+			.filter((id) => !gone.has(id))
+	);
+	// You: approved for week 5, so your round 9 and 10 matches are unlocked (you haven't played them).
+	addHoliday.run(autumn.sid, ME, '2026-11-02', '2026-11-08', 'approved', ME, asked + 3600, asked);
+	holidayLog(ME, '2026-11-02', '2026-11-08', 'approved', asked + 3600);
+	// Pending, for the approve and reject buttons.
+	addHoliday.run(autumn.sid, pendingId, '2026-11-09', '2026-11-15', 'pending', null, null, asked);
+	// Approved for week 6 with its round 11 result already in: hidden until week 6 is published.
+	addHoliday.run(
+		autumn.sid,
+		earlyId,
+		'2026-11-09',
+		'2026-11-15',
+		'approved',
+		ME,
+		asked + 7200,
+		asked
+	);
+	holidayLog(earlyId, '2026-11-09', '2026-11-15', 'approved', asked + 7200);
+	const r11 = autumn.ms.find(
+		(m) =>
+			m.round === 11 && (m.a === earlyId || m.b === earlyId) && !gone.has(m.a) && !gone.has(m.b)
+	);
+	if (r11) {
+		const r: Result = {
+			...play(r11.a, r11.b, true),
+			p1Legend: legend(r11.a),
+			p2Legend: legend(r11.b),
+			diceWinnerId: pick([r11.a, r11.b])
+		};
+		const t = at('2026-10-05', 8);
+		report.run(
+			r.games,
+			r.p1Games,
+			r.p2Games,
+			r.p1Legend,
+			r.p2Legend,
+			r.diceWinnerId,
+			earlyId,
+			t,
+			r11.id
+		);
+		log.run(autumn.sid, r11.id, earlyId, 'report', null, JSON.stringify(r), t);
+	}
+	// Revoked: the badge is gone, the week 5 matches stay unlocked.
+	addHoliday.run(
+		autumn.sid,
+		revokedId,
+		'2026-11-02',
+		'2026-11-08',
+		'revoked',
+		ME,
+		asked + 10800,
+		asked
+	);
+	holidayLog(revokedId, '2026-11-02', '2026-11-08', 'approved', asked + 9000);
+	holidayLog(revokedId, '2026-11-02', '2026-11-08', 'revoked', asked + 10800);
+
 	db.prepare(
 		`insert into seasons (slug, name, status, start_date, rounds_per_week, deadline, top_cut_size)
 		 values ('winter-2027', 'Winter 2027', 'draft', '2027-01-11', 2, '2027-02-21', 4)`
@@ -332,3 +415,4 @@ console.table(
 		)
 		.all()
 );
+console.table(db.prepare('select status, count(*) holidays from holidays group by status').all());
