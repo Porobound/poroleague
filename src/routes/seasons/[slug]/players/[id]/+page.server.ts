@@ -2,6 +2,7 @@ import { error, fail, redirect } from '@sveltejs/kit';
 import { dateSpan } from '#lib/format.ts';
 import { coversLabel, holidayWeeks, requestError, visibleTo } from '#lib/league/holiday.ts';
 import { legendMatches, playerLegends } from '#lib/league/legendStats.ts';
+import { look } from '#lib/league/cosmetics.ts';
 import { isPublished, published } from '#lib/league/publish.ts';
 import { leagueDate } from '#lib/league/time.ts';
 import { cardContext, matchCard } from '#lib/matchCard.ts';
@@ -66,6 +67,7 @@ export const load: PageServerLoad = ({ params, locals }) => {
 	return {
 		season,
 		player,
+		cosmetics: look(player),
 		row: rank >= 0 ? standing!.rows[rank] : null,
 		rank: rank + 1,
 		dice: {

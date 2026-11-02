@@ -5,6 +5,7 @@ import {
 	actions as careerActions,
 	load as careerPage
 } from '../../routes/players/[id]/+page.server.ts';
+import { load as seasonPlayerPage } from '../../routes/seasons/[slug]/players/[id]/+page.server.ts';
 import { ACHIEVEMENTS } from '#lib/league/achievements.ts';
 import { db } from '#lib/server/db/index.ts';
 import { playerAchievements, players } from '#lib/server/db/schema.ts';
@@ -146,5 +147,20 @@ describe('career page', () => {
 		await customize('p1', as('p1'), { title: 'first-blood', badge: '', frame: '' });
 		await customize('p1', as('p1'), { title: '', badge: '', frame: '' });
 		expect(slots('p1')).toEqual([null, null, null]);
+	});
+});
+
+it('the season player page shows the same look', async () => {
+	inSeason();
+	equip('p1', { title: 'first-blood', badge: null, frame: 'legend-ahri-master' });
+	const d = (await seasonPlayerPage({
+		params: { slug: 's1', id: 'p1' },
+		locals: { user: null, session: null },
+		url: new URL('http://localhost/x')
+	} as never)) as { cosmetics: unknown };
+	expect(d.cosmetics).toEqual({
+		title: { text: 'First Blood', tier: null },
+		badge: null,
+		frame: 'gold'
 	});
 });
