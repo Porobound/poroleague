@@ -88,6 +88,23 @@ describe('erasePlayer', () => {
 			.where(and(eq(entries.seasonId, seasonId), eq(entries.playerId, 'p1')))
 			.get();
 
+	it('clears equipped cosmetics, so a former player shows a plain name', () => {
+		db.update(players)
+			.set({
+				titleAchievement: 'first-blood',
+				badgeAchievement: 'first-blood',
+				frameAchievement: 'dice-player'
+			})
+			.where(eq(players.id, 'p1'))
+			.run();
+		erasePlayer('p1', ORG);
+		expect(player('p1')).toMatchObject({
+			titleAchievement: null,
+			badgeAchievement: null,
+			frameAchievement: null
+		});
+	});
+
 	it('match players carry only what pages show, never the Discord id', () => {
 		const [p1] = matchPlayers(getMatch(season.id, ms[0])!);
 		expect(p1).toEqual({
