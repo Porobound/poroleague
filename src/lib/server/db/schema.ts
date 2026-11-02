@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { index, integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { HOLIDAY_STATUSES } from '#lib/league/holiday.ts';
 
 const createdAt = () =>
 	integer('created_at', { mode: 'timestamp' })
@@ -124,4 +125,26 @@ export const audit = sqliteTable(
 		createdAt: createdAt()
 	},
 	(t) => [index('audit_season_idx').on(t.seasonId)]
+);
+
+// A player's holiday request for one season; approving it unlocks their matches in those weeks.
+export const holidays = sqliteTable(
+	'holidays',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		seasonId: integer('season_id')
+			.notNull()
+			.references(() => seasons.id),
+		playerId: text('player_id')
+			.notNull()
+			.references(() => players.id),
+		from: text('from_date').notNull(), // ISO date, first day away
+		to: text('to_date').notNull(), // ISO date, last day away
+		status: text('status', { enum: HOLIDAY_STATUSES }).notNull().default('pending'),
+		decidedBy: text('decided_by').references(() => players.id),
+		decidedAt: integer('decided_at', { mode: 'timestamp' }),
+		reason: text('reason'), // reject reason: shown to the player only, never audited
+		createdAt: createdAt()
+	},
+	(t) => [index('holidays_season_idx').on(t.seasonId)]
 );
