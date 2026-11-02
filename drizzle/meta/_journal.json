@@ -71,6 +71,13 @@
       "when": 1794651790934,
       "tag": "0009_uneven_shadow_king",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1795383397257,
+      "tag": "0010_fancy_fantastic_four",
+      "breakpoints": true
     }
   ]
 }
