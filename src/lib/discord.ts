@@ -130,6 +130,21 @@ export const dropEmbed = (o: {
 	timestamp: new Date().toISOString()
 });
 
+export const holidayEmbed = (o: {
+	player: string;
+	dates: string;
+	covers: string;
+	where: string;
+	url: string;
+}): Embed => ({
+	title: `Holiday request: ${escapeMd(o.player)}`,
+	url: o.url,
+	description: `Away ${o.dates} · ${o.covers}. Approve or reject in season admin.`,
+	color: SIGNAL,
+	footer: { text: o.where },
+	timestamp: new Date().toISOString()
+});
+
 export const seasonDeletedEmbed = (name: string, by: string): Embed => ({
 	title: `Season deleted: ${escapeMd(name)}`,
 	description: `By ${escapeMd(by)}. It's hidden from the site; the data is kept.`,
