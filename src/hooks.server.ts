@@ -1,5 +1,11 @@
-import type { Handle } from '@sveltejs/kit/hooks';
+import type { Handle, ServerInit } from '@sveltejs/kit/hooks';
+import { backfillAchievements } from '#lib/server/achievements.ts';
+import { db } from '#lib/server/db/index.ts';
 import { SESSION_COOKIE, validateSession } from '#lib/server/session.ts';
+
+// Every start, so every deploy: award what the current rules find in past results. Award-only, so
+// a rerun changes nothing.
+export const init: ServerInit = () => backfillAchievements(db);
 
 const api = (path: string) => path === '/api/v1' || path.startsWith('/api/v1/');
 
