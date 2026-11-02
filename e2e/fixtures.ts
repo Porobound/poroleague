@@ -42,7 +42,8 @@ export const SEASONS = {
 	holidayRequest: 'e2e-holiday-request',
 	holidayDecide: 'e2e-holiday-decide',
 	holidayEarly: 'e2e-holiday-early',
-	holidayBadge: 'e2e-holiday-badge'
+	holidayBadge: 'e2e-holiday-badge',
+	holiday: 'e2e-holiday'
 };
 export type SeasonKey = keyof typeof SEASONS;
 
