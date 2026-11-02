@@ -9,7 +9,13 @@
 {#snippet tile(t: Tile)}
 	<div class="tile" data-state={t.earned ? 'earned' : 'locked'} data-tier={t.tier}>
 		<span class="ico">
-			<img src={t.icon} alt="" width="48" height="48" class={[t.crest && 'champ']} />
+			<img
+				src={t.icon}
+				alt=""
+				width="48"
+				height="48"
+				class={[t.crest ? 'champ' : t.tier && 'emblem']}
+			/>
 			{#if t.crest}<img class="crest" src={t.crest} alt="" width="20" height="15" />{/if}
 		</span>
 		<span class="tx">
@@ -176,7 +182,19 @@
 		height: 48px;
 		box-sizing: border-box;
 		border-radius: var(--radius-md);
-		object-fit: cover; /* emblems are 16:9 with the crest centred */
+	}
+	/* Rank emblems are a small crest in the middle of a 1280×720 canvas: zoom in on the crest. */
+	.ico:has(.emblem) {
+		overflow: hidden;
+	}
+	.ico > img.emblem {
+		position: absolute;
+		left: -86px;
+		top: -34px;
+		width: 220px;
+		height: auto;
+		max-width: none;
+		border-radius: 0;
 	}
 	.champ {
 		border: 2px solid var(--tier);
