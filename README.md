@@ -63,7 +63,7 @@ Your test server has one real player: you. Use the season's **slug** (from its U
 5. `npm run db:holiday-dev -- <slug> [player-id]` adds a pending holiday request for a fake player (random if omitted) covering the next unpublished week, to test approving and rejecting in **Admin → Season → Holidays**.
 6. `npm run db:play-dev -- <slug> [share]` plays dev-vs-dev matches (default 0.6 of the schedule; `--drop` drops a dev player). `-- <slug> 1 --finish` plays every match, yours too.
 
-Or `npm run db:reseed-dev -- <your-discord-id>` backs up `local.db` and replaces it with four ready-made seasons (two finished, one with a top cut; in play; draft), keeping your login. The in-play season has holidays in every state, yours approved for the next unpublished week. It then runs the achievement backfill, so fake players range from no achievements to many, with every tier.
+Or `npm run db:reseed-dev -- <your-discord-id>` backs up `local.db` and replaces it with four ready-made seasons (two finished, one with a top cut; in play; draft), keeping your login. The in-play season has weeks 4–6 unpublished and holidays in every state on four of your opponents, so you test them from the other side: one approved (report your match early), one approved with the result against you already reported (hidden from everyone else; flag it), one pending (approve it in **Admin → Season** and your match opens), one revoked (badge gone, match still open). It prints the match links. You have no holiday; ask for one on your player page. It then runs the achievement backfill, so fake players range from no achievements to many, with every tier.
 
 Achievements:
 
