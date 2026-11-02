@@ -30,7 +30,7 @@ export const load: PageServerLoad = async (event) => {
 	const marks = me && scheduled ? seasonUnlocks(season) : null;
 	const ctx = {
 		...cardContext(season, list, locals.user?.id ?? null),
-		...(marks && { away: marks.away })
+		...(marks && { away: marks.away, revoked: marks.revoked })
 	};
 	const { closed, weeks, rounds, phases, cut, cutRound } = seasonProgress(season, groups);
 	const viewer = locals.user?.id ?? null;

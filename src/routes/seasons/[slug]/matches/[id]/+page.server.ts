@@ -69,9 +69,11 @@ export const load: PageServerLoad = async (event) => {
 	const { season, match, mode, closed, voided, waiting } = context(event, organizer, found);
 	const [p1, p2] = matchPlayers(match);
 	const viewer = event.locals.user?.id ?? null;
+	const { away, revoked } = seasonUnlocks(season);
 	const card = matchCard(match, {
 		...cardContext(season, seasonEntries(season.id), viewer, new Date(), cutRounds(season.id)),
-		away: seasonUnlocks(season).away
+		away,
+		revoked
 	});
 	return {
 		season,

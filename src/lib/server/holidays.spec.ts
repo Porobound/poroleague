@@ -193,6 +193,7 @@ describe('holiday writes', () => {
 		expect([...unlocked.keys()]).toEqual(['p1', 'p2']);
 		expect([...unlocked.get('p1')!]).toEqual([2]);
 		expect([...away.keys()]).toEqual(['p1']);
+		expect([...seasonUnlocks(season).revoked.keys()]).toEqual(['p2']);
 	});
 });
 
