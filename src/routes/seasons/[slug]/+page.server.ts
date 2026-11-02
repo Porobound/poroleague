@@ -30,7 +30,7 @@ export const load: PageServerLoad = async (event) => {
 		locals.user?.id ?? null,
 		new Date(),
 		0,
-		seasonUnlocks(season).away
+		seasonUnlocks(season)
 	);
 	const { closed, weeks, rounds, phases, cut, cutRound } = seasonProgress(season, groups);
 	const viewer = locals.user?.id ?? null;

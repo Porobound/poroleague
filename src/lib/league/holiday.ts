@@ -71,6 +71,9 @@ function weekMap(hs: Holiday[], statuses: HolidayStatus[], startDate: string): W
 export const unlockedWeeks = (hs: Holiday[], startDate: string) =>
 	weekMap(hs, ['approved', 'revoked'], startDate);
 export const awayWeeks = (hs: Holiday[], startDate: string) => weekMap(hs, ['approved'], startDate);
+// Weeks a revoked holiday covered: their matches stay unlocked, tagged "Holiday revoked".
+export const revokedWeeks = (hs: Holiday[], startDate: string) =>
+	weekMap(hs, ['revoked'], startDate);
 
 type M = { stage?: string; round: number; p1Id: string; p2Id: string };
 type S = { publishedRound: number; roundsPerWeek: number };

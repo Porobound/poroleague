@@ -15,7 +15,7 @@ export const load: PageServerLoad = ({ params, locals, url }) => {
 		locals.user?.id ?? null,
 		new Date(),
 		0,
-		seasonUnlocks(season).away
+		seasonUnlocks(season)
 	);
 	const all = seasonMatches(season.id);
 	const rpw = season.roundsPerWeek;
