@@ -1,6 +1,13 @@
 import { and, eq, inArray, isNull, ne, or } from 'drizzle-orm';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
-import { evaluate, type History } from '#lib/league/achievements.ts';
+import {
+	ACHIEVEMENTS,
+	crest,
+	evaluate,
+	type History,
+	type Tier
+} from '#lib/league/achievements.ts';
+import { leagueDate } from '#lib/league/time.ts';
 import * as schema from '#lib/server/db/schema.ts';
 
 const { audit, entries, matches, playerAchievements, players, seasons } = schema;
@@ -119,3 +126,61 @@ export const backfillAchievements = (db: Db) =>
 				.map((p) => p.id)
 		)
 	);
+
+export type Tile = {
+	id: string;
+	name: string;
+	description: string;
+	tier: Tier | null;
+	icon: string;
+	crest: string | null; // legend tiles: the tier crest over the champion icon
+	earned: string | null; // league date it unlocked
+	have: number;
+	need: number;
+};
+export type TrackView = { track: string; title: string; tiles: Tile[] };
+const LEAGUE_TRACKS: Record<string, string> = { variety: 'Variety', dice: 'Dice rolls' };
+
+// The career page's Achievements: earned from the table (award-only), progress derived now.
+export function careerAchievements(db: Db, playerId: string) {
+	const earned = new Map(
+		db
+			.select()
+			.from(playerAchievements)
+			.where(eq(playerAchievements.playerId, playerId))
+			.all()
+			.map((r) => [r.achievementId, r.unlockedAt])
+	);
+	const have = new Map(evaluate(playerHistory(db, playerId)).map((p) => [p.id, p.have]));
+	const tracks = new Map<string, TrackView>();
+	for (const a of ACHIEVEMENTS) {
+		const at = earned.get(a.id);
+		const t = tracks.get(a.track) ?? {
+			track: a.track,
+			title: a.legend ?? LEAGUE_TRACKS[a.track] ?? a.name,
+			tiles: []
+		};
+		t.tiles.push({
+			id: a.id,
+			name: a.name,
+			description: a.description,
+			tier: a.tier,
+			icon: a.icon,
+			crest: a.legend && a.tier ? crest(a.tier) : null,
+			earned: at ? leagueDate(at) : null,
+			have: at ? a.need : have.get(a.id)!,
+			need: a.need
+		});
+		tracks.set(a.track, t);
+	}
+	const all = [...tracks.values()];
+	return {
+		earned: ACHIEVEMENTS.filter((a) => earned.has(a.id)).length,
+		legends: all
+			.filter((t) => t.track.startsWith('legend-') && t.tiles.some((x) => x.have > 0))
+			.sort((a, b) => b.tiles[2].have - a.tiles[2].have || a.title.localeCompare(b.title)),
+		tracks: all.filter((t) => t.track in LEAGUE_TRACKS),
+		ones: all.filter((t) => t.tiles.length === 1).map((t) => t.tiles[0])
+	};
+}
+export type Career = ReturnType<typeof careerAchievements>;
