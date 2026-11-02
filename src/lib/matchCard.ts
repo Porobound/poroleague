@@ -1,6 +1,7 @@
 import { matchMode } from '#lib/league/report.ts';
 import { droppedIds, isOverdue, isVoid } from '#lib/league/status.ts';
-import { currentWeek, reportingClosed } from '#lib/league/time.ts';
+import { isPublished } from '#lib/league/publish.ts';
+import { currentWeek, reportingClosed, weekOf } from '#lib/league/time.ts';
 import { matchName } from '#lib/league/bracket.ts';
 import { groupName } from '#lib/season.ts';
 
@@ -35,6 +36,7 @@ type CardSeason = {
 	deadline: string | null;
 	startDate: string | null;
 	roundsPerWeek: number;
+	publishedRound: number;
 };
 export type Status = 'scheduled' | 'reported' | 'flagged' | 'void' | 'overdue';
 
@@ -72,6 +74,8 @@ export type CardContext = ReturnType<typeof cardContext>;
 export function matchCard(m: CardMatch, c: CardContext) {
 	const { inPlay, closed } = liveState(m, c.season, c.now);
 	const voided = isVoid(m, c.dropped);
+	// Holiday mode: only the two players and organizers ever see a card before its week is published.
+	const early = !isPublished(m, c.season.publishedRound);
 	const walkover = m.walkoverId ? (c.people.get(m.walkoverId)?.displayName ?? 'Unknown') : null;
 	const overdue = isOverdue(m, {
 		roundsPerWeek: c.season.roundsPerWeek,
@@ -124,9 +128,13 @@ export function matchCard(m: CardMatch, c: CardContext) {
 				? 'Void: a player dropped'
 				: walkover
 					? `Walkover · ${walkover} advances`
-					: m.reportedBy
-						? `Reported by ${person(m.reportedBy)?.displayName ?? 'an organizer'}`
-						: '',
+					: early
+						? m.reportedBy
+							? `Played early, hidden from standings until week ${weekOf(m.round, c.season.roundsPerWeek)} is published`
+							: 'Unlocked early'
+						: m.reportedBy
+							? `Reported by ${person(m.reportedBy)?.displayName ?? 'an organizer'}`
+							: '',
 			link: {
 				href: `/seasons/${c.season.slug}/matches/${m.id}`,
 				label: mode === 'report' ? 'Report' : 'View'

@@ -1,8 +1,12 @@
 import { error, fail } from '@sveltejs/kit';
 import { LEGENDS } from '#lib/legends.ts';
 import { flagEmbed, resultEmbed } from '#lib/discord.ts';
+import { isUnlocked, visibleTo } from '#lib/league/holiday.ts';
+import { isPublished } from '#lib/league/publish.ts';
 import { matchMode, parseReport } from '#lib/league/report.ts';
-import { playerAction } from '#lib/server/auth.ts';
+import { weekOf } from '#lib/league/time.ts';
+import { currentRole, playerAction } from '#lib/server/auth.ts';
+import { seasonUnlocks } from '#lib/server/holidays.ts';
 import {
 	flagMatch,
 	getMatch,
@@ -23,12 +27,20 @@ type Event = { params: { slug: string; id: string }; locals: App.Locals };
 
 // Everything an action checks, read in one go. Actions call it after awaiting the form, with no
 // await between this and the write, so two requests can't interleave.
-function context({ params, locals }: Event) {
+function context({ params, locals }: Event, organizer = false) {
 	const season = getSeason(params.slug, locals.user);
 	const id = Number(params.id);
 	const match = Number.isInteger(id) ? getMatch(season.id, id) : undefined;
-	// Unpublished pairings stay secret, organizers included; they have Admin → Matches.
-	if (!match || (match.stage === 'group' && match.round > season.publishedRound))
+	// Unpublished pairings stay secret, except a holiday's early match for its two players and
+	// (view only) organizers.
+	const { unlocked } = seasonUnlocks(season);
+	if (
+		!match ||
+		!(
+			visibleTo(match, locals.user?.id ?? null, season, unlocked) ||
+			(organizer && isUnlocked(match, season, unlocked))
+		)
+	)
 		error(404, 'Match not found');
 	const { inPlay, closed } = liveState(match, season);
 	const voided = isVoided(match);
@@ -45,8 +57,11 @@ function context({ params, locals }: Event) {
 	return { season, match, mode, closed, voided, waiting };
 }
 
-export const load: PageServerLoad = (event) => {
-	const { season, match, mode, closed, voided, waiting } = context(event);
+export const load: PageServerLoad = async (event) => {
+	// Organizers may look at an early match; currentRole re-checks the role with Discord at most
+	// once a minute, never the session flag alone.
+	const organizer = !!event.locals.user?.isOrganizer && (await currentRole(event));
+	const { season, match, mode, closed, voided, waiting } = context(event, organizer);
 	const [p1, p2] = matchPlayers(match);
 	const viewer = event.locals.user?.id ?? null;
 	const card = matchCard(
@@ -91,6 +106,11 @@ export const actions: Actions = {
 			});
 		saveReport(match, user.id, parsed.values);
 		const post = matchPost(event.url.origin, season, match, parsed.values);
+		// An early result posts when its week is published.
+		if (!isPublished(match, season.publishedRound))
+			return {
+				message: `Result saved. It stays hidden from everyone else until week ${weekOf(match.round, season.roundsPerWeek)} is published.`
+			};
 		postResult(resultEmbed(post));
 		const opponent = user.id === post.p1.id ? post.p2 : post.p1;
 		return { message: `Result saved. If something's off, you or ${opponent.name} can flag it.` };
