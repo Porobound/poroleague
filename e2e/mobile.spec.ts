@@ -6,6 +6,7 @@ import {
 	publishReplays,
 	removeSeason,
 	renamePlayer,
+	seedAchievements,
 	seedEmptySeason,
 	seedHoliday,
 	seedReplay,
@@ -39,6 +40,12 @@ test.beforeAll(() => {
 	seedHoliday('mobile', 1, day(1), day(5), 'approved');
 	seedHoliday('mobile', 3, day(1), day(5));
 	seedEmptySeason('mobileDraft', 'draft');
+	seedAchievements(me, [
+		'first-blood',
+		'veteran-10',
+		'legend-renata-glasc-master',
+		'legend-master-yi-pg-expert'
+	]);
 });
 test.afterAll(() => {
 	for (const key of ['mobile', 'mobileSignup', 'mobileDraft'] as const) removeSeason(key);

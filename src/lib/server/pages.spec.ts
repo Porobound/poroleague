@@ -13,7 +13,15 @@ import { GET as apiSeason } from '../../routes/api/v1/seasons/[slug]/+server.ts'
 import { GET as apiLegends } from '../../routes/api/v1/seasons/[slug]/legends/+server.ts';
 import type { Card } from '#lib/matchCard.ts';
 import { db } from '#lib/server/db/index.ts';
-import { audit, entries, matches, players, seasons, sessions } from '#lib/server/db/schema.ts';
+import {
+	audit,
+	entries,
+	matches,
+	playerAchievements,
+	players,
+	seasons,
+	sessions
+} from '#lib/server/db/schema.ts';
 import { leaderboard } from '#lib/server/players.ts';
 import { createSession, validateSession } from '#lib/server/session.ts';
 import { and, eq } from 'drizzle-orm';
@@ -276,6 +284,17 @@ describe('drafts on public sub-pages', () => {
 		const d = await careerLoad(event({ id: 'p1' }, null));
 		expect(d.history.map((h: { slug: string }) => h.slug)).toEqual(['s1']);
 		expect(await notFound(() => careerLoad(event({ id: 'org' }, null)))).toBe(true);
+	});
+
+	it('career page carries achievements', async () => {
+		db.insert(playerAchievements)
+			.values({ playerId: 'p1', achievementId: 'champion', unlockedAt: new Date(), seasonId: null })
+			.run();
+		const d = await careerLoad(event({ id: 'p1' }, null));
+		expect(d.achievements.earned).toBe(1);
+		expect(
+			d.achievements.ones.find((t: { id: string }) => t.id === 'champion').earned
+		).not.toBeNull();
 	});
 });
 
