@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { date, day, ordinal, pct, tzName, when } from './format';
+import { date, dateSpan, day, ordinal, pct, tzName, when } from './format';
 
 describe('ordinal', () => {
 	it('handles the teens and the st/nd/rd endings', () => {
@@ -33,5 +33,13 @@ describe('league dates', () => {
 		expect(tzName('2026-12-01')).toBe('EET');
 		expect(when(new Date('2026-07-01T09:30:00Z'))).toMatch(/1 Jul.*12:30.*EEST/);
 		expect(when(new Date('2026-12-01T09:30:00Z'))).toMatch(/1 Dec.*11:30.*EET/);
+	});
+});
+
+describe('dateSpan', () => {
+	it('one month once, both across months, one day alone', () => {
+		expect(dateSpan('2026-11-12', '2026-11-26')).toBe('12–26 Nov');
+		expect(dateSpan('2026-10-26', '2026-11-08')).toBe('26 Oct–8 Nov');
+		expect(dateSpan('2026-11-02', '2026-11-02')).toBe('2 Nov');
 	});
 });
