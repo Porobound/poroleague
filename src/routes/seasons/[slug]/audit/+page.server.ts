@@ -5,7 +5,7 @@ import type { PageServerLoad } from './$types';
 export const load: PageServerLoad = ({ params, locals, url }) => {
 	const season = publicSeason(params.slug, locals.user);
 	const type = url.searchParams.get('type');
-	const all = auditLines(season.id);
+	const all = auditLines(season.id, { publishedRound: season.publishedRound });
 	return {
 		season,
 		type,
