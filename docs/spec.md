@@ -22,7 +22,7 @@ Only one season can be running (signup, groups or play) at a time; drafts and fi
 - Admin → Players lists signups in signup order (`entries.created_at`) with a `#` and the signup time until groups are locked; alphabetical by group from then on. A refused save keeps what the organizer typed. Withdrawing deletes the entry, so signing up again goes to the back.
 - Out of scope: waitlist, a direct group-count setting, changing limits after the draw.
 
-4. **play** — weeks of `roundsPerWeek` rounds (12-player group: 11 rounds ≈ 6 weeks). A match past its week shows as **overdue** (derived, no stored state); it still reports normally. Weeks are **published** one at a time by an organizer (`seasons.published_round`, the last visible round): players, organizers on public pages and the bot API see only published rounds; Admin → Matches shows all and blocks results for unpublished ones. A published week can't be hidden again. A week can be published before it starts: its matches show as up next on the season and player pages and can be reported, but the calendar week still drives overdue status and the week's play-by date. Season deadline is hard: player reporting closes at the deadline. Once groups are drawn, the deadline can't be earlier than the last day of the final round's week: saving such a deadline and locking the groups are both refused. All dates/deadlines are in the league timezone (`LEAGUE_TZ = Europe/Helsinki`, config constant); deadline = 23:59 local on the deadline date.
+4. **play** — weeks of `roundsPerWeek` rounds (12-player group: 11 rounds ≈ 6 weeks). A match past its week shows as **overdue** (derived, no stored state); it still reports normally. Weeks are **published** one at a time by an organizer (`seasons.published_round`, the last visible round): players, organizers on public pages and the bot API see only published rounds, except a holiday's early matches ([Holiday mode](#holiday-mode)); Admin → Matches shows all and blocks results for unpublished ones that no holiday unlocked. A published week can't be hidden again. A week can be published before it starts: its matches show as up next on the season and player pages and can be reported, but the calendar week still drives overdue status and the week's play-by date. Season deadline is hard: player reporting closes at the deadline. Once groups are drawn, the deadline can't be earlier than the last day of the final round's week: saving such a deadline and locking the groups are both refused. All dates/deadlines are in the league timezone (`LEAGUE_TZ = Europe/Helsinki`, config constant); deadline = 23:59 local on the deadline date.
 5. **finished** — organizer enters results for any unplayed matches (else double loss), breaks unresolved ties, finalizes.
 
 **Top cut** (optional, `topCutSize` > 0): finalize moves the season to `topcut` instead of `finished`. Top X non-dropped players per group, seeded by rank then group (A1, B1, A2, …), standard bracket order with first-round same-group rematches swapped away; bracket = next power of two, byes to top seeds. Single elim, Bo3, same report flow; a level result advances the higher seed; no-shows are organizer walkovers. Organizer publishes the bracket and clicks **Finish season** once the final has a winner → `finished`. Plan: `docs/superpowers/plans/2026-10-26-top-cut.md`.
@@ -43,11 +43,25 @@ Only one season can be running (signup, groups or play) at a time; drafts and fi
 - Reporter's result counts immediately. The report form asks for confirmation before saving.
 - A saved report is final: neither player edits it. Either player (the reporter included, for their own mistakes) flags it with a reason to have an organizer fix it.
 - After a flag: only organizers change the result. Organizer either edits the result or keeps it as reported; both resolve the flag (`flagResolvedBy`/`flagResolvedAt`). A resolved result can't be flagged again.
-- Every result change (report, edit, flag, organizer edit, drop) goes to a public audit log: who, what, when, before/after.
+- Every result change (report, edit, flag, organizer edit, drop) goes to a public audit log: who, what, when, before/after (rows of a match in an unpublished round appear once it's published).
 - Either player may report an unreported match; the first report counts.
 - Reporting closes at the season deadline; flagging stays open until the season is finalized, so a last-minute report can still be disputed. A flag (resolved or not) locks the result for both players.
 - Void matches (a player dropped) can't be reported or flagged.
 - Match page: `/seasons/[slug]/matches/[id]` (report, edit, flag, read-only).
+
+## Holiday mode
+
+A player going away asks for a holiday; once an organizer approves it, their matches in the covered unpublished weeks unlock early, so they and each opponent can play and report them before they go. Plan: `docs/superpowers/plans/2026-11-02-holiday-mode.md`.
+
+- **Request** on the player's own season page while the season is in play and has a start date (not dropped players: their matches are void). Limits, first failure shown: two valid dates, last ≥ first, first ≥ today (league date), at most 4 weeks (28 days), last ≤ season deadline, covers a week with rounds still unpublished, no overlap with the player's own pending or approved holidays; at most 5 requests a day per player. The player's cards show until the last day away, while in play. Posts to the organizer channel; not audited.
+- **Statuses** (`holidays.status`): `pending` → `approved` / `rejected` (optional reason, shown only to the player, never audited) / `cancelled` (by the player, while pending, not audited); `approved` → `revoked`. Approve, reject and revoke only while the season is in play, each with a public `holiday` audit row (`Alice — holiday 12–26 Nov approved`). Pending requests stay pending when the season ends.
+- **Covered weeks**: weeks the range overlaps that have rounds (`src/lib/league/holiday.ts`). Week _w_ runs start date + 7(w−1) … + 7w − 1.
+- **Unlocking** is derived, never stored: a group match unlocks while its round is unpublished and either player has an `approved` or `revoked` holiday covering its week. A revoke removes the On holiday badge but keeps unlocked matches visible and reportable. Top-cut matches never unlock.
+- **Who sees an early match**: its two players on their season player pages ("Unlocked early") and the match page; organizers on Admin → Matches (editable) and the match page (view only, role re-checked with Discord). Nobody sees it on the schedule, season page, standings or API until its week is published.
+- **Hidden results**: one rule, `isPublished(m, publishedRound)` (`src/lib/league/publish.ts`, SQL twin `publishedMatch()` in `schema.ts`), decides whether a result counts anywhere public: standings (an unpublished result counts as unplayed), legend stats, career, Elo, API, public audit log, results webhook. The season can't end early while any result waits for its week.
+- **Discord**: a player report or organizer entry on an early match doesn't post to results; organizer edits post to the organizer channel. "Publish week N" posts each reported, non-void match of the published rounds to results.
+- **On holiday** badge (approved only): on the player page head while the current week is one of their holiday weeks, and as a name tag on pairings in those weeks and in Admin → Season → Holidays.
+- Dev data: `db:reseed-dev` seeds every state, `db:holiday-dev` adds a pending request (README → Fake players).
 
 ## Auth & roles
 
@@ -59,13 +73,13 @@ Only one season can be running (signup, groups or play) at a time; drafts and fi
 
 ## Organizer powers (`/admin` per season)
 
-| Phase  | Actions                                                                                                                                 |
-| ------ | --------------------------------------------------------------------------------------------------------------------------------------- |
-| Setup  | Create season, edit settings, delete season (soft: hidden, data kept, `deletedBy`/`deletedAt` recorded; typed slug once it has matches) |
-| Signup | Open/close signup (closing draws the groups), remove signup, change max players / group size                                            |
-| Groups | Redraw, move player between groups, reopen signup (clears the draw), lock (generates schedule)                                          |
-| Play   | Edit any result, resolve flags, mark player dropped, publish the next week (posted to Discord when the webhook is set)                  |
-| End    | Enter unplayed results, set tiebreak ranks, finalize season                                                                             |
+| Phase  | Actions                                                                                                                                                    |
+| ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Setup  | Create season, edit settings, delete season (soft: hidden, data kept, `deletedBy`/`deletedAt` recorded; typed slug once it has matches)                    |
+| Signup | Open/close signup (closing draws the groups), remove signup, change max players / group size                                                               |
+| Groups | Redraw, move player between groups, reopen signup (clears the draw), lock (generates schedule)                                                             |
+| Play   | Edit any result, resolve flags, mark player dropped, publish the next week (posted to Discord when the webhook is set), approve, reject or revoke holidays |
+| End    | Enter unplayed results, set tiebreak ranks, finalize season                                                                                                |
 
 Not in UI: managing organizers (Discord role), legend list (config file), messaging (Discord).
 
@@ -89,8 +103,8 @@ Career stats across seasons: **deferred**. Wanted: from any player page, see tha
 ## Discord integration
 
 - **v1 (in site):** webhooks, URLs in env vars, one `fetch` per event.
-  - results channel: every reported result ("Alice 2-1 Bob (Jinx vs Ahri, Alice won the roll)")
-  - organizer channel: flags, drops
+  - results channel: every reported result ("Alice 2-1 Bob (Jinx vs Ahri, Alice won the roll)"); early holiday results when their week is published
+  - organizer channel: flags, drops, holiday requests
   - pairings channel: posted by "Publish week N" in admin when `WEBHOOK_PAIRINGS_URL` is set (all rounds of that week): one message, an embed per round, players as `<@id>` mentions inside embeds (clickable names, no pings)
   - Every webhook post disables mentions (`allowed_mentions: none`), since names and flag reasons are user text; nothing pings, pairings included.
   - No DMs in v1: UI copy says "posted in Discord", never "notified".
@@ -106,7 +120,7 @@ Read-only JSON at `/api/v1` for third parties. The OpenAPI 3.1 spec `src/lib/ser
 
 - Anonymous `GET` only: `/api/v1/*` skips the session, so every viewer gets the same answer. `Access-Control-Allow-Origin: *`.
 - Endpoints: `/seasons`, `/seasons/{slug}`, `/seasons/{slug}/matches`, `/seasons/{slug}/top-cut`, `/seasons/{slug}/legends`. Not exposed: player pages (derivable), audit log (flag reasons), the Elo leaderboard (organizers only).
-- Visibility is the public pages': no drafts or deleted seasons, published rounds only, the bracket once published, flag state (`open`/`resolved`) but never the reason.
+- Visibility is the public pages': no drafts or deleted seasons, published rounds only, the bracket once published, flag state (`open`/`resolved`) but never the reason. Results in unpublished rounds (holiday mode) never appear in standings or legends.
 - Players are `{ id, name, former }`: no avatars (their URL holds the Discord id), no Discord ids.
 - Shapes are fixed DTOs in `src/lib/server/api.ts`, separate from page data. v1 only grows; renames or removals mean `/api/v2`.
 - Successful responses are cached 60 s; errors are `no-store`. `/api/v1` itself counts as API.
@@ -160,5 +174,6 @@ Designs come from Claude Design as HTML. Integration rule: **extract, don't past
 10. **Weekly publishing** — organizers publish each week's pairings; players see published weeks only. `docs/superpowers/plans/2026-10-23-weekly-publishing.md`
 11. **Design nits** — copy cuts from the 2026-10-23 design pass, compact phone season card. `docs/superpowers/plans/2026-10-23-design-nits.md`
 12. **Public API** — read-only `/api/v1` for third parties, docs page, Cloudflare rate limit. `docs/superpowers/plans/2026-10-31-public-api.md`
+13. **Holiday mode** — players going away ask for a holiday; approved, their matches unlock early and stay hidden until published. `docs/superpowers/plans/2026-11-02-holiday-mode.md`
 
 Each plan is written when the previous one lands, against the real code.

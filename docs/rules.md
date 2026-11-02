@@ -51,6 +51,7 @@ Items marked **[TBD]** are not decided yet.
 
 - A match not played in its week is **overdue**. Overdue matches can still be played and reported normally until the season deadline.
 - Reporting closes at the season deadline. A match still unplayed then counts as a loss for both players (0 points each), unless an organizer enters a result.
+- **Going away?** Ask for a holiday on your player page (up to 4 weeks, before the season deadline). Once an organizer approves, your matches in those weeks unlock early so you and each opponent can play and report them before you go. The results count once their week is published.
 - When organizers enter a result for an unplayed match (e.g. one player didn't show up): **[TBD]**.
 
 ## 7. Dropping out
