@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Avatar from '#lib/components/Avatar.svelte';
 	import ConfirmButton from '#lib/components/ConfirmButton.svelte';
+	import Flair from '#lib/components/Flair.svelte';
 	import MatchRows from '#lib/components/MatchRows.svelte';
 	import PlayerLegends from '#lib/components/PlayerLegends.svelte';
 	import RankChart from '#lib/components/RankChart.svelte';
@@ -51,12 +52,22 @@
 		<p class="pb-notice" role="alert">{form.holidayError}</p>
 	{/if}
 
-	<section class="profile">
+	<section class="profile" aria-labelledby="player-h">
 		<div class="profile-head">
-			<Avatar name={player.displayName} src={player.avatar} size={96} former={player.former} ring />
+			<Avatar
+				name={player.displayName}
+				src={player.avatar}
+				size={96}
+				former={player.former}
+				ring
+				frame={data.cosmetics.frame}
+			/>
 			<div class="head-text">
 				<div class="name-row">
-					<h1 class={['profile-name', player.former && 'pb-former']}>{player.displayName}</h1>
+					<h1 id="player-h" class={['profile-name', player.former && 'pb-former']}>
+						{player.displayName}
+					</h1>
+					{#if data.cosmetics.badge}<Flair badge={data.cosmetics.badge} />{/if}
 					<a class="tap" href="/players/{player.playerId}">Career</a>
 					{#if data.canRequest && cal}
 						<ConfirmButton
@@ -102,6 +113,9 @@
 						</ConfirmButton>
 					{/if}
 				</div>
+				{#if data.cosmetics.title}
+					<p class="cos-title" data-tier={data.cosmetics.title.tier}>{data.cosmetics.title.text}</p>
+				{/if}
 				<div class="badges">
 					{#if player.group}<span class="pb-badge">{groupName(player.group)}</span>{/if}
 					{#if player.dropped}
@@ -554,6 +568,9 @@
 	}
 	.name-row h1 {
 		margin: 0;
+	}
+	.cos-title {
+		margin: 0 0 8px;
 	}
 	.badges {
 		display: flex;

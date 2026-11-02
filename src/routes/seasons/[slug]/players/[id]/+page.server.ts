@@ -3,6 +3,7 @@ import { dateSpan } from '#lib/format.ts';
 import { coversLabel, holidayWeeks, requestError, visibleTo } from '#lib/league/holiday.ts';
 import { cutGap } from '#lib/league/cutGap.ts';
 import { legendMatches, playerLegends } from '#lib/league/legendStats.ts';
+import { look } from '#lib/league/cosmetics.ts';
 import { playerStats, rankByRound } from '#lib/league/playerStats.ts';
 import { isPublished, published } from '#lib/league/publish.ts';
 import { leagueDate, reportingClosed } from '#lib/league/time.ts';
@@ -86,6 +87,7 @@ export const load: PageServerLoad = ({ params, locals }) => {
 	return {
 		season,
 		player,
+		cosmetics: look(player),
 		row: rank >= 0 ? standing!.rows[rank] : null,
 		rank: rank + 1,
 		// Everyone drawn into the group, dropped players included, as in the season history.
