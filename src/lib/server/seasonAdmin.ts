@@ -1,5 +1,5 @@
 import { droppedIds, isVoid } from '#lib/league/status.ts';
-import { nextPublish } from '#lib/league/publish.ts';
+import { isPublished, nextPublish } from '#lib/league/publish.ts';
 import { reportingClosed } from '#lib/league/time.ts';
 import { seasonMatches } from '#lib/server/matches.ts';
 import { groupStandings, seasonEntries, type Season } from '#lib/server/seasons.ts';
@@ -31,7 +31,13 @@ export function nextPairings(season: Season, { all, live }: SeasonData) {
 				.map((m) => ({ group: m.group, p1Id: m.p1Id, p2Id: m.p2Id }))
 		}))
 		.filter((r) => r.pairs.length);
-	return { ...next, byRound, count: byRound.reduce((n, r) => n + r.pairs.length, 0) };
+	return {
+		...next,
+		byRound,
+		count: byRound.reduce((n, r) => n + r.pairs.length, 0),
+		// Results reported early (holiday mode) post when their round is published.
+		reported: live.filter((m) => m.reportedBy && m.round >= first && m.round <= last)
+	};
 }
 
 // End of season opens at the deadline, or earlier once every live match is reported.
@@ -39,7 +45,9 @@ export function endState(season: Season, { list, all, live }: SeasonData, now = 
 	const closed = reportingClosed(season.deadline, now);
 	const unplayed = live.filter((m) => !m.reportedBy).length;
 	const openFlags = live.filter((m) => m.flaggedBy && !m.flagResolvedAt).length;
-	const ending = closed || unplayed === 0;
+	// Early (holiday) results don't count until published, so every week must be out to end early.
+	const ending =
+		closed || (unplayed === 0 && live.every((m) => isPublished(m, season.publishedRound)));
 	type Tie = {
 		group: number;
 		resolved: boolean;
