@@ -23,7 +23,15 @@ import {
 } from '../../routes/seasons/[slug]/admin/season/+page.server.ts';
 import { auditLines } from '#lib/server/auditLog.ts';
 import { db } from '#lib/server/db/index.ts';
-import { audit, entries, holidays, matches, players, seasons } from '#lib/server/db/schema.ts';
+import {
+	audit,
+	entries,
+	holidays,
+	matches,
+	playerAchievements,
+	players,
+	seasons
+} from '#lib/server/db/schema.ts';
 import {
 	cancelHoliday,
 	decideHoliday,
@@ -31,7 +39,7 @@ import {
 	requestHoliday,
 	seasonUnlocks
 } from '#lib/server/holidays.ts';
-import { lastLegend } from '#lib/server/matches.ts';
+import { lastLegend, organizerEdit, saveReport } from '#lib/server/matches.ts';
 import { dropPlayer, groupStandings, seasonEntries, type Season } from '#lib/server/seasons.ts';
 import { endState, seasonData } from '#lib/server/seasonAdmin.ts';
 import {
@@ -668,6 +676,34 @@ describe('publishing a week with early results', () => {
 		expect(g.rows.find((r) => r.playerId === 'p4')!.points).toBe(3);
 		await publish();
 		expect(hooks.postResult).toHaveBeenCalledOnce();
+	});
+
+	it('awards early results only once their week is published, dated by the report', async () => {
+		const won = () =>
+			db
+				.select()
+				.from(playerAchievements)
+				.where(eq(playerAchievements.achievementId, 'first-blood'))
+				.all();
+		const get = (id: number) => db.select().from(matches).where(eq(matches.id, id)).get()!;
+		const result = {
+			games: '11',
+			p1Games: 2,
+			p2Games: 0,
+			p1Legend: 'Jinx',
+			p2Legend: 'Ahri',
+			diceWinnerId: 'p2'
+		};
+		saveReport(get(m23), 'p2', result);
+		organizerEdit(get(m23), 'org', { ...result, games: '211', p1Games: 2, p2Games: 1 });
+		organizerEdit(get(m13), 'org', { ...result, games: '22', p1Games: 0, p2Games: 2 });
+		expect(db.select().from(playerAchievements).all()).toEqual([]);
+		await publish();
+		expect(won().map((r) => [r.playerId, r.unlockedAt])).toEqual([
+			['p2', get(m23).reportedAt],
+			['p4', get(m13).reportedAt]
+		]);
+		expect(get(m13).reportedAt).toEqual(new Date('2026-10-08T10:00:00Z'));
 	});
 
 	it('leaves out a match voided by a drop', async () => {
