@@ -1,4 +1,4 @@
-import { roundRobin } from './roundRobin';
+import { roundRobin } from '#lib/league/roundRobin.ts';
 
 export type ScheduledMatch = { group: number; round: number; p1: string; p2: string };
 
