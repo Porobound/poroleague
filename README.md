@@ -59,10 +59,11 @@ Your test server has one real player: you. Use the season's **slug** (from its U
 1. **Admin → New season → Open signup**, and sign up yourself.
 2. `npm run db:seed-dev -- <slug> [count]` adds fake players (default 24).
 3. **Close signup** (draws groups) → **Groups → Lock** (builds the schedule).
-4. `npm run db:report-dev -- <match-id> <your-discord-id>` has your opponent report a match, to test flagging. The match id ends the match URL; your Discord id is under right-click yourself → **Copy User ID**.
-5. `npm run db:play-dev -- <slug> [share]` plays dev-vs-dev matches (default 0.6 of the schedule; `--drop` drops a dev player). `-- <slug> 1 --finish` plays every match, yours too.
+4. `npm run db:report-dev -- <match-id> <your-discord-id>` has your opponent report a match, to test flagging; also works on a match unlocked early by a holiday. The match id ends the match URL; your Discord id is under right-click yourself → **Copy User ID**.
+5. `npm run db:holiday-dev -- <slug> [player-id]` adds a pending holiday request for a fake player (random if omitted) covering the next unpublished week, to test approving and rejecting in **Admin → Season → Holidays**.
+6. `npm run db:play-dev -- <slug> [share]` plays dev-vs-dev matches (default 0.6 of the schedule; `--drop` drops a dev player). `-- <slug> 1 --finish` plays every match, yours too.
 
-Or `npm run db:reseed-dev -- <your-discord-id>` backs up `local.db` and replaces it with three ready-made seasons (finished, in play, draft), keeping your login.
+Or `npm run db:reseed-dev -- <your-discord-id>` backs up `local.db` and replaces it with three ready-made seasons (finished, in play, draft), keeping your login. The in-play season has holidays in every state, yours approved for the next unpublished week.
 
 ### Troubleshooting
 
@@ -77,17 +78,17 @@ Or `npm run db:reseed-dev -- <your-discord-id>` backs up `local.db` and replaces
 
 ## Commands
 
-| Command                                                                | What it does                                  |
-| ---------------------------------------------------------------------- | --------------------------------------------- |
-| `npm run dev`                                                          | Dev server on :5173                           |
-| `npm run check`                                                        | Type-check                                    |
-| `npx vitest run` / `npm run test:coverage`                             | Unit tests / with coverage                    |
-| `npm run test:e2e`                                                     | Browser tests (see below)                     |
-| `npm run build` / `npm run preview`                                    | Production build / serve it locally           |
-| `npm run lint` / `npm run format`                                      | Prettier check / fix                          |
-| `npm run db:generate` / `npm run db:migrate`                           | Migration from `schema.ts` / apply migrations |
-| `npm run db:studio`                                                    | Browse the database                           |
-| `npm run db:seed-dev`, `db:report-dev`, `db:play-dev`, `db:reseed-dev` | Dev data, see [Fake players](#fake-players)   |
+| Command                                                                                  | What it does                                  |
+| ---------------------------------------------------------------------------------------- | --------------------------------------------- |
+| `npm run dev`                                                                            | Dev server on :5173                           |
+| `npm run check`                                                                          | Type-check                                    |
+| `npx vitest run` / `npm run test:coverage`                                               | Unit tests / with coverage                    |
+| `npm run test:e2e`                                                                       | Browser tests (see below)                     |
+| `npm run build` / `npm run preview`                                                      | Production build / serve it locally           |
+| `npm run lint` / `npm run format`                                                        | Prettier check / fix                          |
+| `npm run db:generate` / `npm run db:migrate`                                             | Migration from `schema.ts` / apply migrations |
+| `npm run db:studio`                                                                      | Browse the database                           |
+| `npm run db:seed-dev`, `db:report-dev`, `db:holiday-dev`, `db:play-dev`, `db:reseed-dev` | Dev data, see [Fake players](#fake-players)   |
 
 `npm run test:e2e` builds the app, serves it on :4317 against a throwaway database in your installed Chrome, and leaves `local.db` and `npm run dev` alone. Discord is unreachable during the run, so the `ECONNREFUSED 127.0.0.1:9` lines are expected. Conventions for writing tests are in [`CLAUDE.md`](CLAUDE.md).
 
