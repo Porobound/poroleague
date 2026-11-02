@@ -1,8 +1,10 @@
-import { fail, redirect } from '@sveltejs/kit';
+import { error, fail, redirect } from '@sveltejs/kit';
 import { seasonDeletedEmbed } from '#lib/discord.ts';
 import { date } from '#lib/format.ts';
 import { asRaw, editableFields, parseSeasonForm, seasonFields } from '#lib/season.ts';
 import { organizerAction } from '#lib/server/auth.ts';
+import { decideHoliday, getHoliday, holidayAdmin } from '#lib/server/holidays.ts';
+import { seasonMatches } from '#lib/server/matches.ts';
 import { endState, seasonData } from '#lib/server/seasonAdmin.ts';
 import {
 	deleteSeason,
@@ -30,11 +32,38 @@ export const load: PageServerLoad = async ({ parent }) => {
 		running: season.status === 'draft' ? (runningSeason(season.id) ?? null) : null,
 		entryCount: d?.list.length ?? seasonEntries(season.id).length,
 		matchCount: matchCount(season.id),
-		end: d && endState(season, d)
+		end: d && endState(season, d),
+		holidays: d && holidayAdmin(season, seasonMatches(season.id))
 	};
 };
 
+// Approve and reject a pending holiday, revoke an approved one; only while the season is in play.
+async function decide(
+	event: Parameters<Actions[string]>[0],
+	from: 'pending' | 'approved',
+	to: 'approved' | 'rejected' | 'revoked'
+) {
+	const user = await organizerAction(event);
+	const form = await event.request.formData();
+	const season = getSeason(event.params.slug, user);
+	const h = getHoliday(season.id, Number(form.get('id'))) ?? error(404, 'Holiday not found');
+	if (season.status !== 'play')
+		return fail(409, { message: 'Holidays only change while the season is in play.' });
+	if (h.status !== from) return fail(409, { message: 'That holiday was already decided.' });
+	const reason = String(form.get('reason') ?? '').trim();
+	if (reason.length > 500) return fail(400, { message: 'Keep the reason under 500 characters.' });
+	if (!decideHoliday(h, user.id, to, reason))
+		return fail(409, { message: 'That holiday was already decided.' });
+	const name =
+		seasonEntries(season.id).find((e) => e.playerId === h.playerId)?.displayName ?? 'the player';
+	return { message: `Holiday ${to} for ${name}. It’s in the audit log.` };
+}
+
 export const actions: Actions = {
+	approveHoliday: (e) => decide(e, 'pending', 'approved'),
+	rejectHoliday: (e) => decide(e, 'pending', 'rejected'),
+	revokeHoliday: (e) => decide(e, 'approved', 'revoked'),
+
 	save: async (event) => {
 		const user = await organizerAction(event);
 		const season = getSeason(event.params.slug, user);

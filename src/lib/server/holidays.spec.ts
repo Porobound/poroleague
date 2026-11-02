@@ -1,13 +1,17 @@
 import { isHttpError, isRedirect } from '@sveltejs/kit';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
 	actions as playerPageActions,
 	load as playerPage
 } from '../../routes/seasons/[slug]/players/[id]/+page.server.ts';
+import {
+	actions as seasonActions,
+	load as seasonAdminPage
+} from '../../routes/seasons/[slug]/admin/season/+page.server.ts';
 import { auditLines } from '#lib/server/auditLog.ts';
 import { db } from '#lib/server/db/index.ts';
-import { audit, entries, holidays, players, seasons } from '#lib/server/db/schema.ts';
+import { audit, entries, holidays, matches, players, seasons } from '#lib/server/db/schema.ts';
 import {
 	cancelHoliday,
 	decideHoliday,
@@ -29,6 +33,22 @@ vi.mock('#lib/server/webhooks.ts', async (o) => ({
 	...(await o<typeof import('#lib/server/webhooks.ts')>()),
 	...hooks
 }));
+
+// The Discord re-check has its own tests (auth.spec.ts); here the session's role is trusted.
+vi.mock('#lib/server/auth.ts', async (original) => {
+	const { redirect } = await import('@sveltejs/kit');
+	const currentRole = async ({ locals }: { locals: App.Locals }) => !!locals.user?.isOrganizer;
+	const organizer = async ({ locals }: { locals: App.Locals }) => {
+		if (!locals.user?.isOrganizer) redirect(303, '/login/not-organizer');
+		return locals.user;
+	};
+	return {
+		...(await original<typeof import('#lib/server/auth.ts')>()),
+		currentRole,
+		organizerAction: organizer,
+		organizerPage: organizer
+	};
+});
 
 type User = NonNullable<App.Locals['user']>;
 const as = (id: string, isOrganizer = false): User => ({
@@ -299,5 +319,104 @@ describe('holiday cards on the player page', () => {
 			expect([d.holidays, d.canRequest, d.calendar]).toEqual([[], false, null]);
 			expect(JSON.stringify(d)).not.toContain('Ask a week ahead');
 		}
+	});
+});
+
+describe('organizers decide', () => {
+	let pending: number, approved: number;
+	beforeEach(() => {
+		pending = seedHoliday({
+			seasonId: season.id,
+			playerId: 'p1',
+			...range,
+			createdAt: new Date('2026-10-07T10:00:00Z')
+		}).id;
+		approved = seedHoliday({
+			seasonId: season.id,
+			playerId: 'p2',
+			...range,
+			status: 'approved',
+			decidedBy: 'org',
+			decidedAt: new Date()
+		}).id;
+	});
+	const act = (
+		name: 'approveHoliday' | 'rejectHoliday' | 'revokeHoliday',
+		id: number | string,
+		user: User | null = ORG,
+		form: Record<string, string> = {}
+	) => seasonActions[name]!(event({ slug: 's1' }, user, { id: String(id), ...form }));
+	const row = (id: number) => getHoliday(season.id, id)!;
+	const audits = () => db.select().from(audit).all();
+
+	it('approves a pending holiday once, with an audit row', async () => {
+		expect(await returned(act('approveHoliday', pending))).toEqual({
+			message: 'Holiday approved for Player 1. It’s in the audit log.'
+		});
+		expect(row(pending)).toMatchObject({ status: 'approved', decidedBy: 'org' });
+		expect(audits()).toMatchObject([{ action: 'holiday', after: { status: 'approved' } }]);
+		expect(await status(act('approveHoliday', pending))).toBe(409);
+		expect(await status(act('approveHoliday', approved))).toBe(409);
+		expect(audits()).toHaveLength(1);
+	});
+
+	it('rejects with an optional reason kept off the audit row', async () => {
+		expect(await status(act('rejectHoliday', pending, ORG, { reason: 'x'.repeat(501) }))).toBe(400);
+		await act('rejectHoliday', pending, ORG, { reason: '  Ask a week ahead.  ' });
+		expect(row(pending)).toMatchObject({ status: 'rejected', reason: 'Ask a week ahead.' });
+		expect(JSON.stringify(audits())).not.toContain('Ask a week ahead');
+		const other = requestHoliday(season.id, 'p3', range).id;
+		await act('rejectHoliday', other);
+		expect(row(other)).toMatchObject({ status: 'rejected', reason: null });
+	});
+
+	it('revokes only an approved holiday', async () => {
+		expect(await status(act('revokeHoliday', pending))).toBe(409);
+		expect(await returned(act('revokeHoliday', approved))).toEqual({
+			message: 'Holiday revoked for Player 2. It’s in the audit log.'
+		});
+		expect(row(approved).status).toBe('revoked');
+	});
+
+	it('organizers only, in play only, this season’s holidays only', async () => {
+		for (const name of ['approveHoliday', 'rejectHoliday', 'revokeHoliday'] as const) {
+			expect(await outcome(act(name, pending, as('p3')))).toEqual({
+				redirect: '/login/not-organizer'
+			});
+			expect(await outcome(act(name, 'junk'))).toEqual({ error: 404 });
+		}
+		const other = seedSeason({ slug: 's2', status: 'finished' });
+		const theirs = seedHoliday({ seasonId: other.id, playerId: 'p1', ...range }).id;
+		expect(await outcome(act('approveHoliday', theirs))).toEqual({ error: 404 });
+		db.update(seasons).set({ status: 'topcut' }).where(eq(seasons.id, season.id)).run();
+		expect(await status(act('approveHoliday', pending))).toBe(409);
+		expect(await status(act('revokeHoliday', approved))).toBe(409);
+		expect(audits()).toEqual([]);
+	});
+
+	it('the admin page lists pending and approved holidays in play', async () => {
+		// Player 2's round 3 match (vs Player 3) is unlocked; report it.
+		db.update(matches)
+			.set({ reportedBy: 'p2', p1Games: 2, p2Games: 0 })
+			.where(and(eq(matches.round, 3), eq(matches.p1Id, 'p2')))
+			.run();
+		const load = (s: Season) =>
+			loaded(seasonAdminPage({ parent: async () => ({ season: s }) } as never));
+		const d = await load(season);
+		expect(d.holidays).toEqual({
+			pending: [
+				{
+					id: pending,
+					player: { name: 'Player 1', avatar: null, former: false, href: '/seasons/s1/players/p1' },
+					away: '12–14 Oct',
+					covers: 'week 2 (round 3)',
+					asked: '7 Oct 2026'
+				}
+			],
+			approved: [
+				expect.objectContaining({ id: approved, early: '1 of 1 played', decided: '8 Oct 2026' })
+			]
+		});
+		expect((await load({ ...season, status: 'topcut' })).holidays).toBeNull();
 	});
 });
