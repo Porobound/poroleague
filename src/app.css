@@ -833,3 +833,32 @@ a:hover {
 		display: none;
 	}
 }
+
+/* Cosmetics: the badge chip holds the achievement's own icon (DS Flair, icon-only). */
+.pb-flair-icon {
+	overflow: hidden;
+}
+.pb-flair-icon > img.pb-flair-ico {
+	object-fit: cover;
+	border-radius: 50%;
+}
+/* Rank emblems are a small crest in the middle of a 1280×720 canvas: zoom in on the crest. */
+.pb-flair-icon > img.pb-flair-ico.emblem {
+	border-radius: 0;
+	scale: 2.4;
+}
+/* Equipped title under the name: tier colour, accent for one-offs. */
+.cos-title {
+	font: 600 15px/20px var(--font-sans);
+	color: var(--accent);
+	overflow-wrap: anywhere;
+}
+.cos-title[data-tier='bronze'] {
+	color: var(--tier-bronze);
+}
+.cos-title[data-tier='silver'] {
+	color: var(--tier-silver);
+}
+.cos-title[data-tier='gold'] {
+	color: var(--tier-gold);
+}
