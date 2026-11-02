@@ -111,7 +111,7 @@ Long-term goals across seasons, shown on the career page (`/players/[id]`). Defi
 - **Triggers:** report, organizer edit and keep-as-reported award both players; publishing a week, finalizing, cancelling a drop, publishing the top cut and finishing it award the whole season. Every server start also runs a backfill, so new rules reach past results.
 - **Unlock date:** the report date of the match that crossed the threshold (also for holiday results reported early). Perfect Group, Top Cut and Champion use the date of the season event (finalize, bracket published, top cut finished). Veteran uses the first counted match of the Nth season.
 - **Display:** earned tiles with their date; locked ones greyed with progress ("7/10"), derived on load. Legend tracks show only once started.
-- Not in Discord posts or the API. No manual or organizer awards.
+- In the API (`/players/{id}`), not in Discord posts. No manual or organizer awards.
 
 ## Profile cosmetics
 
@@ -121,7 +121,7 @@ Players show off what they earned. Rules are pure, in `src/lib/league/cosmetics.
 - **Title:** the achievement's `title` text, in its tier colour (accent for one-offs). **Badge:** the achievement's icon in a small chip. **Frame:** the tier's rank ring around the avatar, so only tiered (Bronze / Silver / Gold) achievements can be frames.
 - **Model:** `players.title_achievement`, `badge_achievement`, `frame_achievement` hold achievement ids (no FK: ids are code). An id no longer in the list draws nothing.
 - **Equipping:** owner only, from **Customize profile** on their career page (three selects listing only what they earned, live preview). The server saves all three slots or none: each is empty or an achievement the player owns, and a frame needs a tier. Anyone else gets 403. No audit row (not a result change), no organizer moderation. Achievements are never revoked, so equipped items stay valid.
-- **Where:** career and season player page headers show frame, badge and title. Season standings and the top cut (bracket and phone cards) show the badge only. Everything else (schedule, match, audit, admin, leaderboard) shows plain names, and so do Discord posts and the API (#144 adds them there).
+- **Where:** career and season player page headers show frame, badge and title. Season standings and the top cut (bracket and phone cards) show the badge only. Everything else (schedule, match, audit, admin, leaderboard) shows plain names, and so do Discord posts. The API sends all three on every player object.
 - Name and avatar stay synced from Discord; login never touches cosmetics.
 - Erasure clears all three; a former player shows a plain name.
 
@@ -144,9 +144,10 @@ Players show off what they earned. Rules are pure, in `src/lib/league/cosmetics.
 Read-only JSON at `/api/v1` for third parties. The OpenAPI 3.1 spec `src/lib/server/openapi.json` is the consumer docs: served at `/api/v1/openapi.json`, rendered at `/api` by Scalar.
 
 - Anonymous `GET` only: `/api/v1/*` skips the session, so every viewer gets the same answer. `Access-Control-Allow-Origin: *`.
-- Endpoints: `/seasons`, `/seasons/{slug}`, `/seasons/{slug}/matches`, `/seasons/{slug}/top-cut`, `/seasons/{slug}/legends`. Not exposed: player pages (derivable), audit log (flag reasons), the Elo leaderboard (organizers only).
+- Endpoints: `/seasons`, `/seasons/{slug}`, `/seasons/{slug}/matches`, `/seasons/{slug}/top-cut`, `/seasons/{slug}/legends`, `/players/{id}` (equipped cosmetics plus earned achievements, newest first; 404 unless the player is in a non-draft, non-deleted season, like the career page). Not exposed: career stats (derivable from the season endpoints), audit log (flag reasons), the Elo leaderboard (organizers only).
 - Visibility is the public pages': no drafts or deleted seasons, published rounds only, the bracket once published, flag state (`open`/`resolved`) but never the reason. Results in unpublished rounds (holiday mode) never appear in standings or legends.
-- Players are `{ id, name, former }`: no avatars (their URL holds the Discord id), no Discord ids.
+- Players are `{ id, name, former, title, badge, frame }`: no avatars (their URL holds the Discord id), no Discord ids. `title`, `badge` and `frame` are the equipped achievement objects (`id, name, title, tier, icon`) or `null`; an erased player has none.
+- Achievement icons are absolute URLs built from the request origin (`ORIGIN` in prod), so a bot can embed them. Nothing earned comes from an unpublished result (award rule above), and `/players/{id}` has no season field, so an award from a season deleted later doesn't leak it.
 - Shapes are fixed DTOs in `src/lib/server/api.ts`, separate from page data. v1 only grows; renames or removals mean `/api/v2`.
 - Successful responses are cached 60 s; errors are `no-store`. `/api/v1` itself counts as API.
 - Contract tests (`src/lib/server/openapi.spec.ts`) hold the spec to the code: real responses validate against it, every object schema is closed, routes match `paths`, and the spec passes the OpenAPI 3.1 meta-schema. A new field fails until it's documented.
