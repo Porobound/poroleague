@@ -55,6 +55,7 @@
 						name={r.name}
 						avatar={r.avatar}
 						former={r.former}
+						badge={r.badge}
 						href="/seasons/{slug}/players/{r.playerId}"
 					>
 						{#if showTies && r.unresolvedTie}<span class="pb-tie" title="Tied: an organizer decides"
