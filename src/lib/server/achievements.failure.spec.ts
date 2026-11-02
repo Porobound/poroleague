@@ -1,5 +1,5 @@
 import { eq } from 'drizzle-orm';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
 import { init } from '../../hooks.server.ts';
 import { actions as matchActions } from '../../routes/seasons/[slug]/matches/[id]/+page.server.ts';
 import { db } from '#lib/server/db/index.ts';
@@ -20,12 +20,11 @@ vi.mock('#lib/server/webhooks.ts', async (o) => ({
 	...hooks
 }));
 
-let logged: ReturnType<typeof vi.spyOn>;
+let logged: MockInstance<typeof console.error>;
 beforeEach(() => {
 	logged = vi.spyOn(console, 'error').mockImplementation(() => {});
 	hooks.postResult.mockClear();
 });
-afterEach(() => logged.mockRestore());
 
 const user = { id: 'p1', displayName: 'Player 1', avatar: null, isOrganizer: false };
 function event(params: Record<string, string>, form: Record<string, string>) {
