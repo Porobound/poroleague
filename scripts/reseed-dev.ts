@@ -4,12 +4,13 @@
 // your rounds 5+ left open, weeks 4–6 unpublished; holidays on four of your opponents: one approved
 // to report early, one approved and already reported, one pending, one revoked), Winter draft. Then
 // it awards achievements: a one-trick, a flex player and a lucky roller reach gold, a newcomer has
-// none. Same run = same data, with Autumn dated from today (always the first day of its week 4).
+// none. Fake players equip random cosmetics from what they earned (some none, one with the longest
+// title). Same run = same data, with Autumn dated from today (always the first day of its week 4).
 // Posts nothing to Discord.
 // DEV_DISCORD_IDS (comma-separated, in .env) gives the first fake players real Discord ids.
 import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
-import { ACHIEVEMENTS } from '#lib/league/achievements.ts';
+import { ACHIEVEMENTS, achievementById } from '#lib/league/achievements.ts';
 import { drawBracket } from '#lib/league/bracket.ts';
 import { LEGENDS } from '#lib/legends.ts';
 import { roundRobin } from '#lib/league/roundRobin.ts';
@@ -92,6 +93,7 @@ type M = { id: number; round: number; a: string; b: string; reported?: Result; b
 db.transaction(() => {
 	db.prepare(`delete from sessions where player_id <> ?`).run(ME);
 	db.exec(`
+		update players set title_achievement = null, badge_achievement = null, frame_achievement = null;
 		delete from player_achievements; delete from holidays; delete from audit; delete from matches; delete from entries; delete from seasons;
 		delete from sqlite_sequence where name in ('holidays', 'audit', 'matches', 'seasons');
 	`);
@@ -549,3 +551,52 @@ const none = db
 	)
 	.get() as { n: number };
 console.log('Players with none:', none.n);
+
+// Cosmetics: most fake players equip something they earned, some nothing; the player with the most
+// achievements also gets the longest title, for header wrapping at 390 px.
+// Gold among the longest, so it also draws the biggest frame.
+const LONGEST = ACHIEVEMENTS.reduce((a, b) =>
+	b.title.length > a.title.length ||
+	(b.title.length === a.title.length && b.tier === 'gold' && a.tier !== 'gold')
+		? b
+		: a
+);
+const earnedBy = db.prepare(
+	'select achievement_id id from player_achievements where player_id = ?'
+);
+const setLook = db.prepare(
+	'update players set title_achievement = ?, badge_achievement = ?, frame_achievement = ? where id = ?'
+);
+const fakes = db
+	.prepare('select id from players where id <> ? and erased_at is null order by id')
+	.all(ME) as { id: string }[];
+for (const { id } of fakes) {
+	const mine = (earnedBy.all(id) as { id: string }[]).map((r) => r.id);
+	if (!mine.length || rand() < 0.25) continue;
+	const maybe = (l: string[]) => (l.length && rand() < 0.8 ? pick(l) : null);
+	setLook.run(
+		maybe(mine),
+		maybe(mine),
+		maybe(mine.filter((x) => achievementById.get(x)?.tier)),
+		id
+	);
+}
+const top = db
+	.prepare(
+		'select player_id id from player_achievements where player_id <> ? group by player_id order by count(*) desc, player_id limit 1'
+	)
+	.get(ME) as { id: string };
+db.prepare(
+	'insert or ignore into player_achievements (player_id, achievement_id, unlocked_at) values (?, ?, unixepoch())'
+).run(top.id, LONGEST.id);
+setLook.run(LONGEST.id, LONGEST.id, LONGEST.id, top.id);
+console.log(
+	'Cosmetics:',
+	db
+		.prepare(
+			`select count(title_achievement) titles, count(badge_achievement) badges, count(frame_achievement) frames,
+			 sum(title_achievement is null and badge_achievement is null and frame_achievement is null) bare from players`
+		)
+		.get(),
+	`· longest title "${LONGEST.title}"`
+);
