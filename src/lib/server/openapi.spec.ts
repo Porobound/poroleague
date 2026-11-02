@@ -10,10 +10,11 @@ import { GET as seasonsGet } from '../../routes/api/v1/seasons/+server.ts';
 import { GET as legendsGet } from '../../routes/api/v1/seasons/[slug]/legends/+server.ts';
 import { GET as matchesGet } from '../../routes/api/v1/seasons/[slug]/matches/+server.ts';
 import { GET as topCutGet } from '../../routes/api/v1/seasons/[slug]/top-cut/+server.ts';
+import { GET as playerGet } from '../../routes/api/v1/players/[id]/+server.ts';
 import { flagMatch, keepResult, saveReport } from '#lib/server/matches.ts';
 import { cutState, publishCut, walkover } from '#lib/server/topCut.ts';
 import { db } from '#lib/server/db/index.ts';
-import { matches, players, seasons } from '#lib/server/db/schema.ts';
+import { matches, playerAchievements, players, seasons } from '#lib/server/db/schema.ts';
 import { erasePlayer } from '#lib/server/players.ts';
 import { dropPlayer } from '#lib/server/seasons.ts';
 import { seedEntries, seedMatch, seedPlayers, seedSeason } from '#lib/server/test/seed.ts';
@@ -144,6 +145,15 @@ describe('responses match the spec', () => {
 			})
 			.where(eq(players.id, 'p1'))
 			.run();
+		db.insert(playerAchievements)
+			.values({
+				playerId: 'p1',
+				achievementId: 'legend-jinx-master',
+				unlockedAt: new Date(),
+				seasonId: null
+			})
+			.onConflictDoNothing()
+			.run();
 		erasePlayer('p9', 'org');
 
 		const early = seedSeason({ slug: 'early', status: 'signup' }).id;
@@ -179,6 +189,14 @@ describe('responses match the spec', () => {
 			(await check('/seasons/{slug}/legends', legendsGet, { slug: 'cut' })).body.length
 		).toBeGreaterThan(0);
 		await check('/seasons/{slug}/legends', legendsGet, { slug: 'nope' });
+	});
+
+	it('/players/{id}', async () => {
+		const { body } = await check('/players/{id}', playerGet, { id: 'p1' });
+		expect(body.achievements.length).toBeGreaterThan(0);
+		expect(body.title).not.toBeNull();
+		await check('/players/{id}', playerGet, { id: 'p9' }); // erased: former, no cosmetics
+		expect((await check('/players/{id}', playerGet, { id: 'nope' })).status).toBe(404);
 	});
 
 	it('/openapi.json', async () => {

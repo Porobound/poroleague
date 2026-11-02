@@ -1,7 +1,8 @@
 // Public read-only API (`/api/v1`, documented in openapi.json): fixed shapes over the same data the public pages
 // show, so a page redesign can't break a consumer. Avatars and Discord ids never leave here.
 import { json } from '@sveltejs/kit';
-import { achievementById, type Achievement } from '#lib/league/achievements.ts';
+import { and, eq, isNull, ne } from 'drizzle-orm';
+import { ACHIEVEMENTS, achievementById, type Achievement } from '#lib/league/achievements.ts';
 import { look, NOTHING, type Equipped } from '#lib/league/cosmetics.ts';
 import { roundName } from '#lib/league/bracket.ts';
 import { gameWinPct, legendMatches, legendStats, matchWinPct } from '#lib/league/legendStats.ts';
@@ -10,6 +11,8 @@ import { droppedIds, isOverdue, isVoid } from '#lib/league/status.ts';
 import { currentWeek, weekOf } from '#lib/league/time.ts';
 import { liveState } from '#lib/matchCard.ts';
 import { groupName, hasSchedule } from '#lib/season.ts';
+import { db } from '#lib/server/db/index.ts';
+import { entries, former, playerAchievements, players, seasons } from '#lib/server/db/schema.ts';
 import { bracketMatches, publicMatches, seasonMatches, type Match } from '#lib/server/matches.ts';
 import {
 	allSeasons,
@@ -198,4 +201,43 @@ export function legendList(s: Season) {
 		matchWinPct: matchWinPct(t),
 		gameWinPct: gameWinPct(t)
 	}));
+}
+
+const ORDER = new Map(ACHIEVEMENTS.map((a, i) => [a.id, i]));
+
+// The career page's rule: a player is public once they're in a non-draft season that isn't deleted.
+// Earned rows come only from published results, so none reveals a result the site still hides.
+// No season field: an award from a season deleted later mustn't leak it.
+export function playerDetail(id: string, origin: string) {
+	const listed = db
+		.select({ id: entries.playerId })
+		.from(entries)
+		.innerJoin(seasons, eq(entries.seasonId, seasons.id))
+		.where(and(eq(entries.playerId, id), isNull(seasons.deletedAt), ne(seasons.status, 'draft')))
+		.get();
+	if (!listed) return null;
+	const p = db
+		.select({
+			playerId: players.id,
+			displayName: players.displayName,
+			former: former(),
+			titleAchievement: players.titleAchievement,
+			badgeAchievement: players.badgeAchievement,
+			frameAchievement: players.frameAchievement
+		})
+		.from(players)
+		.where(eq(players.id, id))
+		.get()!;
+	const achievements = db
+		.select()
+		.from(playerAchievements)
+		.where(eq(playerAchievements.playerId, id))
+		.all()
+		.flatMap((r) => {
+			const a = achievementById.get(r.achievementId);
+			return a ? [{ a, at: r.unlockedAt }] : [];
+		})
+		.sort((x, y) => y.at.getTime() - x.at.getTime() || ORDER.get(x.a.id)! - ORDER.get(y.a.id)!)
+		.map(({ a, at }) => ({ ...achievementDto(a, origin), unlockedAt: at.toISOString() }));
+	return { ...playerRef(p, origin), achievements };
 }
