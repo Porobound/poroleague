@@ -142,6 +142,9 @@ export function seasonEntries(seasonId: number) {
 			displayName: players.displayName,
 			avatar: players.avatar,
 			former: former(),
+			titleAchievement: players.titleAchievement,
+			badgeAchievement: players.badgeAchievement,
+			frameAchievement: players.frameAchievement,
 			group: entries.group,
 			dropped: entries.dropped,
 			tiebreak: entries.tiebreak
