@@ -1,6 +1,7 @@
 import { error } from '@sveltejs/kit';
 import { and, asc, count, desc, eq, inArray, isNotNull, isNull, ne, sql } from 'drizzle-orm';
 import { currentRound, cutFinish, roundName } from '#lib/league/bracket.ts';
+import { look } from '#lib/league/cosmetics.ts';
 import { defaultGroupCount, splitGroups } from '#lib/league/groups.ts';
 import { isPublished, published } from '#lib/league/publish.ts';
 import { roundCount } from '#lib/league/roundRobin.ts';
@@ -362,7 +363,8 @@ export function groupStandings(
 				...r,
 				name: by.get(r.playerId)!.displayName,
 				avatar: by.get(r.playerId)!.avatar,
-				former: by.get(r.playerId)!.former
+				former: by.get(r.playerId)!.former,
+				badge: look(by.get(r.playerId)!).badge
 			}))
 		};
 	});
