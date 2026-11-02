@@ -1,9 +1,17 @@
 import { expect, test, type Page } from '@playwright/test';
-import { removeSeason, seedFinishedGroups } from './db.ts';
+import { removeSeason, seedAchievements, seedCosmetics, seedFinishedGroups } from './db.ts';
 import { ORGANIZER, SEASONS, as, player, playerName } from './fixtures.ts';
 
 const slug = SEASONS.topCut;
-test.beforeAll(() => seedFinishedGroups('topCut'));
+// Top cut 1 wears the longest title as their badge: the bracket shows only the badge.
+test.beforeAll(() => {
+	seedFinishedGroups('topCut');
+	seedAchievements(player('topCut', 1), ['legend-master-yi-pg-master']);
+	seedCosmetics(player('topCut', 1), {
+		title: 'legend-master-yi-pg-master',
+		badge: 'legend-master-yi-pg-master'
+	});
+});
 test.afterAll(() => removeSeason('topCut'));
 
 const game = (page: Page, n: number) =>
@@ -79,6 +87,15 @@ test('top cut from setup to champion', async ({ browser }) => {
 	await expect(p1.getByText('Champion')).toBeVisible();
 });
 
+test('the bracket shows badges, not titles', async ({ page }) => {
+	await page.goto(`/seasons/${slug}/top-cut`);
+	const bracket = page.getByRole('region', { name: 'Bracket' });
+	await expect(
+		bracket.getByRole('img', { name: 'Master Yi (PG) Master badge' }).first()
+	).toBeVisible();
+	await expect(bracket.getByText('Master Yi (PG) Master', { exact: true })).toHaveCount(0);
+});
+
 test('the bracket on a phone shows round chips and cards', async ({ browser }) => {
 	const page = await browser.newPage({
 		...as(player('topCut', 2)),
@@ -92,4 +109,12 @@ test('the bracket on a phone shows round chips and cards', async ({ browser }) =
 	await expect(
 		page.getByRole('navigation', { name: 'Pages' }).getByRole('link', { name: 'Top cut' })
 	).toHaveAttribute('aria-current', 'page');
+	await page
+		.getByRole('group', { name: 'Rounds' })
+		.getByRole('button', { name: 'Semifinals' })
+		.click();
+	await expect(
+		page.getByRole('img', { name: 'Master Yi (PG) Master badge' }).first()
+	).toBeVisible();
+	expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });
