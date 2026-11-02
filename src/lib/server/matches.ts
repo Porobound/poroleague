@@ -5,6 +5,7 @@ import { masked } from '#lib/league/publish.ts';
 import type { Report } from '#lib/league/report.ts';
 import { isVoid } from '#lib/league/status.ts';
 import { cardContext, matchCard } from '#lib/matchCard.ts';
+import { awardAchievements } from '#lib/server/achievements.ts';
 import { db } from '#lib/server/db/index.ts';
 import { audit, entries, former, matches, players, seasons } from '#lib/server/db/schema.ts';
 import { groupName } from '#lib/season.ts';
@@ -134,6 +135,7 @@ export function saveReport(m: Match, actorId: string, values: Report) {
 			.run();
 		if (m.stage === 'playoff') syncBracket(tx, { id: m.seasonId }, actorId);
 	});
+	awardAchievements(db, [m.p1Id, m.p2Id]);
 }
 
 export const resultOf = (m: Match): Report | null =>
@@ -207,6 +209,7 @@ export function organizerEdit(m: Match, actorId: string, values: Report) {
 			.run();
 		if (m.stage === 'playoff') syncBracket(tx, { id: m.seasonId }, actorId);
 	});
+	awardAchievements(db, [m.p1Id, m.p2Id]);
 }
 
 export function keepResult(m: Match, actorId: string) {
@@ -225,6 +228,7 @@ export function keepResult(m: Match, actorId: string) {
 			})
 			.run();
 	});
+	awardAchievements(db, [m.p1Id, m.p2Id]);
 }
 
 export function flagMatch(m: Match, actorId: string, reason: string) {
