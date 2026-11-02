@@ -2,7 +2,11 @@ import { eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import { db } from '#lib/server/db/index.ts';
 import { audit, entries, playerAchievements, seasons } from '#lib/server/db/schema.ts';
-import { awardAchievements, backfillAchievements } from '#lib/server/achievements.ts';
+import {
+	awardAchievements,
+	backfillAchievements,
+	careerAchievements
+} from '#lib/server/achievements.ts';
 import { flagMatch, keepResult, organizerEdit, saveReport } from '#lib/server/matches.ts';
 import { cancelDrop, dropPlayer, finalizeSeason, publishWeek } from '#lib/server/seasons.ts';
 import type { Report } from '#lib/league/report.ts';
@@ -161,5 +165,50 @@ describe('result writes award', () => {
 		cancelDrop(s.id, 'p2', 'p1');
 		expect(row('p1', 'perfect-group')).toBeDefined();
 		expect(row('p1', 'first-blood')).toBeDefined();
+	});
+});
+
+describe('careerAchievements', () => {
+	it('shows started legend tracks, league tracks and one-offs; earned rows win over progress', () => {
+		seedPlayers(2);
+		const s = season('a');
+		win(s.id, 1, 1);
+		win(s.id, 2, 2);
+		db.insert(playerAchievements)
+			.values([
+				{ playerId: 'p1', achievementId: 'legend-jinx-master', unlockedAt: D(5), seasonId: null },
+				{ playerId: 'p1', achievementId: 'legend-renamed-player', unlockedAt: D(5), seasonId: null }
+			])
+			.run();
+		const c = careerAchievements(db, 'p1');
+		expect(c.earned).toBe(1); // unknown ids don't count
+		expect(c.legends.map((t) => t.title)).toEqual(['Jinx', 'Ahri']);
+		const [jinx, ahri] = c.legends;
+		expect(jinx.tiles.map((t) => [t.earned, t.have])).toEqual([
+			[null, 0],
+			[null, 0],
+			['2026-01-05', 25]
+		]);
+		expect(ahri.tiles[0]).toMatchObject({
+			name: 'Ahri Player',
+			have: 2,
+			need: 3,
+			earned: null,
+			crest: '/achievements/tiers/bronze.svg'
+		});
+		expect(c.tracks.map((t) => [t.title, t.tiles.map((x) => x.have)])).toEqual([
+			['Variety', [1, 1, 1]], // Ahri has her 2 matches
+			['Dice rolls', [2, 2, 2]]
+		]);
+		expect(c.ones.map((t) => t.id)).toEqual([
+			'first-blood',
+			'veteran-3',
+			'veteran-10',
+			'perfect-group',
+			'comeback',
+			'top-cut',
+			'champion'
+		]);
+		expect(c.ones[0]).toMatchObject({ have: 1, need: 1, earned: null, crest: null }); // seeded rows weren't awarded
 	});
 });
