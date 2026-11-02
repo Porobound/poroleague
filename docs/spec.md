@@ -102,6 +102,19 @@ Not in UI: managing organizers (Discord role), legend list (config file), messag
 - Report form: score, both legends, dice-roll winner.
 - Match lists (schedule, season page, season player page, public top cut) are one-line rows; the match page and admin pages keep the full card. A row is one link to its match and names inside it aren't links. Legends show only once a result is in. A flagged result looks like any reported one: flags are organizer business. On the viewer's own open match "Report" takes the place of "vs". A match whose week isn't published carries "Early", or "Holiday revoked" when that applies. The player page is one list, early matches first, then newest round first.
 
+## Achievements
+
+Long-term goals across seasons, shown on the career page (`/players/[id]`). Definitions and checks are pure, in `src/lib/league/achievements.ts`; ids are stored, so never rename one.
+
+- **Tiers:** Player / Expert / Master = Bronze / Silver / Gold (LoL rank emblems). A track's tiers read as a progression; one-offs have no tier.
+- **List:** a legend track per legend (play 3 / 10 / 25 matches as it), Variety (at least 2 matches each with 3 / 5 / 10 different legends), Dice rolls (win 3 / 6 / 20), and seven one-offs: First Blood (first match win), Veteran (play in 3 seasons), Old Guard (10 seasons), Perfect Group (win every group match of a season), Comeback (win after losing game 1; needs per-game results), Top Cut (reach a top cut), Champion (win a top-cut final).
+- **What counts:** matches, not games. A match counts if it's in a live season the player entered, it's public (`isPublished`: playoff, or its round is published), it has a score, no walkover, and it isn't void. Deadline double losses, walkovers, void matches and unpublished rounds don't count; playoff matches do. Flagged results count while the flag is open, since they're public.
+- **Award-only:** earned once, kept forever (`player_achievements`). Later edits, flags, drops and voids never remove one.
+- **Triggers:** report, organizer edit and keep-as-reported award both players; publishing a week, finalizing, cancelling a drop, publishing the top cut and finishing it award the whole season. Every server start also runs a backfill, so new rules reach past results.
+- **Unlock date:** the report date of the match that crossed the threshold (also for holiday results reported early). Perfect Group, Top Cut and Champion use the date of the season event (finalize, bracket published, top cut finished). Veteran uses the first counted match of the Nth season.
+- **Display:** earned tiles with their date; locked ones greyed with progress ("7/10"), derived on load. Legend tracks show only once started.
+- Not in Discord posts or the API. No manual or organizer awards.
+
 ## Discord integration
 
 - **v1 (in site):** webhooks, URLs in env vars, one `fetch` per event.
