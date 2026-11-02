@@ -1,15 +1,23 @@
-// Dev only: backs up the dev DB, wipes it (keeping your player and session) and seeds three seasons:
-// Summer finished (counts-only results), Autumn in play (per-game results, flags, a drop, an erased
-// player; your rounds 5+ left open, weeks 4–6 unpublished; holidays on four of your opponents: one
-// approved to report early, one approved and already reported, one pending, one revoked), Winter
-// draft. Same run = same data, with Autumn dated from today (always the first day of its week 4).
+// Dev only: backs up the dev DB, wipes it (keeping your player and session) and seeds four seasons:
+// Spring finished with a top cut (per-game results, a perfect group stage, a champion), Summer
+// finished (counts-only results), Autumn in play (per-game results, flags, a drop, an erased player;
+// your rounds 5+ left open, weeks 4–6 unpublished; holidays on four of your opponents: one approved
+// to report early, one approved and already reported, one pending, one revoked), Winter draft. Then
+// it awards achievements: a one-trick, a flex player and a lucky roller reach gold, a newcomer has
+// none. Same run = same data, with Autumn dated from today (always the first day of its week 4).
 // Posts nothing to Discord.
 // DEV_DISCORD_IDS (comma-separated, in .env) gives the first fake players real Discord ids.
 import Database from 'better-sqlite3';
+import { drizzle } from 'drizzle-orm/better-sqlite3';
+import { ACHIEVEMENTS } from '#lib/league/achievements.ts';
+import { drawBracket } from '#lib/league/bracket.ts';
 import { LEGENDS } from '#lib/legends.ts';
 import { roundRobin } from '#lib/league/roundRobin.ts';
 import { scoreGames } from '#lib/league/score.ts';
+import { standings } from '#lib/league/standings.ts';
 import { addDays, leagueDate } from '#lib/league/time.ts';
+import { backfillAchievements } from '#lib/server/achievements.ts';
+import * as schema from '#lib/server/db/schema.ts';
 
 process.loadEnvFile();
 const [discordId] = process.argv.slice(2);
@@ -84,7 +92,7 @@ type M = { id: number; round: number; a: string; b: string; reported?: Result; b
 db.transaction(() => {
 	db.prepare(`delete from sessions where player_id <> ?`).run(ME);
 	db.exec(`
-		delete from holidays; delete from audit; delete from matches; delete from entries; delete from seasons;
+		delete from player_achievements; delete from holidays; delete from audit; delete from matches; delete from entries; delete from seasons;
 		delete from sqlite_sequence where name in ('holidays', 'audit', 'matches', 'seasons');
 	`);
 	db.prepare('delete from players where id <> ?').run(ME);
@@ -99,7 +107,19 @@ db.transaction(() => {
 	});
 	const skill = new Map([ME, ...ids].map((id) => [id, 0.3 + rand() * 0.4]));
 	const main = new Map([ME, ...ids].map((id) => [id, pick(pool)]));
-	const legend = (id: string) => (rand() < 0.75 ? main.get(id)! : pick(pool));
+	// Achievement spread: a one-trick (gold legend track), a flex player (gold Variety), a lucky
+	// roller (gold Dice), a newcomer with nothing, and Spring's perfect group stage.
+	// They never drop, so their seasons all count.
+	const [PERFECT, FLEX, ONE_TRICK, LUCKY] = ids;
+	const NEWCOMER = ids[22];
+	let flex = 0; // FLEX cycles through the pool
+	const legend = (id: string) =>
+		id === FLEX
+			? pool[flex++ % pool.length]
+			: id === ONE_TRICK || rand() < 0.75
+				? main.get(id)!
+				: pick(pool);
+	const dice = (a: string, b: string) => ([a, b].includes(LUCKY) ? LUCKY : pick([a, b]));
 
 	const addSeason = db.prepare(
 		`insert into seasons (slug, name, status, start_date, rounds_per_week, deadline, top_cut_size, published_round, created_at)
@@ -156,6 +176,7 @@ db.transaction(() => {
 		groups: number;
 		played: (round: number, a: string, b: string) => boolean;
 		perGame: (round: number) => boolean;
+		perfect?: string;
 	}) {
 		const sid = (
 			addSeason.get(
@@ -187,10 +208,16 @@ db.transaction(() => {
 		for (const m of ms) {
 			if (m.round > o.published || !o.played(m.round, m.a, m.b)) continue;
 			const r: Result = {
-				...play(m.a, m.b, o.perGame(m.round)),
+				...(o.perfect === m.a || o.perfect === m.b
+					? {
+							games: m.a === o.perfect ? '11' : '22',
+							p1Games: m.a === o.perfect ? 2 : 0,
+							p2Games: m.a === o.perfect ? 0 : 2
+						}
+					: play(m.a, m.b, o.perGame(m.round))),
 				p1Legend: legend(m.a),
 				p2Legend: legend(m.b),
-				diceWinnerId: pick([m.a, m.b])
+				diceWinnerId: dice(m.a, m.b)
 			};
 			const by = pick([m.a, m.b]);
 			const t = at(o.start, m.round);
@@ -221,6 +248,78 @@ db.transaction(() => {
 		return { sid, ms };
 	}
 
+	// A 4-player top cut seeded by group points, played to a champion, with the site's audit rows.
+	function cut(s: { sid: number; ms: M[] }, start: string) {
+		const people = [...new Set(s.ms.flatMap((m) => [m.a, m.b]))];
+		const results = s.ms
+			.filter((m) => m.reported)
+			.map((m) => ({
+				p1: m.a,
+				p2: m.b,
+				p1Games: m.reported!.p1Games,
+				p2Games: m.reported!.p2Games
+			}));
+		const top = standings(
+			people.map((playerId) => ({ playerId, dropped: false, tiebreak: null })),
+			results,
+			true
+		)
+			.slice(0, 4)
+			.map((r) => r.playerId);
+		const slots = drawBracket([top]) as string[];
+		const seat = db.prepare(
+			'update entries set seed = ?, slot = ? where season_id = ? and player_id = ?'
+		);
+		slots.forEach((p, i) => seat.run(top.indexOf(p) + 1, i, s.sid, p));
+		log.run(
+			s.sid,
+			null,
+			ME,
+			'topcut',
+			null,
+			JSON.stringify({ size: 4, date: null }),
+			at(start, 17)
+		);
+		const add = db.prepare(
+			"insert into matches (season_id, stage, round, slot, p1_id, p2_id) values (?, 'playoff', ?, ?, ?, ?) returning id"
+		);
+		const match = (round: number, slot: number, a: string, b: string) => {
+			const id = (add.get(s.sid, round, slot, a, b) as { id: number }).id;
+			const r = {
+				...play(a, b, true),
+				p1Legend: legend(a),
+				p2Legend: legend(b),
+				diceWinnerId: dice(a, b)
+			};
+			const t = at(start, 17 + round);
+			report.run(r.games, r.p1Games, r.p2Games, r.p1Legend, r.p2Legend, r.diceWinnerId, a, t, id);
+			log.run(s.sid, id, a, 'report', null, JSON.stringify(r), t);
+			// A level result sends the higher seed through, like the site.
+			if (r.p1Games !== r.p2Games) return r.p1Games > r.p2Games ? a : b;
+			return top.indexOf(a) < top.indexOf(b) ? a : b;
+		};
+		const final = [match(1, 0, slots[0], slots[1]), match(1, 1, slots[2], slots[3])];
+		const champion = match(2, 0, final[0], final[1]);
+		log.run(s.sid, null, ME, 'champion', null, JSON.stringify({ champion }), at(start, 20));
+	}
+
+	// Created first, so season ids stay in date order.
+	const spring = season({
+		slug: 'spring-2026',
+		name: 'Spring 2026',
+		status: 'finished',
+		start: '2026-03-02',
+		deadline: '2026-05-03',
+		published: 15,
+		players: [ME, ...ids.slice(0, 15)],
+		groups: 1,
+		played: () => true,
+		perGame: () => true,
+		perfect: PERFECT
+	});
+	log.run(spring.sid, null, ME, 'finalize', null, null, at('2026-03-02', 16));
+	cut(spring, '2026-03-02');
+
 	const summer = season({
 		slug: 'summer-2026',
 		name: 'Summer 2026',
@@ -245,13 +344,15 @@ db.transaction(() => {
 		players: shuffle([ME, ...ids]),
 		groups: 2,
 		played: (round, a, b) =>
-			a === ME || b === ME
-				? round <= 4
-				: round <= 4
-					? rand() > 0.05
-					: round <= 6
-						? rand() > 0.35
-						: rand() > 0.85,
+			a === NEWCOMER || b === NEWCOMER
+				? false
+				: a === ME || b === ME
+					? round <= 4
+					: round <= 4
+						? rand() > 0.05
+						: round <= 6
+							? rand() > 0.35
+							: rand() > 0.85,
 		perGame: (round) => round > 1 || rand() > 0.3
 	});
 
@@ -297,13 +398,18 @@ db.transaction(() => {
 
 	// A drop in group 2, and an erased player (dropped, then anonymised) in group 1; never a real id.
 	const candidate = db.prepare(
-		`select player_id as id from entries where season_id = ? and group_no = ? and player_id <> ?
+		`select player_id as id from entries where season_id = ? and group_no = ? and player_id not in (?, ?, ?, ?, ?, ?)
 		 and player_id in (select id from players where discord_id like 'dev-%')
 		 and player_id not in (select flagged_by from matches where flagged_by is not null) limit 1`
 	);
 	const drop = db.prepare('update entries set dropped = 1 where season_id = ? and player_id = ?');
 	const [dropped, erased] = [2, 1].map(
-		(g) => (candidate.get(autumn.sid, g, ME) as { id: string }).id
+		(g) =>
+			(
+				candidate.get(autumn.sid, g, ME, NEWCOMER, PERFECT, FLEX, ONE_TRICK, LUCKY) as {
+					id: string;
+				}
+			).id
 	);
 	for (const [i, id] of [dropped, erased].entries()) {
 		drop.run(autumn.sid, id);
@@ -321,7 +427,7 @@ db.transaction(() => {
 		`update players set display_name = 'Former player ' || substr(id, -4), discord_id = null, avatar = null,
 		 erased_at = unixepoch() where id = ?`
 	).run(erased);
-	for (const s of [summer.sid, autumn.sid])
+	for (const s of [spring.sid, summer.sid, autumn.sid])
 		if (db.prepare('select 1 from entries where season_id = ? and player_id = ?').get(s, erased))
 			log.run(s, null, ME, 'erase', null, JSON.stringify({ erased }), at(AUTUMN_START, 6));
 
@@ -342,7 +448,7 @@ db.transaction(() => {
 			t
 		);
 	const asked = at(AUTUMN_START, 5); // during week 3
-	const gone = new Set([dropped, erased]);
+	const gone = new Set([dropped, erased, NEWCOMER]);
 	// Your unpublished matches against someone still in, earliest first.
 	const vsMe = autumn.ms.filter(
 		(m) =>
@@ -426,3 +532,19 @@ console.table(
 		.all()
 );
 console.table(db.prepare('select status, count(*) holidays from holidays group by status').all());
+backfillAchievements(drizzle(db, { schema }));
+const tier = new Map(ACHIEVEMENTS.map((a) => [a.id, a.tier ?? 'one-off']));
+const got = db.prepare('select achievement_id id from player_achievements').all() as {
+	id: string;
+}[];
+const byTier = ['bronze', 'silver', 'gold', 'one-off'].map((t) => [
+	t,
+	got.filter((g) => tier.get(g.id) === t).length
+]);
+console.log('Achievements by tier:', Object.fromEntries(byTier));
+const none = db
+	.prepare(
+		'select count(*) n from players where id not in (select player_id from player_achievements)'
+	)
+	.get() as { n: number };
+console.log('Players with none:', none.n);
