@@ -24,8 +24,8 @@
 					game1: m.games?.[0] ?? '',
 					game2: m.games?.[1] ?? '',
 					game3: m.games?.[2] ?? '',
-					p1Legend: data.prefill.p1Legend,
-					p2Legend: data.prefill.p2Legend,
+					p1Legend: data.prefill?.p1Legend ?? '',
+					p2Legend: data.prefill?.p2Legend ?? '',
 					dice: m.diceWinnerId ?? ''
 				}
 	);

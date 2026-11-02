@@ -95,10 +95,14 @@ export const load: PageServerLoad = async (event) => {
 		p1,
 		p2,
 		legends: LEGENDS,
-		prefill: {
-			p1Legend: match.p1Legend ?? lastLegend(match.p1Id) ?? '',
-			p2Legend: match.p2Legend ?? lastLegend(match.p2Id) ?? ''
-		}
+		// Only the form needs it; anyone else gets no hint of a player's last legend.
+		prefill:
+			mode === 'report'
+				? {
+						p1Legend: match.p1Legend ?? lastLegend(match.p1Id) ?? '',
+						p2Legend: match.p2Legend ?? lastLegend(match.p2Id) ?? ''
+					}
+				: null
 	};
 };
 
