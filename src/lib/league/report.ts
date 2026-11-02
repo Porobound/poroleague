@@ -1,5 +1,5 @@
 import { LEGENDS } from '#lib/legends.ts';
-import { scoreGames } from './score';
+import { scoreGames } from '#lib/league/score.ts';
 
 export type Report = {
 	games: string | null; // null on results reported before per-game reporting
