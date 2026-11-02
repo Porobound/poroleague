@@ -161,6 +161,19 @@
 		</section>
 	{/if}
 
+	{#if data.early.length}
+		<section aria-labelledby="early-h">
+			<h2 id="early-h">Unlocked early</h2>
+			<p class="muted">
+				Unlocked for a holiday. Results stay hidden from everyone else until their week is
+				published.
+			</p>
+			<div class="cards">
+				{#each data.early as c (c.id)}<MatchCard {...c.props} />{/each}
+			</div>
+		</section>
+	{/if}
+
 	{#if data.upNext.length}
 		<section aria-labelledby="up-next">
 			<h2 id="up-next">{isMe ? 'Who you play next' : 'Up next'}</h2>
