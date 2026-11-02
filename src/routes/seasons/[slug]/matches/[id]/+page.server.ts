@@ -72,7 +72,7 @@ export const load: PageServerLoad = async (event) => {
 			viewer,
 			new Date(),
 			cutRounds(season.id),
-			seasonUnlocks(season).away
+			seasonUnlocks(season)
 		)
 	);
 	return {
