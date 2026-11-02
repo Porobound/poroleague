@@ -197,6 +197,116 @@
 		</section>
 	{/if}
 
+	{#if data.holidays}
+		{@const hol = data.holidays}
+		<section id="holidays" class="holidays" aria-labelledby="hol-h">
+			<div>
+				<h2 id="hol-h">Holidays</h2>
+				<p class="muted">
+					Approving unlocks the player’s matches in those weeks, so they can play them before they
+					go. Results played early stay out of the standings until that week is published.
+				</p>
+			</div>
+			<div class="panel">
+				<h3>Waiting for you · {hol.pending.length}</h3>
+				{#if hol.pending.length}
+					<div class="table-wrap">
+						<table class="pb-table">
+							<thead>
+								<tr>
+									<th>Player</th><th>Away</th><th>Covers</th><th>Asked</th>
+									<th><span class="pb-sr">Actions</span></th>
+								</tr>
+							</thead>
+							<tbody>
+								{#each hol.pending as r (r.id)}
+									<tr>
+										<td><PlayerName {...r.player} /></td>
+										<td class="mono">{r.away}</td>
+										<td>{r.covers}</td>
+										<td class="mono muted">{r.asked}</td>
+										<td class="acts">
+											<ConfirmButton
+												action="?/approveHoliday"
+												fields={{ id: String(r.id) }}
+												small
+												label="Approve"
+												title="Approve {r.player.name}’s holiday?"
+												confirmLabel="Approve"
+											>
+												{r.player.name} is away {r.away}, {r.covers}. Those matches unlock now for
+												them and their opponents.
+											</ConfirmButton>
+											<ConfirmButton
+												action="?/rejectHoliday"
+												fields={{ id: String(r.id) }}
+												small
+												variant="secondary"
+												label="Reject"
+												title="Reject {r.player.name}’s holiday?"
+												confirmLabel="Reject"
+											>
+												<p>Their matches stay in their normal weeks.</p>
+												<label class="pb-field">
+													Reason (optional)
+													<input class="pb-input" name="reason" maxlength="500" />
+													<span class="muted small">{r.player.name} sees this on their page.</span>
+												</label>
+											</ConfirmButton>
+										</td>
+									</tr>
+								{/each}
+							</tbody>
+						</table>
+					</div>
+				{:else}
+					<p class="muted">No requests waiting.</p>
+				{/if}
+			</div>
+			<div class="panel">
+				<h3>Approved · {hol.approved.length}</h3>
+				{#if hol.approved.length}
+					<div class="table-wrap">
+						<table class="pb-table">
+							<thead>
+								<tr>
+									<th>Player</th><th>Away</th><th>Covers</th><th>Early matches</th><th>Approved</th>
+									<th><span class="pb-sr">Actions</span></th>
+								</tr>
+							</thead>
+							<tbody>
+								{#each hol.approved as r (r.id)}
+									<tr>
+										<td><PlayerName {...r.player} tag="On holiday" /></td>
+										<td class="mono">{r.away}</td>
+										<td>{r.covers}</td>
+										<td class="mono">{r.early}</td>
+										<td class="mono muted">{r.decided}</td>
+										<td class="acts">
+											<ConfirmButton
+												action="?/revokeHoliday"
+												fields={{ id: String(r.id) }}
+												small
+												variant="secondary"
+												label="Revoke"
+												title="Revoke {r.player.name}’s holiday?"
+												confirmLabel="Revoke holiday"
+											>
+												The On holiday badge goes. Matches already unlocked stay unlocked.
+											</ConfirmButton>
+										</td>
+									</tr>
+								{/each}
+							</tbody>
+						</table>
+					</div>
+				{:else}
+					<p class="muted">Nobody is on holiday this season.</p>
+				{/if}
+			</div>
+		</section>
+	{/if}
+
 	{#if season.status === 'draft' && data.running}
 		<p class="muted">
 			<a href="/seasons/{data.running.slug}/admin">{data.running.name}</a> is still running. Only one
@@ -273,6 +383,34 @@
 </div>
 
 <style>
+	.holidays {
+		display: flex;
+		flex-direction: column;
+		gap: 16px;
+	}
+	.holidays h2,
+	.holidays h3,
+	.holidays p {
+		margin: 0;
+	}
+	.holidays .panel {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+	.table-wrap {
+		overflow-x: auto;
+	}
+	.mono {
+		font-family: var(--font-mono);
+		font-variant-numeric: tabular-nums;
+		white-space: nowrap;
+	}
+	.acts {
+		display: flex;
+		gap: 8px;
+		justify-content: flex-end;
+	}
 	.end {
 		display: flex;
 		flex-direction: column;

@@ -13,6 +13,7 @@
 		size = 24,
 		cell = false,
 		class: extra = undefined,
+		tag = null,
 		children
 	}: {
 		name: string;
@@ -22,6 +23,8 @@
 		size?: number;
 		cell?: boolean;
 		class?: ClassValue;
+		// A name tag after the name, e.g. "On holiday".
+		tag?: string | null;
 		children?: Snippet;
 	} = $props();
 	const link = $derived(former ? null : href);
@@ -33,5 +36,6 @@
 	href={link ?? undefined}
 	><Avatar {name} src={avatar} {size} {former} /><span
 		class={[cell ? 'pb-player-name' : 'pb-pname-text', cell && former && 'pb-former']}>{name}</span
-	>{@render children?.()}</svelte:element
+	>{#if tag}<span class="pb-badge pb-badge-sm">{tag}</span
+		>{/if}{@render children?.()}</svelte:element
 >
