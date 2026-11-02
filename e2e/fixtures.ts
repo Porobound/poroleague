@@ -30,7 +30,8 @@ export const SEASONS = {
 	leaderboard: 'e2e-leaderboard',
 	api: 'e2e-api',
 	apiDraft: 'e2e-api-draft',
-	holiday: 'e2e-holiday'
+	holiday: 'e2e-holiday',
+	achievements: 'e2e-achievements'
 };
 export type SeasonKey = keyof typeof SEASONS;
 

@@ -1,5 +1,7 @@
 import { error } from '@sveltejs/kit';
 import { legendMatches, playerLegends } from '#lib/league/legendStats.ts';
+import { careerAchievements } from '#lib/server/achievements.ts';
+import { db } from '#lib/server/db/index.ts';
 import { playerSeasons, seasonHistory } from '#lib/server/seasons.ts';
 import type { PageServerLoad } from './$types';
 
@@ -24,6 +26,7 @@ export const load: PageServerLoad = ({ params }) => {
 			of: counted.length
 		},
 		history: seasonHistory(list),
-		legends: playerLegends(counted, params.id)
+		legends: playerLegends(counted, params.id),
+		achievements: careerAchievements(db, params.id)
 	};
 };

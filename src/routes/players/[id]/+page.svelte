@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Achievements from '#lib/components/Achievements.svelte';
 	import Avatar from '#lib/components/Avatar.svelte';
 	import PlayerLegends from '#lib/components/PlayerLegends.svelte';
 	import SeasonHistory from '#lib/components/SeasonHistory.svelte';
@@ -43,6 +44,8 @@
 			>
 		</div>
 	{/if}
+
+	<Achievements data={data.achievements} />
 
 	<section>
 		<h2>Season by season</h2>
