@@ -225,3 +225,12 @@ export const freezeTimes = (at: number) =>
 	});
 
 export const removeSeason = (key: SeasonKey) => write((db) => unlist(db, key));
+
+// Achievements as if just earned (the site only awards on result writes, and seeds bypass them).
+export const seedAchievements = (playerId: string, ids: string[]) =>
+	write((db) => {
+		const add = db.prepare(
+			'insert or ignore into player_achievements (player_id, achievement_id, unlocked_at) values (?, ?, unixepoch())'
+		);
+		for (const id of ids) add.run(playerId, id);
+	});
