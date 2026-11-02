@@ -1,5 +1,5 @@
 import { db } from '#lib/server/db/index.ts';
-import { entries, matches, players, seasons } from '#lib/server/db/schema.ts';
+import { entries, holidays, matches, players, seasons } from '#lib/server/db/schema.ts';
 
 export function seedPlayers(n: number) {
 	const list = Array.from({ length: n }, (_, i) => ({
@@ -25,3 +25,6 @@ export const seedEntries = (seasonId: number, ids: string[], group: number | nul
 
 export const seedMatch = (values: typeof matches.$inferInsert) =>
 	db.insert(matches).values(values).returning().get();
+
+export const seedHoliday = (values: typeof holidays.$inferInsert) =>
+	db.insert(holidays).values(values).returning().get();
