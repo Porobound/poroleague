@@ -1,5 +1,6 @@
 // Dev only: grants (dated now) or clears your achievements, to check rows, locked and progress
-// states, and long names. `none` clears; the next app start re-awards what your results earned.
+// states, and long names. `none` clears them and your equipped cosmetics; the next app start
+// re-awards what your results earned.
 import Database from 'better-sqlite3';
 import { ACHIEVEMENTS } from '#lib/league/achievements.ts';
 
@@ -19,8 +20,13 @@ if (unknown.length)
 		`Unknown achievement ${unknown.join(', ')}; ids are in src/lib/league/achievements.ts`
 	);
 db.transaction(() => {
-	if (what.includes('none'))
+	if (what.includes('none')) {
 		db.prepare('delete from player_achievements where player_id = ?').run(me.id);
+		// Equipped cosmetics must stay earned.
+		db.prepare(
+			'update players set title_achievement = null, badge_achievement = null, frame_achievement = null where id = ?'
+		).run(me.id);
+	}
 	const add = db.prepare(
 		'insert or ignore into player_achievements (player_id, achievement_id, unlocked_at) values (?, ?, unixepoch())'
 	);
