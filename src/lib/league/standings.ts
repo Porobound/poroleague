@@ -1,4 +1,4 @@
-import { matchPoints } from './score';
+import { matchPoints } from '#lib/league/score.ts';
 
 export type Entry = { playerId: string; dropped: boolean; tiebreak: number | null };
 export type MatchResult = {

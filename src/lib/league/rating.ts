@@ -1,4 +1,4 @@
-import type { MatchResult } from './standings';
+import type { MatchResult } from '#lib/league/standings.ts';
 
 export const START = 1500;
 const K = 32;
