@@ -139,14 +139,14 @@ export const seedResult = (
 	});
 
 // A season whose group stage is over: groups of three (two by default), every match played
-// (1 > 2 > 3, 4 > 5 > 6, …), status topcut, top 2 per group.
+// (1 > 2 > 3, 4 > 5 > 6, …) and published, status topcut, top 2 per group.
 export const seedFinishedGroups = (key: SeasonKey, groups = 2) =>
 	write((db) => {
 		unlist(db, key);
 		addPlayers(db, key, 3 * groups);
 		const { id } = db
 			.prepare(
-				"insert into seasons (slug, name, status, top_cut_size, start_date, deadline) values (?, ?, 'topcut', 2, '2026-01-05', '2026-02-01') returning id"
+				"insert into seasons (slug, name, status, top_cut_size, start_date, deadline, published_round) values (?, ?, 'topcut', 2, '2026-01-05', '2026-02-01', 1) returning id"
 			)
 			.get(SEASONS[key], `E2E ${key}`) as { id: number };
 		const add = db.prepare('insert into entries (season_id, player_id, group_no) values (?, ?, ?)');
