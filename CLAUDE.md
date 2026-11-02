@@ -13,7 +13,22 @@ SvelteKit (adapter-node) · TypeScript · SQLite via Drizzle (better-sqlite3) ·
 
 ## Commands
 
-`npm run check` · `npx vitest run` · `npm run test:e2e` (throwaway DB on :4317, safe beside `npm run dev`) · `npm run db:generate`. Full list and dev-data scripts: README.
+`npm run lint` · `npm run check` · `npx vitest run` · `npm run test:e2e` (throwaway DB on :4317, safe beside `npm run dev`) · `npm run db:generate`. Full list and dev-data scripts: README.
+
+Before pushing: `npm run lint` (CI runs `prettier --check`), `npm run check`, `npx vitest run`, and `npm run test:e2e` when pages change.
+
+## Workflow
+
+Plan in `docs/superpowers/plans/` → the plan's tasks replace the issue's checklist → branch → one commit per task, ticking its box → PR. The owner merges.
+
+## Worktrees
+
+Do branch work in a `git worktree` outside the repo, never by switching branches in the main checkout: other sessions and the owner work there. Changes in `git status` you didn't make aren't yours; leave them.
+
+- `svelte-kit sync` writes route types into `node_modules/$app`. In a worktree, make `node_modules` a real dir of per-entry symlinks to the repo's packages (incl. `.bin`), skipping `$app`.
+- Never run a second `vite dev` from the main checkout: it rewrites the shared `.svelte-kit/generated/dev/env/` and the owner's :5173 silently switches DB. To serve a worktree, symlink `.env` and `local.db*` into it and run `npx vite dev --port 5173 --strictPort` only when :5173 is free.
+- Stacked PRs: before opening one, check whether the base PR merged; if so rebase onto `origin/main` and target `main`. Force-push is blocked, so a rebased, already-pushed branch goes up under a new `type/<issue>-slug` name.
+- Cleanup after merge: stop the dev server, `rm` the `.env`/`local.db*` symlinks (never their targets), `git worktree remove`, `git worktree prune`, delete the local branch, `npx svelte-kit sync` in the main repo.
 
 ## Naming
 
@@ -25,6 +40,8 @@ Enforced on PRs by `.github/workflows/pr.yml`. PRs squash-merge, so the PR title
 - PR body contains `Closes #<issue>` for the branch's issue.
 - Branch commits: same format as the title.
 - Issues: plain sentence title, no prefix; type via label (`bug`, `enhancement`, `chore`), set by the issue forms.
+- Board (Porobound project 1) holds issues only: add new issues with `gh project item-add 1 --owner Porobound --url <issue>`; never add PRs.
+- No IP addresses (LAN included) in issues, PRs, comments or commits: say "the dev server" / "the prod host".
 
 ## Rules
 
