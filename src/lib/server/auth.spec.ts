@@ -299,6 +299,23 @@ describe('OAuth callback', () => {
 		expect(cookies.deleted.get('return_to')).toEqual({ path: '/' });
 	});
 
+	it('keeps equipped cosmetics when Discord updates the name', async () => {
+		db.insert(players)
+			.values({
+				id: 'abc',
+				discordId: '1001',
+				displayName: 'Old name',
+				titleAchievement: 'first-blood'
+			})
+			.run();
+		discord({ token: token(), member: json(member([])) });
+		await call('code=c&state=st', started());
+		expect(db.select().from(players).where(eq(players.id, 'abc')).get()).toMatchObject({
+			displayName: 'Nick',
+			titleAchievement: 'first-blood'
+		});
+	});
+
 	it('creates a new player with a random id for an unknown Discord account', async () => {
 		db.insert(players).values({ id: '1001', displayName: 'Seeded, not linked' }).run();
 		discord({ token: token(), member: json(member([])) });

@@ -12,7 +12,11 @@ export const players = sqliteTable('players', {
 	discordId: text('discord_id').unique(), // null once erased
 	displayName: text('display_name').notNull(),
 	avatar: text('avatar'),
-	erasedAt: integer('erased_at', { mode: 'timestamp' })
+	erasedAt: integer('erased_at', { mode: 'timestamp' }),
+	// Equipped cosmetics: ids from src/lib/league/achievements.ts the player earned (#143).
+	titleAchievement: text('title_achievement'),
+	badgeAchievement: text('badge_achievement'),
+	frameAchievement: text('frame_achievement')
 });
 
 // The one test for an erased player, as a column for selects.
