@@ -1,7 +1,7 @@
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { db } from '#lib/server/db/index.ts';
-import { audit, entries, matches, seasons } from '#lib/server/db/schema.ts';
+import { audit, entries, matches, playerAchievements, seasons } from '#lib/server/db/schema.ts';
 import { seedEntries, seedMatch, seedPlayers, seedSeason } from '#lib/server/test/seed.ts';
 import { flagMatch, organizerEdit, saveReport } from '#lib/server/matches.ts';
 import { erasePlayer, leaderboard } from '#lib/server/players.ts';
@@ -283,5 +283,34 @@ describe('phase bar', () => {
 		walkover(season(), slot(1, 1).match!, 'p4', 'p1');
 		walkover(season(), slot(2, 0).match!, 'p1', 'p1');
 		expect(step().detail).toBe('Done');
+	});
+});
+
+describe('achievements', () => {
+	const has = (playerId: string, id: string) =>
+		!!db
+			.select()
+			.from(playerAchievements)
+			.where(
+				and(eq(playerAchievements.playerId, playerId), eq(playerAchievements.achievementId, id))
+			)
+			.get();
+
+	it('publishing awards Top Cut to the bracket; finishing awards Champion', () => {
+		publishCut(season(), null, 'p1');
+		expect(['p1', 'p2', 'p4', 'p5'].map((p) => has(p, 'top-cut'))).toEqual([
+			true,
+			true,
+			true,
+			true
+		]);
+		expect(has('p3', 'top-cut')).toBe(false);
+		walkover(season(), slot(1, 0).match!, 'p1', 'p1');
+		walkover(season(), slot(1, 1).match!, 'p4', 'p1');
+		walkover(season(), slot(2, 0).match!, 'p1', 'p1');
+		expect(has('p1', 'champion')).toBe(false);
+		finishCut(season(), 'p1', 'p1');
+		expect(has('p1', 'champion')).toBe(true);
+		expect(has('p4', 'champion')).toBe(false);
 	});
 });
