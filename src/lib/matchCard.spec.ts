@@ -177,3 +177,16 @@ describe('early matches (holiday mode)', () => {
 		expect(note({ round: 1, ...reported })).toMatch(/^Reported by/);
 	});
 });
+
+describe('On holiday tag', () => {
+	it('tags a player on an approved holiday in that week', () => {
+		const away = new Map([['p1', new Set([2])]]);
+		const c = cardContext({ ...season, roundsPerWeek: 2 }, people, null, NOW, 0, away);
+		expect(matchCard(match({ round: 3 }), c).props.sides.map((x) => x.tag)).toEqual([
+			'On holiday',
+			null
+		]);
+		expect(matchCard(match({ round: 1 }), c).props.sides[0].tag).toBeNull();
+		expect(matchCard(match({ round: 3, stage: 'playoff' }), c).props.sides[0].tag).toBeNull();
+	});
+});
