@@ -11,6 +11,7 @@
 		{ "name": "Matches" },
 		{ "name": "Top cut" },
 		{ "name": "Legends" },
+		{ "name": "Players" },
 		{ "name": "Spec" }
 	],
 	"paths": {
@@ -116,6 +117,29 @@
 				}
 			}
 		},
+		"/players/{id}": {
+			"parameters": [{ "$ref": "#/components/parameters/playerId" }],
+			"get": {
+				"tags": ["Players"],
+				"operationId": "getPlayer",
+				"summary": "Get a player",
+				"description": "The player's equipped cosmetics and earned achievements, newest first.\n\n- Achievements come only from published results and season events, and are never taken away.\n- Career stats aren't here: add them up from the season endpoints.",
+				"responses": {
+					"200": {
+						"description": "The player.",
+						"content": {
+							"application/json": { "schema": { "$ref": "#/components/schemas/PlayerDetail" } }
+						}
+					},
+					"404": {
+						"description": "`Player not found`: no such player, or they're in no season the API shows.",
+						"content": {
+							"application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+						}
+					}
+				}
+			}
+		},
 		"/openapi.json": {
 			"get": {
 				"tags": ["Spec"],
@@ -140,6 +164,14 @@
 				"description": "The season's slug, from `/seasons`.",
 				"schema": { "type": "string" },
 				"example": "season-2"
+			},
+			"playerId": {
+				"name": "id",
+				"in": "path",
+				"required": true,
+				"description": "A player's `id`, from any player object.",
+				"schema": { "type": "string" },
+				"example": "k3x9"
 			}
 		},
 		"responses": {
@@ -542,6 +574,62 @@
 						"type": ["number", "null"],
 						"description": "`null` under 5 non-mirror matches.",
 						"examples": [0.654]
+					}
+				}
+			},
+			"EarnedAchievement": {
+				"type": "object",
+				"description": "An achievement the player earned. Earned once, never taken away.",
+				"additionalProperties": false,
+				"required": ["id", "name", "title", "tier", "icon", "unlockedAt"],
+				"properties": {
+					"id": { "type": "string", "examples": ["legend-ahri-player"] },
+					"name": { "type": "string", "examples": ["Ahri Player"] },
+					"title": {
+						"type": "string",
+						"description": "Its title text, if equipped as one.",
+						"examples": ["Ahri Player"]
+					},
+					"tier": {
+						"oneOf": [{ "$ref": "#/components/schemas/Tier" }, { "type": "null" }],
+						"description": "`null` for a one-off achievement."
+					},
+					"icon": {
+						"type": "string",
+						"format": "uri",
+						"description": "Absolute URL of the icon (PNG)."
+					},
+					"unlockedAt": {
+						"type": "string",
+						"format": "date-time",
+						"description": "When the result or season event that earned it happened (UTC)."
+					}
+				}
+			},
+			"PlayerDetail": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": ["id", "name", "former", "title", "badge", "frame", "achievements"],
+				"properties": {
+					"id": { "type": "string", "examples": ["k3x9"] },
+					"name": { "type": "string", "examples": ["Alice"] },
+					"former": { "type": "boolean", "description": "An erased player." },
+					"title": {
+						"oneOf": [{ "$ref": "#/components/schemas/Achievement" }, { "type": "null" }],
+						"description": "Equipped title."
+					},
+					"badge": {
+						"oneOf": [{ "$ref": "#/components/schemas/Achievement" }, { "type": "null" }],
+						"description": "Equipped badge."
+					},
+					"frame": {
+						"oneOf": [{ "$ref": "#/components/schemas/Achievement" }, { "type": "null" }],
+						"description": "Equipped avatar frame."
+					},
+					"achievements": {
+						"type": "array",
+						"description": "Earned achievements, newest first.",
+						"items": { "$ref": "#/components/schemas/EarnedAchievement" }
 					}
 				}
 			}
