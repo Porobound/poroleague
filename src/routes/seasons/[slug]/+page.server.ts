@@ -25,7 +25,14 @@ export const load: PageServerLoad = async (event) => {
 	const list = seasonEntries(season.id);
 	const scheduled = hasSchedule(season.status);
 	const groups = scheduled ? groupStandings(season, list) : [];
-	const ctx = cardContext(season, list, locals.user?.id ?? null);
+	const ctx = cardContext(
+		season,
+		list,
+		locals.user?.id ?? null,
+		new Date(),
+		0,
+		seasonUnlocks(season).away
+	);
 	const { closed, weeks, rounds, phases, cut, cutRound } = seasonProgress(season, groups);
 	const viewer = locals.user?.id ?? null;
 	const myCut = cut?.rounds

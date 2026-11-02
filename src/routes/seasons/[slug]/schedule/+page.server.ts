@@ -2,13 +2,21 @@ import { published } from '#lib/league/publish.ts';
 import { weekOf } from '#lib/league/time.ts';
 import { cardContext, matchCard, type Card } from '#lib/matchCard.ts';
 import { groupName } from '#lib/season.ts';
+import { seasonUnlocks } from '#lib/server/holidays.ts';
 import { seasonMatches } from '#lib/server/matches.ts';
 import { publicSeason, seasonEntries } from '#lib/server/seasons.ts';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = ({ params, locals, url }) => {
 	const season = publicSeason(params.slug, locals.user);
-	const ctx = cardContext(season, seasonEntries(season.id), locals.user?.id ?? null);
+	const ctx = cardContext(
+		season,
+		seasonEntries(season.id),
+		locals.user?.id ?? null,
+		new Date(),
+		0,
+		seasonUnlocks(season).away
+	);
 	const all = seasonMatches(season.id);
 	const rpw = season.roundsPerWeek;
 	const maxRound = Math.max(0, ...all.map((m) => m.round));

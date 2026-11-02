@@ -45,7 +45,9 @@ export const load: PageServerLoad = ({ params, locals }) => {
 	const season = publicSeason(params.slug, locals.user);
 	const list = seasonEntries(season.id);
 	const player = list.find((e) => e.playerId === params.id) ?? error(404, 'Player not found');
-	const ctx = cardContext(season, list, locals.user?.id ?? null);
+	const hs = seasonHolidays(season.id);
+	const { unlocked, away } = seasonUnlocks(season, hs);
+	const ctx = cardContext(season, list, locals.user?.id ?? null, new Date(), 0, away);
 	const theirs = playerMatches(season.id, player.playerId);
 	const ms = published(theirs, season.publishedRound);
 	const cards = ms.map((m) => ({
@@ -56,12 +58,10 @@ export const load: PageServerLoad = ({ params, locals }) => {
 	const standing = groupStandings(season, list).find((g) => g.group === player.group);
 	const rank = standing?.rows.findIndex((r) => r.playerId === player.playerId) ?? -1;
 	const isMe = locals.user?.id === player.playerId;
-	const hs = seasonHolidays(season.id);
 	const mine = hs.filter((h) => h.playerId === player.playerId);
 	const cal = isMe && season.status === 'play' ? calendar(season) : null;
 	const canRequest = !!cal && !player.dropped;
 	// Matches a holiday unlocked before their week: only their two players see them.
-	const { unlocked } = seasonUnlocks(season, hs);
 	const viewer = locals.user?.id ?? null;
 	const early = theirs.filter(
 		(m) => !isPublished(m, season.publishedRound) && visibleTo(m, viewer, season, unlocked)
@@ -102,6 +102,16 @@ export const load: PageServerLoad = ({ params, locals }) => {
 						reason: h.status === 'rejected' ? h.reason : null
 					}))
 			: [],
+		// The head badge, while this week is one of their approved holiday's weeks.
+		away: (() => {
+			const h = hs.find(
+				(h) =>
+					h.playerId === player.playerId &&
+					h.status === 'approved' &&
+					holidayWeeks(h, { startDate: season.startDate ?? '' }).includes(ctx.week)
+			);
+			return h ? { dates: dateSpan(h.from, h.to) } : null;
+		})(),
 		canRequest,
 		// For the dialog's live "Covers …" line; the action re-checks everything.
 		calendar: canRequest

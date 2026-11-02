@@ -8,6 +8,7 @@
 		games: number | null;
 		href?: string | null;
 		former?: boolean;
+		tag?: string | null;
 	};
 	let {
 		head,
@@ -90,6 +91,7 @@
 							<circle cx="9" cy="9" r="1.2" fill="currentColor" />
 						</svg>
 					{/if}
+					{#if s.tag}<span class="pb-badge pb-badge-sm">{s.tag}</span>{/if}
 				</span>
 				{#if s.legend}<span class="pb-match-legend">{s.legend}</span>{/if}
 			</span>
