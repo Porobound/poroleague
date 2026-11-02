@@ -58,12 +58,12 @@ export function cardContext(
 	viewerId: string | null,
 	now = new Date(),
 	cutRounds = 0,
-	// Player id → weeks of their approved holidays, for the On holiday tag.
-	away: WeekMap = new Map()
+	// Player id → weeks of their approved (On holiday) and revoked (Holiday revoked) holidays.
+	holidays: { away: WeekMap; revoked: WeekMap } = { away: new Map(), revoked: new Map() }
 ) {
 	return {
 		season,
-		away,
+		holidays,
 		viewerId,
 		now,
 		cutRounds,
@@ -98,6 +98,15 @@ export function matchCard(m: CardMatch, c: CardContext) {
 					? 'overdue'
 					: 'scheduled';
 	const person = (id: string) => c.people.get(id);
+	const week = weekOf(m.round, c.season.roundsPerWeek);
+	const holidayTag = (id: string) =>
+		m.stage === 'playoff'
+			? null
+			: c.holidays.away.get(id)?.has(week)
+				? 'On holiday'
+				: c.holidays.revoked.get(id)?.has(week)
+					? 'Holiday revoked'
+					: null;
 	const side = (id: string, legend: string | null, games: number | null) => ({
 		name: person(id)?.displayName ?? 'Unknown',
 		avatar: person(id)?.avatar ?? null,
@@ -105,10 +114,7 @@ export function matchCard(m: CardMatch, c: CardContext) {
 		legend,
 		games,
 		href: person(id)?.former ? null : `/seasons/${c.season.slug}/players/${id}`,
-		tag:
-			m.stage !== 'playoff' && c.away.get(id)?.has(weekOf(m.round, c.season.roundsPerWeek))
-				? 'On holiday'
-				: null
+		tag: holidayTag(id)
 	});
 	const mode = matchMode(m, {
 		viewerId: c.viewerId,
@@ -138,7 +144,7 @@ export function matchCard(m: CardMatch, c: CardContext) {
 					? `Walkover · ${walkover} advances`
 					: early
 						? m.reportedBy
-							? `Played early, hidden from standings until week ${weekOf(m.round, c.season.roundsPerWeek)} is published`
+							? `Played early, hidden from standings until week ${week} is published`
 							: 'Unlocked early'
 						: m.reportedBy
 							? `Reported by ${person(m.reportedBy)?.displayName ?? 'an organizer'}`

@@ -71,7 +71,15 @@ test('reject with a reason only the player sees; cancel; revoke keeps the match'
 	await expect(org.getByRole('status')).toContainText('Holiday revoked for Holiday 3');
 	await p3.goto(`/seasons/${slug}/players/${h3}`);
 	await expect(p3.getByRole('heading', { name: 'Holiday revoked' })).toBeVisible();
+	// The still-unlocked match says why: a Holiday revoked tag instead of On holiday.
+	const early = p3.getByRole('region', { name: 'Unlocked early' });
+	await expect(early.getByText('Holiday revoked')).toBeVisible();
+	await expect(early.getByText('On holiday')).toHaveCount(0);
 	expect((await p3.goto(`/seasons/${slug}/matches/${other}`))?.status()).toBe(200);
+	// The match card's name tags show where the page has no report form: the organizer's view.
+	await org.goto(`/seasons/${slug}/matches/${other}`);
+	await expect(org.getByText('Holiday revoked')).toBeVisible();
+	await expect(org.getByText('On holiday')).toHaveCount(0);
 });
 
 test('request → approve → early report stays hidden → publish posts it', async ({ browser }) => {
