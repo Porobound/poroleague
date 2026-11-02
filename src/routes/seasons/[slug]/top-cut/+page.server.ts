@@ -1,6 +1,7 @@
 import { error } from '@sveltejs/kit';
 import { currentRound, roundName } from '#lib/league/bracket.ts';
-import { cardContext, matchCard } from '#lib/matchCard.ts';
+import { look } from '#lib/league/cosmetics.ts';
+import { cardContext, matchCard, withBadges } from '#lib/matchCard.ts';
 import { publicSeason, seasonEntries } from '#lib/server/seasons.ts';
 import { cutState } from '#lib/server/topCut.ts';
 import type { PageServerLoad } from './$types';
@@ -13,10 +14,22 @@ export const load: PageServerLoad = ({ params, locals }) => {
 	const me = locals.user?.id ?? null;
 	const rounds = s.rounds.length;
 	const ctx = cardContext(season, people, me, new Date(), rounds);
+	const entry = (id: string | null) => (id ? people.find((x) => x.playerId === id) : undefined);
+	// The top cut shows badges; every other card keeps plain names.
+	const badge = (id: string) => {
+		const e = entry(id);
+		return e ? look(e).badge : null;
+	};
 	const who = (id: string | null) => {
-		const e = id && people.find((x) => x.playerId === id);
+		const e = entry(id);
 		return e
-			? { id: e.playerId, name: e.displayName, former: e.former, label: s.label(e.playerId) }
+			? {
+					id: e.playerId,
+					name: e.displayName,
+					former: e.former,
+					label: s.label(e.playerId),
+					badge: look(e).badge
+				}
 			: null;
 	};
 	const now = currentRound(s.rounds);
@@ -36,7 +49,7 @@ export const load: PageServerLoad = ({ params, locals }) => {
 				walkover: !!x.match?.walkoverId,
 				mine: !!me && (x.p1 === me || x.p2 === me),
 				href: x.match ? `/seasons/${season.slug}/matches/${x.match.id}` : null,
-				card: x.match ? matchCard(x.match, ctx) : null
+				card: x.match ? withBadges(matchCard(x.match, ctx), badge, x.match) : null
 			}))
 		}))
 	};
