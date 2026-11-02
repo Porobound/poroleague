@@ -70,6 +70,11 @@ Achievements:
 - `npm run db:achievements-dev -- <your-discord-id> <all|none|id…>` grants your player achievements (dated now) or clears them (`none`), to check tiles, progress and long names. Ids are in `src/lib/league/achievements.ts`, e.g. `legend-renata-glasc-master`, `first-blood`. The next app start re-awards what your results earned.
 - `npm run db:backfill-achievements` awards what existing results earned. The app also does this on every start, and the other dev scripts run it after writing results.
 
+Cosmetics:
+
+- `db:reseed-dev` also equips cosmetics: most fake players wear something they earned, some nothing, and the player with the most achievements wears the longest title (`Master Yi (PG) Master`), for checking standings, the bracket and phones.
+- Unlock everything for yourself with `npm run db:achievements-dev -- <your-discord-id> all`, then equip it on your career page (**Customize profile**); `none` also takes your cosmetics off.
+
 ### Troubleshooting
 
 | Symptom                                       | Fix                                                                                                  |
