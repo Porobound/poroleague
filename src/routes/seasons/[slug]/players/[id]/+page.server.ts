@@ -37,8 +37,9 @@ export const load: PageServerLoad = ({ params, locals }) => {
 	const list = seasonEntries(season.id);
 	const player = list.find((e) => e.playerId === params.id) ?? error(404, 'Player not found');
 	const hs = seasonHolidays(season.id);
-	const { unlocked, away } = seasonUnlocks(season, hs);
-	const ctx = cardContext(season, list, locals.user?.id ?? null, new Date(), 0, away);
+	const marks = seasonUnlocks(season, hs);
+	const { unlocked } = marks;
+	const ctx = cardContext(season, list, locals.user?.id ?? null, new Date(), 0, marks);
 	const theirs = playerMatches(season.id, player.playerId);
 	const ms = published(theirs, season.publishedRound);
 	const cards = ms.map((m) => ({
