@@ -275,6 +275,7 @@ export function publishWeek(
 ) {
 	db.transaction((tx) => {
 		tx.update(seasons).set({ publishedRound: rounds[1] }).where(eq(seasons.id, seasonId)).run();
+		clearTiebreaks(tx, seasonId); // early results now count, so standings may change
 		tx.insert(audit)
 			.values({ seasonId, actorId, action: 'publish', after: { week, rounds } })
 			.run();

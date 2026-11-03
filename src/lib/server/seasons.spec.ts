@@ -93,6 +93,12 @@ describe('nextPairings', () => {
 		expect(nextPairings(reload(season), seasonData(season))).toBeNull();
 	});
 
+	it('publishing clears tiebreaks: early results can change the standings', () => {
+		setTiebreaks(season.id, ['p2', 'p1'], ORG.id);
+		publishWeek(season.id, 1, [1, 2], ORG.id);
+		expect(seasonEntries(season.id).map((e) => e.tiebreak)).toEqual([null, null, null]);
+	});
+
 	it('leaves void matches out of the post', () => {
 		dropPlayer(season.id, 'p3', ORG.id);
 		const p = nextPairings(season, seasonData(season))!;
