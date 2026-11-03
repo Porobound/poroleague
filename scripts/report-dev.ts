@@ -2,6 +2,9 @@
 // holiday-unlocked matches, so your opponent can report one early. Writes the audit row like the
 // app does; posts nothing to Discord.
 import Database from 'better-sqlite3';
+import { drizzle } from 'drizzle-orm/better-sqlite3';
+import { backfillAchievements } from '#lib/server/achievements.ts';
+import * as schema from '#lib/server/db/schema.ts';
 import { isUnlocked, unlockedWeeks, type Holiday } from '#lib/league/holiday.ts';
 
 process.loadEnvFile();
@@ -60,4 +63,6 @@ db.transaction(() => {
 		`insert into audit (season_id, match_id, actor_id, action, after) values (?, ?, ?, 'report', ?)`
 	).run(m.season_id, m.id, other, JSON.stringify(after));
 })();
+// Results written with SQL skip the app's award calls.
+backfillAchievements(drizzle(db, { schema }));
 console.log(`Match ${id} reported 2-0 by ${other}.`);
