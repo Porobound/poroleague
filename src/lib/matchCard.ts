@@ -1,5 +1,6 @@
 import { matchMode } from '#lib/league/report.ts';
 import { droppedIds, isOverdue, isVoid } from '#lib/league/status.ts';
+import type { WeekMap } from '#lib/league/holiday.ts';
 import { isPublished } from '#lib/league/publish.ts';
 import { currentWeek, reportingClosed, weekOf } from '#lib/league/time.ts';
 import { matchName } from '#lib/league/bracket.ts';
@@ -56,10 +57,13 @@ export function cardContext(
 	people: Person[],
 	viewerId: string | null,
 	now = new Date(),
-	cutRounds = 0
+	cutRounds = 0,
+	// Player id → weeks of their approved holidays, for the On holiday tag.
+	away: WeekMap = new Map()
 ) {
 	return {
 		season,
+		away,
 		viewerId,
 		now,
 		cutRounds,
@@ -100,7 +104,11 @@ export function matchCard(m: CardMatch, c: CardContext) {
 		former: !!person(id)?.former,
 		legend,
 		games,
-		href: person(id)?.former ? null : `/seasons/${c.season.slug}/players/${id}`
+		href: person(id)?.former ? null : `/seasons/${c.season.slug}/players/${id}`,
+		tag:
+			m.stage !== 'playoff' && c.away.get(id)?.has(weekOf(m.round, c.season.roundsPerWeek))
+				? 'On holiday'
+				: null
 	});
 	const mode = matchMode(m, {
 		viewerId: c.viewerId,

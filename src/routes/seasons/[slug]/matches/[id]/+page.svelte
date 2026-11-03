@@ -46,7 +46,8 @@
 			legend: k === 'p1' ? r.p1Legend : r.p2Legend,
 			games: k === 'p1' ? r.p1Games : r.p2Games,
 			former: player(k).former,
-			href: player(k).former ? null : `/seasons/${data.season.slug}/players/${player(k).id}`
+			href: player(k).former ? null : `/seasons/${data.season.slug}/players/${player(k).id}`,
+			tag: data.tags[k]
 		});
 		const diceSide = r.diceWinnerId === m.p1Id ? 'p1' : 'p2';
 		return {
@@ -201,9 +202,11 @@
 					? 'Flag resolved by an organizer · final'
 					: m.flaggedBy
 						? `Flagged by ${flagger.id === me ? 'you' : flagger.displayName} · only organizers can change it now`
-						: m.reportedBy
-							? `Reported by ${!reporter ? 'an organizer' : reporter.id === me ? 'you' : reporter.displayName}`
-							: ''}
+						: data.earlyNote
+							? data.earlyNote
+							: m.reportedBy
+								? `Reported by ${!reporter ? 'an organizer' : reporter.id === me ? 'you' : reporter.displayName}`
+								: ''}
 		/>
 
 		{#if m.flaggedBy && m.flagReason}
