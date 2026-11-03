@@ -1,4 +1,5 @@
-import { defineConfig } from '@playwright/test';
+import { chromium, defineConfig } from '@playwright/test';
+import { existsSync } from 'node:fs';
 import { DB, HOOKS_PORT, PORT } from './e2e/fixtures.ts';
 
 const hook = (channel: string) => `http://localhost:${HOOKS_PORT}/${channel}`;
@@ -9,7 +10,11 @@ export default defineConfig({
 	// Flows share one database and one webhook listener.
 	workers: 1,
 	globalSetup: './e2e/global.ts',
-	use: { channel: 'chrome', baseURL: `http://localhost:${PORT}` },
+	// Playwright's Chromium where installed (the remote container), else Google Chrome (CI, dev PCs).
+	use: {
+		channel: existsSync(chromium.executablePath()) ? undefined : 'chrome',
+		baseURL: `http://localhost:${PORT}`
+	},
 	webServer: {
 		command: `rm -f ${DB}* && vite build && node scripts/migrate.ts && node e2e/seed.ts && vite preview --port ${PORT} --strictPort`,
 		url: `http://localhost:${PORT}`,
