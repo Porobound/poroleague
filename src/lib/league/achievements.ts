@@ -1,3 +1,5 @@
+import { isPublished } from '#lib/league/publish.ts';
+import { isVoid } from '#lib/league/status.ts';
 import { LEGENDS, type Legend } from '#lib/legends.ts';
 
 export type Tier = 'bronze' | 'silver' | 'gold';
@@ -16,8 +18,121 @@ export type Achievement = {
 };
 
 export type Hit = { at: Date; seasonId: number };
-// Filled in by Task 3.
-type Hits = (ms: unknown[], h: unknown) => Hit[];
+// A player's matches in the live seasons they entered (played or not), and those seasons.
+export type HistoryMatch = {
+	seasonId: number;
+	stage: 'group' | 'playoff';
+	round: number;
+	p1Id: string;
+	p2Id: string;
+	p1Games: number | null;
+	p2Games: number | null;
+	games: string | null;
+	p1Legend: string | null;
+	p2Legend: string | null;
+	diceWinnerId: string | null;
+	reportedAt: Date | null;
+	walkoverId: string | null;
+};
+export type HistorySeason = {
+	id: number;
+	publishedRound: number;
+	dropped: Set<string>;
+	finalizedAt: Date | null; // group stage finalized (audit `finalize`)
+	cutAt: Date | null; // the player is in the published bracket (audit `topcut`)
+	championAt: Date | null; // the player won the final (audit `champion`)
+};
+export type History = { playerId: string; matches: HistoryMatch[]; seasons: HistorySeason[] };
+
+// One counted match from the player's side. `games` per game: '1' = they won it, '2' = lost, 'D'.
+type Played = {
+	seasonId: number;
+	stage: 'group' | 'playoff';
+	at: Date;
+	legend: string | null;
+	won: number;
+	lost: number;
+	games: string | null;
+	dice: boolean;
+};
+type Hits = (ms: Played[], h: History) => Hit[];
+
+const mine = (m: HistoryMatch, playerId: string) => m.p1Id === playerId || m.p2Id === playerId;
+const flip = (games: string) => games.replace(/[12]/g, (g) => (g === '1' ? '2' : '1'));
+
+// Counted matches, oldest first: public (isPublished), reported with a score, no walkover, not
+// void. Deadline double losses have no score, so they're out.
+export function played(h: History): Played[] {
+	const seasons = new Map(h.seasons.map((s) => [s.id, s]));
+	return h.matches
+		.filter((m) => {
+			const s = seasons.get(m.seasonId);
+			return (
+				!!s &&
+				mine(m, h.playerId) &&
+				isPublished(m, s.publishedRound) && // #141; see Task 1 Step 2 if it's group-only
+				!!m.reportedAt &&
+				m.p1Games !== null &&
+				m.p2Games !== null &&
+				!m.walkoverId &&
+				!isVoid(m, s.dropped)
+			);
+		})
+		.map((m) => {
+			const me = m.p1Id === h.playerId;
+			return {
+				seasonId: m.seasonId,
+				stage: m.stage,
+				at: m.reportedAt!,
+				legend: me ? m.p1Legend : m.p2Legend,
+				won: me ? m.p1Games! : m.p2Games!,
+				lost: me ? m.p2Games! : m.p1Games!,
+				games: m.games && (me ? m.games : flip(m.games)),
+				dice: m.diceWinnerId === h.playerId
+			};
+		})
+		.sort((a, b) => a.at.getTime() - b.at.getTime());
+}
+
+const hit = (x: { at: Date; seasonId: number }): Hit => ({ at: x.at, seasonId: x.seasonId });
+const where =
+	(f: (m: Played) => boolean): Hits =>
+	(ms) =>
+		ms.filter(f).map(hit);
+const won = (m: Played) => m.won > m.lost;
+
+const variety: Hits = (ms) => {
+	const count = new Map<string, number>();
+	return ms.flatMap((m) => {
+		if (!m.legend) return [];
+		const c = (count.get(m.legend) ?? 0) + 1;
+		count.set(m.legend, c);
+		return c === 2 ? [hit(m)] : [];
+	});
+};
+
+const seasonsPlayed: Hits = (ms) => {
+	const seen = new Set<number>();
+	return ms.filter((m) => !seen.has(m.seasonId) && !!seen.add(m.seasonId)).map(hit);
+};
+
+const perfect: Hits = (ms, h) =>
+	h.seasons.flatMap((s) => {
+		if (!s.finalizedAt) return [];
+		const scheduled = h.matches.filter(
+			(m) =>
+				m.seasonId === s.id && m.stage === 'group' && mine(m, h.playerId) && !isVoid(m, s.dropped)
+		).length;
+		const wins = ms.filter((m) => m.seasonId === s.id && m.stage === 'group' && won(m)).length;
+		return scheduled && wins === scheduled ? [{ at: s.finalizedAt, seasonId: s.id }] : [];
+	});
+
+const seasonEvent =
+	(k: 'cutAt' | 'championAt'): Hits =>
+	(_, h) =>
+		h.seasons
+			.flatMap((s) => (s[k] ? [{ at: s[k], seasonId: s.id }] : []))
+			.sort((a, b) => a.at.getTime() - b.at.getTime());
 type Def = Achievement & { hits: Hits };
 
 export const key = (s: string) =>
@@ -72,8 +187,6 @@ const flat = (id: string, name: string, description: string, hits: Hits, need = 
 	hits
 });
 
-const none: Hits = () => [];
-
 const DEFS: Def[] = [
 	...LEGENDS.flatMap((l) =>
 		tiered(
@@ -81,7 +194,7 @@ const DEFS: Def[] = [
 			l,
 			(n) => `Play ${n} matches as ${l}.`,
 			[3, 10, 25],
-			none,
+			where((m) => m.legend === l),
 			() => `/achievements/champions/${key(champion(l))}.png`,
 			l
 		)
@@ -91,18 +204,48 @@ const DEFS: Def[] = [
 		'Variety',
 		(n) => `Play at least 2 matches each with ${n} different legends.`,
 		[3, 5, 10],
-		none,
+		variety,
 		emblem
 	),
-	...tiered('dice', 'Dice', (n) => `Win ${n} dice rolls.`, [3, 6, 20], none, emblem),
-	flat('first-blood', 'First Blood', 'Win your first match.', none),
-	flat('veteran-3', 'Veteran', 'Play in 3 seasons.', none, 3),
-	flat('veteran-10', 'Old Guard', 'Play in 10 seasons.', none, 10),
-	flat('perfect-group', 'Perfect Group', 'Win every group match of a season.', none),
-	flat('comeback', 'Comeback', 'Win a match after losing game 1.', none),
-	flat('top-cut', 'Top Cut', 'Reach a top cut.', none),
-	flat('champion', 'Champion', 'Win a top-cut final.', none)
+	...tiered(
+		'dice',
+		'Dice',
+		(n) => `Win ${n} dice rolls.`,
+		[3, 6, 20],
+		where((m) => m.dice),
+		emblem
+	),
+	flat('first-blood', 'First Blood', 'Win your first match.', where(won)),
+	flat('veteran-3', 'Veteran', 'Play in 3 seasons.', seasonsPlayed, 3),
+	flat('veteran-10', 'Old Guard', 'Play in 10 seasons.', seasonsPlayed, 10),
+	flat('perfect-group', 'Perfect Group', 'Win every group match of a season.', perfect),
+	flat(
+		'comeback',
+		'Comeback',
+		'Win a match after losing game 1.',
+		where((m) => m.games?.[0] === '2' && won(m))
+	),
+	flat('top-cut', 'Top Cut', 'Reach a top cut.', seasonEvent('cutAt')),
+	flat('champion', 'Champion', 'Win a top-cut final.', seasonEvent('championAt'))
 ];
 
 export const ACHIEVEMENTS: readonly Achievement[] = DEFS;
 export const achievementById = new Map(ACHIEVEMENTS.map((a) => [a.id, a]));
+
+export type Progress = { id: string; have: number; need: number; hit: Hit | null };
+
+// Every achievement against one history: hits so far (capped at need) and the hit that unlocks it.
+export function evaluate(h: History): Progress[] {
+	const ms = played(h);
+	const memo = new Map<Hits, Hit[]>();
+	return DEFS.map((d) => {
+		let hits = memo.get(d.hits);
+		if (!hits) memo.set(d.hits, (hits = d.hits(ms, h)));
+		return {
+			id: d.id,
+			have: Math.min(hits.length, d.need),
+			need: d.need,
+			hit: hits[d.need - 1] ?? null
+		};
+	});
+}
