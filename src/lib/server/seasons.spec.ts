@@ -93,10 +93,15 @@ describe('nextPairings', () => {
 		expect(nextPairings(reload(season), seasonData(season))).toBeNull();
 	});
 
-	it('publishing clears tiebreaks: early results can change the standings', () => {
+	it('publishing clears tiebreaks only when it brings in early results', () => {
+		const tiebreaks = () => seasonEntries(season.id).map((e) => e.tiebreak !== null);
 		setTiebreaks(season.id, ['p2', 'p1'], ORG.id);
 		publishWeek(season.id, 1, [1, 2], ORG.id);
-		expect(seasonEntries(season.id).map((e) => e.tiebreak)).toEqual([null, null, null]);
+		expect(tiebreaks()).toEqual([true, true, false]);
+		report(2, score(2, 0)); // round 3, early; clears them too, so set them again
+		setTiebreaks(season.id, ['p2', 'p1'], ORG.id);
+		publishWeek(season.id, 2, [3, 3], ORG.id);
+		expect(tiebreaks()).toEqual([false, false, false]);
 	});
 
 	it('leaves void matches out of the post', () => {

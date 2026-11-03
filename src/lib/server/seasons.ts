@@ -1,5 +1,17 @@
 import { error } from '@sveltejs/kit';
-import { and, asc, count, desc, eq, inArray, isNotNull, isNull, ne, sql } from 'drizzle-orm';
+import {
+	and,
+	asc,
+	between,
+	count,
+	desc,
+	eq,
+	inArray,
+	isNotNull,
+	isNull,
+	ne,
+	sql
+} from 'drizzle-orm';
 import { currentRound, cutFinish, roundName } from '#lib/league/bracket.ts';
 import { defaultGroupCount, splitGroups } from '#lib/league/groups.ts';
 import { published } from '#lib/league/publish.ts';
@@ -275,7 +287,19 @@ export function publishWeek(
 ) {
 	db.transaction((tx) => {
 		tx.update(seasons).set({ publishedRound: rounds[1] }).where(eq(seasons.id, seasonId)).run();
-		clearTiebreaks(tx, seasonId); // early results now count, so standings may change
+		const early = tx
+			.select({ id: matches.id })
+			.from(matches)
+			.where(
+				and(
+					eq(matches.seasonId, seasonId),
+					eq(matches.stage, 'group'),
+					between(matches.round, rounds[0], rounds[1]),
+					isNotNull(matches.reportedBy)
+				)
+			)
+			.get();
+		if (early) clearTiebreaks(tx, seasonId); // early results now count, so standings may change
 		tx.insert(audit)
 			.values({ seasonId, actorId, action: 'publish', after: { week, rounds } })
 			.run();
