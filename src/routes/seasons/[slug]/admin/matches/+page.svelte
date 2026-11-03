@@ -102,9 +102,12 @@
 										class="pb-btn pb-btn-ghost pb-btn-sm"
 										href="/seasons/{data.season.slug}/matches/{r.id}">View match</a
 									>
-									{#if r.round > data.publishedRound}
+									{#if r.round > data.publishedRound && !data.unlocked.includes(r.id)}
 										<span class="muted small">Unpublished</span>
 									{:else if data.canEdit && r.status !== 'void'}
+										{#if r.round > data.publishedRound}
+											<span class="muted small">Unlocked early</span>
+										{/if}
 										<ResultActions row={r} query="status={data.filter}" />
 									{/if}
 								</div>

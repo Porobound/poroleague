@@ -1,12 +1,17 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { dateSpan } from '#lib/format.ts';
-import { coversLabel, holidayWeeks, requestError } from '#lib/league/holiday.ts';
+import { coversLabel, holidayWeeks, requestError, visibleTo } from '#lib/league/holiday.ts';
 import { legendMatches, playerLegends } from '#lib/league/legendStats.ts';
-import { published } from '#lib/league/publish.ts';
+import { isPublished, published } from '#lib/league/publish.ts';
 import { leagueDate, weekOf } from '#lib/league/time.ts';
 import { cardContext, matchCard } from '#lib/matchCard.ts';
 import { organizerAction, playerAction } from '#lib/server/auth.ts';
-import { cancelHoliday, requestHoliday, seasonHolidays } from '#lib/server/holidays.ts';
+import {
+	cancelHoliday,
+	requestHoliday,
+	seasonHolidays,
+	seasonUnlocks
+} from '#lib/server/holidays.ts';
 import { playerMatches, seasonMatches } from '#lib/server/matches.ts';
 import { erasePlayer } from '#lib/server/players.ts';
 import { postToOrganizers } from '#lib/server/webhooks.ts';
@@ -32,7 +37,8 @@ export const load: PageServerLoad = ({ params, locals }) => {
 	const list = seasonEntries(season.id);
 	const player = list.find((e) => e.playerId === params.id) ?? error(404, 'Player not found');
 	const ctx = cardContext(season, list, locals.user?.id ?? null);
-	const ms = published(playerMatches(season.id, player.playerId), season.publishedRound);
+	const theirs = playerMatches(season.id, player.playerId);
+	const ms = published(theirs, season.publishedRound);
 	const cards = ms.map((m) => ({
 		week: weekOf(m.round, season.roundsPerWeek),
 		card: matchCard(m, ctx)
@@ -45,6 +51,12 @@ export const load: PageServerLoad = ({ params, locals }) => {
 	const hs = seasonHolidays(season.id);
 	const mine = hs.filter((h) => h.playerId === player.playerId);
 	const canRequest = isMe && season.status === 'play';
+	// Matches a holiday unlocked before their week: only their two players see them.
+	const { unlocked } = seasonUnlocks(season, hs);
+	const viewer = locals.user?.id ?? null;
+	const early = theirs.filter(
+		(m) => !isPublished(m, season.publishedRound) && visibleTo(m, viewer, season, unlocked)
+	);
 
 	return {
 		season,
@@ -61,6 +73,7 @@ export const load: PageServerLoad = ({ params, locals }) => {
 			)
 			.map((c) => c.card),
 		matches: cards.map((c) => c.card),
+		early: early.map((m) => matchCard(m, ctx)),
 		legends: playerLegends(counted, player.playerId),
 		history: seasonHistory(playerSeasons(player.playerId)),
 		// Only the player sees their requests, and the reject reason.

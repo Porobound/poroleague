@@ -1,3 +1,5 @@
+import { isUnlocked } from '#lib/league/holiday.ts';
+import { seasonUnlocks } from '#lib/server/holidays.ts';
 import { adminRows, seasonMatches, type AdminRow } from '#lib/server/matches.ts';
 import { editResult, keepFlag } from '#lib/server/resultActions.ts';
 import { seasonEntries } from '#lib/server/seasons.ts';
@@ -17,14 +19,16 @@ export const load: PageServerLoad = async ({ parent, url }) => {
 	const { season } = await parent();
 	const f = url.searchParams.get('status') ?? '';
 	const filter: Filter = Object.hasOwn(FILTERS, f) ? (f as Filter) : 'all';
-	const rows = adminRows(season, seasonEntries(season.id), seasonMatches(season.id)).filter((r) =>
-		FILTERS[filter](r)
-	);
+	const all = seasonMatches(season.id);
+	const rows = adminRows(season, seasonEntries(season.id), all).filter((r) => FILTERS[filter](r));
+	const { unlocked } = seasonUnlocks(season);
 	return {
 		rows,
 		filter,
 		canEdit: season.status === 'play',
-		publishedRound: season.publishedRound
+		publishedRound: season.publishedRound,
+		// Unpublished matches a holiday unlocked: organizers can enter and edit their results.
+		unlocked: all.filter((m) => isUnlocked(m, season, unlocked)).map((m) => m.id)
 	};
 };
 
