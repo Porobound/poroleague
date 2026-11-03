@@ -1,8 +1,7 @@
 import { randomBytes } from 'node:crypto';
-import { and, asc, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNotNull, isNull, lte, or, sql } from 'drizzle-orm';
 import { escapeMd } from '#lib/discord.ts';
 import { cutFinish } from '#lib/league/bracket.ts';
-import { isPublished } from '#lib/league/publish.ts';
 import { ratings } from '#lib/league/rating.ts';
 import { db } from '#lib/server/db/index.ts';
 import { setPlayerRoles } from '#lib/server/discord.ts';
@@ -113,10 +112,7 @@ export function leaderboard() {
 			p1: matches.p1Id,
 			p2: matches.p2Id,
 			p1Games: sql<number>`${matches.p1Games}`,
-			p2Games: sql<number>`${matches.p2Games}`,
-			stage: matches.stage,
-			round: matches.round,
-			publishedRound: seasons.publishedRound
+			p2Games: sql<number>`${matches.p2Games}`
 		})
 		.from(matches)
 		.innerJoin(seasons, eq(matches.seasonId, seasons.id))
@@ -126,12 +122,13 @@ export function leaderboard() {
 				isNotNull(matches.reportedBy),
 				isNotNull(matches.p1Games),
 				isNotNull(matches.p2Games),
-				isNull(matches.walkoverId)
+				isNull(matches.walkoverId),
+				// isPublished, in SQL
+				or(eq(matches.stage, 'playoff'), lte(matches.round, seasons.publishedRound))
 			)
 		)
 		.orderBy(asc(matches.reportedAt), asc(matches.id))
-		.all()
-		.filter((m) => isPublished(m, m.publishedRound));
+		.all();
 	const rating = ratings(counted);
 
 	const rows = new Map(
