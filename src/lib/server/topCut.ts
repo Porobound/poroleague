@@ -9,6 +9,7 @@ import {
 	type Slot
 } from '#lib/league/bracket.ts';
 import { groupName } from '#lib/season.ts';
+import { awardSeason } from '#lib/server/achievements.ts';
 import { db } from '#lib/server/db/index.ts';
 import { audit, entries, matches, seasons } from '#lib/server/db/schema.ts';
 import type { Match, Tx } from '#lib/server/matches.ts';
@@ -217,6 +218,7 @@ export function publishCut(
 			.run();
 		syncBracket(tx, season, actorId);
 	});
+	awardSeason(db, season.id);
 }
 
 // A match waits while a result feeding it is flagged: the organizer's fix may change who plays it.
@@ -252,5 +254,6 @@ export function finishCut(season: Season, championId: string, actorId: string) {
 			.values({ seasonId: season.id, actorId, action: 'champion', after: { champion: championId } })
 			.run();
 	});
+	awardSeason(db, season.id);
 	syncSeasonRoles(season.id);
 }
