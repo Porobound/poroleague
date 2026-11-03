@@ -181,12 +181,35 @@ describe('early matches (holiday mode)', () => {
 describe('On holiday tag', () => {
 	it('tags a player on an approved holiday in that week', () => {
 		const away = new Map([['p1', new Set([2])]]);
-		const c = cardContext({ ...season, roundsPerWeek: 2 }, people, null, NOW, 0, away);
+		const c = cardContext({ ...season, roundsPerWeek: 2 }, people, null, NOW, 0, {
+			away,
+			revoked: new Map()
+		});
 		expect(matchCard(match({ round: 3 }), c).props.sides.map((x) => x.tag)).toEqual([
 			'On holiday',
 			null
 		]);
 		expect(matchCard(match({ round: 1 }), c).props.sides[0].tag).toBeNull();
 		expect(matchCard(match({ round: 3, stage: 'playoff' }), c).props.sides[0].tag).toBeNull();
+	});
+});
+
+describe('Holiday revoked tag', () => {
+	it('tags a player whose holiday covering that week was revoked; approved wins', () => {
+		const revoked = new Map([
+			['p1', new Set([2])],
+			['p2', new Set([2, 3])]
+		]);
+		const away = new Map([['p2', new Set([2])]]);
+		const c = cardContext({ ...season, roundsPerWeek: 2 }, people, null, NOW, 0, { away, revoked });
+		expect(matchCard(match({ round: 3 }), c).props.sides.map((x) => x.tag)).toEqual([
+			'Holiday revoked',
+			'On holiday'
+		]);
+		expect(matchCard(match({ round: 5 }), c).props.sides.map((x) => x.tag)).toEqual([
+			null,
+			'Holiday revoked'
+		]);
+		expect(matchCard(match({ round: 1 }), c).props.sides.map((x) => x.tag)).toEqual([null, null]);
 	});
 });
