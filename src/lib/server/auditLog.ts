@@ -64,22 +64,24 @@ const settings = (before: Change | null, after: Change | null) =>
 		.map(([k, label, f]) => `${label} ${f(before?.[k])} → ${f(after?.[k])}`)
 		.join(' · ');
 
-// Newest first, one readable line per audit row. With `publishedRound` (the public log), rows of
-// matches in unpublished rounds are left out: holiday mode reports those early.
-export function auditLines(seasonId: number, o: { limit?: number; publishedRound?: number } = {}) {
+// Newest first, one readable line per audit row. With `publishedRound`, rows of matches in
+// unpublished rounds (holiday mode reports those early) are left out, or labelled for organizers.
+export function auditLines(
+	seasonId: number,
+	o: { limit?: number; publishedRound?: number; organizer?: boolean } = {}
+) {
 	const names = new Map(seasonEntries(seasonId).map((e) => [e.playerId, e.displayName]));
 	const name = (id: string | null | undefined) => (id && names.get(id)) || 'Unknown';
 	const rounds = cutRounds(seasonId);
 	// A top-cut edit can repoint a later match to new players (see syncBracket). Its reset row keeps
 	// the players it cleared, so the lines older than it still name who played then.
 	const heldBy = new Map<number, [string, string]>();
+	const early = (r: { stage: string | null; round: number | null }) =>
+		o.publishedRound !== undefined &&
+		r.round !== null &&
+		!isPublished({ stage: r.stage ?? undefined, round: r.round }, o.publishedRound);
 	return seasonAudit(seasonId)
-		.filter(
-			(r) =>
-				o.publishedRound === undefined ||
-				r.round === null ||
-				isPublished({ stage: r.stage ?? undefined, round: r.round }, o.publishedRound)
-		)
+		.filter((r) => o.organizer || !early(r))
 		.slice(0, o.limit)
 		.map((r) => {
 			const cleared = r.action === 'reset' ? (r.after as Change | null)?.cleared : undefined;
@@ -110,6 +112,7 @@ export function auditLines(seasonId: number, o: { limit?: number; publishedRound
 				action: r.action,
 				label: auditLabel(r.action),
 				what: [
+					early(r) ? 'Early, not public until its week is published' : '',
 					match,
 					change,
 					after?.flagReason ? `“${after.flagReason}”` : '',

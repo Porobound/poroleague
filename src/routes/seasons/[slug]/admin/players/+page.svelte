@@ -61,7 +61,11 @@
 							</td>
 							<td class="nowrap">{e.group ? groupName(e.group) : ''}</td>
 							<td class="pb-num pb-opt">{e.record?.played ?? '—'}</td>
-							<td class="pb-num">{e.record?.wdl ?? '—'}</td>
+							<td class="pb-num"
+								>{e.record?.wdl ?? '—'}{#if e.early}<span class="early">
+										+{e.early} early</span
+									>{/if}</td
+							>
 							<td>
 								<span class={['pb-badge', e.dropped && 'pb-badge-loss']}
 									>{e.dropped ? 'Dropped' : 'Active'}</span
@@ -136,6 +140,11 @@
 </div>
 
 <style>
+	.early {
+		display: block;
+		color: var(--ink-muted);
+		font-size: 12px;
+	}
 	.order {
 		font: 500 14px/20px var(--font-mono);
 		color: var(--ink-muted);

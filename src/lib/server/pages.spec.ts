@@ -7,11 +7,12 @@ import { load as legendsPage } from '../../routes/seasons/[slug]/legends/+page.s
 import { load as playerPage } from '../../routes/seasons/[slug]/players/[id]/+page.server.ts';
 import { load as schedulePage } from '../../routes/seasons/[slug]/schedule/+page.server.ts';
 import { load as adminPlayersPage } from '../../routes/seasons/[slug]/admin/players/+page.server.ts';
+import { load as auditPage } from '../../routes/seasons/[slug]/audit/+page.server.ts';
 import { GET as apiSeason } from '../../routes/api/v1/seasons/[slug]/+server.ts';
 import { GET as apiLegends } from '../../routes/api/v1/seasons/[slug]/legends/+server.ts';
 import type { Card } from '#lib/matchCard.ts';
 import { db } from '#lib/server/db/index.ts';
-import { entries, matches, players, seasons } from '#lib/server/db/schema.ts';
+import { audit, entries, matches, players, seasons } from '#lib/server/db/schema.ts';
 import { leaderboard } from '#lib/server/players.ts';
 import { createSession, validateSession } from '#lib/server/session.ts';
 import { and, eq } from 'drizzle-orm';
@@ -28,6 +29,7 @@ const legendsLoad = loaded(legendsPage);
 const playerLoad = loaded(playerPage);
 const scheduleLoad = loaded(schedulePage);
 const adminPlayersLoad = loaded(adminPlayersPage);
+const auditLoad = loaded(auditPage);
 
 // Unpublished pairings stay secret, organizers included, and drafts are hidden on every public page.
 type User = NonNullable<App.Locals['user']>;
@@ -154,6 +156,30 @@ describe('an early result in an unpublished round', () => {
 		expect((await careerLoad(event({ id: 'p1' }, null))).totals.played).toBe(1);
 		expect((await api(apiLegends)).length).toBe(2);
 		expect(leaderboard().find((r) => r.playerId === 'p1')!.played).toBe(1);
+	});
+
+	it('organizers see it, labelled, on the audit log and admin players; others do not', async () => {
+		const season = db.select().from(seasons).where(eq(seasons.slug, 's1')).get()!;
+		db.insert(audit)
+			.values({ seasonId: season.id, actorId: 'p1', matchId: hidden[0], action: 'report' })
+			.run();
+		vi.stubGlobal('fetch', async () =>
+			Response.json({ user: { id: 'org' }, nick: null, avatar: null, roles: [ORGANIZER_ROLE_ID] })
+		);
+		const lines = async (user: User | null) =>
+			(await auditLoad(event({ slug: 's1' }, user))).lines.map((l: { what: string }) => l.what);
+		expect(await lines(null)).toEqual([]);
+		expect(await lines(as('p1'))).toEqual([]);
+		expect(await lines(ORG)).toEqual([expect.stringMatching(/^Early, not public/)]);
+
+		const rows = (await adminPlayersLoad({ parent: async () => ({ season }) } as never)).entries;
+		expect(
+			rows.map((e: { early: number; record: { played: number } }) => [e.early, e.record.played])
+		).toEqual([
+			[1, 0],
+			[0, 0],
+			[1, 0]
+		]);
 	});
 });
 
