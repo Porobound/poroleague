@@ -103,6 +103,10 @@ export const matches = sqliteTable(
 	(t) => [index('matches_season_idx').on(t.seasonId)]
 );
 
+// SQL twin of isPublished (league/publish.ts); the query must join seasons.
+export const publishedMatch = () =>
+	sql<boolean>`(${matches.stage} = 'playoff' or ${matches.round} <= ${seasons.publishedRound})`;
+
 export const audit = sqliteTable(
 	'audit',
 	{

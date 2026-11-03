@@ -103,6 +103,9 @@ describe('nextPairings', () => {
 
 describe('endState', () => {
 	const end = (now = new Date()) => endState(reload(season), seasonData(season.id), now);
+	beforeEach(() => {
+		db.update(seasons).set({ publishedRound: 3 }).where(eq(seasons.id, season.id)).run();
+	});
 
 	it('is not ending while matches are unplayed before the deadline', () => {
 		expect(end()).toMatchObject({
@@ -207,6 +210,36 @@ describe('season lookups', () => {
 	});
 });
 
+describe('early results (holiday mode)', () => {
+	const early = () =>
+		db
+			.update(matches)
+			.set({ ...score(2, 0), reportedBy: 'p1', reportedAt: new Date() })
+			.where(eq(matches.id, ms[1]))
+			.run();
+
+	it('groupStandings leaves out results of unpublished rounds, but keeps the round count', () => {
+		db.update(seasons).set({ publishedRound: 1 }).where(eq(seasons.id, season.id)).run();
+		early();
+		const [g] = groupStandings(reload(season), seasonEntries(season.id));
+		expect(g.rows.every((r) => r.played === 0)).toBe(true);
+		expect(g.rounds).toBe(3);
+		db.update(seasons).set({ publishedRound: 2 }).where(eq(seasons.id, season.id)).run();
+		const [after] = groupStandings(reload(season), seasonEntries(season.id));
+		expect(after.rows.find((r) => r.playerId === 'p1')!.points).toBe(3);
+	});
+
+	it('the public audit log leaves out rows of unpublished matches', () => {
+		report(1, score(2, 0));
+		publishWeek(season.id, 1, [1, 1], ORG.id);
+		const actions = (o?: { publishedRound: number }) =>
+			auditLines(season.id, o).map((l) => l.action);
+		expect(actions({ publishedRound: 1 })).toEqual(['publish']);
+		expect(actions()).toEqual(['publish', 'report']);
+		expect(actions({ publishedRound: 2 })).toEqual(['publish', 'report']);
+	});
+});
+
 describe('auditLines', () => {
 	it('writes one readable line per change, newest first', () => {
 		report(0, score(2, 1));
@@ -224,7 +257,7 @@ describe('auditLines', () => {
 			['Report', 'Group A R1 · Player 1 2–1 Player 2 · Jinx vs Viktor · dice: Player 1']
 		]);
 		expect(lines[0].actor).toBe('Player 9');
-		expect(auditLines(season.id, 2)).toHaveLength(2);
+		expect(auditLines(season.id, { limit: 2 })).toHaveLength(2);
 	});
 
 	it('names changed signup limits', () => {

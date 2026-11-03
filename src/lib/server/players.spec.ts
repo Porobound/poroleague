@@ -296,10 +296,15 @@ describe('leaderboard', () => {
 
 	it('rates every counted match across live seasons, and nothing else', () => {
 		seedPlayers(5);
-		const s1 = seedSeason({ status: 'finished' }).id;
-		const s2 = seedSeason({ slug: 's2', status: 'play' }).id;
-		const gone = seedSeason({ slug: 's3', status: 'finished', deletedAt: new Date() }).id;
-		const signup = seedSeason({ slug: 's4', status: 'signup' }).id;
+		const s1 = seedSeason({ publishedRound: 9, status: 'finished' }).id;
+		const s2 = seedSeason({ publishedRound: 9, slug: 's2', status: 'play' }).id;
+		const gone = seedSeason({
+			publishedRound: 9,
+			slug: 's3',
+			status: 'finished',
+			deletedAt: new Date()
+		}).id;
+		const signup = seedSeason({ publishedRound: 9, slug: 's4', status: 'signup' }).id;
 		seedEntries(s1, ['p1', 'p2', 'p3'], 1);
 		seedEntries(s2, ['p1', 'p2', 'p3', 'p4'], 1);
 		seedEntries(gone, ['p1', 'p2'], 1);
@@ -330,7 +335,7 @@ describe('leaderboard', () => {
 
 	it('orders by report time, then id', () => {
 		seedPlayers(3);
-		const s = seedSeason({ status: 'play' }).id;
+		const s = seedSeason({ publishedRound: 9, status: 'play' }).id;
 		seedEntries(s, ['p1', 'p2', 'p3'], 1);
 		won(s, 'p2', 'p3', 5);
 		won(s, 'p1', 'p2', 5);
@@ -344,8 +349,8 @@ describe('leaderboard', () => {
 
 	it('lists unrated players last with their best finish', () => {
 		seedPlayers(4);
-		const a = seedSeason({ status: 'finished' }).id;
-		const b = seedSeason({ slug: 's2', status: 'play' }).id;
+		const a = seedSeason({ publishedRound: 9, status: 'finished' }).id;
+		const b = seedSeason({ publishedRound: 9, slug: 's2', status: 'play' }).id;
 		seedEntries(a, ['p1', 'p2', 'p3', 'p4'], 1);
 		seedEntries(b, ['p1', 'p2'], 1);
 		won(a, 'p2', 'p1', 1);

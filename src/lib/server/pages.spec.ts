@@ -7,9 +7,12 @@ import { load as legendsPage } from '../../routes/seasons/[slug]/legends/+page.s
 import { load as playerPage } from '../../routes/seasons/[slug]/players/[id]/+page.server.ts';
 import { load as schedulePage } from '../../routes/seasons/[slug]/schedule/+page.server.ts';
 import { load as adminPlayersPage } from '../../routes/seasons/[slug]/admin/players/+page.server.ts';
+import { GET as apiSeason } from '../../routes/api/v1/seasons/[slug]/+server.ts';
+import { GET as apiLegends } from '../../routes/api/v1/seasons/[slug]/legends/+server.ts';
 import type { Card } from '#lib/matchCard.ts';
 import { db } from '#lib/server/db/index.ts';
-import { entries, players, seasons } from '#lib/server/db/schema.ts';
+import { entries, matches, players, seasons } from '#lib/server/db/schema.ts';
+import { leaderboard } from '#lib/server/players.ts';
 import { createSession, validateSession } from '#lib/server/session.ts';
 import { and, eq } from 'drizzle-orm';
 import { seedEntries, seedMatch, seedPlayers, seedSeason } from '#lib/server/test/seed.ts';
@@ -109,6 +112,48 @@ describe.each(VIEWERS)('unpublished rounds, viewed %s', (_, user) => {
 			(await playerLoad(event({ slug: 's1', id }, user))).matches.map((c: Card) => c.id);
 		expect(await ids('p1')).toEqual([published]);
 		expect(await ids('p3')).toEqual([]);
+	});
+});
+
+// Holiday mode reports a match before its round is published: nothing public counts it until then.
+describe('an early result in an unpublished round', () => {
+	beforeEach(() => {
+		db.update(matches)
+			.set({
+				p1Games: 2,
+				p2Games: 0,
+				p1Legend: 'Jinx',
+				p2Legend: 'Ahri',
+				diceWinnerId: 'p1',
+				reportedBy: 'p1',
+				reportedAt: new Date()
+			})
+			.where(eq(matches.id, hidden[0]))
+			.run();
+	});
+	const publish = () =>
+		db.update(seasons).set({ publishedRound: 2 }).where(eq(seasons.slug, 's1')).run();
+	const api = async (get: (e: never) => Response | Promise<Response>) =>
+		(await get({ params: { slug: 's1' } } as never)).json();
+
+	it('counts nowhere, not even for its own players, until its round is published', async () => {
+		for (const user of [null, as('p1'), as('p3')]) {
+			const me = await playerLoad(event({ slug: 's1', id: 'p1' }, user));
+			expect([me.row?.played, me.dice.of]).toEqual([0, 0]);
+		}
+		expect((await legendsLoad(event({ slug: 's1' }, null))).matches).toBe(0);
+		expect((await careerLoad(event({ id: 'p1' }, null))).totals.played).toBe(0);
+		const detail = await api(apiSeason);
+		expect(detail.groups[0].standings.map((r: { played: number }) => r.played)).toEqual([0, 0, 0]);
+		expect(await api(apiLegends)).toEqual([]);
+		expect(leaderboard().find((r) => r.playerId === 'p1')!.played).toBe(0);
+
+		publish();
+		expect((await playerLoad(event({ slug: 's1', id: 'p1' }, null))).row?.played).toBe(1);
+		expect((await legendsLoad(event({ slug: 's1' }, null))).matches).toBe(1);
+		expect((await careerLoad(event({ id: 'p1' }, null))).totals.played).toBe(1);
+		expect((await api(apiLegends)).length).toBe(2);
+		expect(leaderboard().find((r) => r.playerId === 'p1')!.played).toBe(1);
 	});
 });
 
