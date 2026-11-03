@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cardContext, matchCard, type CardMatch } from '#lib/matchCard.ts';
+import { cardContext, matchCard, withBadges, type CardMatch } from '#lib/matchCard.ts';
 
 const people = ['p1', 'p2', 'p3'].map((id, i) => ({
 	playerId: id,
@@ -191,6 +191,17 @@ describe('On holiday tag', () => {
 		]);
 		expect(matchCard(match({ round: 1 }), c).props.sides[0].tag).toBeNull();
 		expect(matchCard(match({ round: 3, stage: 'playoff' }), c).props.sides[0].tag).toBeNull();
+	});
+});
+
+describe('withBadges', () => {
+	it('adds each side its badge, leaving the card as it was', () => {
+		const FB = { name: 'First Blood', icon: '/achievements/items/first-blood.png', tier: null };
+		const m = match();
+		const card = matchCard(m, ctx());
+		const badged = withBadges(card, (id) => (id === m.p1Id ? FB : null), m);
+		expect(badged.props.sides.map((s) => s.badge)).toEqual([FB, null]);
+		expect(card.props.sides.every((s) => !('badge' in s))).toBe(true);
 	});
 });
 

@@ -31,7 +31,8 @@ export const SEASONS = {
 	api: 'e2e-api',
 	apiDraft: 'e2e-api-draft',
 	holiday: 'e2e-holiday',
-	achievements: 'e2e-achievements'
+	achievements: 'e2e-achievements',
+	cosmetics: 'e2e-cosmetics'
 };
 export type SeasonKey = keyof typeof SEASONS;
 
