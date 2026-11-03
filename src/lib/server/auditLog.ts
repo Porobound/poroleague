@@ -79,7 +79,7 @@ export function auditLines(
 	const early = (r: { stage: string | null; round: number | null }) =>
 		o.publishedRound !== undefined &&
 		r.round !== null &&
-		!isPublished({ stage: r.stage ?? undefined, round: r.round }, o.publishedRound);
+		!isPublished({ stage: r.stage, round: r.round }, o.publishedRound);
 	return seasonAudit(seasonId)
 		.filter((r) => o.organizer || !early(r))
 		.slice(0, o.limit)

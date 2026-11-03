@@ -13,7 +13,7 @@ export function nextPublish(publishedRound: number, roundsPerWeek: number, maxRo
 // The one rule for whether a result counts anywhere public (standings, stats, Elo, audit, API,
 // results webhook): its round is published. Holiday mode lets matches be reported before that.
 // Top-cut matches are public once they exist.
-export const isPublished = (m: { stage?: string; round: number }, publishedRound: number) =>
+export const isPublished = (m: { stage?: string | null; round: number }, publishedRound: number) =>
 	m.stage === 'playoff' || m.round <= publishedRound;
 
 const UNREPORTED = {
@@ -32,13 +32,13 @@ const UNREPORTED = {
 };
 
 // The public view of a match: an early (unpublished) result reads as never reported.
-export const masked = <T extends { stage?: string; round: number }>(
+export const masked = <T extends { stage?: string | null; round: number }>(
 	m: T,
 	publishedRound: number
 ): T => (isPublished(m, publishedRound) ? m : { ...m, ...UNREPORTED });
 
 // Players only see matches of published rounds.
-export const published = <T extends { stage?: string; round: number }>(
+export const published = <T extends { stage?: string | null; round: number }>(
 	ms: T[],
 	publishedRound: number
 ) => ms.filter((m) => isPublished(m, publishedRound));
