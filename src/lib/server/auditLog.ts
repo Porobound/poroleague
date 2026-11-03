@@ -1,4 +1,4 @@
-import { date, when } from '#lib/format.ts';
+import { date, dateSpan, when } from '#lib/format.ts';
 import { matchName } from '#lib/league/bracket.ts';
 import { isPublished } from '#lib/league/publish.ts';
 import type { Report } from '#lib/league/report.ts';
@@ -27,6 +27,10 @@ type Change = Partial<Report> & {
 	winner?: string;
 	champion?: string;
 	cleared?: [string, string];
+	holiday?: string;
+	from?: string;
+	to?: string;
+	status?: string;
 };
 const LABEL: Record<string, string> = {
 	report: 'Report',
@@ -43,7 +47,8 @@ const LABEL: Record<string, string> = {
 	topcut: 'Top cut',
 	walkover: 'Walkover',
 	champion: 'Champion',
-	reset: 'Reset'
+	reset: 'Reset',
+	holiday: 'Holiday'
 };
 export const auditLabel = (action: string) => LABEL[action] ?? action;
 
@@ -128,6 +133,9 @@ export function auditLines(seasonId: number, o: { limit?: number; publishedRound
 						: '',
 					after?.winner ? `${name(after.winner)} advances` : '',
 					after?.champion ? `Champion: ${name(after.champion)}` : '',
+					after?.holiday
+						? `${name(after.holiday)} — holiday ${dateSpan(after.from!, after.to!)} ${after.status}`
+						: '',
 					r.action === 'publish' && after?.rounds
 						? `Week ${after.week} published · R${after.rounds[0]}${after.rounds[1] > after.rounds[0] ? `–${after.rounds[1]}` : ''}`
 						: ''
