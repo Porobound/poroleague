@@ -1,5 +1,6 @@
 import { fail } from '@sveltejs/kit';
 import { dropEmbed } from '#lib/discord.ts';
+import { isPublished } from '#lib/league/publish.ts';
 import { organizerAction } from '#lib/server/auth.ts';
 import { seasonMatches } from '#lib/server/matches.ts';
 import {
@@ -35,6 +36,13 @@ export const load: PageServerLoad = async ({ parent }) => {
 				joinedAt: times.get(e.playerId) ?? null,
 				record: r ? { played: r.played, wdl: `${r.wins}–${r.draws}–${r.losses}` } : null,
 				matches: ms.filter((m) => m.p1Id === e.playerId || m.p2Id === e.playerId).length,
+				// Reported early: not in the record until their week is published.
+				early: ms.filter(
+					(m) =>
+						(m.p1Id === e.playerId || m.p2Id === e.playerId) &&
+						m.reportedBy &&
+						!isPublished(m, season.publishedRound)
+				).length,
 				canCancel: season.status === 'play' && e.dropped && !e.former
 			};
 		})

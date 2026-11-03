@@ -1,3 +1,4 @@
+import { isPublished } from '#lib/league/publish.ts';
 import { error, fail } from '@sveltejs/kit';
 import { LEGENDS } from '#lib/legends.ts';
 import { flagEmbed, resultEmbed } from '#lib/discord.ts';
@@ -91,7 +92,8 @@ export const actions: Actions = {
 			});
 		saveReport(match, user.id, parsed.values);
 		const post = matchPost(event.url.origin, season, match, parsed.values);
-		postResult(resultEmbed(post));
+		// Holiday mode: an early result is posted when its week is published.
+		if (isPublished(match, season.publishedRound)) postResult(resultEmbed(post));
 		const opponent = user.id === post.p1.id ? post.p2 : post.p1;
 		return { message: `Result saved. If something's off, you or ${opponent.name} can flag it.` };
 	},

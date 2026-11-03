@@ -8,7 +8,7 @@ import { droppedIds, isOverdue, isVoid } from '#lib/league/status.ts';
 import { currentWeek, weekOf } from '#lib/league/time.ts';
 import { liveState } from '#lib/matchCard.ts';
 import { groupName, hasSchedule } from '#lib/season.ts';
-import { bracketMatches, seasonMatches, type Match } from '#lib/server/matches.ts';
+import { bracketMatches, publicMatches, seasonMatches, type Match } from '#lib/server/matches.ts';
 import {
 	allSeasons,
 	findSeason,
@@ -163,7 +163,7 @@ export function topCut(s: Season) {
 // Same rows as the legends page: void and unplayed matches left out, mirrors only as picks.
 export function legendList(s: Season) {
 	const dropped = droppedIds(seasonEntries(s.id));
-	return legendStats(legendMatches(seasonMatches(s.id), dropped)).map((t) => ({
+	return legendStats(legendMatches(publicMatches(s), dropped)).map((t) => ({
 		legend: t.key,
 		picks: t.picks,
 		players: t.players.size,

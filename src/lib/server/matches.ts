@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, inArray, isNotNull, or } from 'drizzle-orm';
 import type { MatchPost } from '#lib/discord.ts';
 import { matchName } from '#lib/league/bracket.ts';
+import { masked } from '#lib/league/publish.ts';
 import type { Report } from '#lib/league/report.ts';
 import { isVoid } from '#lib/league/status.ts';
 import { cardContext, matchCard } from '#lib/matchCard.ts';
@@ -63,6 +64,10 @@ export const seasonMatches = (seasonId: number) =>
 		.where(and(eq(matches.seasonId, seasonId), eq(matches.stage, 'group')))
 		.orderBy(asc(matches.group), asc(matches.round), asc(matches.id))
 		.all();
+
+// What the public sees: group matches with early (unpublished) results masked as unplayed.
+export const publicMatches = (s: { id: number; publishedRound: number }) =>
+	seasonMatches(s.id).map((m) => masked(m, s.publishedRound));
 
 export const bracketMatches = (seasonId: number) =>
 	db

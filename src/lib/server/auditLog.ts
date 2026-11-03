@@ -1,5 +1,6 @@
 import { date, when } from '#lib/format.ts';
 import { matchName } from '#lib/league/bracket.ts';
+import { isPublished } from '#lib/league/publish.ts';
 import type { Report } from '#lib/league/report.ts';
 import { groupName } from '#lib/season.ts';
 import { seasonAudit } from '#lib/server/matches.ts';
@@ -63,16 +64,25 @@ const settings = (before: Change | null, after: Change | null) =>
 		.map(([k, label, f]) => `${label} ${f(before?.[k])} → ${f(after?.[k])}`)
 		.join(' · ');
 
-// Newest first, one readable line per audit row.
-export function auditLines(seasonId: number, limit?: number) {
+// Newest first, one readable line per audit row. With `publishedRound`, rows of matches in
+// unpublished rounds (holiday mode reports those early) are left out, or labelled for organizers.
+export function auditLines(
+	seasonId: number,
+	o: { limit?: number; publishedRound?: number; organizer?: boolean } = {}
+) {
 	const names = new Map(seasonEntries(seasonId).map((e) => [e.playerId, e.displayName]));
 	const name = (id: string | null | undefined) => (id && names.get(id)) || 'Unknown';
 	const rounds = cutRounds(seasonId);
 	// A top-cut edit can repoint a later match to new players (see syncBracket). Its reset row keeps
 	// the players it cleared, so the lines older than it still name who played then.
 	const heldBy = new Map<number, [string, string]>();
+	const early = (r: { stage: string | null; round: number | null }) =>
+		o.publishedRound !== undefined &&
+		r.round !== null &&
+		!isPublished({ stage: r.stage, round: r.round }, o.publishedRound);
 	return seasonAudit(seasonId)
-		.slice(0, limit)
+		.filter((r) => o.organizer || !early(r))
+		.slice(0, o.limit)
 		.map((r) => {
 			const cleared = r.action === 'reset' ? (r.after as Change | null)?.cleared : undefined;
 			const [p1Id, p2Id] = cleared ??
@@ -102,6 +112,7 @@ export function auditLines(seasonId: number, limit?: number) {
 				action: r.action,
 				label: auditLabel(r.action),
 				what: [
+					early(r) ? 'Early, not public until its week is published' : '',
 					match,
 					change,
 					after?.flagReason ? `“${after.flagReason}”` : '',

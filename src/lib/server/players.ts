@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { and, asc, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNotNull, isNull, lte, or, sql } from 'drizzle-orm';
 import { escapeMd } from '#lib/discord.ts';
 import { cutFinish } from '#lib/league/bracket.ts';
 import { ratings } from '#lib/league/rating.ts';
@@ -122,7 +122,9 @@ export function leaderboard() {
 				isNotNull(matches.reportedBy),
 				isNotNull(matches.p1Games),
 				isNotNull(matches.p2Games),
-				isNull(matches.walkoverId)
+				isNull(matches.walkoverId),
+				// isPublished, in SQL
+				or(eq(matches.stage, 'playoff'), lte(matches.round, seasons.publishedRound))
 			)
 		)
 		.orderBy(asc(matches.reportedAt), asc(matches.id))

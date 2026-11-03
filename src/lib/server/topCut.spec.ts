@@ -15,7 +15,7 @@ let id: number;
 // Two groups of three, every group match played: A = p1 > p2 > p3, B = p4 > p5 > p6.
 beforeEach(() => {
 	seedPlayers(6);
-	id = seedSeason({ status: 'topcut', topCutSize: 2 }).id;
+	id = seedSeason({ status: 'topcut', publishedRound: 9, topCutSize: 2 }).id;
 	seedEntries(id, ['p1', 'p2', 'p3'], 1);
 	seedEntries(id, ['p4', 'p5', 'p6'], 2);
 	for (const [g, a, b, c] of [

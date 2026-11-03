@@ -8,7 +8,7 @@ import {
 } from '#lib/league/legendStats.ts';
 import { currentWeek, weekOf } from '#lib/league/time.ts';
 import { LEGENDS } from '#lib/legends.ts';
-import { seasonMatches } from '#lib/server/matches.ts';
+import { publicMatches } from '#lib/server/matches.ts';
 import { publicSeason, seasonEntries } from '#lib/server/seasons.ts';
 import type { PageServerLoad } from './$types';
 
@@ -28,7 +28,7 @@ export const load: PageServerLoad = ({ params, locals, url }) => {
 	const list = seasonEntries(season.id);
 	const people = new Map(list.map((e) => [e.playerId, e]));
 	const dropped = new Set(list.filter((e) => e.dropped).map((e) => e.playerId));
-	const all = seasonMatches(season.id);
+	const all = publicMatches(season);
 	const ms = legendMatches(all, dropped);
 
 	const asked = url.searchParams.get('sort') ?? '';

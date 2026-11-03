@@ -2,8 +2,9 @@ import { fail } from '@sveltejs/kit';
 import { pairingsPost } from '#lib/discord.ts';
 import { organizerAction } from '#lib/server/auth.ts';
 import { auditLines } from '#lib/server/auditLog.ts';
-import { adminRows, bracketMatches } from '#lib/server/matches.ts';
+import { adminRows, bracketMatches, seasonMatches } from '#lib/server/matches.ts';
 import { editResult, keepFlag } from '#lib/server/resultActions.ts';
+import { droppedIds, isVoid } from '#lib/league/status.ts';
 import { weekOf } from '#lib/league/time.ts';
 import { nextPairings, seasonData } from '#lib/server/seasonAdmin.ts';
 import { getSeason, groupStandings, publishWeek, seasonProgress } from '#lib/server/seasons.ts';
@@ -14,7 +15,7 @@ import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ parent }) => {
 	const { season } = await parent();
-	const d = seasonData(season.id);
+	const d = seasonData(season);
 	// Groups exist from the draw on; the phase bar names their sizes.
 	const drawn = season.status !== 'draft' && season.status !== 'signup';
 	const groups = drawn ? groupStandings(season, d.list, d.all) : [];
@@ -31,7 +32,10 @@ export const load: PageServerLoad = async ({ parent }) => {
 				? adminRows(
 						season,
 						d.list,
-						d.live.filter((m) => m.flaggedBy && !m.flagResolvedAt)
+						// Unmasked, so a flag on an early report shows its result.
+						seasonMatches(season.id).filter(
+							(m) => m.flaggedBy && !m.flagResolvedAt && !isVoid(m, droppedIds(d.list))
+						)
 					)
 				: season.status === 'topcut'
 					? adminRows(
@@ -41,7 +45,11 @@ export const load: PageServerLoad = async ({ parent }) => {
 							cutRounds(season.id)
 						)
 					: [],
-		recent: auditLines(season.id, 5)
+		recent: auditLines(season.id, {
+			limit: 5,
+			publishedRound: season.publishedRound,
+			organizer: true
+		})
 	};
 };
 
@@ -54,7 +62,8 @@ export const actions: Actions = {
 		const week = Number((await event.request.formData()).get('week'));
 		const season = getSeason(event.params.slug, user);
 		if (season.status !== 'play') return fail(409, { message: 'The season is not in play.' });
-		const p = nextPairings(season, seasonData(season.id));
+		const d = seasonData(season);
+		const p = nextPairings(season, d);
 		// The form names its week, so a double submit can't publish the week after too.
 		if (!p || p.week !== week)
 			return fail(409, {

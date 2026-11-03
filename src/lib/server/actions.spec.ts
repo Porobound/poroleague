@@ -31,6 +31,11 @@ vi.mock('#lib/server/auth.ts', async (original) => {
 	};
 });
 
+vi.mock('#lib/server/webhooks.ts', async (original) => ({
+	...(await original<typeof import('#lib/server/webhooks.ts')>()),
+	postResult: vi.fn()
+}));
+
 type User = NonNullable<App.Locals['user']>;
 const as = (id: string, isOrganizer = false): User => ({
 	id,
@@ -263,7 +268,7 @@ describe('season end', () => {
 	});
 
 	it('finalizes into the top cut when the season has one', async () => {
-		setSeason({ deadline: '2020-01-01', topCutSize: 2 });
+		setSeason({ deadline: '2020-01-01', topCutSize: 2, publishedRound: 3 });
 		for (const id of [m1, m2, m3])
 			db.update(matches)
 				.set({ reportedBy: 'p1', p1Games: 2, p2Games: 0 })
@@ -275,7 +280,7 @@ describe('season end', () => {
 	});
 
 	it('won’t finalize into a top cut that can’t be drawn', async () => {
-		setSeason({ deadline: '2020-01-01', topCutSize: 4 }); // the one group has 3 players
+		setSeason({ deadline: '2020-01-01', topCutSize: 4, publishedRound: 3 }); // the one group has 3 players
 		for (const id of [m1, m2, m3])
 			db.update(matches)
 				.set({ reportedBy: 'p1', p1Games: 2, p2Games: 0 })

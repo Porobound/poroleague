@@ -74,7 +74,7 @@ const report = (i: number, r: Report) => saveReport(getMatch(season.id, ms[i])!,
 
 describe('nextPairings', () => {
 	it('offers the next week, then the rest, then nothing', () => {
-		expect(nextPairings(season, seasonData(season.id))).toMatchObject({
+		expect(nextPairings(season, seasonData(season))).toMatchObject({
 			week: 1,
 			rounds: [1, 2],
 			count: 2,
@@ -84,25 +84,43 @@ describe('nextPairings', () => {
 			]
 		});
 		publishWeek(season.id, 1, [1, 2], ORG.id);
-		expect(nextPairings(reload(season), seasonData(season.id))).toMatchObject({
+		expect(nextPairings(reload(season), seasonData(season))).toMatchObject({
 			week: 2,
 			rounds: [3, 3],
 			count: 1
 		});
 		publishWeek(season.id, 2, [3, 3], ORG.id);
-		expect(nextPairings(reload(season), seasonData(season.id))).toBeNull();
+		expect(nextPairings(reload(season), seasonData(season))).toBeNull();
+	});
+
+	it('publishing clears tiebreaks only when it brings in early results', () => {
+		const tiebreaks = () => seasonEntries(season.id).map((e) => e.tiebreak !== null);
+		setTiebreaks(season.id, ['p2', 'p1'], ORG.id);
+		publishWeek(season.id, 1, [1, 2], ORG.id);
+		expect(tiebreaks()).toEqual([true, true, false]);
+		report(2, score(2, 0)); // round 3, early; clears them too, so set them again
+		setTiebreaks(season.id, ['p2', 'p1'], ORG.id);
+		publishWeek(season.id, 2, [3, 3], ORG.id);
+		expect(tiebreaks()).toEqual([false, false, false]);
 	});
 
 	it('leaves void matches out of the post', () => {
 		dropPlayer(season.id, 'p3', ORG.id);
-		const p = nextPairings(season, seasonData(season.id))!;
+		const p = nextPairings(season, seasonData(season))!;
 		expect(p.count).toBe(1);
 		expect(p.byRound.map((r) => r.round)).toEqual([1]);
 	});
 });
 
 describe('endState', () => {
-	const end = (now = new Date()) => endState(reload(season), seasonData(season.id), now);
+	const end = (now = new Date()) => {
+		const s = reload(season);
+		return endState(s, seasonData(s), now);
+	};
+	const publish = (weeks: 1 | 2) => {
+		publishWeek(season.id, 1, [1, 2], ORG.id);
+		if (weeks === 2) publishWeek(season.id, 2, [3, 3], ORG.id);
+	};
 
 	it('is not ending while matches are unplayed before the deadline', () => {
 		expect(end()).toMatchObject({
@@ -115,6 +133,7 @@ describe('endState', () => {
 	});
 
 	it('ends early once every live match is reported, and waits on open flags', () => {
+		publish(1);
 		report(0, score(2, 0));
 		dropPlayer(season.id, 'p3', ORG.id); // voids both of p3's matches
 		expect(end()).toMatchObject({ unplayed: 0, ending: true, ready: true });
@@ -122,7 +141,15 @@ describe('endState', () => {
 		expect(end()).toMatchObject({ openFlags: 1, ready: false });
 	});
 
+	it('waits on an open flag on an early result', () => {
+		publish(1);
+		report(2, score(2, 0)); // round 3, unpublished
+		flagMatch(getMatch(season.id, ms[2])!, 'p3', 'wrong');
+		expect(end()).toMatchObject({ unplayed: 3, openFlags: 1 });
+	});
+
 	it('names a two-way tie after a draw and waits for its order', () => {
+		publish(2);
 		report(0, score(1, 1));
 		report(1, score(2, 0));
 		report(2, score(2, 0));
@@ -150,9 +177,21 @@ describe('endState', () => {
 
 	it('a tie between players who never met says "not played"', () => {
 		db.update(seasons).set({ deadline: '2020-01-01' }).run();
+		publish(1);
 		report(0, score(2, 0)); // p1 beats p2; p2 and p3 never play and tie on zero
 		const tie = end().ties.find((t) => t.players.some((p) => p.playerId === 'p3'));
 		expect(tie).toMatchObject({ h2h: 'not played' });
+	});
+
+	it('an early result in an unpublished round counts as unplayed, in the tie panel too', () => {
+		publish(1);
+		report(0, score(2, 0));
+		report(1, score(2, 0));
+		report(2, score(2, 0)); // round 3, unpublished: p2 beats p3 early
+		expect(end()).toMatchObject({ unplayed: 1, ending: false, ready: false });
+		db.update(seasons).set({ deadline: '2020-01-01' }).run();
+		const tie = end().ties.find((t) => t.players.some((p) => p.playerId === 'p3'));
+		expect(tie).toMatchObject({ points: 0, h2h: 'not played' });
 	});
 });
 
@@ -207,6 +246,36 @@ describe('season lookups', () => {
 	});
 });
 
+describe('early results (holiday mode)', () => {
+	const early = () =>
+		db
+			.update(matches)
+			.set({ ...score(2, 0), reportedBy: 'p1', reportedAt: new Date() })
+			.where(eq(matches.id, ms[1]))
+			.run();
+
+	it('groupStandings leaves out results of unpublished rounds, but keeps the round count', () => {
+		db.update(seasons).set({ publishedRound: 1 }).where(eq(seasons.id, season.id)).run();
+		early();
+		const [g] = groupStandings(reload(season), seasonEntries(season.id));
+		expect(g.rows.every((r) => r.played === 0)).toBe(true);
+		expect(g.rounds).toBe(3);
+		db.update(seasons).set({ publishedRound: 2 }).where(eq(seasons.id, season.id)).run();
+		const [after] = groupStandings(reload(season), seasonEntries(season.id));
+		expect(after.rows.find((r) => r.playerId === 'p1')!.points).toBe(3);
+	});
+
+	it('the public audit log leaves out rows of unpublished matches', () => {
+		report(1, score(2, 0));
+		publishWeek(season.id, 1, [1, 1], ORG.id);
+		const actions = (o?: { publishedRound: number }) =>
+			auditLines(season.id, o).map((l) => l.action);
+		expect(actions({ publishedRound: 1 })).toEqual(['publish']);
+		expect(actions()).toEqual(['publish', 'report']);
+		expect(actions({ publishedRound: 2 })).toEqual(['publish', 'report']);
+	});
+});
+
 describe('auditLines', () => {
 	it('writes one readable line per change, newest first', () => {
 		report(0, score(2, 1));
@@ -224,7 +293,7 @@ describe('auditLines', () => {
 			['Report', 'Group A R1 · Player 1 2–1 Player 2 · Jinx vs Viktor · dice: Player 1']
 		]);
 		expect(lines[0].actor).toBe('Player 9');
-		expect(auditLines(season.id, 2)).toHaveLength(2);
+		expect(auditLines(season.id, { limit: 2 })).toHaveLength(2);
 	});
 
 	it('names changed signup limits', () => {
