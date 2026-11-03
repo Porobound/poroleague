@@ -1,11 +1,15 @@
-import { error } from '@sveltejs/kit';
+import { error, fail } from '@sveltejs/kit';
+import { ACHIEVEMENTS } from '#lib/league/achievements.ts';
+import { choices, look, picks, type Slot } from '#lib/league/cosmetics.ts';
 import { legendMatches, playerLegends } from '#lib/league/legendStats.ts';
 import { careerAchievements } from '#lib/server/achievements.ts';
+import { playerAction } from '#lib/server/auth.ts';
+import { equip, ownedAchievements } from '#lib/server/cosmetics.ts';
 import { db } from '#lib/server/db/index.ts';
 import { playerSeasons, seasonHistory } from '#lib/server/seasons.ts';
-import type { PageServerLoad } from './$types';
+import type { Actions, PageServerLoad } from './$types';
 
-export const load: PageServerLoad = ({ params }) => {
+export const load: PageServerLoad = ({ params, locals }) => {
 	const list = playerSeasons(params.id);
 	if (!list.length) error(404, 'Player not found');
 	const rows = list.flatMap((s) => (s.row ? [s.row] : []));
@@ -13,8 +17,17 @@ export const load: PageServerLoad = ({ params }) => {
 		rows.reduce((n, r) => n + r[k], 0);
 	const counted = list.flatMap((s) => legendMatches(s.matches, s.dropped));
 	const games = sum('gameWins') + sum('gameLosses');
+	const me = list[0].me;
+	// Only the owner gets the Customize panel, over what they earned.
+	const c = locals.user?.id === params.id ? choices(ownedAchievements(params.id)) : null;
 	return {
-		player: list[0].me,
+		player: me,
+		cosmetics: look(me),
+		customize: c && {
+			choices: c,
+			equipped: picks(me),
+			left: ACHIEVEMENTS.length - c.badges.length
+		},
 		first: list.at(-1)!.season.name,
 		totals: {
 			played: sum('played'),
@@ -29,4 +42,26 @@ export const load: PageServerLoad = ({ params }) => {
 		legends: playerLegends(counted, params.id),
 		achievements: careerAchievements(db, params.id)
 	};
+};
+
+export const actions: Actions = {
+	// The owner equips earned achievements. Not a result change: no audit row.
+	customize: async (event) => {
+		const user = playerAction(event);
+		if (user.id !== event.params.id)
+			return fail(403, { message: 'You can only customize your own profile.' });
+		const form = await event.request.formData();
+		const pick = (k: Slot) => String(form.get(k) ?? '') || null;
+		const bad = equip(user.id, {
+			title: pick('title'),
+			badge: pick('badge'),
+			frame: pick('frame')
+		});
+		if (bad === 'frame')
+			return fail(400, {
+				message: 'Pick a frame from a Bronze, Silver or Gold achievement you’ve earned.'
+			});
+		if (bad) return fail(400, { message: `You haven’t earned that ${bad}.` });
+		return { message: 'Profile updated.' };
+	}
 };
