@@ -136,6 +136,13 @@ describe('endState', () => {
 		expect(end()).toMatchObject({ openFlags: 1, ready: false });
 	});
 
+	it('waits on an open flag on an early result', () => {
+		publish(1);
+		report(2, score(2, 0)); // round 3, unpublished
+		flagMatch(getMatch(season.id, ms[2])!, 'p3', 'wrong');
+		expect(end()).toMatchObject({ unplayed: 3, openFlags: 1 });
+	});
+
 	it('names a two-way tie after a draw and waits for its order', () => {
 		publish(2);
 		report(0, score(1, 1));

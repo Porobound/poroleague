@@ -10,7 +10,7 @@ import {
 	seasonMatches
 } from '#lib/server/matches.ts';
 import { editResult, keepFlag } from '#lib/server/resultActions.ts';
-import { isVoid } from '#lib/league/status.ts';
+import { droppedIds, isVoid } from '#lib/league/status.ts';
 import { weekOf } from '#lib/league/time.ts';
 import { nextPairings, seasonData } from '#lib/server/seasonAdmin.ts';
 import { getSeason, groupStandings, publishWeek, seasonProgress } from '#lib/server/seasons.ts';
@@ -38,7 +38,10 @@ export const load: PageServerLoad = async ({ parent }) => {
 				? adminRows(
 						season,
 						d.list,
-						d.live.filter((m) => m.flaggedBy && !m.flagResolvedAt)
+						// Unmasked, so a flag on an early report shows its result.
+						seasonMatches(season.id).filter(
+							(m) => m.flaggedBy && !m.flagResolvedAt && !isVoid(m, droppedIds(d.list))
+						)
 					)
 				: season.status === 'topcut'
 					? adminRows(

@@ -38,7 +38,7 @@ describe('isPublished', () => {
 });
 
 describe('masked', () => {
-	it('reads an early result as never reported, and leaves published ones alone', () => {
+	it('reads an early result as never reported, keeps its flag, leaves published ones alone', () => {
 		const m = {
 			stage: 'group',
 			round: 3,
@@ -51,7 +51,7 @@ describe('masked', () => {
 			round: 3,
 			p1Games: null,
 			reportedBy: null,
-			flaggedBy: null
+			flaggedBy: 'p2'
 		});
 		expect(masked(m, 3)).toBe(m);
 		expect(masked({ ...m, stage: 'playoff' }, 0)).toMatchObject({ p1Games: 2 });

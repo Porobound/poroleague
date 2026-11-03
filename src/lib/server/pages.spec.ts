@@ -8,6 +8,7 @@ import { load as playerPage } from '../../routes/seasons/[slug]/players/[id]/+pa
 import { load as schedulePage } from '../../routes/seasons/[slug]/schedule/+page.server.ts';
 import { load as adminPlayersPage } from '../../routes/seasons/[slug]/admin/players/+page.server.ts';
 import { load as auditPage } from '../../routes/seasons/[slug]/audit/+page.server.ts';
+import { load as adminPage } from '../../routes/seasons/[slug]/admin/+page.server.ts';
 import { GET as apiSeason } from '../../routes/api/v1/seasons/[slug]/+server.ts';
 import { GET as apiLegends } from '../../routes/api/v1/seasons/[slug]/legends/+server.ts';
 import type { Card } from '#lib/matchCard.ts';
@@ -30,6 +31,7 @@ const playerLoad = loaded(playerPage);
 const scheduleLoad = loaded(schedulePage);
 const adminPlayersLoad = loaded(adminPlayersPage);
 const auditLoad = loaded(auditPage);
+const adminLoad = loaded(adminPage);
 
 // Unpublished pairings stay secret, organizers included, and drafts are hidden on every public page.
 type User = NonNullable<App.Locals['user']>;
@@ -179,6 +181,18 @@ describe('an early result in an unpublished round', () => {
 			[1, 0],
 			[0, 0],
 			[1, 0]
+		]);
+	});
+
+	it('organizers see an open flag on it, with its result', async () => {
+		db.update(matches)
+			.set({ flaggedBy: 'p2', flagReason: 'wrong' })
+			.where(eq(matches.id, hidden[0]))
+			.run();
+		const season = db.select().from(seasons).where(eq(seasons.slug, 's1')).get()!;
+		const { flags } = await adminLoad({ parent: async () => ({ season }) } as never);
+		expect(flags.map((f: { id: number; reported: boolean }) => [f.id, f.reported])).toEqual([
+			[hidden[0], true]
 		]);
 	});
 });

@@ -24,14 +24,11 @@ const UNREPORTED = {
 	p2Legend: null,
 	diceWinnerId: null,
 	reportedBy: null,
-	reportedAt: null,
-	flaggedBy: null,
-	flagReason: null,
-	flagResolvedBy: null,
-	flagResolvedAt: null
+	reportedAt: null
 };
 
-// The public view of a match: an early (unpublished) result reads as never reported.
+// The public view of a match: an early (unpublished) result reads as never reported. Flags stay,
+// so organizers (open flags, the end of the season) still see them; public views don't show flags.
 export const masked = <T extends { stage?: string | null; round: number }>(
 	m: T,
 	publishedRound: number
