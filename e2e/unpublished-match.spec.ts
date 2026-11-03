@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
-import { removeSeason, seedSeason } from './db.ts';
-import { ORGANIZER, SEASONS, as, player } from './fixtures.ts';
+import { removeSeason, seedResult, seedSeason } from './db.ts';
+import { ORGANIZER, SEASONS, as, player, playerName } from './fixtures.ts';
 
 const slug = SEASONS.visibility;
 let published: number; // round 1
@@ -8,6 +8,8 @@ let unpublished: number; // round 2
 
 test.beforeAll(() => {
 	[published, , unpublished] = seedSeason('visibility', { publishedRound: 1 });
+	// Holiday mode: reported before its week is published.
+	seedResult(unpublished, 2, 0, { legends: ['Jinx', 'Viktor'] });
 });
 test.afterAll(() => removeSeason('visibility'));
 
@@ -55,4 +57,24 @@ test('missing season links to all seasons', async ({ page }) => {
 	expect(res?.status()).toBe(404);
 	await expect(page.getByRole('heading', { name: 'Season not found' })).toBeVisible();
 	await expect(page.getByRole('link', { name: 'All seasons' })).toHaveAttribute('href', '/seasons');
+});
+
+test('an early result counts nowhere public until its week is published', async ({ page }) => {
+	await page.goto(`/seasons/${slug}`);
+	const row = page.getByRole('row').filter({ hasText: playerName('visibility', 1) });
+	await expect(row.getByRole('cell').nth(2)).toHaveText('0');
+
+	await page.goto(`/seasons/${slug}/legends`);
+	await expect(page.getByRole('rowheader', { name: 'Jinx' })).toHaveCount(0);
+
+	await page.goto(`/seasons/${slug}/audit`);
+	await expect(page.getByText('Nothing logged yet.')).toBeVisible();
+});
+
+test.describe('organizer audit log', () => {
+	test.use(as(ORGANIZER));
+	test('shows the early result, labelled', async ({ page }) => {
+		await page.goto(`/seasons/${slug}/audit`);
+		await expect(page.getByRole('cell', { name: /^Early, not public/ })).toBeVisible();
+	});
 });
