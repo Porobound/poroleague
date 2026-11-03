@@ -31,6 +31,20 @@ export const day = (d: string) =>
 		timeZone: 'UTC'
 	});
 
+// "12–26 Nov", "26 Oct–8 Nov", "2 Nov": a holiday's dates.
+export function dateSpan(from: string, to: string) {
+	const part = (d: string) =>
+		new Date(`${d}T12:00:00Z`).toLocaleDateString('en-GB', {
+			day: 'numeric',
+			month: 'short',
+			timeZone: 'UTC'
+		});
+	if (from === to) return part(from);
+	return from.slice(0, 7) === to.slice(0, 7)
+		? `${Number(from.slice(8))}–${part(to)}`
+		: `${part(from)}–${part(to)}`;
+}
+
 // EET or EEST, whichever applies in Helsinki on that date.
 export const tzName = (d: string) =>
 	new Intl.DateTimeFormat('en-GB', { timeZone: LEAGUE_TZ, timeZoneName: 'short' })
