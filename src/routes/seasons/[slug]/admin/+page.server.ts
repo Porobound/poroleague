@@ -1,14 +1,8 @@
 import { fail } from '@sveltejs/kit';
-import { pairingsPost, resultEmbed } from '#lib/discord.ts';
+import { pairingsPost } from '#lib/discord.ts';
 import { organizerAction } from '#lib/server/auth.ts';
 import { auditLines } from '#lib/server/auditLog.ts';
-import {
-	adminRows,
-	bracketMatches,
-	matchPost,
-	resultOf,
-	seasonMatches
-} from '#lib/server/matches.ts';
+import { adminRows, bracketMatches, seasonMatches } from '#lib/server/matches.ts';
 import { editResult, keepFlag } from '#lib/server/resultActions.ts';
 import { droppedIds, isVoid } from '#lib/league/status.ts';
 import { weekOf } from '#lib/league/time.ts';
@@ -16,7 +10,7 @@ import { nextPairings, seasonData } from '#lib/server/seasonAdmin.ts';
 import { getSeason, groupStandings, publishWeek, seasonProgress } from '#lib/server/seasons.ts';
 import { playerNames } from '#lib/server/players.ts';
 import { cutRounds } from '#lib/server/topCut.ts';
-import { pairingsEnabled, postPairings, postResult } from '#lib/server/webhooks.ts';
+import { pairingsEnabled, postPairings } from '#lib/server/webhooks.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ parent }) => {
@@ -75,14 +69,7 @@ export const actions: Actions = {
 			return fail(409, {
 				message: 'That week is already published, or nothing is left to publish.'
 			});
-		const dropped = new Set(d.list.filter((e) => e.dropped).map((e) => e.playerId));
-		// Results reported early (holiday mode) were held back from Discord until now.
-		const held = seasonMatches(season.id).filter(
-			(m) => m.reportedBy && m.round <= p.rounds[1] && m.round >= p.rounds[0] && !isVoid(m, dropped)
-		);
 		publishWeek(season.id, p.week, p.rounds, user.id);
-		for (const m of held)
-			postResult(resultEmbed(matchPost(event.url.origin, season, m, resultOf(m)!)));
 		const discord = pairingsEnabled() && p.count > 0;
 		if (discord)
 			postPairings(
