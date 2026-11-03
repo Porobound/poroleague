@@ -1,5 +1,6 @@
 import { error, fail, type RequestEvent } from '@sveltejs/kit';
 import { organizerEditEmbed, resultEmbed } from '#lib/discord.ts';
+import { isPublished } from '#lib/league/publish.ts';
 import { parseReport } from '#lib/league/report.ts';
 import { organizerAction } from '#lib/server/auth.ts';
 import {
@@ -48,7 +49,7 @@ export async function editResult(event: Event) {
 	const resolves = !!match.flaggedBy && !match.flagResolvedAt;
 	organizerEdit(match, user.id, parsed.values);
 	const post = matchPost(event.url.origin, season, match, parsed.values);
-	if (!match.reportedBy) postResult(resultEmbed(post));
+	if (!match.reportedBy && isPublished(match, season.publishedRound)) postResult(resultEmbed(post));
 	else postToOrganizers(organizerEditEmbed(post, user.displayName, { resolves, kept: false }));
 	return { message: resolves ? 'Result changed. Flag resolved.' : 'Result saved and logged.' };
 }

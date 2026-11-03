@@ -14,6 +14,7 @@ import { db } from '#lib/server/db/index.ts';
 import { entries, matches, players, seasons } from '#lib/server/db/schema.ts';
 import { flagMatch, saveReport } from '#lib/server/matches.ts';
 import { erasePlayer } from '#lib/server/players.ts';
+import { postResult } from '#lib/server/webhooks.ts';
 import { groupStandings, seasonEntries, type Season } from '#lib/server/seasons.ts';
 import { seedEntries, seedMatch, seedPlayers, seedSeason } from '#lib/server/test/seed.ts';
 
@@ -30,6 +31,11 @@ vi.mock('#lib/server/auth.ts', async (original) => {
 		organizerPage: organizer
 	};
 });
+
+vi.mock('#lib/server/webhooks.ts', async (original) => ({
+	...(await original<typeof import('#lib/server/webhooks.ts')>()),
+	postResult: vi.fn()
+}));
 
 type User = NonNullable<App.Locals['user']>;
 const as = (id: string, isOrganizer = false): User => ({
@@ -233,6 +239,24 @@ describe('publish', () => {
 		expect((await outcome(publish())).returned).toMatchObject({ message: 'Week 2 published.' });
 		expect(db.select().from(seasons).get()!.publishedRound).toBe(3);
 		expect(await status(publish())).toBe(409);
+	});
+
+	it('posts results reported early once their week is published', async () => {
+		const score = {
+			games: '11',
+			p1Games: 2,
+			p2Games: 0,
+			p1Legend: 'Jinx',
+			p2Legend: 'Viktor',
+			diceWinnerId: 'p2'
+		};
+		saveReport(get(m3), 'p2', score); // round 3, unpublished
+		saveReport(get(m1), 'p1', score); // already published: posted when it was reported
+		vi.mocked(postResult).mockClear();
+		await adminActions.publish!(event({ slug: 's1' }, ORG, { week: '2' }));
+		expect(vi.mocked(postResult).mock.calls.map(([e]) => e.title)).toEqual([
+			expect.stringContaining('Player 3')
+		]);
 	});
 });
 
