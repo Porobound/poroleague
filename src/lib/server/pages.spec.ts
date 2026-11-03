@@ -13,7 +13,7 @@ import { GET as apiSeason } from '../../routes/api/v1/seasons/[slug]/+server.ts'
 import { GET as apiLegends } from '../../routes/api/v1/seasons/[slug]/legends/+server.ts';
 import type { Card } from '#lib/matchCard.ts';
 import { db } from '#lib/server/db/index.ts';
-import { audit, entries, matches, players, seasons } from '#lib/server/db/schema.ts';
+import { audit, entries, matches, players, seasons, sessions } from '#lib/server/db/schema.ts';
 import { leaderboard } from '#lib/server/players.ts';
 import { createSession, validateSession } from '#lib/server/session.ts';
 import { and, eq } from 'drizzle-orm';
@@ -165,9 +165,6 @@ describe('an early result in an unpublished round', () => {
 		db.insert(audit)
 			.values({ seasonId: season.id, actorId: 'p1', matchId: hidden[0], action: 'report' })
 			.run();
-		vi.stubGlobal('fetch', async () =>
-			Response.json({ user: { id: 'org' }, nick: null, avatar: null, roles: [ORGANIZER_ROLE_ID] })
-		);
 		const lines = async (user: User | null) =>
 			(await auditLoad(event({ slug: 's1' }, user))).lines.map((l: { what: string }) => l.what);
 		expect(await lines(null)).toEqual([]);
@@ -182,6 +179,12 @@ describe('an early result in an unpublished round', () => {
 			[0, 0],
 			[1, 0]
 		]);
+	});
+
+	it('the audit log never logs anyone out, even when Discord says the token is dead', async () => {
+		vi.stubGlobal('fetch', async () => new Response(null, { status: 401 }));
+		expect((await auditLoad(event({ slug: 's1' }, ORG))).lines).toHaveLength(0);
+		expect(db.select().from(sessions).all()).toHaveLength(1);
 	});
 
 	it('organizers see an open flag on it, with its result', async () => {
