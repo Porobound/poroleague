@@ -42,6 +42,13 @@
 		<p class="pb-notice" role="status">Saved.</p>
 	{/if}
 
+	{#if data.end?.closed && data.end.unpublishedWeek !== null}
+		<p class="pb-notice">
+			Reporting closed, but week {data.end.unpublishedWeek} isn't published yet. Publish every week on
+			the <a href="/seasons/{season.slug}/admin">overview</a> before ending the season.
+		</p>
+	{/if}
+
 	{#if data.end?.ending}
 		{@const e = data.end}
 		{@const tiesLeft = e.ties.filter((t) => !t.resolved).length}
@@ -398,7 +405,9 @@
 		flex-direction: column;
 		gap: 12px;
 	}
+	/* Positioned, so the visually hidden header text scrolls with the table instead of widening the page. */
 	.table-wrap {
+		position: relative;
 		overflow-x: auto;
 	}
 	.mono {

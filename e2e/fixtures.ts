@@ -29,7 +29,8 @@ export const SEASONS = {
 	groupGrid: 'e2e-group-grid',
 	leaderboard: 'e2e-leaderboard',
 	api: 'e2e-api',
-	apiDraft: 'e2e-api-draft'
+	apiDraft: 'e2e-api-draft',
+	holiday: 'e2e-holiday'
 };
 export type SeasonKey = keyof typeof SEASONS;
 

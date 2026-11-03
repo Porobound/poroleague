@@ -1,15 +1,15 @@
 import { fail } from '@sveltejs/kit';
-import { pairingsPost } from '#lib/discord.ts';
+import { pairingsPost, resultEmbed } from '#lib/discord.ts';
 import { organizerAction } from '#lib/server/auth.ts';
 import { auditLines } from '#lib/server/auditLog.ts';
-import { adminRows, bracketMatches } from '#lib/server/matches.ts';
+import { adminRows, bracketMatches, matchPost, resultOf } from '#lib/server/matches.ts';
 import { editResult, keepFlag } from '#lib/server/resultActions.ts';
 import { weekOf } from '#lib/league/time.ts';
 import { nextPairings, seasonData } from '#lib/server/seasonAdmin.ts';
 import { getSeason, groupStandings, publishWeek, seasonProgress } from '#lib/server/seasons.ts';
 import { playerNames } from '#lib/server/players.ts';
 import { cutRounds } from '#lib/server/topCut.ts';
-import { pairingsEnabled, postPairings } from '#lib/server/webhooks.ts';
+import { pairingsEnabled, postPairings, postResult } from '#lib/server/webhooks.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ parent }) => {
@@ -71,6 +71,8 @@ export const actions: Actions = {
 					playerNames(p.byRound.flatMap((r) => r.pairs.flatMap((x) => [x.p1Id, x.p2Id])))
 				)
 			);
+		for (const m of p.reported)
+			postResult(resultEmbed(matchPost(event.url.origin, season, m, resultOf(m)!)));
 		return { message: `Week ${p.week} published${discord ? ' and posted in Discord' : ''}.` };
 	}
 };
