@@ -1,14 +1,14 @@
 import { droppedIds, isVoid } from '#lib/league/status.ts';
-import { masked, nextPublish } from '#lib/league/publish.ts';
+import { nextPublish } from '#lib/league/publish.ts';
 import { reportingClosed } from '#lib/league/time.ts';
-import { seasonMatches } from '#lib/server/matches.ts';
+import { publicMatches } from '#lib/server/matches.ts';
 import { groupStandings, seasonEntries, type Season } from '#lib/server/seasons.ts';
 
 // One read of the season's entries and matches, shared by every helper below. Early results are
 // masked, so ending the season and its ties go by the same results as the public standings.
 export const seasonData = (season: Season) => {
 	const list = seasonEntries(season.id);
-	const all = seasonMatches(season.id).map((m) => masked(m, season.publishedRound));
+	const all = publicMatches(season);
 	const dropped = droppedIds(list);
 	return { list, all, live: all.filter((m) => !isVoid(m, dropped)) };
 };

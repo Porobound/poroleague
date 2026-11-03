@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isPublished, nextPublish, published } from './publish';
+import { isPublished, masked, nextPublish, published } from './publish';
 
 describe('nextPublish', () => {
 	it('starts with week 1', () => {
@@ -34,5 +34,26 @@ describe('isPublished', () => {
 		expect(isPublished({ round: 3 }, 2)).toBe(false);
 		expect(isPublished({ stage: 'group', round: 3 }, 2)).toBe(false);
 		expect(isPublished({ stage: 'playoff', round: 3 }, 0)).toBe(true);
+	});
+});
+
+describe('masked', () => {
+	it('reads an early result as never reported, and leaves published ones alone', () => {
+		const m = {
+			stage: 'group',
+			round: 3,
+			p1Games: 2,
+			p2Games: 0,
+			reportedBy: 'p1',
+			flaggedBy: 'p2'
+		};
+		expect(masked(m, 2)).toMatchObject({
+			round: 3,
+			p1Games: null,
+			reportedBy: null,
+			flaggedBy: null
+		});
+		expect(masked(m, 3)).toBe(m);
+		expect(masked({ ...m, stage: 'playoff' }, 0)).toMatchObject({ p1Games: 2 });
 	});
 });

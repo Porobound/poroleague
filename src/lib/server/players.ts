@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto';
 import { and, asc, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm';
 import { escapeMd } from '#lib/discord.ts';
 import { cutFinish } from '#lib/league/bracket.ts';
+import { isPublished } from '#lib/league/publish.ts';
 import { ratings } from '#lib/league/rating.ts';
 import { db } from '#lib/server/db/index.ts';
 import { setPlayerRoles } from '#lib/server/discord.ts';
@@ -11,7 +12,6 @@ import {
 	former,
 	matches,
 	players,
-	publishedMatch,
 	seasons,
 	sessions
 } from '#lib/server/db/schema.ts';
@@ -113,7 +113,10 @@ export function leaderboard() {
 			p1: matches.p1Id,
 			p2: matches.p2Id,
 			p1Games: sql<number>`${matches.p1Games}`,
-			p2Games: sql<number>`${matches.p2Games}`
+			p2Games: sql<number>`${matches.p2Games}`,
+			stage: matches.stage,
+			round: matches.round,
+			publishedRound: seasons.publishedRound
 		})
 		.from(matches)
 		.innerJoin(seasons, eq(matches.seasonId, seasons.id))
@@ -123,12 +126,12 @@ export function leaderboard() {
 				isNotNull(matches.reportedBy),
 				isNotNull(matches.p1Games),
 				isNotNull(matches.p2Games),
-				isNull(matches.walkoverId),
-				publishedMatch()
+				isNull(matches.walkoverId)
 			)
 		)
 		.orderBy(asc(matches.reportedAt), asc(matches.id))
-		.all();
+		.all()
+		.filter((m) => isPublished(m, m.publishedRound));
 	const rating = ratings(counted);
 
 	const rows = new Map(
