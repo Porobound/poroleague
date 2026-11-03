@@ -1,11 +1,14 @@
 // Dev only: backs up the dev DB, wipes it (keeping your player and session) and seeds three seasons:
 // Summer finished (counts-only results), Autumn in play (per-game results, flags, a drop, an erased
-// player; your rounds 5+ left open), Winter draft. Same run = same data. Posts nothing to Discord.
+// player; your rounds 5+ left open, weeks 4–6 unpublished; holidays on four of your opponents: one
+// approved to report early, one approved and already reported, one pending, one revoked), Winter
+// draft. Same run = same data. Posts nothing to Discord.
 // DEV_DISCORD_IDS (comma-separated, in .env) gives the first fake players real Discord ids.
 import Database from 'better-sqlite3';
 import { LEGENDS } from '#lib/legends.ts';
 import { roundRobin } from '#lib/league/roundRobin.ts';
 import { scoreGames } from '#lib/league/score.ts';
+import { addDays } from '#lib/league/time.ts';
 
 process.loadEnvFile();
 const [discordId] = process.argv.slice(2);
@@ -62,6 +65,8 @@ const NICKS = [
 	'ArcaneAndy'
 ];
 const pool = LEGENDS.slice(0, 14);
+// Autumn's last published round: weeks 1–3 out, weeks 4–6 (rounds 7–11) still to publish.
+const AUTUMN_PUBLISHED = 6;
 type Result = {
 	games: string | null;
 	p1Games: number;
@@ -75,8 +80,8 @@ type M = { id: number; round: number; a: string; b: string; reported?: Result; b
 db.transaction(() => {
 	db.prepare(`delete from sessions where player_id <> ?`).run(ME);
 	db.exec(`
-		delete from audit; delete from matches; delete from entries; delete from seasons;
-		delete from sqlite_sequence where name in ('audit', 'matches', 'seasons');
+		delete from holidays; delete from audit; delete from matches; delete from entries; delete from seasons;
+		delete from sqlite_sequence where name in ('holidays', 'audit', 'matches', 'seasons');
 	`);
 	db.prepare('delete from players where id <> ?').run(ME);
 	const ids = NICKS.map((n, i) => {
@@ -232,7 +237,7 @@ db.transaction(() => {
 		status: 'play',
 		start: '2026-10-05',
 		deadline: '2026-11-22',
-		published: 8,
+		published: AUTUMN_PUBLISHED,
 		players: shuffle([ME, ...ids]),
 		groups: 2,
 		played: (round, a, b) =>
@@ -316,6 +321,90 @@ db.transaction(() => {
 		if (db.prepare('select 1 from entries where season_id = ? and player_id = ?').get(s, erased))
 			log.run(s, null, ME, 'erase', null, JSON.stringify({ erased }), at('2026-10-05', 7));
 
+	// Holidays in Autumn, all on your opponents, so you test them from the other side (ask for your
+	// own on your player page). Published to week 3; your matches in weeks 4–6 (rounds 7–11) are open.
+	const addHoliday = db.prepare(
+		`insert into holidays (season_id, player_id, from_date, to_date, status, decided_by, decided_at, created_at)
+		 values (?, ?, ?, ?, ?, ?, ?, ?)`
+	);
+	const holidayLog = (who: string, from: string, to: string, status: string, t: number) =>
+		log.run(
+			autumn.sid,
+			null,
+			ME,
+			'holiday',
+			null,
+			JSON.stringify({ holiday: who, from, to, status }),
+			t
+		);
+	const asked = at('2026-10-05', 5); // during week 3
+	const gone = new Set([dropped, erased]);
+	// Your unpublished matches against someone still in, earliest first.
+	const vsMe = autumn.ms.filter(
+		(m) =>
+			m.round > AUTUMN_PUBLISHED && (m.a === ME || m.b === ME) && !gone.has(m.a === ME ? m.b : m.a)
+	);
+	if (vsMe.length < 4)
+		throw new Error('Autumn needs four of your unpublished matches; reseed again');
+	// The holiday covers the match's week: Monday to Sunday.
+	const weekOfRound = (m: M) => {
+		const w = Math.ceil(m.round / 2);
+		return [addDays('2026-10-05', 7 * (w - 1)), addDays('2026-10-05', 7 * w - 1)] as const;
+	};
+	const them = (m: M) => (m.a === ME ? m.b : m.a);
+	// The latest three stay ahead of today, so their On holiday badges show; the revoke takes the earliest.
+	const [revoked, unlocked, played, pending] = [vsMe[0], ...vsMe.slice(-3)];
+	const decided = (m: M, status: 'approved' | 'revoked', t: number) => {
+		const [from, to] = weekOfRound(m);
+		addHoliday.run(autumn.sid, them(m), from, to, status, ME, t, asked);
+		holidayLog(them(m), from, to, 'approved', t - 1800);
+		if (status === 'revoked') holidayLog(them(m), from, to, 'revoked', t);
+	};
+	// D: revoked. The badge is gone, the match stays unlocked for both of you.
+	decided(revoked, 'revoked', asked + 3600);
+	// A: approved, match unlocked and unplayed: report it early.
+	decided(unlocked, 'approved', asked + 7200);
+	// B: approved, and they already reported the match against you: hidden from everyone else.
+	decided(played, 'approved', asked + 10800);
+	const r: Result = {
+		...play(played.a, played.b, true),
+		p1Legend: legend(played.a),
+		p2Legend: legend(played.b),
+		diceWinnerId: pick([played.a, played.b])
+	};
+	const t = asked + 86400;
+	report.run(
+		r.games,
+		r.p1Games,
+		r.p2Games,
+		r.p1Legend,
+		r.p2Legend,
+		r.diceWinnerId,
+		them(played),
+		t,
+		played.id
+	);
+	log.run(autumn.sid, played.id, them(played), 'report', null, JSON.stringify(r), t);
+	// C: pending. Approve it in Admin → Season and the match opens for you.
+	addHoliday.run(autumn.sid, them(pending), ...weekOfRound(pending), 'pending', null, null, asked);
+	console.log('Holidays on your opponents (Autumn 2026):');
+	console.table(
+		[
+			['A approved, report early', unlocked],
+			['B approved, already reported', played],
+			['C pending, approve it', pending],
+			['D revoked, still open', revoked]
+		].map(([scenario, m]) => {
+			const x = m as M;
+			return {
+				scenario,
+				opponent: NICKS[ids.indexOf(them(x))],
+				round: x.round,
+				match: `/seasons/autumn-2026/matches/${x.id}`
+			};
+		})
+	);
+
 	db.prepare(
 		`insert into seasons (slug, name, status, start_date, rounds_per_week, deadline, top_cut_size)
 		 values ('winter-2027', 'Winter 2027', 'draft', '2027-01-11', 2, '2027-02-21', 4)`
@@ -332,3 +421,4 @@ console.table(
 		)
 		.all()
 );
+console.table(db.prepare('select status, count(*) holidays from holidays group by status').all());
