@@ -6,12 +6,13 @@ import { GET as unknownGet } from '../../routes/api/v1/[...rest]/+server.ts';
 import { GET as legendsGet } from '../../routes/api/v1/seasons/[slug]/legends/+server.ts';
 import { GET as matchesGet } from '../../routes/api/v1/seasons/[slug]/matches/+server.ts';
 import { GET as topCutGet } from '../../routes/api/v1/seasons/[slug]/top-cut/+server.ts';
+import { GET as playerGet } from '../../routes/api/v1/players/[id]/+server.ts';
 import { flagMatch, keepResult, saveReport } from '#lib/server/matches.ts';
 import { cutState, publishCut } from '#lib/server/topCut.ts';
 import { db } from '#lib/server/db/index.ts';
-import { matches, players, seasons } from '#lib/server/db/schema.ts';
+import { matches, playerAchievements, players, seasons } from '#lib/server/db/schema.ts';
 import { erasePlayer } from '#lib/server/players.ts';
-import { deleteSeason, dropPlayer } from '#lib/server/seasons.ts';
+import { deleteSeason, dropPlayer, publishWeek } from '#lib/server/seasons.ts';
 import { seedEntries, seedMatch, seedPlayers, seedSeason } from '#lib/server/test/seed.ts';
 
 const call = async (get: (e: never) => Response | Promise<Response>, params = {}) => {
@@ -480,5 +481,90 @@ describe('cosmetics on player objects', () => {
 	it('an unknown equipped id is null, like on the site', async () => {
 		const { body } = await season('s1');
 		expect(body.players[0].frame).toBeNull(); // legend-renamed-master isn't in the list
+	});
+});
+
+describe('GET /api/v1/players/:id', () => {
+	const player = (id: string) => call(playerGet, { id });
+	const D = (day: number) => new Date(Date.UTC(2026, 0, day));
+	const earn = (playerId: string, achievementId: string, day: number) =>
+		db
+			.insert(playerAchievements)
+			.values({ playerId, achievementId, unlockedAt: D(day), seasonId: null })
+			.run();
+
+	it('404s unknown players and players in no public season', async () => {
+		seedPlayers(3);
+		seedEntries(seedSeason({ slug: 'draft' }).id, ['p1']); // p1: only a draft
+		const gone = seedSeason({ slug: 'gone', status: 'play' });
+		seedEntries(gone.id, ['p3']); // p3: only a deleted season
+		deleteSeason(gone, 'p3');
+		for (const id of ['p1', 'p2', 'p3', 'nope'])
+			expect(await player(id)).toEqual({ status: 404, body: { error: 'Player not found' } });
+	});
+
+	it('lists earned achievements newest first, with cosmetics and absolute icons', async () => {
+		seedPlayers(1);
+		seedEntries(seedSeason({ status: 'play' }).id, ['p1']);
+		earn('p1', 'first-blood', 1);
+		earn('p1', 'legend-ahri-player', 5);
+		earn('p1', 'legend-renamed-player', 9); // no longer in the list: left out
+		db.update(players).set({ badgeAchievement: 'first-blood' }).where(eq(players.id, 'p1')).run();
+		const firstBlood = {
+			id: 'first-blood',
+			name: 'First Blood',
+			title: 'First Blood',
+			tier: null,
+			icon: 'http://localhost/achievements/items/first-blood.png'
+		};
+		const { status, body } = await player('p1');
+		expect(status).toBe(200);
+		expect(body).toEqual({
+			...ref('p1', 'Player 1'),
+			badge: firstBlood,
+			achievements: [
+				{
+					id: 'legend-ahri-player',
+					name: 'Ahri Player',
+					title: 'Ahri Player',
+					tier: 'bronze',
+					icon: 'http://localhost/achievements/champions/ahri.png',
+					unlockedAt: D(5).toISOString()
+				},
+				{ ...firstBlood, unlockedAt: D(1).toISOString() }
+			]
+		});
+	});
+
+	// Regression guard: nothing earned from a result the site still hides (holiday early play).
+	it('shows nothing from an unpublished round until its week is published', async () => {
+		seedPlayers(2);
+		db.insert(players).values({ id: 'org', displayName: 'Org' }).run();
+		const s = seedSeason({ status: 'play', publishedRound: 1, roundsPerWeek: 1 });
+		seedEntries(s.id, ['p1', 'p2'], 1);
+		const m = seedMatch({ seasonId: s.id, group: 1, round: 2, p1Id: 'p1', p2Id: 'p2' });
+		saveReport(m, 'p1', {
+			games: null,
+			p1Games: 2,
+			p2Games: 0,
+			p1Legend: 'Ahri',
+			p2Legend: 'Annie',
+			diceWinnerId: 'p1'
+		});
+		expect((await player('p1')).body.achievements).toEqual([]);
+		publishWeek(s.id, 2, [2, 2], 'org');
+		const ids = (await player('p1')).body.achievements.map((a: { id: string }) => a.id);
+		expect(ids).toContain('first-blood');
+	});
+
+	it('keeps an erased player’s achievements but no cosmetics', async () => {
+		seedPlayers(2);
+		seedEntries(seedSeason({ status: 'finished' }).id, ['p1', 'p2']);
+		earn('p1', 'champion', 3);
+		db.update(players).set({ titleAchievement: 'champion' }).where(eq(players.id, 'p1')).run();
+		erasePlayer('p1', 'p2');
+		const { body } = await player('p1');
+		expect(body).toMatchObject({ former: true, title: null, badge: null, frame: null });
+		expect(body.achievements.map((a: { id: string }) => a.id)).toEqual(['champion']);
 	});
 });
