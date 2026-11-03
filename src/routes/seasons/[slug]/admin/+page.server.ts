@@ -14,7 +14,7 @@ import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ parent }) => {
 	const { season } = await parent();
-	const d = seasonData(season.id);
+	const d = seasonData(season);
 	// Groups exist from the draw on; the phase bar names their sizes.
 	const drawn = season.status !== 'draft' && season.status !== 'signup';
 	const groups = drawn ? groupStandings(season, d.list, d.all) : [];
@@ -54,7 +54,7 @@ export const actions: Actions = {
 		const week = Number((await event.request.formData()).get('week'));
 		const season = getSeason(event.params.slug, user);
 		if (season.status !== 'play') return fail(409, { message: 'The season is not in play.' });
-		const p = nextPairings(season, seasonData(season.id));
+		const p = nextPairings(season, seasonData(season));
 		// The form names its week, so a double submit can't publish the week after too.
 		if (!p || p.week !== week)
 			return fail(409, {

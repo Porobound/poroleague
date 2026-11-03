@@ -16,6 +16,27 @@ export function nextPublish(publishedRound: number, roundsPerWeek: number, maxRo
 export const isPublished = (m: { stage?: string; round: number }, publishedRound: number) =>
 	m.stage === 'playoff' || m.round <= publishedRound;
 
+const UNREPORTED = {
+	p1Games: null,
+	p2Games: null,
+	games: null,
+	p1Legend: null,
+	p2Legend: null,
+	diceWinnerId: null,
+	reportedBy: null,
+	reportedAt: null,
+	flaggedBy: null,
+	flagReason: null,
+	flagResolvedBy: null,
+	flagResolvedAt: null
+};
+
+// The public view of a match: an early (unpublished) result reads as never reported.
+export const masked = <T extends { stage?: string; round: number }>(
+	m: T,
+	publishedRound: number
+): T => (isPublished(m, publishedRound) ? m : { ...m, ...UNREPORTED });
+
 // Players only see matches of published rounds.
 export const published = <T extends { stage?: string; round: number }>(
 	ms: T[],

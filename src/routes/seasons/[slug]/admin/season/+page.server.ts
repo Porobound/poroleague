@@ -25,7 +25,7 @@ import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ parent }) => {
 	const { season } = await parent();
-	const d = season.status === 'play' ? seasonData(season.id) : null;
+	const d = season.status === 'play' ? seasonData(season) : null;
 	return {
 		running: season.status === 'draft' ? (runningSeason(season.id) ?? null) : null,
 		entryCount: d?.list.length ?? seasonEntries(season.id).length,
@@ -104,7 +104,7 @@ export const actions: Actions = {
 		const ids = String((await event.request.formData()).get('order') ?? '').split(',');
 		const season = getSeason(event.params.slug, user);
 		if (season.status !== 'play') return fail(409, { message: 'The season is not in play.' });
-		const d = seasonData(season.id);
+		const d = seasonData(season);
 		if (!endState(season, d).ending)
 			return fail(409, { message: 'Ties are settled at the end of the season.' });
 		const rows = groupStandings(season, d.list, d.all).flatMap((g) => g.rows);
@@ -125,7 +125,7 @@ export const actions: Actions = {
 		const user = await organizerAction(event);
 		const season = getSeason(event.params.slug, user);
 		if (season.status !== 'play') return fail(409, { message: 'The season is not in play.' });
-		if (!endState(season, seasonData(season.id)).ready)
+		if (!endState(season, seasonData(season)).ready)
 			return fail(409, { message: 'Resolve the flags and order the ties before finalizing.' });
 		const topCut = (season.topCutSize ?? 0) > 0;
 		// Only the name can change once the top cut starts, so a cut that can't be drawn is fixed now.
