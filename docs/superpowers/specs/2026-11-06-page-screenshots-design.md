@@ -47,9 +47,9 @@ It has failed, even if it works, if:
 
 ## What gets shot
 
-Start from the page lists in `e2e/mobile.spec.ts` (visitor, player, organizer), which already cover nearly every route, with a seeded season a week in. Add `/seasons/<slug>/top-cut` and any route the list misses, where seeding it is cheap. Skip `/api`: it renders on the client through a third-party component and isn't worth the risk of noise. Each view is shot in the dark theme only, the default, at 1200 × 900 and 390 × 844, full page, at `deviceScaleFactor: 2`, so that images stay readable when zoomed on a phone.
+Start from the page lists in `e2e/mobile.spec.ts` (visitor, player, organizer), which already cover nearly every route, with a seeded season a week in. Add `/seasons/<slug>/top-cut` and any route the list misses, where seeding it is cheap. Skip `/api`: it renders on the client through a third-party component and isn't worth the risk of noise. Each view is shot in the dark theme only, the default, at 1200 × 900 and 390 × 844, full page, at `deviceScaleFactor: 1` to keep the repo small.
 
-Rough size: 50–60 images at about 300 KB each, so about 15 MB to start, plus about 300 KB per image a PR changes. If the first run comes in far above that, say so in the PR.
+Rough size: 50–60 images at about 100 KB each, so about 5–6 MB to start, plus about 100 KB per image a PR changes. If the first run comes in far above that, say so in the PR.
 
 Image names are stable and readable, including viewport and role, for example `desktop/player-season.png`. A full run deletes the image folder first, so a removed shot disappears from the repo.
 
