@@ -7,7 +7,7 @@ const VIEWS = { desktop: { width: 1200, height: 900 }, phone: { width: 390, heig
 const FONT_CSS = readFileSync('shots/fonts/fonts.css', 'utf8');
 const REAL_YEAR = String(new Date().getFullYear());
 
-// Saves shots/images/<view>/<name>.png at both widths, logged in as `who` if given. Fails rather
+// Saves .shots/<view>/<name>.png at both widths, logged in as `who` if given. Fails rather
 // than saving an error page, a fallback font or a real date, which would all read as page changes.
 export async function shot(browser: Browser, name: string, path: string, who?: string) {
 	for (const [view, viewport] of Object.entries(VIEWS)) {
@@ -53,7 +53,7 @@ export async function shot(browser: Browser, name: string, path: string, who?: s
 		const height = await page.evaluate(() => document.documentElement.scrollHeight);
 		await page.setViewportSize({ width: viewport.width, height });
 		await page.screenshot({
-			path: `shots/images/${view}/${name}.png`,
+			path: `.shots/${view}/${name}.png`,
 			fullPage: true,
 			animations: 'disabled',
 			caret: 'hide'
