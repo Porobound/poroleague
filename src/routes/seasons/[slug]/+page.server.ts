@@ -1,5 +1,5 @@
 import { error, fail } from '@sveltejs/kit';
-import { published } from '#lib/league/publish.ts';
+import { published, weeksAhead } from '#lib/league/publish.ts';
 import { addDays, weekOf } from '#lib/league/time.ts';
 import { cardContext, matchCard } from '#lib/matchCard.ts';
 import { currentRole, playerAction } from '#lib/server/auth.ts';
@@ -40,6 +40,17 @@ export const load: PageServerLoad = async (event) => {
 	// A group's last round; a smaller group runs out of rounds before the bigger one.
 	const myRounds = groups.find((g) => g.group === me?.group)?.rounds ?? 0;
 	const signedUp = !!locals.user && list.some((e) => e.playerId === locals.user!.id);
+	const rpw = season.roundsPerWeek;
+	const cards = signedUp && scheduled ? mine.map((m) => ({ m, card: matchCard(m, ctx) })) : [];
+	// Odd groups give someone a bye each round; say so, or a missing match looks like a bug.
+	const byes = (first: number, last: number) =>
+		Array.from({ length: last - first + 1 }, (_, i) => first + i).filter(
+			(r) => r <= myRounds && r <= season.publishedRound && !mine.some((m) => m.round === r)
+		);
+	const ahead =
+		season.status === 'play' && !closed && season.startDate
+			? weeksAhead(season.publishedRound, rpw, ctx.week)
+			: null;
 	return {
 		season,
 		entries: list,
@@ -70,24 +81,19 @@ export const load: PageServerLoad = async (event) => {
 		// Full for anyone not already in; they keep their spot and can withdraw.
 		full: season.status === 'signup' && list.length >= season.maxPlayers && !signedUp,
 		// This week's matches plus anything overdue; the full list lives on the player page.
-		// Odd groups give someone a bye each round; say so, or a missing match looks like a bug.
-		myByes: rounds
-			? Array.from({ length: rounds[1] - rounds[0] + 1 }, (_, i) => rounds[0] + i).filter(
-					(r) => r <= myRounds && r <= season.publishedRound && !mine.some((m) => m.round === r)
-				)
-			: [],
+		myByes: rounds ? byes(rounds[0], rounds[1]) : [],
 		// This week has rounds players can't see yet.
 		pending: !!rounds && rounds[1] > season.publishedRound,
-		myWeek:
-			signedUp && scheduled
-				? mine
-						.map((m) => ({ m, card: matchCard(m, ctx) }))
-						.filter(
-							({ m, card }) =>
-								card.status === 'overdue' || weekOf(m.round, season.roundsPerWeek) === ctx.week
-						)
-						.map(({ card }) => card)
-				: []
+		myWeek: cards
+			.filter(({ m, card }) => card.status === 'overdue' || weekOf(m.round, rpw) === ctx.week)
+			.map(({ card }) => card),
+		// Published early: visible and reportable now, but overdue and the week's date stay on the calendar.
+		ahead: ahead && {
+			weeks: ahead,
+			starts: addDays(season.startDate!, (ahead[0] - 1) * 7),
+			matches: cards.filter(({ m }) => weekOf(m.round, rpw) >= ahead[0]).map(({ card }) => card),
+			byes: byes(ctx.week * rpw + 1, season.publishedRound)
+		}
 	};
 };
 

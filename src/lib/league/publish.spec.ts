@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isPublished, masked, nextPublish, published } from './publish';
+import { isPublished, masked, nextPublish, published, weeksAhead } from './publish';
 
 describe('nextPublish', () => {
 	it('starts with week 1', () => {
@@ -17,6 +17,19 @@ describe('nextPublish', () => {
 	});
 	it('has nothing to publish without matches', () => {
 		expect(nextPublish(0, 2, 0)).toBeNull();
+	});
+});
+
+describe('weeksAhead', () => {
+	it('is empty while publishing keeps pace with the calendar', () => {
+		expect(weeksAhead(4, 2, 2)).toBeNull();
+		expect(weeksAhead(2, 2, 2)).toBeNull();
+		expect(weeksAhead(0, 2, 0)).toBeNull();
+	});
+	it('names the weeks published before they start', () => {
+		expect(weeksAhead(6, 2, 2)).toEqual([3, 3]);
+		expect(weeksAhead(8, 2, 2)).toEqual([3, 4]);
+		expect(weeksAhead(2, 2, 0)).toEqual([1, 1]);
 	});
 });
 

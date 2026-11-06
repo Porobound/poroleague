@@ -40,9 +40,12 @@ export const load: PageServerLoad = ({ params, locals }) => {
 			won: counted.filter((m) => m.diceWinnerId === player.playerId).length,
 			of: counted.length
 		},
-		thisWeek: cards
+		// Includes weeks published before they start; without a start date there's no calendar to go by.
+		upNext: cards
 			.filter(
-				(c) => c.card.status === 'overdue' || (c.week === ctx.week && c.card.status === 'scheduled')
+				(c) =>
+					c.card.status === 'overdue' ||
+					(!!season.startDate && c.week >= ctx.week && c.card.status === 'scheduled')
 			)
 			.map((c) => c.card),
 		matches: cards.map((c) => c.card),

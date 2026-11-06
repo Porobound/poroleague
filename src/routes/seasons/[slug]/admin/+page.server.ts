@@ -75,7 +75,7 @@ export const actions: Actions = {
 			postPairings(
 				pairingsPost(
 					`${season.name} · Week ${p.week}`,
-					`${event.url.origin}/seasons/${season.slug}/schedule`,
+					`${event.url.origin}/seasons/${season.slug}/schedule?week=${p.week}`,
 					p.byRound,
 					playerNames(p.byRound.flatMap((r) => r.pairs.flatMap((x) => [x.p1Id, x.p2Id])))
 				)

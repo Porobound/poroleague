@@ -102,6 +102,7 @@ test('season setup to first publish', async ({ browser }) => {
 		.poll(async () => (await posts('pairings')).map((b) => b.content))
 		.toContainEqual(expect.stringContaining(`**${name} · Week 1**`));
 	const post = (await posts('pairings')).find((b) => b.content?.includes(name))!;
+	expect(post.content).toContain(`/seasons/${slug}/schedule?week=1`);
 	expect(post.embeds!.map((e) => e.title)).toEqual(['Round 1', 'Round 2']);
 	const groups = post.embeds!.flatMap((e) => e.fields ?? []);
 	// 17 players always leave one group odd, so a week can hold a bye: at least one match, all in Group <to>.

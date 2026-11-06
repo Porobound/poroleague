@@ -180,4 +180,8 @@ const unlist = (db: Db, key: SeasonKey) =>
 			"update seasons set deleted_at = unixepoch(), deleted_by = ?, slug = slug || '~deleted-' || id where slug = ?"
 		)
 		.run(ORGANIZER, SEASONS[key]);
+// Leaves a hole in the schedule: both players get a bye that round.
+export const removeMatch = (id: number) =>
+	write((db) => db.prepare('delete from matches where id = ?').run(id));
+
 export const removeSeason = (key: SeasonKey) => write((db) => unlist(db, key));

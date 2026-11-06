@@ -58,11 +58,11 @@
 		</section>
 	{/if}
 
-	{#if data.thisWeek.length}
-		<section>
-			<h2>{isMe ? 'Who you play this week' : 'This week'}</h2>
+	{#if data.upNext.length}
+		<section aria-labelledby="up-next">
+			<h2 id="up-next">{isMe ? 'Who you play next' : 'Up next'}</h2>
 			<div class="cards">
-				{#each data.thisWeek as c (c.id)}<MatchCard {...c.props} />{/each}
+				{#each data.upNext as c (c.id)}<MatchCard {...c.props} />{/each}
 			</div>
 		</section>
 	{/if}
