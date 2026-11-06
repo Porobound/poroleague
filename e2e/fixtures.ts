@@ -2,8 +2,10 @@
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-export const DB = join(tmpdir(), 'poroleague-e2e.db');
-export const PORT = 4317;
+// `npm run shots` sets SHOTS, so it can run beside the e2e tests.
+const shots = !!process.env.SHOTS;
+export const DB = join(tmpdir(), shots ? 'poroleague-shots.db' : 'poroleague-e2e.db');
+export const PORT = shots ? 4319 : 4317;
 export const HOOKS_PORT = 4318;
 export const ORGANIZER = 'org';
 
@@ -29,7 +31,11 @@ export const SEASONS = {
 	groupGrid: 'e2e-group-grid',
 	leaderboard: 'e2e-leaderboard',
 	api: 'e2e-api',
-	apiDraft: 'e2e-api-draft'
+	apiDraft: 'e2e-api-draft',
+	shots: 'autumn-2039',
+	shotsDraft: 'spring-2040',
+	shotsSignup: 'summer-2040',
+	shotsCut: 'winter-2039'
 };
 export type SeasonKey = keyof typeof SEASONS;
 
