@@ -49,6 +49,9 @@ export async function shot(browser: Browser, name: string, path: string, who?: s
 		expect(failed, `fonts failed on ${path}`).toEqual([]);
 		expect(loaded, `no font loaded on ${path}`).toBe(true);
 		expect(text, `real date on ${path}`).not.toContain(REAL_YEAR);
+		// A viewport as tall as the page, so the phone's fixed tab bar sits at the end, not over content.
+		const height = await page.evaluate(() => document.documentElement.scrollHeight);
+		await page.setViewportSize({ width: viewport.width, height });
 		await page.screenshot({
 			path: `shots/images/${view}/${name}.png`,
 			fullPage: true,
