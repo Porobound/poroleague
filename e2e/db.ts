@@ -140,15 +140,19 @@ export const seedResult = (
 
 // A season whose group stage is over: groups of three (two by default), every match played
 // (1 > 2 > 3, 4 > 5 > 6, …), status topcut, top 2 per group.
-export const seedFinishedGroups = (key: SeasonKey, groups = 2) =>
+export const seedFinishedGroups = (
+	key: SeasonKey,
+	groups = 2,
+	[start, deadline] = ['2026-01-05', '2026-02-01']
+) =>
 	write((db) => {
 		unlist(db, key);
 		addPlayers(db, key, 3 * groups);
 		const { id } = db
 			.prepare(
-				"insert into seasons (slug, name, status, top_cut_size, start_date, deadline) values (?, ?, 'topcut', 2, '2026-01-05', '2026-02-01') returning id"
+				"insert into seasons (slug, name, status, top_cut_size, start_date, deadline) values (?, ?, 'topcut', 2, ?, ?) returning id"
 			)
-			.get(SEASONS[key], `E2E ${key}`) as { id: number };
+			.get(SEASONS[key], `E2E ${key}`, start, deadline) as { id: number };
 		const add = db.prepare('insert into entries (season_id, player_id, group_no) values (?, ?, ?)');
 		const play = db.prepare(
 			"insert into matches (season_id, group_no, round, p1_id, p2_id, p1_games, p2_games, p1_legend, p2_legend, dice_winner_id, reported_by, reported_at) values (?, ?, 1, ?, ?, 2, 0, 'Jinx', 'Viktor', ?, ?, unixepoch())"
@@ -183,5 +187,19 @@ const unlist = (db: Db, key: SeasonKey) =>
 // Leaves a hole in the schedule: both players get a bye that round.
 export const removeMatch = (id: number) =>
 	write((db) => db.prepare('delete from matches where id = ?').run(id));
+
+// Puts every stored time on one moment: `unixepoch()` in SQL knows nothing of a fake clock.
+export const freezeTimes = (at: number) =>
+	write((db) => {
+		const s = Math.floor(at / 1000);
+		const tables = db.prepare("select name from sqlite_master where type = 'table'").all() as {
+			name: string;
+		}[];
+		for (const { name } of tables)
+			for (const { name: col } of db.pragma(`table_info(${name})`) as { name: string }[])
+				if (/_at$/.test(col) && col !== 'expires_at')
+					db.prepare(`update "${name}" set ${col} = ? where ${col} is not null`).run(s);
+		db.prepare('update sessions set expires_at = ?').run(s + 24 * 3600);
+	});
 
 export const removeSeason = (key: SeasonKey) => write((db) => unlist(db, key));
