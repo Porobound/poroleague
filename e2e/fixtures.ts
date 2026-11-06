@@ -32,6 +32,8 @@ export const SEASONS = {
 	leaderboard: 'e2e-leaderboard',
 	api: 'e2e-api',
 	apiDraft: 'e2e-api-draft',
+	early: 'e2e-early',
+	shotsEarly: 'spring-2041',
 	shots: 'autumn-2039',
 	shotsDraft: 'spring-2040',
 	shotsSignup: 'summer-2040',

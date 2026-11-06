@@ -10,6 +10,12 @@ export function nextPublish(publishedRound: number, roundsPerWeek: number, maxRo
 		: null;
 }
 
+// The weeks published before they start; null while publishing keeps pace with the calendar.
+export function weeksAhead(publishedRound: number, roundsPerWeek: number, week: number) {
+	const last = weekOf(publishedRound, roundsPerWeek);
+	return last > week ? ([week + 1, last] as [number, number]) : null;
+}
+
 // The one rule for whether a result counts anywhere public (standings, stats, Elo, audit, API,
 // results webhook): its round is published. Holiday mode lets matches be reported before that.
 // Top-cut matches are public once they exist.

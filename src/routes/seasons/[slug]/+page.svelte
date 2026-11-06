@@ -21,7 +21,16 @@
 	const allDone = $derived(
 		!data.pending && data.myWeek.length > 0 && data.myWeek.every((c) => c.status === 'reported')
 	);
+	const aheadText = ([a, b]: [number, number]) => (a === b ? `week ${a}` : `weeks ${a}–${b}`);
 </script>
+
+{#snippet byeNote(rounds: number[])}
+	<div class="empty">
+		<strong>You have a bye in round{rounds.length > 1 ? 's' : ''} {rounds.join(' and ')}</strong>
+		<span>No points either way.</span>
+		<a href="/seasons/{season.slug}/schedule">See the schedule</a>
+	</div>
+{/snippet}
 
 <svelte:head>
 	<title>{season.name} · Poroleague</title>
@@ -55,6 +64,13 @@
 					<h1>All rounds are out.</h1>
 					<p class="lede">
 						Report anything left before the deadline. Unplayed matches count as a double loss.
+					</p>
+				{/if}
+				{#if data.ahead}
+					{@const [first] = data.ahead.weeks}
+					<p class="lede">
+						<a href="/seasons/{season.slug}/schedule?week={first}">Week {first} pairings are out</a
+						>, starting {day(data.ahead.starts)}.
 					</p>
 				{/if}
 			{:else if season.status === 'topcut'}
@@ -153,10 +169,10 @@
 		</section>
 	{/if}
 
-	{#if data.signedUp && season.status === 'play'}
-		<section>
+	{#if data.signedUp && season.status === 'play' && data.week >= 1}
+		<section aria-labelledby="this-week">
 			<div class="section-head">
-				<h2>Your matches this week</h2>
+				<h2 id="this-week">Your matches this week</h2>
 				<a href="/seasons/{season.slug}/players/{user?.id}">Your page</a>
 			</div>
 			{#if allDone}
@@ -173,16 +189,21 @@
 			{:else if !data.myByes.length}
 				<p class="empty">No matches for you this week.</p>
 			{/if}
-			{#if data.myByes.length}
-				<div class="empty">
-					<strong
-						>You have a bye in round{data.myByes.length > 1 ? 's' : ''}
-						{data.myByes.join(' and ')}</strong
-					>
-					<span>No points either way.</span>
-					<a href="/seasons/{season.slug}/schedule">See the schedule</a>
+			{#if data.myByes.length}{@render byeNote(data.myByes)}{/if}
+		</section>
+	{/if}
+
+	{#if data.ahead && (data.ahead.matches.length || data.ahead.byes.length)}
+		<section aria-labelledby="up-next">
+			<div class="section-head">
+				<h2 id="up-next">Up next: {aheadText(data.ahead.weeks)}</h2>
+			</div>
+			{#if data.ahead.matches.length}
+				<div class="cards">
+					{#each data.ahead.matches as c (c.id)}<MatchCard {...c.props} />{/each}
 				</div>
 			{/if}
+			{#if data.ahead.byes.length}{@render byeNote(data.ahead.byes)}{/if}
 		</section>
 	{/if}
 
