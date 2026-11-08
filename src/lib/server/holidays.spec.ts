@@ -203,6 +203,16 @@ describe('player asks for a holiday', () => {
 		expect(db.select().from(holidays).all()).toEqual([]);
 	});
 
+	it("not over the player's own pending or approved days; other players' don't count", async () => {
+		expect(await returned(ask(as('p2'), 'p2'))).toHaveProperty('message');
+		expect(await returned(ask(as('p1')))).toHaveProperty('message');
+		expect(await returned(ask(as('p1')))).toMatchObject({
+			status: 400,
+			data: { holidayError: 'You already asked for a holiday on some of those days.' }
+		});
+		expect(db.select().from(holidays).all()).toHaveLength(2);
+	});
+
 	it('cancels a pending request once', async () => {
 		await ask(as('p1'));
 		const [h] = db.select().from(holidays).all();
