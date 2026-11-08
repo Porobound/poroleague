@@ -179,7 +179,7 @@ export const seedHoliday = (
 	n: number,
 	from: string,
 	to: string,
-	status: 'pending' | 'approved' = 'pending'
+	status: 'pending' | 'approved' | 'revoked' = 'pending'
 ) =>
 	write((db) => {
 		db.prepare(
