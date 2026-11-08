@@ -1,4 +1,5 @@
-// Holiday mode: requests, the organizer's Holidays section and matches unlocked early.
+// Holiday mode: requests, the organizer's Holidays section, matches unlocked early, and the end of
+// the season waiting for every week to be published.
 import { test } from '@playwright/test';
 import { freezeTimes, removeSeason, seedHoliday, seedResult, seedSeason } from '../e2e/db.ts';
 import { ORGANIZER as org, SEASONS, player } from '../e2e/fixtures.ts';
@@ -27,4 +28,10 @@ test('holidays', async ({ browser }) => {
 	seedResult(ids[4], 2, 1);
 	freezeTimes(NOW);
 	await shot(browser, 'player-match-early-reported', `${s}/matches/${ids[4]}`, p1);
+});
+
+test('a week left unpublished at the deadline', async ({ browser }) => {
+	seedSeason('shotsHoliday', { publishedRound: 2, startDate: day(-20), deadline: day(-1) });
+	freezeTimes(NOW);
+	await shot(browser, 'org-season-unpublished-week', `${s}/admin/season`, org);
 });
