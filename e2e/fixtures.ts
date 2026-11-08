@@ -37,7 +37,8 @@ export const SEASONS = {
 	shots: 'autumn-2039',
 	shotsDraft: 'spring-2040',
 	shotsSignup: 'summer-2040',
-	shotsCut: 'winter-2039'
+	shotsCut: 'winter-2039',
+	shotsHoliday: 'summer-2039'
 };
 export type SeasonKey = keyof typeof SEASONS;
 
