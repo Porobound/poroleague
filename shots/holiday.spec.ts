@@ -1,6 +1,6 @@
 // Holiday mode: requests, the organizer's Holidays section and matches unlocked early.
 import { test } from '@playwright/test';
-import { freezeTimes, removeSeason, seedHoliday, seedSeason } from '../e2e/db.ts';
+import { freezeTimes, removeSeason, seedHoliday, seedResult, seedSeason } from '../e2e/db.ts';
 import { ORGANIZER as org, SEASONS, player } from '../e2e/fixtures.ts';
 import { NOW, day } from './now.ts';
 import { shot } from './shot.ts';
@@ -24,4 +24,7 @@ test('holidays', async ({ browser }) => {
 	await shot(browser, 'org-season-holidays', `${s}/admin/season`, org);
 	await shot(browser, 'player-holiday-unlocked', `${s}/players/${p1}`, p1);
 	await shot(browser, 'player-match-early', `${s}/matches/${ids[4]}`, p1);
+	seedResult(ids[4], 2, 1);
+	freezeTimes(NOW);
+	await shot(browser, 'player-match-early-reported', `${s}/matches/${ids[4]}`, p1);
 });
