@@ -43,7 +43,7 @@ export const SEASONS = {
 	holidayDecide: 'e2e-holiday-decide',
 	holidayEarly: 'e2e-holiday-early',
 	holidayBadge: 'e2e-holiday-badge',
-	holiday: 'e2e-holiday'
+	holidayPublish: 'e2e-holiday-publish'
 };
 export type SeasonKey = keyof typeof SEASONS;
 
