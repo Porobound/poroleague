@@ -71,7 +71,7 @@ export function played(h: History): Played[] {
 			return (
 				!!s &&
 				mine(m, h.playerId) &&
-				isPublished(m, s.publishedRound) && // #141; see Task 1 Step 2 if it's group-only
+				isPublished(m, s.publishedRound) &&
 				!!m.reportedAt &&
 				m.p1Games !== null &&
 				m.p2Games !== null &&
@@ -117,23 +117,25 @@ const seasonsPlayed: Hits = (ms) => {
 	return ms.filter((m) => !seen.has(m.seasonId) && !!seen.add(m.seasonId)).map(hit);
 };
 
+const byDate = (a: Hit, b: Hit) => a.at.getTime() - b.at.getTime();
+
 const perfect: Hits = (ms, h) =>
-	h.seasons.flatMap((s) => {
-		if (!s.finalizedAt) return [];
-		const scheduled = h.matches.filter(
-			(m) =>
-				m.seasonId === s.id && m.stage === 'group' && mine(m, h.playerId) && !isVoid(m, s.dropped)
-		).length;
-		const wins = ms.filter((m) => m.seasonId === s.id && m.stage === 'group' && won(m)).length;
-		return scheduled && wins === scheduled ? [{ at: s.finalizedAt, seasonId: s.id }] : [];
-	});
+	h.seasons
+		.flatMap((s) => {
+			if (!s.finalizedAt) return [];
+			const scheduled = h.matches.filter(
+				(m) =>
+					m.seasonId === s.id && m.stage === 'group' && mine(m, h.playerId) && !isVoid(m, s.dropped)
+			).length;
+			const wins = ms.filter((m) => m.seasonId === s.id && m.stage === 'group' && won(m)).length;
+			return scheduled && wins === scheduled ? [{ at: s.finalizedAt, seasonId: s.id }] : [];
+		})
+		.sort(byDate);
 
 const seasonEvent =
 	(k: 'cutAt' | 'championAt'): Hits =>
 	(_, h) =>
-		h.seasons
-			.flatMap((s) => (s[k] ? [{ at: s[k], seasonId: s.id }] : []))
-			.sort((a, b) => a.at.getTime() - b.at.getTime());
+		h.seasons.flatMap((s) => (s[k] ? [{ at: s[k], seasonId: s.id }] : [])).sort(byDate);
 type Def = Achievement & { hits: Hits };
 
 export const key = (s: string) =>
