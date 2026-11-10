@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { centerCurrent } from '#lib/attach.ts';
-	import MatchCard from '#lib/components/MatchCard.svelte';
+	import MatchRows from '#lib/components/MatchRows.svelte';
 	import { date, tzName } from '#lib/format.ts';
 	import type { PageProps } from './$types';
 
@@ -60,44 +60,35 @@
 		</div>
 
 		{#if data.overdue.length}
-			<section class="overdue">
-				<h2>Overdue from earlier weeks</h2>
-				<div class="cards">
-					{#each data.overdue as c (c.id)}<MatchCard {...c.props} mine={c.mine} />{/each}
-				</div>
-			</section>
+			<div class="rounds">
+				<section class="panel rows overdue" aria-label="Overdue from earlier weeks">
+					<div class="rows-head">
+						<h2>Overdue</h2>
+						<span class="muted small">From earlier weeks · still reportable</span>
+					</div>
+					<MatchRows cards={data.overdue} label="Overdue from earlier weeks" />
+				</section>
+			</div>
 		{/if}
 
 		{#if data.week > data.published}
 			<p class="empty">Week {data.week} pairings aren't out yet. They're posted week by week.</p>
+		{:else if shown.length}
+			<div class="rounds">
+				{#each shown as s (s.title)}
+					<section class="panel rows" aria-label={s.title}>
+						<div class="rows-head">
+							<h2>{s.title}</h2>
+							<span class="muted small"
+								><span class="pb-num">{s.done}</span> of <span class="pb-num">{s.total}</span> played</span
+							>
+						</div>
+						<MatchRows cards={s.cards} label={s.title} />
+					</section>
+				{/each}
+			</div>
 		{:else}
-			{#each shown as s (s.title)}
-				<details class="panel round" open>
-					<summary>
-						<svg class="pb-disclosure-chev" viewBox="0 0 24 24" aria-hidden="true">
-							<path
-								d="M9 6l6 6-6 6"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-							/>
-						</svg>
-						<h2>{s.title}</h2>
-						<span class="muted small grow-left">
-							<span class="pb-num">{s.done}/{s.total}</span> reported{#if s.flagged}
-								· {s.flagged} flagged{/if}{#if s.voids}
-								· {s.voids} void{/if}
-						</span>
-					</summary>
-					<div class="cards">
-						{#each s.cards as c (c.id)}<MatchCard {...c.props} mine={c.mine} />{/each}
-					</div>
-				</details>
-			{:else}
-				<p class="empty">No matches for you in this view.</p>
-			{/each}
+			<p class="empty">No matches for you in this view.</p>
 		{/if}
 	{/if}
 </div>

@@ -58,13 +58,10 @@ export const load: PageServerLoad = ({ params, locals, url }) => {
 				: [],
 		sections: [...sections].map(([title, list]) => {
 			const count = (s: string) => list.filter((c) => c.status === s).length;
-			const voids = count('void');
 			return {
 				title,
-				total: list.length - voids,
+				total: list.length - count('void'),
 				done: count('reported') + count('flagged'),
-				flagged: count('flagged'),
-				voids,
 				cards: list.filter(show).sort((a, b) => Number(b.mine) - Number(a.mine))
 			};
 		})
