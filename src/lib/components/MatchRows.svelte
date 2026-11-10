@@ -63,7 +63,7 @@
 				<span class="pb-mrow-nm">{s.name}</span>
 				{#if s.you}<span class="pb-you">You</span>{/if}
 				{#if s.dice}{@render die()}{/if}
-				{#if s.result}<span class="pb-sr">{s.result}</span>{/if}
+				{#if s.result}<span class="pb-sr">{' ' + s.result}</span>{/if}
 			</span>
 			{#if s.legend || s.tag}
 				<span class="pb-mrow-sub">
@@ -103,7 +103,7 @@
 							/>
 							<span class="pb-mrow-tx">
 								<span class="pb-mrow-who">
-									<span class="pb-sr">against </span><span class="pb-mrow-nm"
+									<span class="pb-sr">{'against '}</span><span class="pb-mrow-nm"
 										>{r.opponent.name}</span
 									>
 									{#if r.overdue}<span class="pb-mrow-note is-warn">Overdue</span>{/if}
@@ -120,7 +120,7 @@
 							</span>
 						</span>
 						<span class="pb-mrow-ascol">
-							{#if r.legend}<span class="pb-sr">played as </span>{r.legend}{/if}
+							{#if r.legend}<span class="pb-sr">{'played as '}</span>{r.legend}{/if}
 						</span>
 						<span class="pb-mrow-dice">
 							{#if r.dice}{@render die()}{/if}
@@ -129,9 +129,11 @@
 							{#if r.score && r.letter}
 								<span class={['pb-mrow-l', `is-${r.letter.toLowerCase()}`]} aria-hidden="true"
 									>{r.letter}</span
-								><span class="pb-sr">{WORD[r.letter]} </span><span>{r.score[0]}–{r.score[1]}</span>
+								><span class="pb-sr">{WORD[r.letter] + ' '}</span><span
+									>{r.score[0]}–{r.score[1]}</span
+								>
 							{:else if r.text === 'Report'}
-								<span class="pb-mrow-go">Report<span class="pb-sr"> result</span></span>
+								<span class="pb-mrow-go">Report<span class="pb-sr">{' result'}</span></span>
 							{:else if r.text}
 								<span class="pb-mrow-mut">{r.text}</span>
 							{/if}
@@ -146,12 +148,12 @@
 								<span class="pb-mrow-sc">
 									<span class={[r.sides[0].result === 'won' && 'is-win']}>{r.score[0]}</span><span
 										aria-hidden="true">–</span
-									><span class="pb-sr"> to </span><span
+									><span class="pb-sr">{' to '}</span><span
 										class={[r.sides[1].result === 'won' && 'is-win']}>{r.score[1]}</span
 									>{#if !r.sides[0].result}<span class="pb-sr">, draw</span>{/if}
 								</span>
 							{:else if r.mid === 'Report'}
-								<span class="pb-mrow-go">Report<span class="pb-sr"> result</span></span>
+								<span class="pb-mrow-go">Report<span class="pb-sr">{' result'}</span></span>
 							{:else}
 								<span class="pb-mrow-mut">{r.mid}</span>
 							{/if}
