@@ -1,5 +1,5 @@
-// Holiday mode: requests, the organizer's Holidays section, matches unlocked early, and the end of
-// the season waiting for every week to be published.
+// Holiday mode: requests, the organizer's Holidays section, matches unlocked early (and a
+// revoked holiday's), and the end of the season waiting for every week to be published.
 import { test } from '@playwright/test';
 import { freezeTimes, removeSeason, seedHoliday, seedResult, seedSeason } from '../e2e/db.ts';
 import { ORGANIZER as org, SEASONS, player } from '../e2e/fixtures.ts';
@@ -7,7 +7,7 @@ import { NOW, day } from './now.ts';
 import { shot } from './shot.ts';
 
 const s = `/seasons/${SEASONS.shotsHoliday}`;
-const [p1, p2] = [player('shotsHoliday', 1), player('shotsHoliday', 2)];
+const [p1, p2, p3] = [1, 2, 3].map((n) => player('shotsHoliday', n));
 
 test.afterAll(() => removeSeason('shotsHoliday'));
 
@@ -20,11 +20,13 @@ test('holidays', async ({ browser }) => {
 	});
 	seedHoliday('shotsHoliday', 1, day(-1), day(6), 'approved');
 	seedHoliday('shotsHoliday', 2, day(5), day(6));
+	seedHoliday('shotsHoliday', 3, day(5), day(6), 'revoked');
 	freezeTimes(NOW);
 	await shot(browser, 'player-holiday-pending', `${s}/players/${p2}`, p2);
 	await shot(browser, 'org-season-holidays', `${s}/admin/season`, org);
 	await shot(browser, 'player-holiday-unlocked', `${s}/players/${p1}`, p1);
 	await shot(browser, 'player-match-early', `${s}/matches/${ids[4]}`, p1);
+	await shot(browser, 'player-holiday-revoked', `${s}/players/${p3}`, p3);
 	seedResult(ids[4], 2, 1);
 	freezeTimes(NOW);
 	await shot(browser, 'player-match-early-reported', `${s}/matches/${ids[4]}`, p1);

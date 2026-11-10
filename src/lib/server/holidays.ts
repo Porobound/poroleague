@@ -2,6 +2,7 @@ import { and, asc, eq } from 'drizzle-orm';
 import { date, dateSpan } from '#lib/format.ts';
 import {
 	awayWeeks,
+	revokedWeeks,
 	coversLabel,
 	holidayWeeks,
 	isUnlocked,
@@ -35,13 +36,18 @@ export const getHoliday = (seasonId: number, id: number) =>
 		.where(and(eq(holidays.id, id), eq(holidays.seasonId, seasonId)))
 		.get();
 
-// Which weeks are unlocked (approved or revoked) and who is away (approved), per player.
+// Which weeks are unlocked (approved or revoked), who is away (approved) and whose holiday was
+// revoked, per player.
 export function seasonUnlocks(
 	season: { id: number; startDate: string | null },
 	list: SeasonHoliday[] = seasonHolidays(season.id)
 ) {
 	const start = season.startDate ?? '9999-12-31';
-	return { unlocked: unlockedWeeks(list, start), away: awayWeeks(list, start) };
+	return {
+		unlocked: unlockedWeeks(list, start),
+		away: awayWeeks(list, start),
+		revoked: revokedWeeks(list, start)
+	};
 }
 
 // Pending requests and cancels aren't audited.

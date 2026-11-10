@@ -61,9 +61,11 @@ export function cardContext(
 ) {
 	return {
 		season,
-		// Player id → weeks of their approved holidays, for the On holiday tag; pages that show it
-		// spread seasonUnlocks(season).away over this.
+		// Player id → weeks of their approved (On holiday) and revoked (Holiday revoked) holidays;
+		// pages that show the tags spread seasonUnlocks(season)'s over this. Revoked only matters
+		// where early matches show: the player and match pages.
 		away: new Map() as WeekMap,
+		revoked: new Map() as WeekMap,
 		viewerId,
 		now,
 		cutRounds,
@@ -101,6 +103,17 @@ export function matchCard(m: CardMatch, c: CardContext) {
 					? 'overdue'
 					: 'scheduled';
 	const person = (id: string) => c.people.get(id);
+	const week = weekOf(m.round, c.season.roundsPerWeek);
+	// Only while it still says something: the match is open and the player is in the league.
+	// Holiday revoked says why a match is still open early, so it goes once the week is published.
+	const holidayTag = (id: string) =>
+		m.stage === 'playoff' || m.reportedBy || voided || person(id)?.former
+			? null
+			: c.away.get(id)?.has(week)
+				? 'On holiday'
+				: early && c.revoked.get(id)?.has(week)
+					? 'Holiday revoked'
+					: null;
 	const side = (id: string, legend: string | null, games: number | null) => ({
 		name: person(id)?.displayName ?? 'Unknown',
 		avatar: person(id)?.avatar ?? null,
@@ -108,15 +121,7 @@ export function matchCard(m: CardMatch, c: CardContext) {
 		legend,
 		games,
 		href: person(id)?.former ? null : `/seasons/${c.season.slug}/players/${id}`,
-		// Only while it still says something: the match is open and the player is in the league.
-		tag:
-			m.stage !== 'playoff' &&
-			!m.reportedBy &&
-			!voided &&
-			!person(id)?.former &&
-			c.away.get(id)?.has(weekOf(m.round, c.season.roundsPerWeek))
-				? 'On holiday'
-				: null
+		tag: holidayTag(id)
 	});
 	const mode = matchMode(m, {
 		viewerId: c.viewerId,
@@ -146,7 +151,7 @@ export function matchCard(m: CardMatch, c: CardContext) {
 					? `Walkover · ${walkover} advances`
 					: early
 						? m.reportedBy
-							? earlyNote(weekOf(m.round, c.season.roundsPerWeek))
+							? earlyNote(week)
 							: 'Unlocked early'
 						: m.reportedBy
 							? `Reported by ${person(m.reportedBy)?.displayName ?? 'an organizer'}`
