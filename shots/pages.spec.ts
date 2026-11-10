@@ -5,6 +5,7 @@ import {
 	publishReplays,
 	removeSeason,
 	renamePlayer,
+	seedAchievements,
 	seedEmptySeason,
 	seedEntries,
 	seedFinishedGroups,
@@ -38,6 +39,7 @@ test('a season in play', async ({ browser }) => {
 		flag: 'We played 2-1 but the second game was conceded after a misclick, so this needs a look.'
 	});
 	seedEmptySeason('shotsDraft', 'draft');
+	seedAchievements(me, ['first-blood']); // seeds bypass the award, and me has won a match
 	freezeTimes(NOW);
 	const pages: [string, string, string?][] = [
 		['visitor-seasons', '/seasons'],
