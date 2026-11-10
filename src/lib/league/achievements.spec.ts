@@ -218,6 +218,12 @@ describe('one-offs', () => {
 			get(H([M(), M({ p1Games: null, p2Games: null, reportedAt: null })], [fin]), 'perfect-group')
 				.hit
 		).toBeNull();
+		// Two perfect seasons: the earlier finalize dates it, whatever order the seasons come in.
+		const later = S({ id: 2, finalizedAt: D(60) });
+		expect(get(H([M(), M({ seasonId: 2 })], [later, fin]), 'perfect-group').hit).toEqual({
+			at: D(30),
+			seasonId: 1
+		});
 	});
 
 	it('Comeback: won after losing game 1, only with per-game results', () => {
@@ -231,6 +237,9 @@ describe('one-offs', () => {
 		expect(get(H([M({ games: '121', p1Games: 2, p2Games: 1 })]), 'comeback').have).toBe(0);
 		expect(get(H([M({ games: null, p1Games: 2, p2Games: 1 })]), 'comeback').have).toBe(0);
 		expect(get(H([M({ games: 'D11' })]), 'comeback').have).toBe(0);
+		expect(
+			get(H([M({ p1Id: 'op', p2Id: 'me', games: 'D22', p1Games: 0, p2Games: 2 })]), 'comeback').have
+		).toBe(0);
 	});
 
 	it('Top Cut and Champion: dated by the season event', () => {
