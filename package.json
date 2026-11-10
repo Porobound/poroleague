@@ -22,7 +22,7 @@
 		"db:report-dev": "node scripts/report-dev.ts",
 		"db:holiday-dev": "node scripts/holiday-dev.ts",
 		"db:play-dev": "node scripts/play-dev.ts",
-		"db:reseed-dev": "node scripts/reseed-dev.ts",
+		"db:reseed-dev": "drizzle-kit migrate && node scripts/reseed-dev.ts",
 		"test:coverage": "vitest run --coverage",
 		"test:e2e": "playwright test",
 		"shots": "rm -rf .shots && SHOTS=1 playwright test -c playwright.shots.config.ts --trace off"
