@@ -173,6 +173,28 @@ export const seedFinishedGroups = (
 		}
 	});
 
+// A holiday request as the site stores it; decided ones get the organizer as decider.
+export const seedHoliday = (
+	key: SeasonKey,
+	n: number,
+	from: string,
+	to: string,
+	status: 'pending' | 'approved' = 'pending'
+) =>
+	write((db) => {
+		db.prepare(
+			`insert into holidays (season_id, player_id, from_date, to_date, status, decided_by, decided_at)
+			 select id, ?, ?, ?, ?, iif(? = 'pending', null, ?), iif(? = 'pending', null, unixepoch())
+			 from seasons where slug = ?`
+		).run(player(key, n), from, to, status, status, ORGANIZER, status, SEASONS[key]);
+		if (status === 'approved')
+			db.prepare(
+				`insert into audit (season_id, actor_id, action, after)
+				 select id, ?, 'holiday', json_object('holiday', ?, 'from', ?, 'to', ?, 'status', 'approved')
+				 from seasons where slug = ?`
+			).run(ORGANIZER, player(key, n), from, to, SEASONS[key]);
+	});
+
 export const renamePlayer = (id: string, name: string) =>
 	write((db) => db.prepare('update players set display_name = ? where id = ?').run(name, id));
 

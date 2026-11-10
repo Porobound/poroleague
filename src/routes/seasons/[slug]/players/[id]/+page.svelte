@@ -5,6 +5,7 @@
 	import PlayerLegends from '#lib/components/PlayerLegends.svelte';
 	import SeasonHistory from '#lib/components/SeasonHistory.svelte';
 	import { pct } from '#lib/format.ts';
+	import { coversLabel, holidayWeeks, requestError } from '#lib/league/holiday.ts';
 	import { groupName } from '#lib/season.ts';
 	import type { PageProps } from './$types';
 
@@ -12,6 +13,22 @@
 	let typed = $state('');
 	const { season, player, row } = $derived(data);
 	const isMe = $derived(data.user?.id === player.playerId);
+	let from = $state('');
+	let to = $state('');
+	const cal = $derived(data.calendar);
+	const problem = $derived(cal && from && to ? requestError({ from, to }, cal, cal.own) : null);
+	const covers = $derived(
+		cal && from && to && !problem
+			? coversLabel(holidayWeeks({ from, to }, cal), cal.roundsPerWeek, cal.maxRound)
+			: ''
+	);
+	const HOLIDAY = {
+		pending: { h: 'Holiday requested', badge: 'Pending', tone: '' },
+		approved: { h: 'Holiday approved', badge: 'Approved', tone: 'pb-badge-win' },
+		rejected: { h: 'Holiday not approved', badge: 'Not approved', tone: 'pb-badge-loss' },
+		revoked: { h: 'Holiday revoked', badge: 'Revoked', tone: 'pb-badge-loss' },
+		cancelled: { h: 'Request cancelled', badge: 'Cancelled', tone: '' }
+	} as const;
 </script>
 
 <svelte:head>
@@ -22,6 +39,9 @@
 	{#if form?.message}
 		<p class="pb-notice" role="status">{form.message}</p>
 	{/if}
+	{#if form?.holidayError}
+		<p class="pb-notice" role="alert">{form.holidayError}</p>
+	{/if}
 
 	<section class="player-head">
 		<Avatar name={player.displayName} src={player.avatar} size={72} former={player.former} />
@@ -29,6 +49,49 @@
 			<div class="name-row">
 				<h1 class={[player.former && 'pb-former']}>{player.displayName}</h1>
 				<a href="/players/{player.playerId}">Career</a>
+				{#if data.canRequest && cal}
+					<ConfirmButton
+						action="?/requestHoliday"
+						variant="ghost"
+						small
+						label="Going away?"
+						title="Going away?"
+						confirmLabel="Request holiday"
+						confirmDisabled={!from || !to || !!problem}
+					>
+						<p>
+							Once an organizer approves it, your matches in those weeks unlock so you can play them
+							before you go.
+						</p>
+						<label class="pb-field">
+							First day away
+							<input
+								class="pb-input"
+								type="date"
+								name="from"
+								min={cal.today}
+								max={cal.deadline}
+								bind:value={from}
+							/>
+						</label>
+						<label class="pb-field">
+							Last day away
+							<input
+								class="pb-input"
+								type="date"
+								name="to"
+								min={from || cal.today}
+								max={cal.deadline}
+								bind:value={to}
+							/>
+						</label>
+						{#if problem}
+							<p role="alert" class="small">{problem}</p>
+						{:else if covers}
+							<p aria-live="polite" class="muted small">Covers {covers}.</p>
+						{/if}
+					</ConfirmButton>
+				{/if}
 			</div>
 			<div class="badges">
 				{#if player.group}<span class="pb-badge">{groupName(player.group)}</span>{/if}
@@ -42,6 +105,46 @@
 			</div>
 		</div>
 	</section>
+
+	{#each data.holidays as h (h.id)}
+		{@const s = HOLIDAY[h.status]}
+		<section class="panel holiday" aria-labelledby="hol-{h.id}">
+			<div class="holiday-h">
+				<h2 id="hol-{h.id}">{s.h}</h2>
+				<span class={['pb-badge', s.tone]}>{s.badge}</span>
+			</div>
+			{#if h.status === 'pending'}
+				<p>{h.away}{h.covers && ` · covers ${h.covers}`}. An organizer will look at it.</p>
+				<div>
+					<ConfirmButton
+						action="?/cancelHoliday"
+						fields={{ id: String(h.id) }}
+						variant="secondary"
+						label="Withdraw request"
+						title="Withdraw your holiday request?"
+						confirmLabel="Withdraw request"
+					>
+						<p>Your matches stay in their normal weeks. You can ask again later.</p>
+					</ConfirmButton>
+				</div>
+			{:else if h.status === 'approved'}
+				<p>
+					You’re away {h.away}{h.covers && ` · covers ${h.covers}`}. These matches are unlocked now.
+					Results stay out of the standings until their week is published.
+				</p>
+			{:else if h.status === 'rejected'}
+				<p>Your request for {h.away} wasn’t approved.</p>
+				{#if h.reason}
+					<figure class="reason">
+						<figcaption class="eyebrow">Organizer’s reason</figcaption>
+						<blockquote>“{h.reason}”</blockquote>
+					</figure>
+				{/if}
+			{:else if h.status === 'revoked'}
+				<p>Your holiday for {h.away} was revoked. Matches already unlocked stay unlocked.</p>
+			{/if}
+		</section>
+	{/each}
 
 	{#if row}
 		<section class="stats" aria-label="Season stats">
@@ -151,6 +254,30 @@
 </div>
 
 <style>
+	.holiday {
+		display: flex;
+		flex-direction: column;
+		gap: 14px;
+	}
+	.holiday p,
+	.holiday h2 {
+		margin: 0;
+	}
+	.holiday-h {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 8px;
+	}
+	.reason {
+		margin: 0;
+		border-left: 3px solid var(--line);
+		padding: 2px 0 2px 12px;
+	}
+	.reason blockquote {
+		margin: 4px 0 0;
+		color: var(--ink);
+	}
 	.erase {
 		margin-top: 24px;
 		padding-top: 32px;

@@ -1,21 +1,40 @@
 import { error, fail, redirect } from '@sveltejs/kit';
+import { dateSpan } from '#lib/format.ts';
+import { coversLabel, holidayWeeks, requestError } from '#lib/league/holiday.ts';
 import { legendMatches, playerLegends } from '#lib/league/legendStats.ts';
 import { published } from '#lib/league/publish.ts';
-import { weekOf } from '#lib/league/time.ts';
+import { leagueDate, weekOf } from '#lib/league/time.ts';
 import { cardContext, matchCard } from '#lib/matchCard.ts';
-import { organizerAction } from '#lib/server/auth.ts';
-import { playerMatches } from '#lib/server/matches.ts';
+import { organizerAction, playerAction } from '#lib/server/auth.ts';
+import { cancelHoliday, requestHoliday, seasonHolidays } from '#lib/server/holidays.ts';
+import { playerMatches, seasonMatches } from '#lib/server/matches.ts';
 import { erasePlayer } from '#lib/server/players.ts';
 import { postToOrganizers } from '#lib/server/webhooks.ts';
-import { cutEraseEmbed, dropEmbed } from '#lib/discord.ts';
+import { cutEraseEmbed, dropEmbed, holidayEmbed } from '#lib/discord.ts';
 import {
 	groupStandings,
 	playerSeasons,
 	publicSeason,
 	seasonEntries,
-	seasonHistory
+	seasonHistory,
+	type Season
 } from '#lib/server/seasons.ts';
 import type { Actions, PageServerLoad } from './$types';
+
+// What holiday rules need to know about the season; null without a start date, as weeks have no dates.
+function calendar(season: Season) {
+	if (!season.startDate) return null;
+	return {
+		startDate: season.startDate,
+		roundsPerWeek: season.roundsPerWeek,
+		maxRound: Math.max(0, ...seasonMatches(season.id).map((m) => m.round)),
+		publishedRound: season.publishedRound,
+		deadline: season.deadline,
+		today: leagueDate(new Date())
+	};
+}
+// A player gets a few tries a day; each one posts to the organizers.
+const MAX_REQUESTS_A_DAY = 5;
 
 export const load: PageServerLoad = ({ params, locals }) => {
 	const season = publicSeason(params.slug, locals.user);
@@ -30,6 +49,11 @@ export const load: PageServerLoad = ({ params, locals }) => {
 	const counted = legendMatches(ms, ctx.dropped);
 	const standing = groupStandings(season, list).find((g) => g.group === player.group);
 	const rank = standing?.rows.findIndex((r) => r.playerId === player.playerId) ?? -1;
+	const isMe = locals.user?.id === player.playerId;
+	const hs = seasonHolidays(season.id);
+	const mine = hs.filter((h) => h.playerId === player.playerId);
+	const cal = isMe && season.status === 'play' ? calendar(season) : null;
+	const canRequest = !!cal && !player.dropped;
 
 	return {
 		season,
@@ -51,12 +75,76 @@ export const load: PageServerLoad = ({ params, locals }) => {
 		matches: cards.map((c) => c.card),
 		legends: playerLegends(counted, player.playerId),
 		history: seasonHistory(playerSeasons(player.playerId)),
+		// Only the player sees their requests, and the reject reason.
+		// Only while they matter: in play, until the last day away.
+		holidays: cal
+			? mine
+					.filter((h) => h.status !== 'cancelled' && h.to >= cal.today)
+					.reverse()
+					.map((h) => ({
+						id: h.id,
+						status: h.status,
+						away: dateSpan(h.from, h.to),
+						covers: coversLabel(holidayWeeks(h, cal), cal.roundsPerWeek, cal.maxRound),
+						reason: h.status === 'rejected' ? h.reason : null
+					}))
+			: [],
+		canRequest,
+		// For the dialog's live "Covers …" line; the action re-checks everything.
+		calendar: canRequest
+			? { ...cal, own: mine.map(({ from, to, status }) => ({ from, to, status })) }
+			: null,
 		// Shows the control only; the action re-checks the role with Discord.
 		canErase: !!locals.user?.isOrganizer && !player.former
 	};
 };
 
 export const actions: Actions = {
+	requestHoliday: async (event) => {
+		const user = playerAction(event);
+		const form = await event.request.formData();
+		const season = publicSeason(event.params.slug, user);
+		if (event.params.id !== user.id) error(403, 'Only you can ask for your holiday.');
+		if (season.status !== 'play')
+			return fail(409, { holidayError: 'Holidays are only for the weeks of play.' });
+		const entry = seasonEntries(season.id).find((e) => e.playerId === user.id);
+		if (!entry) error(403, "You're not in this season.");
+		if (entry.dropped)
+			return fail(409, {
+				holidayError: 'You dropped from this season, so there’s nothing to unlock.'
+			});
+		const r = { from: String(form.get('from') ?? ''), to: String(form.get('to') ?? '') };
+		const cal = calendar(season);
+		if (!cal) return fail(409, { holidayError: 'This season has no start date yet.' });
+		const own = seasonHolidays(season.id).filter((h) => h.playerId === user.id);
+		const problem = requestError(r, cal, own);
+		if (problem) return fail(400, { holidayError: problem });
+		if (own.filter((h) => leagueDate(h.createdAt) === cal.today).length >= MAX_REQUESTS_A_DAY)
+			return fail(429, { holidayError: 'That’s enough requests for today. Try again tomorrow.' });
+		requestHoliday(season.id, user.id, r);
+		postToOrganizers(
+			holidayEmbed({
+				player: user.displayName,
+				dates: dateSpan(r.from, r.to),
+				covers: coversLabel(holidayWeeks(r, cal), cal.roundsPerWeek, cal.maxRound),
+				where: season.name,
+				url: `${event.url.origin}/seasons/${season.slug}/admin/season#holidays`
+			})
+		);
+		return {
+			message: `Holiday requested for ${dateSpan(r.from, r.to)}. An organizer will look at it.`
+		};
+	},
+
+	cancelHoliday: async (event) => {
+		const user = playerAction(event);
+		const id = Number((await event.request.formData()).get('id'));
+		const season = publicSeason(event.params.slug, user);
+		if (!cancelHoliday(season.id, id, user.id))
+			return fail(409, { message: 'That request is no longer pending.' });
+		return { message: 'Request withdrawn.' };
+	},
+
 	erase: async (event) => {
 		const user = await organizerAction(event);
 		const season = publicSeason(event.params.slug, user);

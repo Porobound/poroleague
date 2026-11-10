@@ -5,6 +5,7 @@ import {
 	dropEmbed,
 	escapeMd,
 	flagEmbed,
+	holidayEmbed,
 	organizerEditEmbed,
 	pairingsPost,
 	profileFromMember,
@@ -228,5 +229,23 @@ describe('top cut posts', () => {
 		expect(championEmbed('Autumn 2026', 'Aino', 'http://x').title).toBe(
 			'Autumn 2026 champion: Aino'
 		);
+	});
+});
+
+describe('holidayEmbed', () => {
+	it('escaped name, dates, covers, admin link', () => {
+		const e = holidayEmbed({
+			player: '*Al*',
+			dates: '2–8 Nov',
+			covers: 'week 5 (rounds 9–10)',
+			where: 'Autumn 2026',
+			url: 'https://x/seasons/a/admin/season#holidays'
+		});
+		expect(e.title).toBe('Holiday request: \\*Al\\*');
+		expect(e.description).toBe(
+			'Away 2–8 Nov · week 5 (rounds 9–10). Approve or reject in season admin.'
+		);
+		expect(e.url).toBe('https://x/seasons/a/admin/season#holidays');
+		expect(e.footer).toEqual({ text: 'Autumn 2026' });
 	});
 });
