@@ -2,13 +2,14 @@
 // Summer finished (counts-only results), Autumn in play (per-game results, flags, a drop, an erased
 // player; your rounds 5+ left open, weeks 4–6 unpublished; holidays on four of your opponents: one
 // approved to report early, one approved and already reported, one pending, one revoked), Winter
-// draft. Same run = same data. Posts nothing to Discord.
+// draft. Same run = same data, with Autumn dated from today (always the first day of its week 4).
+// Posts nothing to Discord.
 // DEV_DISCORD_IDS (comma-separated, in .env) gives the first fake players real Discord ids.
 import Database from 'better-sqlite3';
 import { LEGENDS } from '#lib/legends.ts';
 import { roundRobin } from '#lib/league/roundRobin.ts';
 import { scoreGames } from '#lib/league/score.ts';
-import { addDays } from '#lib/league/time.ts';
+import { addDays, leagueDate } from '#lib/league/time.ts';
 
 process.loadEnvFile();
 const [discordId] = process.argv.slice(2);
@@ -67,6 +68,9 @@ const NICKS = [
 const pool = LEGENDS.slice(0, 14);
 // Autumn's last published round: weeks 1–3 out, weeks 4–6 (rounds 7–11) still to publish.
 const AUTUMN_PUBLISHED = 6;
+// Autumn started three weeks ago, so today is always the first day of week 4: the published weeks
+// are over and the holidays below are still ahead.
+const AUTUMN_START = addDays(leagueDate(new Date()), -21);
 type Result = {
 	games: string | null;
 	p1Games: number;
@@ -235,8 +239,8 @@ db.transaction(() => {
 		slug: 'autumn-2026',
 		name: 'Autumn 2026',
 		status: 'play',
-		start: '2026-10-05',
-		deadline: '2026-11-22',
+		start: AUTUMN_START,
+		deadline: addDays(AUTUMN_START, 48),
 		published: AUTUMN_PUBLISHED,
 		players: shuffle([ME, ...ids]),
 		groups: 2,
@@ -268,7 +272,7 @@ db.transaction(() => {
 		.forEach((m, i) => {
 			const who = m.by === m.a ? m.b : m.a;
 			const reason = reasons[i % reasons.length];
-			const t = at('2026-10-05', m.round) + 3600;
+			const t = at(AUTUMN_START, m.round) + 3600;
 			flag.run(who, reason, m.id);
 			log.run(autumn.sid, m.id, who, 'flag', null, JSON.stringify({ flagReason: reason }), t);
 			if (i === 5) {
@@ -310,7 +314,7 @@ db.transaction(() => {
 			'drop',
 			null,
 			JSON.stringify({ dropped: id }),
-			at('2026-10-05', 5 + i)
+			at(AUTUMN_START, 5 + i)
 		);
 	}
 	db.prepare(
@@ -319,7 +323,7 @@ db.transaction(() => {
 	).run(erased);
 	for (const s of [summer.sid, autumn.sid])
 		if (db.prepare('select 1 from entries where season_id = ? and player_id = ?').get(s, erased))
-			log.run(s, null, ME, 'erase', null, JSON.stringify({ erased }), at('2026-10-05', 7));
+			log.run(s, null, ME, 'erase', null, JSON.stringify({ erased }), at(AUTUMN_START, 6));
 
 	// Holidays in Autumn, all on your opponents, so you test them from the other side (ask for your
 	// own on your player page). Published to week 3; your matches in weeks 4–6 (rounds 7–11) are open.
@@ -337,7 +341,7 @@ db.transaction(() => {
 			JSON.stringify({ holiday: who, from, to, status }),
 			t
 		);
-	const asked = at('2026-10-05', 5); // during week 3
+	const asked = at(AUTUMN_START, 5); // during week 3
 	const gone = new Set([dropped, erased]);
 	// Your unpublished matches against someone still in, earliest first.
 	const vsMe = autumn.ms.filter(
@@ -349,7 +353,7 @@ db.transaction(() => {
 	// The holiday covers the match's week: Monday to Sunday.
 	const weekOfRound = (m: M) => {
 		const w = Math.ceil(m.round / 2);
-		return [addDays('2026-10-05', 7 * (w - 1)), addDays('2026-10-05', 7 * w - 1)] as const;
+		return [addDays(AUTUMN_START, 7 * (w - 1)), addDays(AUTUMN_START, 7 * w - 1)] as const;
 	};
 	const them = (m: M) => (m.a === ME ? m.b : m.a);
 	// The latest three stay ahead of today, so their On holiday badges show; the revoke takes the earliest.

@@ -1,9 +1,9 @@
 // Dev only: a pending holiday request for a fake player (random if none given), covering the next
-// unpublished week, to test approve and reject from scratch. Same limits as the site; posts nothing
-// to Discord.
+// unpublished week that hasn't ended, to test approve and reject from scratch. Same limits as the
+// site; posts nothing to Discord.
 import Database from 'better-sqlite3';
 import { requestError, type HolidayStatus } from '#lib/league/holiday.ts';
-import { addDays, leagueDate, roundsOfWeek, weekOf } from '#lib/league/time.ts';
+import { addDays, leagueDate, roundsOfWeek, weekOf, weekOn } from '#lib/league/time.ts';
 
 process.loadEnvFile();
 const [slug, who] = process.argv.slice(2);
@@ -33,10 +33,11 @@ const maxRound = (
 		.prepare(`select max(round) n from matches where season_id = ? and stage = 'group'`)
 		.get(s.id) as { n: number }
 ).n;
-const week = weekOf(s.publishedRound, s.roundsPerWeek) + 1;
-if (!roundsOfWeek(week, s.roundsPerWeek, maxRound))
-	throw new Error(`Every week of "${slug}" is published.`);
 const today = leagueDate(new Date());
+// The first unpublished week that hasn't ended: a request can't start in the past.
+const week = Math.max(weekOf(s.publishedRound, s.roundsPerWeek) + 1, weekOn(startDate, today));
+if (!roundsOfWeek(week, s.roundsPerWeek, maxRound))
+	throw new Error(`"${slug}" has no unpublished week left to go away in.`);
 const start = addDays(startDate, (week - 1) * 7);
 const end = addDays(startDate, week * 7 - 1);
 const from = start > today ? start : today;
