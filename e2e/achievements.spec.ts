@@ -44,7 +44,7 @@ test('a report that crosses a threshold shows the achievement on the career page
 	await expect(page.getByRole('status').first()).toContainText('Result saved');
 
 	await page.goto(`/players/${me}`);
-	await expect(tile('Ahri Player')).toContainText(/Earned \d{1,2} \w{3} \d{4}/);
+	await expect(tile('Ahri Player')).toContainText(/Earned \d{1,2} \w{3,4} \d{4}/);
 	await expect(tile('Ahri Player').getByRole('progressbar')).toHaveCount(0);
 	await expect(tile('First Blood')).toContainText('Earned');
 	await expect(tile('Ahri Expert')).toContainText('3/10');
