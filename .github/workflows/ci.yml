@@ -11,6 +11,7 @@ permissions:
 
 jobs:
   test:
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -25,6 +26,7 @@ jobs:
 
   e2e:
     if: github.event_name == 'pull_request'
+    timeout-minutes: 15
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -41,6 +43,7 @@ jobs:
   # Prod runs :prod, moved by promote.yml.
   image:
     needs: test
+    timeout-minutes: 15
     runs-on: ubuntu-latest
     permissions:
       contents: read

@@ -99,7 +99,7 @@
 				type={f.type}
 				min={f.min}
 				max={f.max}
-				value={values[f.name]}
+				defaultValue={values[f.name]}
 				disabled={locked}
 				required={f.name !== 'slug'}
 			/>

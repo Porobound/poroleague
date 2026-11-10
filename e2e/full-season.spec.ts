@@ -20,6 +20,30 @@ const save = async (page: Page) => {
 	await page.getByRole('dialog').getByRole('button', { name: 'Save changes' }).click();
 };
 
+test('values typed before the page hydrates are kept', async ({ browser }) => {
+	const org = await browser.newPage(as(ORGANIZER));
+	let release!: () => void;
+	const held = new Promise<void>((r) => (release = r));
+	await org.route(/\.js$/, async (route) => {
+		await held;
+		await route.continue();
+	});
+	await org.goto(`/seasons/${slug}/admin/season`, { waitUntil: 'commit' });
+	await org.getByLabel('Start date').fill(day(7));
+	await org.getByLabel('Season deadline').fill(day(70));
+	await org.getByLabel('Max players').fill('2');
+	await org.getByLabel('Season name').fill('Typed early');
+	release();
+	// The dialog only opens once the page is hydrated.
+	await expect(async () => {
+		await org.getByRole('button', { name: 'Save changes' }).click();
+		await expect(org.getByRole('dialog')).toBeVisible({ timeout: 500 });
+	}).toPass();
+	await expect(org.getByLabel('Max players')).toHaveValue('2');
+	await expect(org.getByLabel('Season name')).toHaveValue('Typed early');
+	await org.close();
+});
+
 test('an organizer caps the season, never below the signups', async ({ browser }) => {
 	const org = await browser.newPage(as(ORGANIZER));
 	await org.goto(`/seasons/${slug}/admin/season`);
