@@ -419,4 +419,19 @@ describe('organizers decide', () => {
 		});
 		expect((await load({ ...season, status: 'topcut' })).holidays).toBeNull();
 	});
+
+	it('early matches: only the ones this holiday unlocked, void ones left out', async () => {
+		// Player 3 (Player 2's round 3 opponent) is on an approved holiday in week 1 and has dropped.
+		seedHoliday({
+			seasonId: season.id,
+			playerId: 'p3',
+			from: '2026-10-05',
+			to: '2026-10-06',
+			status: 'approved'
+		});
+		db.update(entries).set({ dropped: true }).where(eq(entries.playerId, 'p3')).run();
+		const d = await loaded(seasonAdminPage({ parent: async () => ({ season }) } as never));
+		const rows = (d.holidays as unknown as { approved: { early: string }[] }).approved;
+		expect(rows.map((r) => r.early)).toEqual(['0 of 0 played', '0 of 0 played']);
+	});
 });

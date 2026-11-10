@@ -8,7 +8,8 @@ import {
 	unlockedWeeks,
 	type Range
 } from '#lib/league/holiday.ts';
-import { leagueDate } from '#lib/league/time.ts';
+import { isVoid } from '#lib/league/status.ts';
+import { leagueDate, weekOf } from '#lib/league/time.ts';
 import { db } from '#lib/server/db/index.ts';
 import { audit, former, holidays, players } from '#lib/server/db/schema.ts';
 import type { Match } from '#lib/server/matches.ts';
@@ -94,7 +95,7 @@ export function decideHoliday(
 }
 
 // Admin → Season → Holidays: requests waiting for a decision, and who is away.
-export function holidayAdmin(season: Season, all: Match[]) {
+export function holidayAdmin(season: Season, all: Match[], dropped: Set<string>) {
 	const list = seasonHolidays(season.id);
 	const maxRound = Math.max(0, ...all.map((m) => m.round));
 	const cal = { startDate: season.startDate ?? '', roundsPerWeek: season.roundsPerWeek, maxRound };
@@ -116,9 +117,14 @@ export function holidayAdmin(season: Season, all: Match[]) {
 		approved: list
 			.filter((h) => h.status === 'approved')
 			.map((h) => {
-				// Their matches unlocked early and not yet published: how many are played.
+				// The matches this holiday unlocked that are still unpublished: how many are played.
+				const weeks = holidayWeeks(h, cal);
 				const early = all.filter(
-					(m) => (m.p1Id === h.playerId || m.p2Id === h.playerId) && isUnlocked(m, season, unlocked)
+					(m) =>
+						(m.p1Id === h.playerId || m.p2Id === h.playerId) &&
+						weeks.includes(weekOf(m.round, season.roundsPerWeek)) &&
+						!isVoid(m, dropped) &&
+						isUnlocked(m, season, unlocked)
 				);
 				return {
 					...row(h),

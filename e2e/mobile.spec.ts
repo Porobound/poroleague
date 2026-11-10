@@ -30,7 +30,7 @@ test.beforeAll(() => {
 	seedResult(flagged, 0, 2, {
 		flag: 'We played 2-1 but the second game was conceded after a misclick, so this needs a look.'
 	});
-	// Holiday cards on Mobile 1's page, both holiday tables in Admin → Season.
+	// Holiday cards on Mobile 1's page, both holiday lists in Admin → Season.
 	seedHoliday('mobile', 1, day(1), day(5), 'approved');
 	seedHoliday('mobile', 3, day(1), day(5));
 	seedEmptySeason('mobileDraft', 'draft');

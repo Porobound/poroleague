@@ -2,6 +2,7 @@ import { error, fail, redirect } from '@sveltejs/kit';
 import { seasonDeletedEmbed } from '#lib/discord.ts';
 import { date } from '#lib/format.ts';
 import { asRaw, editableFields, parseSeasonForm, seasonFields } from '#lib/season.ts';
+import { droppedIds } from '#lib/league/status.ts';
 import { organizerAction } from '#lib/server/auth.ts';
 import { decideHoliday, getHoliday, holidayAdmin } from '#lib/server/holidays.ts';
 import { seasonMatches } from '#lib/server/matches.ts';
@@ -33,7 +34,7 @@ export const load: PageServerLoad = async ({ parent }) => {
 		entryCount: d?.list.length ?? seasonEntries(season.id).length,
 		matchCount: matchCount(season.id),
 		end: d && endState(season, d),
-		holidays: d && holidayAdmin(season, seasonMatches(season.id))
+		holidays: d && holidayAdmin(season, seasonMatches(season.id), droppedIds(d.list))
 	};
 };
 
@@ -49,7 +50,13 @@ async function decide(
 	const h = getHoliday(season.id, Number(form.get('id'))) ?? error(404, 'Holiday not found');
 	if (season.status !== 'play')
 		return fail(409, { message: 'Holidays only change while the season is in play.' });
-	if (h.status !== from) return fail(409, { message: 'That holiday was already decided.' });
+	if (h.status !== from)
+		return fail(409, {
+			message:
+				h.status === 'cancelled'
+					? 'The player withdrew that request.'
+					: 'That holiday was already decided.'
+		});
 	const reason = String(form.get('reason') ?? '').trim();
 	if (reason.length > 500) return fail(400, { message: 'Keep the reason under 500 characters.' });
 	if (!decideHoliday(h, user.id, to, reason))
