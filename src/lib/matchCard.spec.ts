@@ -203,7 +203,8 @@ describe('Holiday revoked tag', () => {
 			['p2', new Set([2, 3])]
 		]);
 		const away = new Map([['p2', new Set([2])]]);
-		const c = { ...cardContext({ ...season, roundsPerWeek: 2 }, people, null, NOW), away, revoked };
+		const s = { ...season, publishedRound: 2, roundsPerWeek: 2 };
+		const c = { ...cardContext(s, people, null, NOW), away, revoked };
 		expect(matchCard(match({ round: 3 }), c).props.sides.map((x) => x.tag)).toEqual([
 			'Holiday revoked',
 			'On holiday'
@@ -213,5 +214,11 @@ describe('Holiday revoked tag', () => {
 			'Holiday revoked'
 		]);
 		expect(matchCard(match({ round: 1 }), c).props.sides.map((x) => x.tag)).toEqual([null, null]);
+		// Published: the match is no longer early, so only On holiday is left.
+		const out = { ...cardContext({ ...s, publishedRound: 3 }, people, null, NOW), away, revoked };
+		expect(matchCard(match({ round: 3 }), out).props.sides.map((x) => x.tag)).toEqual([
+			null,
+			'On holiday'
+		]);
 	});
 });

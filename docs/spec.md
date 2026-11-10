@@ -60,7 +60,7 @@ A player going away asks for a holiday; once an organizer approves it, their mat
 - **Who sees an early match**: its two players on their season player pages ("Unlocked early") and the match page; organizers on Admin → Matches (editable) and the match page (view only, role re-checked with Discord). Nobody sees it on the schedule, season page, standings or API until its week is published.
 - **Hidden results**: one rule, `isPublished(m, publishedRound)` (`src/lib/league/publish.ts`, SQL twin `publishedMatch()` in `schema.ts`), decides whether a result counts anywhere public: standings (an unpublished result counts as unplayed), legend stats, career, Elo, API, public audit log, results webhook. The season can't end early while any result waits for its week.
 - **Discord**: a player report or organizer entry on an early match doesn't post to results; organizer edits post to the organizer channel. "Publish week N" posts each reported, non-void match of the published rounds to results.
-- **On holiday** badge (approved only): on the player page head while the current week is one of their holiday weeks, and as a name tag on pairings in those weeks and in Admin → Season → Holidays. A revoked holiday's matches carry a **Holiday revoked** name tag instead.
+- **On holiday** badge (approved only): on the player page head while the current week is one of their holiday weeks, and as a name tag on pairings in those weeks and in Admin → Season → Holidays. The matches a revoked holiday unlocked carry a **Holiday revoked** name tag instead, until their week is published.
 - Dev data: `db:reseed-dev` seeds every state on the owner's opponents, `db:holiday-dev` adds a pending request (README → Fake players).
 
 ## Auth & roles

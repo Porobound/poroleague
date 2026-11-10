@@ -62,7 +62,8 @@ export function cardContext(
 	return {
 		season,
 		// Player id → weeks of their approved (On holiday) and revoked (Holiday revoked) holidays;
-		// pages that show the tags spread seasonUnlocks(season)'s over this.
+		// pages that show the tags spread seasonUnlocks(season)'s over this. Revoked only matters
+		// where early matches show: the player and match pages.
 		away: new Map() as WeekMap,
 		revoked: new Map() as WeekMap,
 		viewerId,
@@ -104,12 +105,13 @@ export function matchCard(m: CardMatch, c: CardContext) {
 	const person = (id: string) => c.people.get(id);
 	const week = weekOf(m.round, c.season.roundsPerWeek);
 	// Only while it still says something: the match is open and the player is in the league.
+	// Holiday revoked says why a match is still open early, so it goes once the week is published.
 	const holidayTag = (id: string) =>
 		m.stage === 'playoff' || m.reportedBy || voided || person(id)?.former
 			? null
 			: c.away.get(id)?.has(week)
 				? 'On holiday'
-				: c.revoked.get(id)?.has(week)
+				: early && c.revoked.get(id)?.has(week)
 					? 'Holiday revoked'
 					: null;
 	const side = (id: string, legend: string | null, games: number | null) => ({
