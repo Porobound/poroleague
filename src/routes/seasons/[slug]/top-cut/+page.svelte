@@ -1,5 +1,5 @@
 <script lang="ts">
-	import MatchCard from '#lib/components/MatchCard.svelte';
+	import MatchRows from '#lib/components/MatchRows.svelte';
 	import { date } from '#lib/format.ts';
 	import type { PageProps } from './$types';
 
@@ -10,6 +10,8 @@
 		Array.from({ length: Math.ceil(slots.length / 2) }, (_, i) => slots.slice(2 * i, 2 * i + 2));
 	let pick = $state<number | null>(null);
 	const current = $derived(pick ?? (data.now < 0 ? data.rounds.length - 1 : data.now));
+	const slots = $derived(data.rounds[current].slots);
+	const matches = $derived(slots.flatMap((s) => (s.card ? [s.card] : [])));
 	const total = $derived(
 		data.rounds[0].slots.reduce((n, s) => n + (s.p1 ? 1 : 0) + (s.p2 ? 1 : 0), 0)
 	);
@@ -72,9 +74,9 @@
 			{/each}
 		</div>
 		<div class="cards">
-			{#each data.rounds[current].slots as s, j (j)}
-				{#if s.card}<MatchCard {...s.card.props} />
-				{:else if s.bye}<p class="muted small">
+			{#if matches.length}<MatchRows cards={matches} label={data.rounds[current].name} />{/if}
+			{#each slots.filter((s) => !s.card) as s, j (j)}
+				{#if s.bye}<p class="muted small">
 						{(s.p1 ?? s.p2)?.label}
 						{(s.p1 ?? s.p2)?.name} advances (bye)
 					</p>
