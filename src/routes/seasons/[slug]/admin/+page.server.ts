@@ -96,8 +96,14 @@ export const actions: Actions = {
 				m.round <= p.rounds[1] &&
 				!isVoid(m, dropped)
 		);
-		for (const m of held)
-			postResult(resultEmbed(matchPost(event.url.origin, season, m, resultOf(m)!)));
+		postResult(
+			...held.map((m) =>
+				resultEmbed({
+					...matchPost(event.url.origin, season, m, resultOf(m)!),
+					at: m.reportedAt ?? new Date()
+				})
+			)
+		);
 		return { message: `Week ${p.week} published${discord ? ' and posted in Discord' : ''}.` };
 	}
 };

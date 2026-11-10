@@ -675,7 +675,9 @@ describe('publishing a week with early results', () => {
 		dropPlayer(season.id, 'p3', 'org');
 		hooks.postResult.mockClear();
 		await publish();
-		expect(hooks.postResult.mock.calls.map((c) => c[0].title)).toEqual(['Player 1 0–2 Player 4']);
+		expect(hooks.postResult.mock.calls.map((c) => c.map((e) => e.title))).toEqual([
+			['Player 1 0–2 Player 4']
+		]);
 	});
 
 	it("can't be finalized past the deadline while a week is unpublished", async () => {
