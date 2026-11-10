@@ -62,7 +62,7 @@ describe('awardAchievements', () => {
 		expect(rows('p1')).toHaveLength(2);
 	});
 
-	it('skips hidden rounds, drops and deleted seasons', () => {
+	it('skips hidden rounds, drops, deleted and draft seasons', () => {
 		seedPlayers(2);
 		const hidden = season('h', { publishedRound: 1 });
 		win(hidden.id, 2, 1);
@@ -71,6 +71,8 @@ describe('awardAchievements', () => {
 		const voided = season('v');
 		win(voided.id, 1, 3);
 		db.update(entries).set({ dropped: true }).where(eq(entries.seasonId, voided.id)).run();
+		const draft = season('dr', { status: 'draft' });
+		win(draft.id, 1, 5);
 		awardAchievements(db, ['p1']);
 		expect(rows('p1')).toEqual([]);
 	});
