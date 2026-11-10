@@ -170,7 +170,7 @@ describe('playoff cards', () => {
 		expect(card.props.link.label).toBe('Report');
 		const wo = matchCard({ ...base, walkoverId: 'p2' }, ctx);
 		expect(wo.props.note).toBe('Walkover · p2 advances');
-		expect([card.round, card.you, card.early]).toEqual(['Semifinal 2', 0, false]);
+		expect([card.round, card.you, card.early]).toEqual(['SF 2', 0, false]);
 		expect(wo.walkover).toBe('p2');
 		expect(wo.props.link.label).toBe('View');
 	});

@@ -129,6 +129,14 @@ export function matchName(round: number, slot: number, rounds: number) {
 	return `Round of ${n} · ${slot + 1}`;
 }
 
+// Fits a match row's round column. "Ro16", never "R16": that reads as group round 16.
+export function shortMatchName(round: number, slot: number, rounds: number) {
+	const n = left(round, rounds);
+	if (n === 2) return 'Final';
+	if (n === 4 || n === 8) return `${n === 4 ? 'SF' : 'QF'} ${slot + 1}`;
+	return `Ro${n}`;
+}
+
 // "A1" = 1st in Group A. Seeds run A1, B1, …, A2, B2, … so the place is the seed's tier.
 export const seedLabel = (seed: number, groups: number) =>
 	`${String.fromCharCode(65 + ((seed - 1) % groups))}${Math.ceil(seed / groups)}`;

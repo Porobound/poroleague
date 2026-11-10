@@ -6,6 +6,7 @@ import {
 	drawBracket,
 	MAX_CUT,
 	matchName,
+	shortMatchName,
 	roundName,
 	seedLabel,
 	seedOrder,
@@ -113,6 +114,10 @@ describe('names', () => {
 		expect(matchName(2, 1, 4)).toBe('Quarterfinal 2');
 		expect(matchName(1, 2, 4)).toBe('Round of 16 · 3');
 		expect(matchName(4, 0, 4)).toBe('Final');
+	});
+	it('shortens match names for a row', () => {
+		expect([shortMatchName(1, 2, 4), shortMatchName(2, 1, 4)]).toEqual(['Ro16', 'QF 2']);
+		expect([shortMatchName(3, 0, 4), shortMatchName(4, 0, 4)]).toEqual(['SF 1', 'Final']);
 	});
 	it('labels seeds by group and place', () => {
 		expect([1, 2, 3, 4].map((s) => seedLabel(s, 2))).toEqual(['A1', 'B1', 'A2', 'B2']);

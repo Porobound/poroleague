@@ -3,7 +3,7 @@ import { droppedIds, isOverdue, isVoid } from '#lib/league/status.ts';
 import type { WeekMap } from '#lib/league/holiday.ts';
 import { isPublished } from '#lib/league/publish.ts';
 import { currentWeek, reportingClosed, weekOf } from '#lib/league/time.ts';
-import { matchName } from '#lib/league/bracket.ts';
+import { matchName, shortMatchName } from '#lib/league/bracket.ts';
 import { groupName } from '#lib/season.ts';
 
 export type CardMatch = {
@@ -136,8 +136,8 @@ export function matchCard(m: CardMatch, c: CardContext) {
 		ids: [m.p1Id, m.p2Id] as [string, string],
 		// Which side the viewer is, for the "You" tag.
 		you: (m.p1Id === c.viewerId ? 0 : m.p2Id === c.viewerId ? 1 : null) as 0 | 1 | null,
-		// Group rounds are numbers ("R6"); a playoff match carries its bracket name.
-		round: m.stage === 'playoff' ? matchName(m.round, m.slot ?? 0, c.cutRounds) : m.round,
+		// Group rounds are numbers ("R6"); a playoff match carries its short bracket name ("SF 2").
+		round: m.stage === 'playoff' ? shortMatchName(m.round, m.slot ?? 0, c.cutRounds) : m.round,
 		week,
 		early,
 		walkover,

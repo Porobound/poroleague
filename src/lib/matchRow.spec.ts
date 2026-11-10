@@ -196,9 +196,9 @@ describe('povRow', () => {
 		expect([r.text, r.void, r.score, r.legend]).toEqual(['Void', true, null, null]);
 	});
 
-	it('playoff match keeps its bracket name as the round', () => {
+	it('playoff match carries its short bracket name as the round', () => {
 		const c = cardContext({ ...season, status: 'topcut' }, people, null, NOW, 3);
-		expect(povRow(card(playoff, c), 'p2')).toMatchObject({ round: 'Semifinal 2', text: null });
+		expect(povRow(card(playoff, c), 'p2')).toMatchObject({ round: 'SF 2', text: null });
 		expect(povRow(card({ ...playoff, walkoverId: 'p2' }, c), 'p1').text).toBe('Walkover');
 	});
 

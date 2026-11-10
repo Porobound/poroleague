@@ -1,7 +1,7 @@
 // Pairings published before their week starts show up right away, without moving the calendar week.
 import { expect, test } from '@playwright/test';
-import { removeMatch, removeSeason, seedSeason } from './db.ts';
-import { SEASONS, as, player } from './fixtures.ts';
+import { removeMatch, removeSeason, seedResult, seedSeason } from './db.ts';
+import { SEASONS, as, player, playerName } from './fixtures.ts';
 
 const s = `/seasons/${SEASONS.early}`;
 const day = (offset: number) =>
@@ -18,12 +18,16 @@ test.describe('as a player', () => {
 	test('sees next week beside this week, on both pages', async ({ page }) => {
 		midSeason();
 		await page.goto(s);
-		const thisWeek = page.getByRole('region', { name: 'Your matches this week' });
-		await expect(thisWeek.getByText('Round 1')).toBeVisible();
-		await expect(thisWeek.getByText('Round 3')).toHaveCount(0);
-		const next = page.getByRole('region', { name: 'Up next: week 2' });
-		await expect(next.getByText('Round 3')).toBeVisible();
-		await expect(next.getByText('Round 1')).toHaveCount(0);
+		const thisWeek = page.getByRole('list', { name: 'Your matches this week' });
+		await expect(thisWeek.getByRole('link', { name: /^Round 1 / })).toBeVisible();
+		await expect(thisWeek.getByRole('link', { name: /^Round 3 / })).toHaveCount(0);
+		const next = page.getByRole('list', { name: 'Up next: week 2' });
+		const row = next.getByRole('link', { name: /^Round 3 / });
+		await expect(row).toContainText('R3');
+		await expect(row).toContainText(playerName('early', 3));
+		await expect(row).toContainText('Report');
+		await expect(row).toHaveAttribute('href', /\/matches\/\d+$/);
+		await expect(next.getByRole('link', { name: /^Round 1 / })).toHaveCount(0);
 
 		await page.goto(`${s}/players/${player('early', 2)}`);
 		const upNext = page.getByRole('region', { name: 'Who you play next' });
@@ -31,11 +35,22 @@ test.describe('as a player', () => {
 		await expect(upNext.getByText('Round 3')).toBeVisible();
 	});
 
+	test('sees a played match as a result row', async ({ page }) => {
+		seedResult(midSeason()[0], 2, 1); // Early 1 beat Early 2, Ahri vs Annie
+		await page.setViewportSize({ width: 390, height: 844 });
+		await page.goto(s);
+		const row = page
+			.getByRole('list', { name: 'Your matches this week' })
+			.getByRole('link', { name: /^Round 1 / });
+		await expect(row).toContainText('1–2');
+		await expect(row).toContainText('as Annie · vs Ahri');
+	});
+
 	test('sees week 1 before the season starts', async ({ page }) => {
 		seedSeason('early', { publishedRound: 2, startDate: day(3), deadline: day(30) });
 		await page.goto(s);
 		await expect(
-			page.getByRole('region', { name: 'Up next: week 1' }).getByText('Round 1')
+			page.getByRole('list', { name: 'Up next: week 1' }).getByRole('link', { name: /^Round 1 / })
 		).toBeVisible();
 		await expect(page.getByText('No matches for you this week.')).toHaveCount(0);
 	});
