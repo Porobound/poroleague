@@ -17,7 +17,7 @@ import {
 	resultOf,
 	saveReport
 } from '#lib/server/matches.ts';
-import { cardContext, liveState, matchCard } from '#lib/matchCard.ts';
+import { cardContext, earlyNote, liveState, matchCard } from '#lib/matchCard.ts';
 import { getSeason, seasonEntries } from '#lib/server/seasons.ts';
 import { cutRounds, waitingOnFlag } from '#lib/server/topCut.ts';
 import { postResult, postToOrganizers } from '#lib/server/webhooks.ts';
@@ -69,17 +69,10 @@ export const load: PageServerLoad = async (event) => {
 	const { season, match, mode, closed, voided, waiting } = context(event, organizer, found);
 	const [p1, p2] = matchPlayers(match);
 	const viewer = event.locals.user?.id ?? null;
-	const card = matchCard(
-		match,
-		cardContext(
-			season,
-			seasonEntries(season.id),
-			viewer,
-			new Date(),
-			cutRounds(season.id),
-			seasonUnlocks(season).away
-		)
-	);
+	const card = matchCard(match, {
+		...cardContext(season, seasonEntries(season.id), viewer, new Date(), cutRounds(season.id)),
+		away: seasonUnlocks(season).away
+	});
 	return {
 		season,
 		match,
@@ -88,8 +81,11 @@ export const load: PageServerLoad = async (event) => {
 		head: card.props.head,
 		// On holiday name tags, p1 then p2.
 		tags: { p1: card.props.sides[0].tag, p2: card.props.sides[1].tag },
-		// "Played early, hidden from standings until week N is published" before its week is out.
-		earlyNote: isPublished(match, season.publishedRound) ? null : card.props.note,
+		// A played early match says so, next to whatever the card's own note says.
+		earlyNote:
+			found.hidden && match.reportedBy
+				? earlyNote(weekOf(match.round, season.roundsPerWeek))
+				: null,
 		mode,
 		closed,
 		voided,

@@ -9,14 +9,10 @@ import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = ({ params, locals, url }) => {
 	const season = publicSeason(params.slug, locals.user);
-	const ctx = cardContext(
-		season,
-		seasonEntries(season.id),
-		locals.user?.id ?? null,
-		new Date(),
-		0,
-		seasonUnlocks(season).away
-	);
+	const ctx = {
+		...cardContext(season, seasonEntries(season.id), locals.user?.id ?? null),
+		away: seasonUnlocks(season).away
+	};
 	const all = seasonMatches(season.id);
 	const rpw = season.roundsPerWeek;
 	const maxRound = Math.max(0, ...all.map((m) => m.round));

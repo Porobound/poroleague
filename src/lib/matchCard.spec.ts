@@ -181,12 +181,17 @@ describe('early matches (holiday mode)', () => {
 describe('On holiday tag', () => {
 	it('tags a player on an approved holiday in that week', () => {
 		const away = new Map([['p1', new Set([2])]]);
-		const c = cardContext({ ...season, roundsPerWeek: 2 }, people, null, NOW, 0, away);
+		const c = { ...cardContext({ ...season, roundsPerWeek: 2 }, people, null, NOW), away };
 		expect(matchCard(match({ round: 3 }), c).props.sides.map((x) => x.tag)).toEqual([
 			'On holiday',
 			null
 		]);
 		expect(matchCard(match({ round: 1 }), c).props.sides[0].tag).toBeNull();
 		expect(matchCard(match({ round: 3, stage: 'playoff' }), c).props.sides[0].tag).toBeNull();
+		// Played, or the player dropped (void): the tag has nothing left to say.
+		expect(matchCard(match({ round: 3, ...reported }), c).props.sides[0].tag).toBeNull();
+		const gone = people.map((p) => (p.playerId === 'p1' ? { ...p, dropped: true } : p));
+		const d = { ...cardContext({ ...season, roundsPerWeek: 2 }, gone, null, NOW), away };
+		expect(matchCard(match({ round: 3 }), d).props.sides[0].tag).toBeNull();
 	});
 });

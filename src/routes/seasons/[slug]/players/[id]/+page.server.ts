@@ -47,7 +47,7 @@ export const load: PageServerLoad = ({ params, locals }) => {
 	const player = list.find((e) => e.playerId === params.id) ?? error(404, 'Player not found');
 	const hs = seasonHolidays(season.id);
 	const { unlocked, away } = seasonUnlocks(season, hs);
-	const ctx = cardContext(season, list, locals.user?.id ?? null, new Date(), 0, away);
+	const ctx = { ...cardContext(season, list, locals.user?.id ?? null), away };
 	const theirs = playerMatches(season.id, player.playerId);
 	const ms = published(theirs, season.publishedRound);
 	const cards = ms.map((m) => ({
@@ -103,15 +103,17 @@ export const load: PageServerLoad = ({ params, locals }) => {
 					}))
 			: [],
 		// The head badge, while this week is one of their approved holiday's weeks.
-		away: (() => {
-			const h = hs.find(
-				(h) =>
-					h.playerId === player.playerId &&
-					h.status === 'approved' &&
-					holidayWeeks(h, { startDate: season.startDate ?? '' }).includes(ctx.week)
-			);
-			return h ? { dates: dateSpan(h.from, h.to) } : null;
-		})(),
+		away:
+			away.get(player.playerId)?.has(ctx.week) && !player.dropped && !player.former
+				? mine
+						.filter(
+							(h) =>
+								h.status === 'approved' &&
+								holidayWeeks(h, { startDate: season.startDate! }).includes(ctx.week)
+						)
+						.map((h) => dateSpan(h.from, h.to))
+						.join(', ')
+				: null,
 		canRequest,
 		// For the dialog's live "Covers …" line; the action re-checks everything.
 		calendar: canRequest

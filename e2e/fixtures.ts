@@ -41,7 +41,8 @@ export const SEASONS = {
 	shotsHoliday: 'summer-2039',
 	holidayRequest: 'e2e-holiday-request',
 	holidayDecide: 'e2e-holiday-decide',
-	holidayEarly: 'e2e-holiday-early'
+	holidayEarly: 'e2e-holiday-early',
+	holidayBadge: 'e2e-holiday-badge'
 };
 export type SeasonKey = keyof typeof SEASONS;
 

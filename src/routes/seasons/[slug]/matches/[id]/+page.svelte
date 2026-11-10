@@ -138,6 +138,7 @@
 								former={player(k).former}
 							/>
 							<strong class={[player(k).former && 'pb-former']}>{name(k)}</strong>
+							{#if data.tags[k]}<span class="pb-badge pb-badge-sm">{data.tags[k]}</span>{/if}
 						</div>
 						<label class="pb-field">
 							Legend
@@ -202,12 +203,11 @@
 					? 'Flag resolved by an organizer · final'
 					: m.flaggedBy
 						? `Flagged by ${flagger.id === me ? 'you' : flagger.displayName} · only organizers can change it now`
-						: data.earlyNote
-							? data.earlyNote
-							: m.reportedBy
-								? `Reported by ${!reporter ? 'an organizer' : reporter.id === me ? 'you' : reporter.displayName}`
-								: ''}
+						: m.reportedBy
+							? `Reported by ${!reporter ? 'an organizer' : reporter.id === me ? 'you' : reporter.displayName}`
+							: ''}
 		/>
+		{#if data.earlyNote}<p class="muted small">{data.earlyNote}.</p>{/if}
 
 		{#if m.flaggedBy && m.flagReason}
 			<figure class="flag-reason">

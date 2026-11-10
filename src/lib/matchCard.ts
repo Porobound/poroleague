@@ -57,13 +57,13 @@ export function cardContext(
 	people: Person[],
 	viewerId: string | null,
 	now = new Date(),
-	cutRounds = 0,
-	// Player id → weeks of their approved holidays, for the On holiday tag.
-	away: WeekMap = new Map()
+	cutRounds = 0
 ) {
 	return {
 		season,
-		away,
+		// Player id → weeks of their approved holidays, for the On holiday tag; pages that show it
+		// spread seasonUnlocks(season).away over this.
+		away: new Map() as WeekMap,
 		viewerId,
 		now,
 		cutRounds,
@@ -73,6 +73,9 @@ export function cardContext(
 		closed: reportingClosed(season.deadline, now)
 	};
 }
+export const earlyNote = (week: number) =>
+	`Played early, hidden from everyone else until week ${week} is published`;
+
 export type CardContext = ReturnType<typeof cardContext>;
 
 export function matchCard(m: CardMatch, c: CardContext) {
@@ -105,8 +108,13 @@ export function matchCard(m: CardMatch, c: CardContext) {
 		legend,
 		games,
 		href: person(id)?.former ? null : `/seasons/${c.season.slug}/players/${id}`,
+		// Only while it still says something: the match is open and the player is in the league.
 		tag:
-			m.stage !== 'playoff' && c.away.get(id)?.has(weekOf(m.round, c.season.roundsPerWeek))
+			m.stage !== 'playoff' &&
+			!m.reportedBy &&
+			!voided &&
+			!person(id)?.former &&
+			c.away.get(id)?.has(weekOf(m.round, c.season.roundsPerWeek))
 				? 'On holiday'
 				: null
 	});
@@ -138,7 +146,7 @@ export function matchCard(m: CardMatch, c: CardContext) {
 					? `Walkover · ${walkover} advances`
 					: early
 						? m.reportedBy
-							? `Played early, hidden from everyone else until week ${weekOf(m.round, c.season.roundsPerWeek)} is published`
+							? earlyNote(weekOf(m.round, c.season.roundsPerWeek))
 							: 'Unlocked early'
 						: m.reportedBy
 							? `Reported by ${person(m.reportedBy)?.displayName ?? 'an organizer'}`

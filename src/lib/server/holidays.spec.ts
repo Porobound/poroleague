@@ -490,6 +490,11 @@ describe('unlocked matches', () => {
 	});
 
 	it('a report stays off the results channel; a flag reaches organizers', async () => {
+		// The opponent's report form says who is away.
+		expect(((await match(m13, as('p4'))).returned as { tags: unknown }).tags).toEqual({
+			p1: 'On holiday',
+			p2: null
+		});
 		expect(await returned(report(as('p4')))).toEqual({
 			message: 'Result saved. It stays hidden from everyone else until week 2 is published.'
 		});
@@ -500,9 +505,10 @@ describe('unlocked matches', () => {
 		});
 		expect(hooks.postResult).not.toHaveBeenCalled();
 		const page = (await match(m13, as('p1'))).returned as Record<string, unknown>;
+		// Played: the note stays, the On holiday tag has done its job.
 		expect(page).toMatchObject({
-			earlyNote: 'Played early, hidden from standings until week 2 is published',
-			tags: { p1: 'On holiday', p2: null }
+			earlyNote: 'Played early, hidden from everyone else until week 2 is published',
+			tags: { p1: null, p2: null }
 		});
 		await matchActions.flag!(
 			event({ slug: 's1', id: String(m13) }, as('p1'), { reason: 'Wrong legend' })
@@ -599,7 +605,20 @@ describe('On holiday badge', () => {
 	it('shows on the player page only while this week is an approved holiday week', async () => {
 		expect(await away()).toBeNull(); // week 1
 		inWeek2();
-		expect(await away()).toEqual({ dates: '12–14 Oct' });
+		expect(await away()).toBe('12–14 Oct');
+		// A second approved holiday that week shows too; a dropped player has no badge.
+		seedHoliday({
+			seasonId: season.id,
+			playerId: 'p1',
+			from: '2026-10-16',
+			to: '2026-10-17',
+			status: 'approved'
+		});
+		expect(await away()).toBe('12–14 Oct, 16–17 Oct');
+		db.update(entries).set({ dropped: true }).where(eq(entries.playerId, 'p1')).run();
+		expect(await away()).toBeNull();
+		db.update(entries).set({ dropped: false }).where(eq(entries.playerId, 'p1')).run();
+		db.delete(holidays).where(eq(holidays.from, '2026-10-16')).run();
 		db.update(holidays).set({ status: 'pending' }).where(eq(holidays.id, h)).run();
 		expect(await away()).toBeNull();
 		db.update(holidays).set({ status: 'revoked' }).where(eq(holidays.id, h)).run();
