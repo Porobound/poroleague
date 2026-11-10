@@ -7,7 +7,7 @@ import {
 } from '../../routes/seasons/[slug]/players/[id]/+page.server.ts';
 import { auditLines } from '#lib/server/auditLog.ts';
 import { db } from '#lib/server/db/index.ts';
-import { audit, holidays, players, seasons } from '#lib/server/db/schema.ts';
+import { audit, entries, holidays, players, seasons } from '#lib/server/db/schema.ts';
 import {
 	cancelHoliday,
 	decideHoliday,
@@ -213,6 +213,36 @@ describe('player asks for a holiday', () => {
 		expect(db.select().from(holidays).all()).toHaveLength(2);
 	});
 
+	it('not after dropping, and not in a season without a start date', async () => {
+		db.update(entries).set({ dropped: true }).where(eq(entries.playerId, 'p1')).run();
+		expect(await status(ask(as('p1')))).toBe(409);
+		expect((await loaded(playerPage(event({ slug: 's1', id: 'p1' }, as('p1'))))).canRequest).toBe(
+			false
+		);
+		db.update(seasons).set({ startDate: null }).run();
+		expect(await returned(ask(as('p2'), 'p2'))).toMatchObject({
+			status: 409,
+			data: { holidayError: 'This season has no start date yet.' }
+		});
+		expect((await loaded(playerPage(event({ slug: 's1', id: 'p2' }, as('p2'))))).canRequest).toBe(
+			false
+		);
+		expect(db.select().from(holidays).all()).toEqual([]);
+	});
+
+	it('at most five requests a day, withdrawn ones included', async () => {
+		for (let i = 0; i < 5; i++)
+			seedHoliday({
+				seasonId: season.id,
+				playerId: 'p1',
+				...range,
+				status: 'cancelled',
+				createdAt: new Date()
+			});
+		expect(await status(ask(as('p1')))).toBe(429);
+		expect(hooks.postToOrganizers).not.toHaveBeenCalled();
+	});
+
 	it('cancels a pending request once', async () => {
 		await ask(as('p1'));
 		const [h] = db.select().from(holidays).all();
@@ -220,7 +250,7 @@ describe('player asks for a holiday', () => {
 			playerPageActions.cancelHoliday!(
 				event({ slug: 's1', id: 'p1' }, as('p1'), { id: String(h.id) })
 			);
-		expect(await returned(cancel())).toEqual({ message: 'Request cancelled.' });
+		expect(await returned(cancel())).toEqual({ message: 'Request withdrawn.' });
 		expect(await status(cancel())).toBe(409);
 		expect(db.select().from(audit).all()).toEqual([]);
 	});
@@ -254,6 +284,13 @@ describe('holiday cards on the player page', () => {
 		]);
 		expect(d.canRequest).toBe(true);
 		expect(d.calendar).toMatchObject({ today: '2026-10-08', maxRound: 3, publishedRound: 2 });
+	});
+
+	it('only until the last day away, and only in play', async () => {
+		vi.setSystemTime(new Date('2026-10-15T10:00:00Z'));
+		expect((await page(as('p1'))).holidays).toMatchObject([{ status: 'rejected' }]);
+		db.update(seasons).set({ status: 'topcut' }).run();
+		expect((await page(as('p1'))).holidays).toEqual([]);
 	});
 
 	it('nobody else does', async () => {

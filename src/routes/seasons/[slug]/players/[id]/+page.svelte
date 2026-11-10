@@ -16,7 +16,7 @@
 	let from = $state('');
 	let to = $state('');
 	const cal = $derived(data.calendar);
-	const problem = $derived(cal && (from || to) ? requestError({ from, to }, cal, cal.own) : null);
+	const problem = $derived(cal && from && to ? requestError({ from, to }, cal, cal.own) : null);
 	const covers = $derived(
 		cal && from && to && !problem
 			? coversLabel(holidayWeeks({ from, to }, cal), cal.roundsPerWeek, cal.maxRound)
@@ -60,8 +60,8 @@
 						confirmDisabled={!from || !to || !!problem}
 					>
 						<p>
-							Your matches in those weeks unlock now, so you can play them before you go. An
-							organizer approves it.
+							Once an organizer approves it, your matches in those weeks unlock so you can play them
+							before you go.
 						</p>
 						<label class="pb-field">
 							First day away
@@ -114,23 +114,23 @@
 				<span class={['pb-badge', s.tone]}>{s.badge}</span>
 			</div>
 			{#if h.status === 'pending'}
-				<p>{h.away} · covers {h.covers}. An organizer will look at it.</p>
+				<p>{h.away}{h.covers && ` · covers ${h.covers}`}. An organizer will look at it.</p>
 				<div>
 					<ConfirmButton
 						action="?/cancelHoliday"
 						fields={{ id: String(h.id) }}
 						variant="secondary"
-						label="Cancel request"
-						title="Cancel your holiday request?"
-						confirmLabel="Cancel request"
+						label="Withdraw request"
+						title="Withdraw your holiday request?"
+						confirmLabel="Withdraw request"
 					>
 						<p>Your matches stay in their normal weeks. You can ask again later.</p>
 					</ConfirmButton>
 				</div>
 			{:else if h.status === 'approved'}
 				<p>
-					You’re away {h.away} · covers {h.covers}. These matches are unlocked now. Results stay out
-					of the standings until their week is published.
+					You’re away {h.away}{h.covers && ` · covers ${h.covers}`}. These matches are unlocked now.
+					Results stay out of the standings until their week is published.
 				</p>
 			{:else if h.status === 'rejected'}
 				<p>Your request for {h.away} wasn’t approved.</p>
