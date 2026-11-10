@@ -43,7 +43,7 @@
 {/snippet}
 
 {#snippet track(tr: TrackView)}
-	<section class="track" aria-label={tr.title}>
+	<div class="track" role="group" aria-label={tr.title}>
 		<div class="track-h">
 			<span class="track-t">{tr.title}</span>
 			<span class="track-c">{tr.tiles.filter((t) => t.earned).length} of {tr.tiles.length}</span>
@@ -51,7 +51,7 @@
 		<ol class="steps">
 			{#each tr.tiles as t (t.id)}<li>{@render tile(t)}</li>{/each}
 		</ol>
-	</section>
+	</div>
 {/snippet}
 
 <section class="ach" aria-labelledby="ach-h">
