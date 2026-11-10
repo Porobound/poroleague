@@ -15,6 +15,7 @@ import {
 } from '../../routes/seasons/[slug]/admin/matches/+page.server.ts';
 import { load as homePage } from '../../routes/seasons/[slug]/+page.server.ts';
 import { load as schedulePage } from '../../routes/seasons/[slug]/schedule/+page.server.ts';
+import { actions as adminActions } from '../../routes/seasons/[slug]/admin/+page.server.ts';
 import {
 	actions as seasonActions,
 	load as seasonAdminPage
@@ -30,7 +31,8 @@ import {
 	seasonUnlocks
 } from '#lib/server/holidays.ts';
 import { lastLegend } from '#lib/server/matches.ts';
-import type { Season } from '#lib/server/seasons.ts';
+import { dropPlayer, groupStandings, seasonEntries, type Season } from '#lib/server/seasons.ts';
+import { endState, seasonData } from '#lib/server/seasonAdmin.ts';
 import {
 	seedEntries,
 	seedHoliday,
@@ -640,5 +642,79 @@ describe('On holiday badge', () => {
 			.flatMap((s) => s.cards)
 			.find((c) => c.id === m13)!;
 		expect(card.props.sides.map((s) => s.tag)).toEqual(['On holiday', null]);
+	});
+});
+
+describe('publishing a week with early results', () => {
+	const early = { game1: '2', game2: '2', p1Legend: 'Jinx', p2Legend: 'Ahri', dice: 'p4' };
+	beforeEach(async () => {
+		seedHoliday({ seasonId: season.id, playerId: 'p1', ...range, status: 'approved' });
+		seedHoliday({ seasonId: season.id, playerId: 'p2', ...range, status: 'approved' });
+		await matchActions.report!(event({ slug: 's1', id: String(m13) }, as('p4'), early));
+		hooks.postResult.mockClear();
+	});
+	const publish = () => outcome(adminActions.publish!(event({ slug: 's1' }, ORG, { week: '2' })));
+
+	it('posts each reported match of the published rounds, once', async () => {
+		await publish();
+		expect(hooks.postResult).toHaveBeenCalledOnce();
+		expect(hooks.postResult.mock.calls[0][0].title).toBe('Player 1 0–2 Player 4');
+		expect(auditLines(season.id, { publishedRound: 3 }).some((l) => l.action === 'report')).toBe(
+			true
+		);
+		const [g] = groupStandings({ ...season, publishedRound: 3 }, seasonEntries(season.id));
+		expect(g.rows.find((r) => r.playerId === 'p4')!.points).toBe(3);
+		await publish();
+		expect(hooks.postResult).toHaveBeenCalledOnce();
+	});
+
+	it('leaves out a match voided by a drop', async () => {
+		await matchActions.report!(
+			event({ slug: 's1', id: String(m23) }, as('p2'), { ...early, dice: 'p2' })
+		);
+		dropPlayer(season.id, 'p3', 'org');
+		hooks.postResult.mockClear();
+		await publish();
+		expect(hooks.postResult.mock.calls.map((c) => c.map((e) => e.title))).toEqual([
+			['Player 1 0–2 Player 4']
+		]);
+	});
+
+	it("can't be finalized past the deadline while a week is unpublished", async () => {
+		vi.setSystemTime(new Date('2026-10-27T10:00:00Z')); // deadline 25 Oct
+		const finalize = () => seasonActions.finalize!(event({ slug: 's1' }, ORG));
+		const s = () => db.select().from(seasons).where(eq(seasons.id, season.id)).get()!;
+		expect(endState(s(), seasonData(s()))).toMatchObject({
+			closed: true,
+			ending: false,
+			ready: false
+		});
+		expect(await returned(finalize())).toMatchObject({
+			status: 409,
+			data: { message: 'Publish every week before finalizing; week 2 is still unpublished.' }
+		});
+		expect(s().status).toBe('play');
+		await publish();
+		expect(endState(s(), seasonData(s())).ending).toBe(true);
+		const [g] = groupStandings(s(), seasonEntries(season.id));
+		expect(g.rows.find((r) => r.playerId === 'p4')!.points).toBe(3);
+	});
+
+	it("the season can't end early while results wait for their week", async () => {
+		db.update(matches)
+			.set({ reportedBy: 'p1', p1Games: 2, p2Games: 0 })
+			.where(eq(matches.round, 1))
+			.run();
+		db.update(matches)
+			.set({ reportedBy: 'p1', p1Games: 2, p2Games: 0 })
+			.where(eq(matches.round, 2))
+			.run();
+		await matchActions.report!(
+			event({ slug: 's1', id: String(m23) }, as('p2'), { ...early, dice: 'p2' })
+		);
+		const s = () => db.select().from(seasons).where(eq(seasons.id, season.id)).get()!;
+		expect(endState(s(), seasonData(s())).ending).toBe(false);
+		await publish();
+		expect(endState(s(), seasonData(s())).ending).toBe(true);
 	});
 });

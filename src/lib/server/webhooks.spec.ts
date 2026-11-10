@@ -40,6 +40,16 @@ describe('webhooks', () => {
 		});
 	});
 
+	it('post many results ten embeds to a message', async () => {
+		const { hooks, fetch } = await load({ WEBHOOK_RESULTS_URL: 'https://hook/results' });
+		hooks.postResult(...Array<never>(11).fill(embed));
+		await flush();
+		const sizes = fetch.mock.calls.map(
+			(c) => JSON.parse((c as unknown as [string, RequestInit])[1].body as string).embeds.length
+		);
+		expect(sizes).toEqual([10, 1]);
+	});
+
 	it('log failures instead of throwing', async () => {
 		const { hooks, fetch } = await load({
 			WEBHOOK_ORGANIZERS_URL: 'https://hook/org',

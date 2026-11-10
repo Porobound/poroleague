@@ -21,9 +21,15 @@ async function post(url: string, body: WebhookBody) {
 }
 
 // Names and flag reasons are user text: embeds never ping @everyone, roles or users.
-const embed = (e: Embed): WebhookBody => ({ embeds: [e], allowed_mentions: { parse: [] } });
+const embed = (...embeds: Embed[]): WebhookBody => ({ embeds, allowed_mentions: { parse: [] } });
 
-export const postResult = (e: Embed) => void post(WEBHOOK_RESULTS_URL, embed(e));
+// Several results (a published week's early ones) go ten embeds to a message, Discord's limit,
+// one message at a time, so a big week can't trip the webhook's rate limit.
+export const postResult = (...es: Embed[]) =>
+	void (async () => {
+		for (let i = 0; i < es.length; i += 10)
+			await post(WEBHOOK_RESULTS_URL, embed(...es.slice(i, i + 10)));
+	})();
 export const postToOrganizers = (e: Embed) => void post(WEBHOOK_ORGANIZERS_URL, embed(e));
 export const pairingsEnabled = () => !!WEBHOOK_PAIRINGS_URL;
 export const postPairings = (body: WebhookBody) => void post(WEBHOOK_PAIRINGS_URL, body);
