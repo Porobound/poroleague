@@ -112,7 +112,7 @@
 								{#if r.legend || r.opponent.legend}
 									<span class="pb-mrow-sub">
 										<span>
-											{#if r.legend}<span class="pb-mrow-as">as {r.legend} · vs </span>{/if}{r
+											{#if r.legend}<span class="pb-mrow-as">as {r.legend} · vs{' '}</span>{/if}{r
 												.opponent.legend}
 										</span>
 									</span>
