@@ -249,6 +249,7 @@ db.transaction(() => {
 	}
 
 	// A 4-player top cut seeded by group points, played to a champion, with the site's audit rows.
+	// Each step gets its own week (two rounds), so unlock dates never precede the match behind them.
 	function cut(s: { sid: number; ms: M[] }, start: string) {
 		const people = [...new Set(s.ms.flatMap((m) => [m.a, m.b]))];
 		const results = s.ms
@@ -278,7 +279,7 @@ db.transaction(() => {
 			'topcut',
 			null,
 			JSON.stringify({ size: 4, date: null }),
-			at(start, 17)
+			at(start, 19)
 		);
 		const add = db.prepare(
 			"insert into matches (season_id, stage, round, slot, p1_id, p2_id) values (?, 'playoff', ?, ?, ?, ?) returning id"
@@ -291,7 +292,7 @@ db.transaction(() => {
 				p2Legend: legend(b),
 				diceWinnerId: dice(a, b)
 			};
-			const t = at(start, 17 + round);
+			const t = at(start, 19 + 2 * round);
 			report.run(r.games, r.p1Games, r.p2Games, r.p1Legend, r.p2Legend, r.diceWinnerId, a, t, id);
 			log.run(s.sid, id, a, 'report', null, JSON.stringify(r), t);
 			// A level result sends the higher seed through, like the site.
@@ -300,7 +301,7 @@ db.transaction(() => {
 		};
 		const final = [match(1, 0, slots[0], slots[1]), match(1, 1, slots[2], slots[3])];
 		const champion = match(2, 0, final[0], final[1]);
-		log.run(s.sid, null, ME, 'champion', null, JSON.stringify({ champion }), at(start, 20));
+		log.run(s.sid, null, ME, 'champion', null, JSON.stringify({ champion }), at(start, 25));
 	}
 
 	// Created first, so season ids stay in date order.
@@ -317,7 +318,7 @@ db.transaction(() => {
 		perGame: () => true,
 		perfect: PERFECT
 	});
-	log.run(spring.sid, null, ME, 'finalize', null, null, at('2026-03-02', 16));
+	log.run(spring.sid, null, ME, 'finalize', null, null, at('2026-03-02', 17));
 	cut(spring, '2026-03-02');
 
 	const summer = season({
