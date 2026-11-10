@@ -35,9 +35,12 @@ test('a visitor sees the badge; the opponent sees the tag down to the report for
 
 	const p4 = await browser.newPage(as(player('holidayBadge', 4)));
 	await p4.goto(`/seasons/${slug}/players/${player('holidayBadge', 4)}`);
-	await expect(
-		p4.getByRole('region', { name: 'Unlocked early' }).getByText('On holiday')
-	).toBeVisible();
+	const unlocked = p4
+		.getByRole('list', { name: 'Matches this season' })
+		.getByRole('listitem')
+		.filter({ has: p4.getByText('Early', { exact: true }) });
+	await expect(unlocked.getByText('HolidayBadge 1')).toBeVisible();
+	await expect(unlocked.getByText('On holiday')).toBeVisible();
 	await p4.goto(`/seasons/${slug}/matches/${early}`);
 	await expect(p4.getByRole('button', { name: 'Add result' })).toBeVisible();
 	await expect(p4.getByText('On holiday')).toHaveCount(1);
@@ -46,9 +49,14 @@ test('a visitor sees the badge; the opponent sees the tag down to the report for
 test('a revoked holiday leaves its unlocked match tagged Holiday revoked', async ({ browser }) => {
 	const p3 = await browser.newPage(as(player('holidayBadge', 3)));
 	await p3.goto(`/seasons/${slug}/players/${player('holidayBadge', 3)}`);
-	const unlocked = p3.getByRole('region', { name: 'Unlocked early' });
+	const unlocked = p3
+		.getByRole('list', { name: 'Matches this season' })
+		.getByRole('listitem')
+		.filter({ hasText: 'HolidayBadge 2' })
+		.filter({ hasText: 'Round 3' });
 	await expect(unlocked.getByText('Holiday revoked')).toBeVisible();
 	await expect(unlocked.getByText('On holiday')).toHaveCount(0);
+	await expect(unlocked.getByText('Early', { exact: true })).toHaveCount(0);
 	// The organizer's view of the match has no report form, only the card.
 	const org = await browser.newPage(as(ORGANIZER));
 	await org.goto(`/seasons/${slug}/matches/${other}`);

@@ -41,6 +41,17 @@ const record = async (page: Page, n: number) => {
 		.nth(3);
 };
 
+test('a player page reads a flagged loss from their side, like any result', async ({ page }) => {
+	await page.goto(`/seasons/${slug}/players/${player('drops', 4)}`);
+	const row = page
+		.getByRole('list', { name: 'Matches this season' })
+		.getByRole('listitem')
+		.filter({ hasText: name(3) });
+	await expect(row).toContainText('Lost 0–2');
+	await expect(row).toContainText('as Annie · vs Ahri');
+	await expect(row.getByText(/flag/i)).toHaveCount(0);
+});
+
 test('match filters, drop and cancel drop', async ({ page, browser }) => {
 	const before = { All: 6, 'Unplayed & overdue': 4, Reported: 1, Flagged: 1, Resolved: 0, Void: 0 };
 	expect(await filtered(page)).toEqual(before);

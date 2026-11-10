@@ -3,7 +3,7 @@ import { dateSpan } from '#lib/format.ts';
 import { coversLabel, holidayWeeks, requestError, visibleTo } from '#lib/league/holiday.ts';
 import { legendMatches, playerLegends } from '#lib/league/legendStats.ts';
 import { isPublished, published } from '#lib/league/publish.ts';
-import { leagueDate, weekOf } from '#lib/league/time.ts';
+import { leagueDate } from '#lib/league/time.ts';
 import { cardContext, matchCard } from '#lib/matchCard.ts';
 import { organizerAction, playerAction } from '#lib/server/auth.ts';
 import {
@@ -50,10 +50,6 @@ export const load: PageServerLoad = ({ params, locals }) => {
 	const ctx = { ...cardContext(season, list, locals.user?.id ?? null), away, revoked };
 	const theirs = playerMatches(season.id, player.playerId);
 	const ms = published(theirs, season.publishedRound);
-	const cards = ms.map((m) => ({
-		week: weekOf(m.round, season.roundsPerWeek),
-		card: matchCard(m, ctx)
-	}));
 	const counted = legendMatches(ms, ctx.dropped);
 	const standing = groupStandings(season, list).find((g) => g.group === player.group);
 	const rank = standing?.rows.findIndex((r) => r.playerId === player.playerId) ?? -1;
@@ -76,16 +72,8 @@ export const load: PageServerLoad = ({ params, locals }) => {
 			won: counted.filter((m) => m.diceWinnerId === player.playerId).length,
 			of: counted.length
 		},
-		// Includes weeks published before they start; without a start date there's no calendar to go by.
-		upNext: cards
-			.filter(
-				(c) =>
-					c.card.status === 'overdue' ||
-					(!!season.startDate && c.week >= ctx.week && c.card.status === 'scheduled')
-			)
-			.map((c) => c.card),
-		matches: cards.map((c) => c.card),
-		early: early.map((m) => matchCard(m, ctx)),
+		// Newest round first, which puts early-unlocked matches (all past the published round) on top.
+		matches: [...early, ...ms].sort((a, b) => b.round - a.round).map((m) => matchCard(m, ctx)),
 		legends: playerLegends(counted, player.playerId),
 		history: seasonHistory(playerSeasons(player.playerId)),
 		// Only the player sees their requests, and the reject reason.

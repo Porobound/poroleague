@@ -26,9 +26,21 @@ test.describe('as a player', () => {
 		await expect(next.getByText('Round 1')).toHaveCount(0);
 
 		await page.goto(`${s}/players/${player('early', 2)}`);
-		const upNext = page.getByRole('region', { name: 'Who you play next' });
-		await expect(upNext.getByText('Round 1')).toBeVisible();
-		await expect(upNext.getByText('Round 3')).toBeVisible();
+		const rows = page.getByRole('list', { name: 'Matches this season' }).getByRole('listitem');
+		await expect(rows).toHaveCount(3);
+		await expect(rows.first()).toContainText('Round 3');
+		await expect(rows.last()).toContainText('Round 1');
+		await expect(rows.last()).toContainText('Report result');
+	});
+
+	test('still sees last week’s unplayed match, marked overdue', async ({ page }) => {
+		seedSeason('early', { publishedRound: 3, startDate: day(-7), deadline: day(30) });
+		await page.goto(`${s}/players/${player('early', 2)}`);
+		const row = page
+			.getByRole('list', { name: 'Matches this season' })
+			.getByRole('listitem')
+			.filter({ hasText: 'Round 1' });
+		await expect(row.getByText('Overdue')).toBeVisible();
 	});
 
 	test('sees week 1 before the season starts', async ({ page }) => {

@@ -17,7 +17,13 @@ import { audit, entries, matches, players, seasons, sessions } from '#lib/server
 import { leaderboard } from '#lib/server/players.ts';
 import { createSession, validateSession } from '#lib/server/session.ts';
 import { and, eq } from 'drizzle-orm';
-import { seedEntries, seedMatch, seedPlayers, seedSeason } from '#lib/server/test/seed.ts';
+import {
+	seedEntries,
+	seedHoliday,
+	seedMatch,
+	seedPlayers,
+	seedSeason
+} from '#lib/server/test/seed.ts';
 
 // PageServerLoad's type allows void; these loads always return data.
 const loaded =
@@ -117,6 +123,33 @@ describe.each(VIEWERS)('unpublished rounds, viewed %s', (_, user) => {
 		expect(await ids('p1')).toEqual([published]);
 		expect(await ids('p3')).toEqual([]);
 	});
+});
+
+it('a season player page lists its matches newest round first, early ones to their players only', async () => {
+	// p3's holiday covers week 3, unlocking p2 vs p3.
+	const season = db.select().from(seasons).where(eq(seasons.slug, 's1')).get()!;
+	seedHoliday({
+		seasonId: season.id,
+		playerId: 'p3',
+		from: '2026-01-19',
+		to: '2026-01-21',
+		status: 'approved'
+	});
+	const ids = async (user: User | null) =>
+		(await playerLoad(event({ slug: 's1', id: 'p2' }, user))).matches.map((c: Card) => [
+			c.id,
+			c.early
+		]);
+	for (const user of [as('p2'), as('p3')])
+		expect(await ids(user)).toEqual([
+			[hidden[1], true],
+			[published, false]
+		]);
+	for (const user of [null, as('p1'), ORG]) expect(await ids(user)).toEqual([[published, false]]);
+
+	db.update(seasons).set({ publishedRound: 3 }).where(eq(seasons.id, season.id)).run();
+	const p3 = await playerLoad(event({ slug: 's1', id: 'p3' }, null));
+	expect(p3.matches.map((c: Card) => c.id)).toEqual([hidden[1], hidden[0]]);
 });
 
 // Holiday mode reports a match before its round is published: nothing public counts it until then.
