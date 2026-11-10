@@ -1,6 +1,8 @@
-// Dev only: reports a match as the player who isn't you, so the flag flow can be tested.
-// Writes the audit row like the app does; posts nothing to Discord.
+// Dev only: reports a match as the player who isn't you, so the flag flow can be tested. Works on
+// holiday-unlocked matches, so your opponent can report one early. Writes the audit row like the
+// app does; posts nothing to Discord.
 import Database from 'better-sqlite3';
+import { isUnlocked, unlockedWeeks, type Holiday } from '#lib/league/holiday.ts';
 
 process.loadEnvFile();
 const [id, discordId] = process.argv.slice(2);
@@ -17,6 +19,7 @@ const m = db.prepare('select * from matches where id = ?').get(Number(id)) as
 			id: number;
 			season_id: number;
 			stage: string;
+			round: number;
 			p1_id: string;
 			p2_id: string;
 			reported_by: string | null;
@@ -27,6 +30,23 @@ if (!m) throw new Error(`No match ${id}`);
 if (m.stage === 'playoff')
 	throw new Error(`Match ${id} is in the top cut; report it on the site as the other player`);
 if (m.reported_by) throw new Error(`Match ${id} is already reported`);
+// Same as the site: players only see published matches, or ones a holiday unlocked.
+const s = db
+	.prepare(
+		'select published_round as publishedRound, rounds_per_week as roundsPerWeek, start_date as startDate from seasons where id = ?'
+	)
+	.get(m.season_id) as { publishedRound: number; roundsPerWeek: number; startDate: string | null };
+const hs = db
+	.prepare(
+		`select player_id as playerId, from_date as "from", to_date as "to", status from holidays where season_id = ?`
+	)
+	.all(m.season_id) as Holiday[];
+const match = { round: m.round, p1Id: m.p1_id, p2Id: m.p2_id };
+if (
+	m.round > s.publishedRound &&
+	!isUnlocked(match, s, unlockedWeeks(hs, s.startDate ?? '9999-12-31'))
+)
+	throw new Error(`Match ${id} isn't published or unlocked by a holiday yet`);
 const other = m.p1_id === me ? m.p2_id : m.p2_id === me ? m.p1_id : null;
 if (!other) throw new Error(`${discordId} doesn't play match ${id}`);
 
