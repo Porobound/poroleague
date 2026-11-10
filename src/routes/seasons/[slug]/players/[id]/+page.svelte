@@ -165,8 +165,8 @@
 		<section aria-labelledby="early-h">
 			<h2 id="early-h">Unlocked early</h2>
 			<p class="muted">
-				Unlocked for a holiday. Results stay hidden from everyone else until their week is
-				published.
+				A holiday opened these before their week. Results stay hidden from everyone else until the
+				week is published.
 			</p>
 			<div class="cards">
 				{#each data.early as c (c.id)}<MatchCard {...c.props} />{/each}

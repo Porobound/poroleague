@@ -27,25 +27,29 @@ type Event = { params: { slug: string; id: string }; locals: App.Locals };
 
 // Everything an action checks, read in one go. Actions call it after awaiting the form, with no
 // await between this and the write, so two requests can't interleave.
-function context({ params, locals }: Event, organizer = false) {
+function find({ params, locals }: Event) {
 	const season = getSeason(params.slug, locals.user);
 	const id = Number(params.id);
 	const match = Number.isInteger(id) ? getMatch(season.id, id) : undefined;
+	return { season, match, hidden: !!match && !isPublished(match, season.publishedRound) };
+}
+
+function context(event: Event, organizer = false, { season, match, hidden } = find(event)) {
+	if (!match) error(404, 'Match not found');
 	// Unpublished pairings stay secret, except a holiday's early match for its two players and
 	// (view only) organizers.
-	const { unlocked } = seasonUnlocks(season);
-	if (
-		!match ||
-		!(
-			visibleTo(match, locals.user?.id ?? null, season, unlocked) ||
-			(organizer && isUnlocked(match, season, unlocked))
+	if (hidden) {
+		const { unlocked } = seasonUnlocks(season);
+		if (
+			!visibleTo(match, event.locals.user?.id ?? null, season, unlocked) &&
+			!(organizer && isUnlocked(match, season, unlocked))
 		)
-	)
-		error(404, 'Match not found');
+			error(404, 'Match not found');
+	}
 	const { inPlay, closed } = liveState(match, season);
 	const voided = isVoided(match);
 	let mode = matchMode(match, {
-		viewerId: locals.user?.id ?? null,
+		viewerId: event.locals.user?.id ?? null,
 		inPlay,
 		closed,
 		voided: voided || !!match.walkoverId
@@ -59,9 +63,10 @@ function context({ params, locals }: Event, organizer = false) {
 
 export const load: PageServerLoad = async (event) => {
 	// Organizers may look at an early match; currentRole re-checks the role with Discord at most
-	// once a minute, never the session flag alone.
-	const organizer = !!event.locals.user?.isOrganizer && (await currentRole(event));
-	const { season, match, mode, closed, voided, waiting } = context(event, organizer);
+	// once a minute, never the session flag alone. Published matches need neither.
+	const found = find(event);
+	const organizer = found.hidden && !!event.locals.user?.isOrganizer && (await currentRole(event));
+	const { season, match, mode, closed, voided, waiting } = context(event, organizer, found);
 	const [p1, p2] = matchPlayers(match);
 	const viewer = event.locals.user?.id ?? null;
 	const card = matchCard(
@@ -88,8 +93,8 @@ export const load: PageServerLoad = async (event) => {
 		prefill:
 			mode === 'report'
 				? {
-						p1Legend: match.p1Legend ?? lastLegend(match.p1Id) ?? '',
-						p2Legend: match.p2Legend ?? lastLegend(match.p2Id) ?? ''
+						p1Legend: match.p1Legend ?? lastLegend(match.p1Id, match.p1Id === viewer) ?? '',
+						p2Legend: match.p2Legend ?? lastLegend(match.p2Id, match.p2Id === viewer) ?? ''
 					}
 				: null
 	};

@@ -13,6 +13,7 @@ import {
 	actions as adminMatchActions,
 	load as adminMatchesPage
 } from '../../routes/seasons/[slug]/admin/matches/+page.server.ts';
+import { load as homePage } from '../../routes/seasons/[slug]/+page.server.ts';
 import { load as schedulePage } from '../../routes/seasons/[slug]/schedule/+page.server.ts';
 import {
 	actions as seasonActions,
@@ -508,6 +509,8 @@ describe('unlocked matches', () => {
 	it("an early result's legends don't leak through the report form's prefill", async () => {
 		await report(as('p4')); // Player 1 on Jinx, Player 4 on Ahri
 		expect([lastLegend('p1'), lastLegend('p4')]).toEqual([null, null]);
+		// Their own form still remembers it.
+		expect(lastLegend('p4', true)).toBe('Ahri');
 		// Player 4's published, open round 2 match vs Player 2.
 		const [m24] = db
 			.select()
@@ -536,6 +539,14 @@ describe('unlocked matches', () => {
 		expect((d.matches as { id: number }[]).map((c) => c.id)).not.toContain(m13);
 	});
 
+	it('the season page tells both players until it is played', async () => {
+		const count = async (id: string) =>
+			(await loaded(homePage(event({ slug: 's1' }, as(id)) as never))).unlockedEarly;
+		expect([await count('p1'), await count('p4'), await count('p2')]).toEqual([1, 1, 0]);
+		await report(as('p4'));
+		expect(await count('p4')).toBe(0);
+	});
+
 	it('the schedule still hides it', async () => {
 		const d = await loaded(
 			schedulePage({
@@ -556,6 +567,7 @@ describe('unlocked matches', () => {
 		expect(await returned(edit(m13))).toEqual({ message: 'Result saved and logged.' });
 		expect(hooks.postResult).not.toHaveBeenCalled();
 		expect(hooks.postToOrganizers).toHaveBeenCalledOnce();
+		expect(hooks.postToOrganizers.mock.calls[0][0].title).toBe('Early result entered by Org');
 		expect(await returned(edit(m23))).toMatchObject({
 			status: 409,
 			data: { message: 'Publish this week before entering results.' }

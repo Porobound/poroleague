@@ -155,6 +155,9 @@ describe('organizer posts', () => {
 		expect(organizerEditEmbed(post, 'Org', { resolves: false, kept: false }).title).toBe(
 			'Result changed by Org'
 		);
+		expect(
+			organizerEditEmbed(post, 'Org', { resolves: false, kept: false, first: true }).title
+		).toBe('Early result entered by Org');
 	});
 	it('escapes names in drop and deletion posts', () => {
 		expect(dropEmbed({ player: '*x*', by: 'Org', where: 'S', url: 'http://x' }).title).toBe(

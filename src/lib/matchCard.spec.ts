@@ -172,7 +172,7 @@ describe('early matches (holiday mode)', () => {
 		const note = (m: Partial<CardMatch>) => matchCard(match(m), ctx('p1', s)).props.note;
 		expect(note({ round: 3 })).toBe('Unlocked early');
 		expect(note({ round: 3, ...reported })).toBe(
-			'Played early, hidden from standings until week 2 is published'
+			'Played early, hidden from everyone else until week 2 is published'
 		);
 		expect(note({ round: 1, ...reported })).toMatch(/^Reported by/);
 	});

@@ -55,7 +55,14 @@ export async function editResult(event: Event) {
 	const post = matchPost(event.url.origin, season, match, parsed.values);
 	// Early results reach the results channel when their week is published; organizers hear now.
 	if (!match.reportedBy && !early) postResult(resultEmbed(post));
-	else postToOrganizers(organizerEditEmbed(post, user.displayName, { resolves, kept: false }));
+	else
+		postToOrganizers(
+			organizerEditEmbed(post, user.displayName, {
+				resolves,
+				kept: false,
+				first: !match.reportedBy
+			})
+		);
 	return { message: resolves ? 'Result changed. Flag resolved.' : 'Result saved and logged.' };
 }
 

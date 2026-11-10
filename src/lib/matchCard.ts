@@ -130,7 +130,7 @@ export function matchCard(m: CardMatch, c: CardContext) {
 					? `Walkover · ${walkover} advances`
 					: early
 						? m.reportedBy
-							? `Played early, hidden from standings until week ${weekOf(m.round, c.season.roundsPerWeek)} is published`
+							? `Played early, hidden from everyone else until week ${weekOf(m.round, c.season.roundsPerWeek)} is published`
 							: 'Unlocked early'
 						: m.reportedBy
 							? `Reported by ${person(m.reportedBy)?.displayName ?? 'an organizer'}`

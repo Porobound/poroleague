@@ -169,6 +169,15 @@
 		</section>
 	{/if}
 
+	{#if data.unlockedEarly && season.status === 'play'}
+		<p class="pb-notice">
+			A holiday opened {data.unlockedEarly === 1
+				? 'one of your matches'
+				: `${data.unlockedEarly} of your matches`} early.
+			<a href="/seasons/{season.slug}/players/{user?.id}">Play before the week starts</a>
+		</p>
+	{/if}
+
 	{#if data.signedUp && season.status === 'play' && data.week >= 1}
 		<section aria-labelledby="this-week">
 			<div class="section-head">

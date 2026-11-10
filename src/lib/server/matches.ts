@@ -97,8 +97,9 @@ export const isVoided = (m: Match) =>
 	);
 
 // Pre-fills the report form: the legend the player last reported with, in any season. Early
-// (holiday) results stay out until published, or the form would leak their legends.
-export function lastLegend(playerId: string): string | null {
+// (holiday) results stay out until published, or the form would leak their legends; `own` is the
+// player looking at their own.
+export function lastLegend(playerId: string, own = false): string | null {
 	const m = db
 		.select({ p1Id: matches.p1Id, p1Legend: matches.p1Legend, p2Legend: matches.p2Legend })
 		.from(matches)
@@ -107,7 +108,9 @@ export function lastLegend(playerId: string): string | null {
 			and(
 				or(eq(matches.p1Id, playerId), eq(matches.p2Id, playerId)),
 				isNotNull(matches.reportedAt),
-				or(eq(matches.stage, 'playoff'), lte(matches.round, seasons.publishedRound))
+				own
+					? undefined
+					: or(eq(matches.stage, 'playoff'), lte(matches.round, seasons.publishedRound))
 			)
 		)
 		.orderBy(desc(matches.reportedAt))
