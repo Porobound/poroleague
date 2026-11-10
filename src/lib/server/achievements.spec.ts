@@ -158,7 +158,16 @@ describe('result writes award', () => {
 		expect(row('p1', 'first-blood')!.unlockedAt).toEqual(D(3));
 	});
 
-	it('finalize awards Perfect Group; undrop recounts', () => {
+	it('finalize awards Perfect Group', () => {
+		seedPlayers(2);
+		const s = season('a');
+		win(s.id, 1, 1);
+		finalizeSeason(s.id, 'p1', false);
+		expect(row('p1', 'perfect-group')).toBeDefined();
+		expect(row('p2', 'perfect-group')).toBeUndefined();
+	});
+
+	it('undrop after finalize recounts Perfect Group', () => {
 		seedPlayers(2);
 		const s = season('a');
 		win(s.id, 1, 1);
