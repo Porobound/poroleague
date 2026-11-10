@@ -1,7 +1,14 @@
 // Every page at phone width, as a visitor, a player and an organizer: fails on sideways scroll or
 // anything cut off at the right edge. Controls under 44 px tall are warnings, logged per page.
 import { expect, test, type Page } from '@playwright/test';
-import { removeSeason, renamePlayer, seedEmptySeason, seedResult, seedSeason } from './db.ts';
+import {
+	removeSeason,
+	renamePlayer,
+	seedEmptySeason,
+	seedHoliday,
+	seedResult,
+	seedSeason
+} from './db.ts';
 import { ORGANIZER, SEASONS, as, player } from './fixtures.ts';
 
 const W = 390;
@@ -23,6 +30,9 @@ test.beforeAll(() => {
 	seedResult(flagged, 0, 2, {
 		flag: 'We played 2-1 but the second game was conceded after a misclick, so this needs a look.'
 	});
+	// Holiday cards on Mobile 1's page, both holiday lists in Admin → Season.
+	seedHoliday('mobile', 1, day(1), day(5), 'approved');
+	seedHoliday('mobile', 3, day(1), day(5));
 	seedEmptySeason('mobileDraft', 'draft');
 });
 test.afterAll(() => {

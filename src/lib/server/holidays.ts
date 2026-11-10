@@ -1,7 +1,19 @@
 import { and, asc, eq } from 'drizzle-orm';
-import { awayWeeks, unlockedWeeks, type Range } from '#lib/league/holiday.ts';
+import { date, dateSpan } from '#lib/format.ts';
+import {
+	awayWeeks,
+	coversLabel,
+	holidayWeeks,
+	isUnlocked,
+	unlockedWeeks,
+	type Range
+} from '#lib/league/holiday.ts';
+import { isVoid } from '#lib/league/status.ts';
+import { leagueDate, weekOf } from '#lib/league/time.ts';
 import { db } from '#lib/server/db/index.ts';
 import { audit, former, holidays, players } from '#lib/server/db/schema.ts';
+import type { Match } from '#lib/server/matches.ts';
+import type { Season } from '#lib/server/seasons.ts';
 
 export type HolidayRow = typeof holidays.$inferSelect;
 
@@ -80,4 +92,45 @@ export function decideHoliday(
 			.run();
 		return true;
 	});
+}
+
+// Admin → Season → Holidays: requests waiting for a decision, and who is away.
+export function holidayAdmin(season: Season, all: Match[], dropped: Set<string>) {
+	const list = seasonHolidays(season.id);
+	const maxRound = Math.max(0, ...all.map((m) => m.round));
+	const cal = { startDate: season.startDate ?? '', roundsPerWeek: season.roundsPerWeek, maxRound };
+	const { unlocked } = seasonUnlocks(season, list);
+	const row = (h: SeasonHoliday) => ({
+		id: h.id,
+		player: {
+			name: h.name,
+			avatar: h.avatar,
+			former: h.former,
+			href: `/seasons/${season.slug}/players/${h.playerId}`
+		},
+		away: dateSpan(h.from, h.to),
+		covers: coversLabel(holidayWeeks(h, cal), season.roundsPerWeek, maxRound),
+		asked: date(leagueDate(h.createdAt))
+	});
+	return {
+		pending: list.filter((h) => h.status === 'pending').map(row),
+		approved: list
+			.filter((h) => h.status === 'approved')
+			.map((h) => {
+				// The matches this holiday unlocked that are still unpublished: how many are played.
+				const weeks = holidayWeeks(h, cal);
+				const early = all.filter(
+					(m) =>
+						(m.p1Id === h.playerId || m.p2Id === h.playerId) &&
+						weeks.includes(weekOf(m.round, season.roundsPerWeek)) &&
+						!isVoid(m, dropped) &&
+						isUnlocked(m, season, unlocked)
+				);
+				return {
+					...row(h),
+					early: `${early.filter((m) => m.reportedBy).length} of ${early.length} played`,
+					decided: h.decidedAt ? date(leagueDate(h.decidedAt)) : ''
+				};
+			})
+	};
 }

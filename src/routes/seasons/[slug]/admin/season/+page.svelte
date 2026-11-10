@@ -197,6 +197,108 @@
 		</section>
 	{/if}
 
+	{#if data.holidays}
+		{@const hol = data.holidays}
+		<section id="holidays" class="holidays" aria-labelledby="hol-h">
+			<div>
+				<h2 id="hol-h">Holidays</h2>
+				{#if hol.pending.length || hol.approved.length}
+					<p class="muted">
+						Approving unlocks the player’s matches in the weeks they’re away, so they can play them
+						before they go. Results played early stay out of the standings until that week is
+						published.
+					</p>
+				{:else}
+					<p class="muted">No holiday requests.</p>
+				{/if}
+			</div>
+			{#if hol.pending.length}
+				<div class="panel">
+					<h3>Waiting for a decision · {hol.pending.length}</h3>
+					<ul class="hol-list">
+						{#each hol.pending as r (r.id)}
+							<li>
+								<div class="hol-who">
+									<PlayerName {...r.player} />
+									<span class="muted small">
+										Away {r.away}{r.covers && ` · covers ${r.covers}`} · asked {r.asked}
+									</span>
+								</div>
+								<div class="acts">
+									<ConfirmButton
+										action="?/approveHoliday"
+										fields={{ id: String(r.id) }}
+										small
+										label="Approve"
+										title="Approve {r.player.name}’s holiday?"
+										confirmLabel="Approve"
+									>
+										{r.player.name} is away {r.away}{r.covers && `, covering ${r.covers}`}. Those
+										matches unlock now for them and their opponents.
+									</ConfirmButton>
+									<ConfirmButton
+										action="?/rejectHoliday"
+										fields={{ id: String(r.id) }}
+										small
+										variant="secondary"
+										label="Reject"
+										title="Reject {r.player.name}’s holiday?"
+										confirmLabel="Reject"
+									>
+										<p>Their matches stay in their normal weeks.</p>
+										<label class="pb-field">
+											Reason (optional)
+											<textarea
+												class="pb-textarea"
+												name="reason"
+												rows="3"
+												maxlength="500"
+												aria-describedby="why-{r.id}"></textarea>
+										</label>
+										<p id="why-{r.id}" class="muted small">
+											{r.player.name} sees this on their page.
+										</p>
+									</ConfirmButton>
+								</div>
+							</li>
+						{/each}
+					</ul>
+				</div>
+			{/if}
+			{#if hol.approved.length}
+				<div class="panel">
+					<h3>Approved · {hol.approved.length}</h3>
+					<ul class="hol-list">
+						{#each hol.approved as r (r.id)}
+							<li>
+								<div class="hol-who">
+									<PlayerName {...r.player} />
+									<span class="muted small">
+										Away {r.away}{r.covers && ` · covers ${r.covers}`} · early matches: {r.early} · approved
+										{r.decided}
+									</span>
+								</div>
+								<div class="acts">
+									<ConfirmButton
+										action="?/revokeHoliday"
+										fields={{ id: String(r.id) }}
+										small
+										variant="secondary"
+										label="Revoke"
+										title="Revoke {r.player.name}’s holiday?"
+										confirmLabel="Revoke holiday"
+									>
+										The On holiday badge goes. Matches already unlocked stay unlocked.
+									</ConfirmButton>
+								</div>
+							</li>
+						{/each}
+					</ul>
+				</div>
+			{/if}
+		</section>
+	{/if}
+
 	{#if season.status === 'draft' && data.running}
 		<p class="muted">
 			<a href="/seasons/{data.running.slug}/admin">{data.running.name}</a> is still running. Only one
@@ -273,6 +375,44 @@
 </div>
 
 <style>
+	.holidays {
+		display: flex;
+		flex-direction: column;
+		gap: 16px;
+	}
+	.holidays h2,
+	.holidays h3,
+	.holidays p {
+		margin: 0;
+	}
+	.holidays .panel {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+	.hol-list {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+	}
+	.hol-list li {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: 8px 16px;
+		padding: 12px 0;
+		border-top: 1px solid var(--line);
+	}
+	.hol-who {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+	.acts {
+		display: flex;
+		gap: 8px;
+	}
 	.end {
 		display: flex;
 		flex-direction: column;
