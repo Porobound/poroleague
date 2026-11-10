@@ -23,9 +23,13 @@ export function roundsOfWeek(week: number, roundsPerWeek: number, maxRound: numb
 		: null;
 }
 
+// The week a league date falls in; 0 before the start date.
+export const weekOn = (startDate: string, date: string) =>
+	Math.max(0, Math.floor(daysBetween(startDate, date) / 7) + 1);
+
 // Week 1 starts on the start date (league time); 0 before the season starts.
 export const currentWeek = (startDate: string | null, now: Date) =>
-	startDate ? Math.max(0, Math.floor(daysBetween(startDate, leagueDate(now)) / 7) + 1) : 0;
+	startDate ? weekOn(startDate, leagueDate(now)) : 0;
 
 export const addDays = (d: string, n: number) =>
 	new Date(Date.parse(`${d}T12:00:00Z`) + n * DAY).toISOString().slice(0, 10);

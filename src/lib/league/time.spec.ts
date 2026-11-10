@@ -6,7 +6,8 @@ import {
 	leagueDate,
 	reportingClosed,
 	roundsOfWeek,
-	weekOf
+	weekOf,
+	weekOn
 } from './time';
 
 describe('leagueDate', () => {
@@ -42,6 +43,12 @@ describe('weeks', () => {
 		expect(currentWeek('2026-11-02', new Date('2026-11-08T12:00:00Z'))).toBe(1);
 		expect(currentWeek('2026-11-02', new Date('2026-11-09T12:00:00Z'))).toBe(2);
 		expect(currentWeek(null, new Date())).toBe(0);
+	});
+	it('weekOn: week of a league date, 0 before the start', () => {
+		expect(weekOn('2026-10-05', '2026-10-05')).toBe(1);
+		expect(weekOn('2026-10-05', '2026-10-11')).toBe(1);
+		expect(weekOn('2026-10-05', '2026-10-12')).toBe(2);
+		expect(weekOn('2026-10-05', '2026-10-04')).toBe(0);
 	});
 });
 
