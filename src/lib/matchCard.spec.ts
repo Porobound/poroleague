@@ -74,6 +74,14 @@ describe('matchCard props', () => {
 	it('builds the card for a reported match', () => {
 		const card = matchCard(match(reported), ctx('p2'));
 		expect(card.mine).toBe(true);
+		expect(card).toMatchObject({
+			ids: ['p1', 'p2'],
+			you: 1,
+			round: 5,
+			week: 3,
+			early: false,
+			walkover: null
+		});
 		expect(card.props).toMatchObject({
 			head: 'Group A · Round 5',
 			dice: 1,
@@ -162,6 +170,8 @@ describe('playoff cards', () => {
 		expect(card.props.link.label).toBe('Report');
 		const wo = matchCard({ ...base, walkoverId: 'p2' }, ctx);
 		expect(wo.props.note).toBe('Walkover · p2 advances');
+		expect([card.round, card.you, card.early]).toEqual(['Semifinal 2', 0, false]);
+		expect(wo.walkover).toBe('p2');
 		expect(wo.props.link.label).toBe('View');
 	});
 });
@@ -175,6 +185,8 @@ describe('early matches (holiday mode)', () => {
 			'Played early, hidden from everyone else until week 2 is published'
 		);
 		expect(note({ round: 1, ...reported })).toMatch(/^Reported by/);
+		const card = (round: number) => matchCard(match({ round }), ctx('p1', s));
+		expect([card(3).early, card(3).week, card(1).early]).toEqual([true, 2, false]);
 	});
 });
 

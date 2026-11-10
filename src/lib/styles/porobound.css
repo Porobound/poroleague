@@ -1,4 +1,4 @@
-/* Porobound design system (Claude Design, version 1793634312-07d5). Snapshot: tokens.css + components/bundle.css (minus font @import, body and demo helpers). Re-sync by replacing this file; keep app overrides in app.css. */
+/* Porobound design system (Claude Design, version 1794328018-a3a8). Snapshot: tokens.css + components/bundle.css (minus font @import, body and demo helpers). Re-sync by replacing this file; keep app overrides in app.css. */
 :root,
 [data-theme='dark'] {
 	--surface: #10141a;
@@ -1318,4 +1318,270 @@ th abbr[title] {
 .pb-flair-icon .pb-flair-ico {
 	width: 14px;
 	height: 14px;
+}
+/* MatchRow: one-line match rows. Two variants, one markup each; layout adapts to the list's own width. */
+.pb-mrows {
+	container-type: inline-size;
+}
+.pb-mrows ul {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+.pb-mrows li + li {
+	border-top: 1px solid var(--line);
+}
+.pb-mrow {
+	display: grid;
+	align-items: center;
+	box-sizing: border-box;
+	min-height: 52px;
+	padding: 6px 12px;
+	color: var(--ink);
+	text-decoration: none;
+	font-family: var(--font-sans);
+}
+a.pb-mrow:hover {
+	background: color-mix(in srgb, var(--frost) 45%, transparent);
+	color: var(--ink);
+}
+a.pb-mrow:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: -2px;
+}
+.pb-mrow.is-mine,
+a.pb-mrow.is-mine:hover {
+	background: var(--frost);
+}
+.pb-mrow .pb-avatar,
+.pb-mrow .pb-die,
+.pb-mrow .pb-you,
+.pb-mrow .pb-badge {
+	flex: none;
+}
+.pb-mrow-tx {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+}
+.pb-mrow-who {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	min-width: 0;
+	max-width: 100%;
+	font-size: 15px;
+	line-height: 20px;
+}
+.pb-mrow-nm {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	min-width: 0;
+}
+.pb-mrow-sub {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	min-width: 0;
+	max-width: 100%;
+	font-size: 12px;
+	line-height: 16px;
+	color: var(--ink-muted);
+	white-space: nowrap;
+}
+.pb-mrow .is-former .pb-mrow-nm {
+	font-style: italic;
+	color: var(--ink-muted);
+}
+.pb-mrow.is-void .pb-mrow-nm {
+	text-decoration: line-through;
+	color: var(--ink-muted);
+}
+.pb-mrow-note {
+	font: 600 12px/16px var(--font-sans);
+	color: var(--ink-muted);
+	white-space: nowrap;
+	flex: none;
+}
+.pb-mrow-note.is-warn {
+	color: var(--signal);
+}
+.pb-mrow-go {
+	font: 600 14px/20px var(--font-sans);
+	color: var(--accent);
+}
+.pb-mrow-mut {
+	font: 400 13px/20px var(--font-sans);
+	color: var(--ink-muted);
+}
+/* head-to-head: player A, centre slot, player B */
+.pb-mrow-vs {
+	grid-template-columns: minmax(0, 1fr) 50px minmax(0, 1fr);
+	gap: 2px 6px;
+}
+.pb-mrow-side {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	min-width: 0;
+}
+.pb-mrow-side.is-a {
+	flex-direction: row-reverse;
+}
+.pb-mrow-side.is-a .pb-mrow-tx {
+	align-items: flex-end;
+	text-align: right;
+}
+.pb-mrow-side.is-a .pb-mrow-who,
+.pb-mrow-side.is-a .pb-mrow-sub {
+	flex-direction: row-reverse;
+}
+.pb-mrow-side.is-winner .pb-mrow-nm {
+	font-weight: 700;
+}
+.pb-mrow-side.is-loser .pb-mrow-nm {
+	color: var(--ink-muted);
+}
+.pb-mrow-mid {
+	text-align: center;
+	white-space: nowrap;
+}
+.pb-mrow-sc {
+	font: 500 15px/20px var(--font-mono);
+	color: var(--ink-muted);
+}
+.pb-mrow-sc .is-win {
+	color: var(--accent);
+}
+.pb-mrow-meta {
+	grid-column: 1 / -1;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	gap: 8px;
+	padding-bottom: 2px;
+}
+.pb-mrow-vs .pb-avatar {
+	width: 24px !important;
+	height: 24px !important;
+}
+.pb-mrow-vs .pb-you {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	white-space: nowrap;
+}
+@container (min-width:480px) {
+	.pb-mrow-vs {
+		grid-template-columns: minmax(0, 1fr) 64px minmax(0, 1fr);
+		gap: 2px 10px;
+		padding: 8px 16px;
+	}
+	.pb-mrow-vs .pb-avatar {
+		width: 28px !important;
+		height: 28px !important;
+	}
+	.pb-mrow-vs .pb-you {
+		position: static;
+		width: auto;
+		height: auto;
+		padding: 0 6px;
+		overflow: visible;
+		clip: auto;
+	}
+	.pb-mrow-sc {
+		font-size: 16px;
+	}
+}
+/* perspective: round, opponent, played as, dice, result */
+.pb-mrow-pov {
+	grid-template-columns: minmax(26px, auto) minmax(0, 1fr) 16px auto;
+	gap: 10px;
+	min-height: 56px;
+	padding: 6px 14px;
+}
+.pb-mrow-rd {
+	font: 500 13px/18px var(--font-mono);
+	color: var(--ink-muted);
+	white-space: nowrap;
+}
+.pb-mrow-opp {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	min-width: 0;
+}
+.pb-mrow-ascol,
+.pb-mrow-head {
+	display: none;
+}
+.pb-mrow-pov .pb-mrow-who {
+	flex-wrap: wrap;
+	row-gap: 2px;
+}
+.pb-mrow-dice {
+	display: inline-flex;
+	justify-content: center;
+}
+.pb-mrow-res {
+	text-align: right;
+	font: 500 15px/20px var(--font-mono);
+	white-space: nowrap;
+}
+.pb-mrow-l {
+	font-weight: 700;
+	margin-right: 6px;
+}
+.pb-mrow-l.is-w {
+	color: var(--accent);
+}
+.pb-mrow-l.is-l {
+	color: var(--brand);
+}
+.pb-mrow-l.is-d {
+	color: var(--ink-muted);
+}
+@container (min-width:640px) {
+	.pb-mrow-pov,
+	.pb-mrow-head {
+		grid-template-columns: 52px minmax(0, 1.4fr) minmax(0, 1fr) 40px 96px;
+		gap: 16px;
+		padding-left: 20px;
+		padding-right: 20px;
+	}
+	.pb-mrow-pov {
+		min-height: 52px;
+	}
+	.pb-mrow-head {
+		display: grid;
+		padding-top: 12px;
+		padding-bottom: 8px;
+		border-bottom: 1px solid var(--line);
+		font: 400 13px/18px var(--font-sans);
+		color: var(--ink-muted);
+	}
+	.pb-mrow-head span:last-child {
+		text-align: right;
+	}
+	.pb-mrow-head span:nth-child(4) {
+		text-align: center;
+	}
+	.pb-mrow-ascol {
+		display: block;
+		font-size: 14px;
+		line-height: 20px;
+	}
+	.pb-mrow-as {
+		display: none;
+	}
+	.pb-mrow-pov .pb-mrow-who {
+		flex-wrap: nowrap;
+	}
+	.pb-mrow-rd {
+		font-size: 14px;
+	}
 }

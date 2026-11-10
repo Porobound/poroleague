@@ -133,6 +133,14 @@ export function matchCard(m: CardMatch, c: CardContext) {
 		id: m.id,
 		mine: m.p1Id === c.viewerId || m.p2Id === c.viewerId,
 		status,
+		ids: [m.p1Id, m.p2Id] as [string, string],
+		// Which side the viewer is, for the "You" tag.
+		you: (m.p1Id === c.viewerId ? 0 : m.p2Id === c.viewerId ? 1 : null) as 0 | 1 | null,
+		// Group rounds are numbers ("R6"); a playoff match carries its bracket name.
+		round: m.stage === 'playoff' ? matchName(m.round, m.slot ?? 0, c.cutRounds) : m.round,
+		week,
+		early,
+		walkover,
 		props: {
 			head:
 				m.stage === 'playoff'
