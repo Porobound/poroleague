@@ -46,7 +46,8 @@
 			legend: k === 'p1' ? r.p1Legend : r.p2Legend,
 			games: k === 'p1' ? r.p1Games : r.p2Games,
 			former: player(k).former,
-			href: player(k).former ? null : `/seasons/${data.season.slug}/players/${player(k).id}`
+			href: player(k).former ? null : `/seasons/${data.season.slug}/players/${player(k).id}`,
+			tag: data.tags[k]
 		});
 		const diceSide = r.diceWinnerId === m.p1Id ? 'p1' : 'p2';
 		return {
@@ -137,6 +138,7 @@
 								former={player(k).former}
 							/>
 							<strong class={[player(k).former && 'pb-former']}>{name(k)}</strong>
+							{#if data.tags[k]}<span class="pb-badge pb-badge-sm">{data.tags[k]}</span>{/if}
 						</div>
 						<label class="pb-field">
 							Legend
@@ -205,6 +207,7 @@
 							? `Reported by ${!reporter ? 'an organizer' : reporter.id === me ? 'you' : reporter.displayName}`
 							: ''}
 		/>
+		{#if data.earlyNote}<p class="muted small">{data.earlyNote}.</p>{/if}
 
 		{#if m.flaggedBy && m.flagReason}
 			<figure class="flag-reason">

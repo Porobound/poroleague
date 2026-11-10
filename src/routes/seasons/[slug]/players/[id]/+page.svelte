@@ -100,6 +100,9 @@
 				{:else if row}
 					<span class="pb-badge pb-badge-rank">#{data.rank} in group</span>
 				{/if}
+				{#if data.away}
+					<span class="pb-badge">On holiday · {data.away}</span>
+				{/if}
 				<span class="muted small">{season.name}</span>
 				{#if player.former}<span class="muted small">· Account erased.</span>{/if}
 			</div>

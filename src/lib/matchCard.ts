@@ -1,5 +1,6 @@
 import { matchMode } from '#lib/league/report.ts';
 import { droppedIds, isOverdue, isVoid } from '#lib/league/status.ts';
+import type { WeekMap } from '#lib/league/holiday.ts';
 import { isPublished } from '#lib/league/publish.ts';
 import { currentWeek, reportingClosed, weekOf } from '#lib/league/time.ts';
 import { matchName } from '#lib/league/bracket.ts';
@@ -60,6 +61,9 @@ export function cardContext(
 ) {
 	return {
 		season,
+		// Player id → weeks of their approved holidays, for the On holiday tag; pages that show it
+		// spread seasonUnlocks(season).away over this.
+		away: new Map() as WeekMap,
 		viewerId,
 		now,
 		cutRounds,
@@ -69,6 +73,9 @@ export function cardContext(
 		closed: reportingClosed(season.deadline, now)
 	};
 }
+export const earlyNote = (week: number) =>
+	`Played early, hidden from everyone else until week ${week} is published`;
+
 export type CardContext = ReturnType<typeof cardContext>;
 
 export function matchCard(m: CardMatch, c: CardContext) {
@@ -100,7 +107,16 @@ export function matchCard(m: CardMatch, c: CardContext) {
 		former: !!person(id)?.former,
 		legend,
 		games,
-		href: person(id)?.former ? null : `/seasons/${c.season.slug}/players/${id}`
+		href: person(id)?.former ? null : `/seasons/${c.season.slug}/players/${id}`,
+		// Only while it still says something: the match is open and the player is in the league.
+		tag:
+			m.stage !== 'playoff' &&
+			!m.reportedBy &&
+			!voided &&
+			!person(id)?.former &&
+			c.away.get(id)?.has(weekOf(m.round, c.season.roundsPerWeek))
+				? 'On holiday'
+				: null
 	});
 	const mode = matchMode(m, {
 		viewerId: c.viewerId,
@@ -130,7 +146,7 @@ export function matchCard(m: CardMatch, c: CardContext) {
 					? `Walkover · ${walkover} advances`
 					: early
 						? m.reportedBy
-							? `Played early, hidden from everyone else until week ${weekOf(m.round, c.season.roundsPerWeek)} is published`
+							? earlyNote(weekOf(m.round, c.season.roundsPerWeek))
 							: 'Unlocked early'
 						: m.reportedBy
 							? `Reported by ${person(m.reportedBy)?.displayName ?? 'an organizer'}`

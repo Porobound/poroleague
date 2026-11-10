@@ -25,7 +25,13 @@ export const load: PageServerLoad = async (event) => {
 	const list = seasonEntries(season.id);
 	const scheduled = hasSchedule(season.status);
 	const groups = scheduled ? groupStandings(season, list) : [];
-	const ctx = cardContext(season, list, locals.user?.id ?? null);
+	const me = list.find((e) => e.playerId === locals.user?.id);
+	// Only a signed-up player gets match cards here, so only they need the holidays read.
+	const marks = me && scheduled ? seasonUnlocks(season) : null;
+	const ctx = {
+		...cardContext(season, list, locals.user?.id ?? null),
+		...(marks && { away: marks.away })
+	};
 	const { closed, weeks, rounds, phases, cut, cutRound } = seasonProgress(season, groups);
 	const viewer = locals.user?.id ?? null;
 	const myCut = cut?.rounds
@@ -36,13 +42,10 @@ export const load: PageServerLoad = async (event) => {
 		season.startDate && ctx.week >= 1 ? addDays(season.startDate, ctx.week * 7 - 1) : null;
 	const weekEnds =
 		weekEnd && season.deadline && season.deadline < weekEnd ? season.deadline : weekEnd;
-	const me = list.find((e) => e.playerId === locals.user?.id);
 	const all = me && scheduled ? playerMatches(season.id, me.playerId) : [];
 	const mine = published(all, season.publishedRound);
 	// A holiday (theirs or the opponent's) opened these before their week; the player page lists them.
-	const unlocked = all.some((m) => !isPublished(m, season.publishedRound))
-		? seasonUnlocks(season).unlocked
-		: null;
+	const unlocked = marks?.unlocked;
 	// A group's last round; a smaller group runs out of rounds before the bigger one.
 	const myRounds = groups.find((g) => g.group === me?.group)?.rounds ?? 0;
 	const signedUp = !!locals.user && list.some((e) => e.playerId === locals.user!.id);

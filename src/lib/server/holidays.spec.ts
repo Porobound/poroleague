@@ -490,6 +490,11 @@ describe('unlocked matches', () => {
 	});
 
 	it('a report stays off the results channel; a flag reaches organizers', async () => {
+		// The opponent's report form says who is away.
+		expect(((await match(m13, as('p4'))).returned as { tags: unknown }).tags).toEqual({
+			p1: 'On holiday',
+			p2: null
+		});
 		expect(await returned(report(as('p4')))).toEqual({
 			message: 'Result saved. It stays hidden from everyone else until week 2 is published.'
 		});
@@ -499,6 +504,12 @@ describe('unlocked matches', () => {
 			p2Games: 2
 		});
 		expect(hooks.postResult).not.toHaveBeenCalled();
+		const page = (await match(m13, as('p1'))).returned as Record<string, unknown>;
+		// Played: the note stays, the On holiday tag has done its job.
+		expect(page).toMatchObject({
+			earlyNote: 'Played early, hidden from everyone else until week 2 is published',
+			tags: { p1: null, p2: null }
+		});
 		await matchActions.flag!(
 			event({ slug: 's1', id: String(m13) }, as('p1'), { reason: 'Wrong legend' })
 		);
@@ -579,5 +590,55 @@ describe('unlocked matches', () => {
 			} as never)
 		);
 		expect(d.unlocked).toEqual([m13]);
+	});
+});
+
+describe('On holiday badge', () => {
+	let h: number;
+	beforeEach(() => {
+		h = seedHoliday({ seasonId: season.id, playerId: 'p1', ...range, status: 'approved' }).id;
+	});
+	const away = async () =>
+		(await loaded(playerPage(event({ slug: 's1', id: 'p1' }, null)))).away as unknown;
+	const inWeek2 = () => vi.setSystemTime(new Date('2026-10-13T10:00:00Z'));
+
+	it('shows on the player page only while this week is an approved holiday week', async () => {
+		expect(await away()).toBeNull(); // week 1
+		inWeek2();
+		expect(await away()).toBe('12–14 Oct');
+		// A second approved holiday that week shows too; a dropped player has no badge.
+		seedHoliday({
+			seasonId: season.id,
+			playerId: 'p1',
+			from: '2026-10-16',
+			to: '2026-10-17',
+			status: 'approved'
+		});
+		expect(await away()).toBe('12–14 Oct, 16–17 Oct');
+		db.update(entries).set({ dropped: true }).where(eq(entries.playerId, 'p1')).run();
+		expect(await away()).toBeNull();
+		db.update(entries).set({ dropped: false }).where(eq(entries.playerId, 'p1')).run();
+		db.delete(holidays).where(eq(holidays.from, '2026-10-16')).run();
+		db.update(holidays).set({ status: 'pending' }).where(eq(holidays.id, h)).run();
+		expect(await away()).toBeNull();
+		db.update(holidays).set({ status: 'revoked' }).where(eq(holidays.id, h)).run();
+		expect(await away()).toBeNull();
+	});
+
+	it('tags the pairing on the schedule once the week is published', async () => {
+		inWeek2();
+		db.update(seasons).set({ publishedRound: 3 }).where(eq(seasons.id, season.id)).run();
+		const d = await loaded(
+			schedulePage({
+				...(event({ slug: 's1' }, null) as object),
+				url: new URL('http://x/?week=2')
+			} as never)
+		);
+		const card = (
+			d.sections as { cards: { id: number; props: { sides: { tag: string | null }[] } }[] }[]
+		)
+			.flatMap((s) => s.cards)
+			.find((c) => c.id === m13)!;
+		expect(card.props.sides.map((s) => s.tag)).toEqual(['On holiday', null]);
 	});
 });
