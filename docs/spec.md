@@ -111,7 +111,7 @@ Long-term goals across seasons, shown on the career page (`/players/[id]`). Defi
 - **What counts:** matches, not games. A match counts if it's in a live season the player entered, it's public (`isPublished`: playoff, or its round is published), it has a score, no walkover, and it isn't void. Deadline double losses, walkovers, void matches and unpublished rounds don't count; playoff matches do. Flagged results count while the flag is open, since they're public.
 - **Award-only:** earned once, kept forever (`player_achievements`). Later edits, flags, drops and voids never remove one.
 - **Triggers:** report, organizer edit and keep-as-reported award both players; publishing a week, finalizing, cancelling a drop, publishing the top cut and finishing it award the whole season. Every server start also runs a backfill, so new rules reach past results.
-- **Unlock date:** the report date of the match that crossed the threshold (also for holiday results reported early). Perfect Group, Top Cut and Champion use the date of the season event (finalize, bracket published, top cut finished). Veteran uses the first counted match of the Nth season.
+- **Unlock date:** the report date of the match that crossed the threshold (a holiday result reported early is awarded only once its week is published, but still dated by its report). Perfect Group, Top Cut and Champion use the date of the season event (finalize, bracket published, top cut finished). Veteran uses the first counted match of the Nth season.
 - **Display:** earned tiles with their date; locked ones greyed with progress ("7/10"), derived on load. Legend tracks show only once started.
 - Not in Discord posts or the API. No manual or organizer awards.
 
