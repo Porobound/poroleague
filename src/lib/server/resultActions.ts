@@ -1,8 +1,10 @@
 import { error, fail, type RequestEvent } from '@sveltejs/kit';
 import { organizerEditEmbed, resultEmbed } from '#lib/discord.ts';
+import { isUnlocked } from '#lib/league/holiday.ts';
 import { isPublished } from '#lib/league/publish.ts';
 import { parseReport } from '#lib/league/report.ts';
 import { organizerAction } from '#lib/server/auth.ts';
+import { seasonUnlocks } from '#lib/server/holidays.ts';
 import {
 	getMatch,
 	isVoided,
@@ -40,7 +42,9 @@ export async function editResult(event: Event) {
 			message: 'Results can only change while the season or its top cut is in play.'
 		});
 	if (isVoided(match)) return fail(409, { message: 'A player dropped, so this match is void.' });
-	if (match.stage === 'group' && match.round > season.publishedRound)
+	// A holiday unlocks some unpublished matches early; the rest wait for their week.
+	const early = !isPublished(match, season.publishedRound);
+	if (early && !isUnlocked(match, season, seasonUnlocks(season).unlocked))
 		return fail(409, { message: 'Publish this week before entering results.' });
 	if (match.stage === 'playoff' && waitingOnFlag(season, match))
 		return fail(409, { message: 'Settle the flagged result before this match first.' });
@@ -49,8 +53,16 @@ export async function editResult(event: Event) {
 	const resolves = !!match.flaggedBy && !match.flagResolvedAt;
 	organizerEdit(match, user.id, parsed.values);
 	const post = matchPost(event.url.origin, season, match, parsed.values);
-	if (!match.reportedBy && isPublished(match, season.publishedRound)) postResult(resultEmbed(post));
-	else postToOrganizers(organizerEditEmbed(post, user.displayName, { resolves, kept: false }));
+	// Early results reach the results channel when their week is published; organizers hear now.
+	if (!match.reportedBy && !early) postResult(resultEmbed(post));
+	else
+		postToOrganizers(
+			organizerEditEmbed(post, user.displayName, {
+				resolves,
+				kept: false,
+				first: !match.reportedBy
+			})
+		);
 	return { message: resolves ? 'Result changed. Flag resolved.' : 'Result saved and logged.' };
 }
 

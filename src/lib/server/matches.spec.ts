@@ -14,8 +14,8 @@ import { seedEntries, seedMatch, seedPlayers, seedSeason } from '#lib/server/tes
 describe('lastLegend', () => {
 	it('is the legend of the latest reported match, from either side and any season', () => {
 		seedPlayers(3);
-		const s1 = seedSeason();
-		const s2 = seedSeason({ slug: 's2', name: 'Season 2' });
+		const s1 = seedSeason({ publishedRound: 9 });
+		const s2 = seedSeason({ slug: 's2', name: 'Season 2', publishedRound: 9 });
 		expect(lastLegend('p1')).toBeNull();
 
 		const played = (seasonId: number, at: number, p1Id: string, p2Id: string, legends: string[]) =>

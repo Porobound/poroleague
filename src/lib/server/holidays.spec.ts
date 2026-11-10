@@ -6,6 +6,16 @@ import {
 	load as playerPage
 } from '../../routes/seasons/[slug]/players/[id]/+page.server.ts';
 import {
+	actions as matchActions,
+	load as matchPage
+} from '../../routes/seasons/[slug]/matches/[id]/+page.server.ts';
+import {
+	actions as adminMatchActions,
+	load as adminMatchesPage
+} from '../../routes/seasons/[slug]/admin/matches/+page.server.ts';
+import { load as homePage } from '../../routes/seasons/[slug]/+page.server.ts';
+import { load as schedulePage } from '../../routes/seasons/[slug]/schedule/+page.server.ts';
+import {
 	actions as seasonActions,
 	load as seasonAdminPage
 } from '../../routes/seasons/[slug]/admin/season/+page.server.ts';
@@ -19,6 +29,7 @@ import {
 	requestHoliday,
 	seasonUnlocks
 } from '#lib/server/holidays.ts';
+import { lastLegend } from '#lib/server/matches.ts';
 import type { Season } from '#lib/server/seasons.ts';
 import {
 	seedEntries,
@@ -90,6 +101,7 @@ const loaded = async (p: unknown) => (await p) as Record<string, never>;
 
 const range = { from: '2026-10-12', to: '2026-10-14' }; // week 2
 let season: Season;
+let m13: number, m23: number;
 
 // "Today" is Thu 8 Oct, in week 1.
 beforeEach(() => {
@@ -111,15 +123,18 @@ beforeEach(() => {
 		deadline: '2026-10-25'
 	});
 	seedEntries(season.id, ['p1', 'p2', 'p3', 'p4'], 1);
-	for (const [round, p1Id, p2Id] of [
-		[1, 'p1', 'p2'],
-		[1, 'p3', 'p4'],
-		[2, 'p1', 'p3'],
-		[2, 'p2', 'p4'],
-		[3, 'p1', 'p4'],
-		[3, 'p2', 'p3']
-	] as const)
-		seedMatch({ seasonId: season.id, group: 1, round, p1Id, p2Id });
+	[, , , , m13, m23] = (
+		[
+			[1, 'p1', 'p2'],
+			[1, 'p3', 'p4'],
+			[2, 'p1', 'p3'],
+			[2, 'p2', 'p4'],
+			[3, 'p1', 'p4'],
+			[3, 'p2', 'p3']
+		] as const
+	).map(
+		([round, p1Id, p2Id]) => seedMatch({ seasonId: season.id, group: 1, round, p1Id, p2Id }).id
+	);
 });
 
 describe('holiday writes', () => {
@@ -433,5 +448,136 @@ describe('organizers decide', () => {
 		const d = await loaded(seasonAdminPage({ parent: async () => ({ season }) } as never));
 		const rows = (d.holidays as unknown as { approved: { early: string }[] }).approved;
 		expect(rows.map((r) => r.early)).toEqual(['0 of 0 played', '0 of 0 played']);
+	});
+});
+
+describe('unlocked matches', () => {
+	let h: number;
+	beforeEach(() => {
+		h = seedHoliday({ seasonId: season.id, playerId: 'p1', ...range, status: 'approved' }).id;
+	});
+	const setHoliday = (status: 'pending' | 'rejected' | 'revoked') =>
+		db.update(holidays).set({ status }).where(eq(holidays.id, h)).run();
+	const match = (id: number, user: User | null) =>
+		outcome(matchPage(event({ slug: 's1', id: String(id) }, user)));
+	const mode = async (id: number, user: User | null) =>
+		((await match(id, user)).returned as { mode?: string } | undefined)?.mode ??
+		(await match(id, user)).error;
+	const result = { game1: '2', game2: '2', p1Legend: 'Jinx', p2Legend: 'Ahri', dice: 'p4' };
+	const report = (user: User) =>
+		matchActions.report!(event({ slug: 's1', id: String(m13) }, user, result));
+	const cards = async (id: string, user: User | null) =>
+		((await loaded(playerPage(event({ slug: 's1', id }, user)))).early as { id: number }[]).map(
+			(c) => c.id
+		);
+
+	it('the match page opens for its two players and organizers only', async () => {
+		expect(await mode(m13, as('p1'))).toBe('report');
+		expect(await mode(m13, as('p4'))).toBe('report');
+		expect(await mode(m13, as('p2'))).toBe(404);
+		expect(await mode(m13, null)).toBe(404);
+		expect(await mode(m13, ORG)).toBe('view');
+		for (const user of [as('p2'), as('p1'), ORG, null]) expect(await mode(m23, user)).toBe(404);
+	});
+
+	it('pending and rejected holidays unlock nothing; a revoke keeps the match open', async () => {
+		setHoliday('pending');
+		expect(await mode(m13, as('p1'))).toBe(404);
+		setHoliday('rejected');
+		expect(await mode(m13, as('p1'))).toBe(404);
+		setHoliday('revoked');
+		expect(await mode(m13, as('p1'))).toBe('report');
+	});
+
+	it('a report stays off the results channel; a flag reaches organizers', async () => {
+		expect(await returned(report(as('p4')))).toEqual({
+			message: 'Result saved. It stays hidden from everyone else until week 2 is published.'
+		});
+		expect(db.select().from(matches).where(eq(matches.id, m13)).get()).toMatchObject({
+			reportedBy: 'p4',
+			p1Games: 0,
+			p2Games: 2
+		});
+		expect(hooks.postResult).not.toHaveBeenCalled();
+		await matchActions.flag!(
+			event({ slug: 's1', id: String(m13) }, as('p1'), { reason: 'Wrong legend' })
+		);
+		expect(hooks.postToOrganizers).toHaveBeenCalledOnce();
+		expect(hooks.postResult).not.toHaveBeenCalled();
+	});
+
+	it("an early result's legends don't leak through the report form's prefill", async () => {
+		await report(as('p4')); // Player 1 on Jinx, Player 4 on Ahri
+		expect([lastLegend('p1'), lastLegend('p4')]).toEqual([null, null]);
+		// Their own form still remembers it.
+		expect(lastLegend('p4', true)).toBe('Ahri');
+		// Player 4's published, open round 2 match vs Player 2.
+		const [m24] = db
+			.select()
+			.from(matches)
+			.where(and(eq(matches.round, 2), eq(matches.p1Id, 'p2')))
+			.all();
+		const prefill = async (user: User | null) =>
+			((await match(m24.id, user)).returned as { prefill: unknown }).prefill;
+		expect(await prefill(null)).toBeNull();
+		expect(await prefill(as('p3'))).toBeNull();
+		expect(await prefill(as('p2'))).toEqual({ p1Legend: '', p2Legend: '' });
+		db.update(seasons).set({ publishedRound: 3 }).where(eq(seasons.id, season.id)).run();
+		expect(lastLegend('p4')).toBe('Ahri');
+		expect(await prefill(as('p2'))).toEqual({ p1Legend: '', p2Legend: 'Ahri' });
+	});
+
+	it('the player pages list it for its two players only', async () => {
+		expect(await cards('p1', as('p1'))).toEqual([m13]);
+		expect(await cards('p1', as('p4'))).toEqual([m13]);
+		expect(await cards('p4', as('p4'))).toEqual([m13]);
+		expect(await cards('p4', as('p1'))).toEqual([m13]);
+		expect(await cards('p1', as('p2'))).toEqual([]);
+		expect(await cards('p1', null)).toEqual([]);
+		expect(await cards('p2', as('p1'))).toEqual([]);
+		const d = await loaded(playerPage(event({ slug: 's1', id: 'p1' }, as('p1'))));
+		expect((d.matches as { id: number }[]).map((c) => c.id)).not.toContain(m13);
+	});
+
+	it('the season page tells both players until it is played', async () => {
+		const count = async (id: string) =>
+			(await loaded(homePage(event({ slug: 's1' }, as(id)) as never))).unlockedEarly;
+		expect([await count('p1'), await count('p4'), await count('p2')]).toEqual([1, 1, 0]);
+		await report(as('p4'));
+		expect(await count('p4')).toBe(0);
+	});
+
+	it('the schedule still hides it', async () => {
+		const d = await loaded(
+			schedulePage({
+				...(event({ slug: 's1' }, as('p1')) as object),
+				url: new URL('http://x/?week=2')
+			} as never)
+		);
+		const ids = [
+			...(d.overdue as { id: number }[]),
+			...(d.sections as { cards: { id: number }[] }[]).flatMap((s) => s.cards)
+		].map((c) => c.id);
+		expect(ids).not.toContain(m13);
+	});
+
+	it('organizers enter results on unlocked matches only, told in their channel', async () => {
+		const edit = (id: number) =>
+			adminMatchActions.edit!(event({ slug: 's1' }, ORG, { ...result, matchId: String(id) }));
+		expect(await returned(edit(m13))).toEqual({ message: 'Result saved and logged.' });
+		expect(hooks.postResult).not.toHaveBeenCalled();
+		expect(hooks.postToOrganizers).toHaveBeenCalledOnce();
+		expect(hooks.postToOrganizers.mock.calls[0][0].title).toBe('Early result entered by Org');
+		expect(await returned(edit(m23))).toMatchObject({
+			status: 409,
+			data: { message: 'Publish this week before entering results.' }
+		});
+		const d = await loaded(
+			adminMatchesPage({
+				parent: async () => ({ season }),
+				url: new URL('http://x/')
+			} as never)
+		);
+		expect(d.unlocked).toEqual([m13]);
 	});
 });

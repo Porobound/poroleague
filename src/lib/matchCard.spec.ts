@@ -13,7 +13,8 @@ const season: Parameters<typeof cardContext>[0] = {
 	status: 'play',
 	deadline: null,
 	startDate: '2026-10-05',
-	roundsPerWeek: 2
+	roundsPerWeek: 2,
+	publishedRound: 99
 };
 // Week 3 of the season: rounds 1–4 are from earlier weeks.
 const NOW = new Date('2026-10-20T12:00:00Z');
@@ -126,7 +127,8 @@ describe('playoff cards', () => {
 			status: 'topcut',
 			deadline: '2026-01-01',
 			startDate: '2025-12-01',
-			roundsPerWeek: 2
+			roundsPerWeek: 2,
+			publishedRound: 0
 		};
 		const people = ['p1', 'p2'].map((id) => ({
 			playerId: id,
@@ -161,5 +163,17 @@ describe('playoff cards', () => {
 		const wo = matchCard({ ...base, walkoverId: 'p2' }, ctx);
 		expect(wo.props.note).toBe('Walkover · p2 advances');
 		expect(wo.props.link.label).toBe('View');
+	});
+});
+
+describe('early matches (holiday mode)', () => {
+	it('notes an early match until its week is published', () => {
+		const s = { ...season, publishedRound: 1, roundsPerWeek: 2 };
+		const note = (m: Partial<CardMatch>) => matchCard(match(m), ctx('p1', s)).props.note;
+		expect(note({ round: 3 })).toBe('Unlocked early');
+		expect(note({ round: 3, ...reported })).toBe(
+			'Played early, hidden from everyone else until week 2 is published'
+		);
+		expect(note({ round: 1, ...reported })).toMatch(/^Reported by/);
 	});
 });

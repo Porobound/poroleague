@@ -121,16 +121,16 @@ describe('advancing', () => {
 		matchPage({
 			params: { slug: 's1', id: String(m.id) },
 			locals: { user: { id: playerId, displayName: playerId, avatar: null, isOrganizer: false } }
-		} as never) as unknown as { mode: string; waiting: boolean };
+		} as never) as unknown as Promise<{ mode: string; waiting: boolean }>;
 
-	it('an edit that changes the winner clears and repoints the matches after it', () => {
+	it('an edit that changes the winner clears and repoints the matches after it', async () => {
 		saveReport(slot(1, 0).match!, 'p1', won(2, 0)); // p1 beats p5
 		walkover(season(), slot(1, 1).match!, 'p2', 'p1');
 		saveReport(slot(2, 0).match!, 'p1', won(2, 0)); // p1 beats p2 in the final
 		expect(cutState(season()).champion).toBe('p1');
 
 		// The loser can still flag the semi, and the organizer's fix moves the final on.
-		expect(page(slot(1, 0).match!, 'p5').mode).toBe('flag');
+		expect((await page(slot(1, 0).match!, 'p5')).mode).toBe('flag');
 		flagMatch(slot(1, 0).match!, 'p5', 'It was the other way round.');
 		organizerEdit(slot(1, 0).match!, 'p1', won(0, 2));
 		const final = slot(2, 0);
@@ -154,22 +154,22 @@ describe('advancing', () => {
 		expect(slot(2, 0).match).toMatchObject({ reportedBy: 'p1' });
 	});
 
-	it('a flagged result holds the next match until it is settled', () => {
+	it('a flagged result holds the next match until it is settled', async () => {
 		saveReport(slot(1, 0).match!, 'p1', won(2, 0));
 		flagMatch(slot(1, 0).match!, 'p5', 'It was the other way round.');
 		saveReport(slot(1, 1).match!, 'p4', won(2, 0));
 		expect(waitingOnFlag(season(), slot(2, 0).match!)).toBe(true);
-		expect(page(slot(2, 0).match!, 'p1')).toMatchObject({ mode: 'view', waiting: true });
+		expect(await page(slot(2, 0).match!, 'p1')).toMatchObject({ mode: 'view', waiting: true });
 
 		organizerEdit(slot(1, 0).match!, 'p1', won(0, 2));
 		expect(waitingOnFlag(season(), slot(2, 0).match!)).toBe(false);
-		expect(page(slot(2, 0).match!, 'p5')).toMatchObject({ mode: 'report', waiting: false });
+		expect(await page(slot(2, 0).match!, 'p5')).toMatchObject({ mode: 'report', waiting: false });
 	});
 
-	it('a walkover page names who advances and is not void', () => {
+	it('a walkover page names who advances and is not void', async () => {
 		walkover(season(), slot(1, 0).match!, 'p5', 'p1');
 		expect(
-			matchPage({
+			await matchPage({
 				params: { slug: 's1', id: String(slot(1, 0).match!.id) },
 				locals: { user: null }
 			} as never)

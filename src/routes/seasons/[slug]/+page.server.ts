@@ -1,8 +1,10 @@
 import { error, fail } from '@sveltejs/kit';
-import { published, weeksAhead } from '#lib/league/publish.ts';
+import { isUnlocked } from '#lib/league/holiday.ts';
+import { isPublished, published, weeksAhead } from '#lib/league/publish.ts';
 import { addDays, weekOf } from '#lib/league/time.ts';
 import { cardContext, matchCard } from '#lib/matchCard.ts';
 import { currentRole, playerAction } from '#lib/server/auth.ts';
+import { seasonUnlocks } from '#lib/server/holidays.ts';
 import { playerMatches } from '#lib/server/matches.ts';
 import {
 	addEntry,
@@ -35,8 +37,12 @@ export const load: PageServerLoad = async (event) => {
 	const weekEnds =
 		weekEnd && season.deadline && season.deadline < weekEnd ? season.deadline : weekEnd;
 	const me = list.find((e) => e.playerId === locals.user?.id);
-	const mine =
-		me && scheduled ? published(playerMatches(season.id, me.playerId), season.publishedRound) : [];
+	const all = me && scheduled ? playerMatches(season.id, me.playerId) : [];
+	const mine = published(all, season.publishedRound);
+	// A holiday (theirs or the opponent's) opened these before their week; the player page lists them.
+	const unlocked = all.some((m) => !isPublished(m, season.publishedRound))
+		? seasonUnlocks(season).unlocked
+		: null;
 	// A group's last round; a smaller group runs out of rounds before the bigger one.
 	const myRounds = groups.find((g) => g.group === me?.group)?.rounds ?? 0;
 	const signedUp = !!locals.user && list.some((e) => e.playerId === locals.user!.id);
@@ -78,6 +84,9 @@ export const load: PageServerLoad = async (event) => {
 		weekEnds,
 		phases,
 		signedUp,
+		unlockedEarly: unlocked
+			? all.filter((m) => !m.reportedBy && isUnlocked(m, season, unlocked)).length
+			: 0,
 		// Full for anyone not already in; they keep their spot and can withdraw.
 		full: season.status === 'signup' && list.length >= season.maxPlayers && !signedUp,
 		// This week's matches plus anything overdue; the full list lives on the player page.

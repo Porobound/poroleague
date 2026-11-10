@@ -104,10 +104,10 @@ export function flagEmbed(m: MatchPost, flagger: string, reason: string): Embed 
 export function organizerEditEmbed(
 	m: MatchPost,
 	by: string,
-	o: { resolves: boolean; kept: boolean }
+	o: { resolves: boolean; kept: boolean; first?: boolean }
 ): Embed {
 	return {
-		title: `${o.resolves ? 'Flag resolved' : 'Result changed'} by ${escapeMd(by)}`,
+		title: `${o.resolves ? 'Flag resolved' : o.first ? 'Early result entered' : 'Result changed'} by ${escapeMd(by)}`,
 		...base(m),
 		description: `${o.kept ? 'Kept as reported' : 'New result'}: ${score(m)} (${m.report.p1Legend} vs ${m.report.p2Legend})`,
 		color: SIGNAL
