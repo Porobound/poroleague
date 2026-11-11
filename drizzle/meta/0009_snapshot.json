@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "293f39e3-9f3f-4d0c-8321-3aa53da655a8",
+  "id": "eba0dea2-2ba1-4b4a-a196-1373d84780ba",
   "prevId": "c75c5363-2014-4042-9368-e56efe614228",
   "tables": {
     "audit": {
@@ -748,8 +748,8 @@
           "notNull": false,
           "autoincrement": false
         },
-        "frame_achievement": {
-          "name": "frame_achievement",
+        "frame_tier": {
+          "name": "frame_tier",
           "type": "text",
           "primaryKey": false,
           "notNull": false,

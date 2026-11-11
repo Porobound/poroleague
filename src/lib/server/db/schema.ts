@@ -13,10 +13,10 @@ export const players = sqliteTable('players', {
 	displayName: text('display_name').notNull(),
 	avatar: text('avatar'),
 	erasedAt: integer('erased_at', { mode: 'timestamp' }),
-	// Equipped cosmetics: ids from src/lib/league/achievements.ts the player earned (#143).
+	// Equipped cosmetics (#143): two achievement ids the player earned, and a tier for the frame.
 	titleAchievement: text('title_achievement'),
 	badgeAchievement: text('badge_achievement'),
-	frameAchievement: text('frame_achievement')
+	frameTier: text('frame_tier')
 });
 
 // The one test for an erased player, as a column for selects.
