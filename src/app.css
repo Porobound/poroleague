@@ -835,3 +835,11 @@ a:hover {
 		display: none;
 	}
 }
+
+/* A linked name in a standings cell keeps the cell's spacing and hover. */
+.pb-player > .pb-pname-link {
+	gap: 10px;
+}
+.pb-pname-link:hover .pb-player-name {
+	color: var(--accent);
+}

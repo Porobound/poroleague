@@ -1,5 +1,7 @@
 <script lang="ts">
 	import Avatar from '#lib/components/Avatar.svelte';
+	import Flair from '#lib/components/Flair.svelte';
+	import type { Badge } from '#lib/league/cosmetics.ts';
 
 	type Side = {
 		name: string;
@@ -9,6 +11,7 @@
 		href?: string | null;
 		former?: boolean;
 		tag?: string | null;
+		badge?: Badge | null; // top cut only
 	};
 	let {
 		head,
@@ -74,6 +77,7 @@
 			<span class="pb-match-name">
 				<span class="pb-match-nm">
 					{#if s.href}<a href={s.href}>{s.name}</a>{:else}{s.name}{/if}
+					{#if s.badge && !s.former}<Flair badge={s.badge} />{/if}
 					{#if dice === i}
 						<svg class="pb-die" width="14" height="14" viewBox="0 0 14 14" role="img">
 							<title>Won the dice roll</title>
