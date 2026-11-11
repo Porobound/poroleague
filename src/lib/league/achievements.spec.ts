@@ -5,7 +5,6 @@ import {
 	ACHIEVEMENTS,
 	achievementById,
 	champion,
-	crest,
 	emblem,
 	evaluate,
 	key,
@@ -262,7 +261,7 @@ describe('icons', () => {
 	it('are all in static/', () => {
 		const paths = [
 			...ACHIEVEMENTS.map((a) => a.icon),
-			...(['bronze', 'silver', 'gold'] as const).flatMap((t) => [emblem(t), crest(t)])
+			...(['bronze', 'silver', 'gold'] as const).map(emblem)
 		];
 		expect(paths.filter((p) => !existsSync(`static${p}`))).toEqual([]);
 	});
