@@ -5,7 +5,7 @@ import { db } from '#lib/server/db/index.ts';
 import { playerSeasons, seasonHistory } from '#lib/server/seasons.ts';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = ({ params }) => {
+export const load: PageServerLoad = ({ params, url }) => {
 	const list = playerSeasons(params.id);
 	if (!list.length) error(404, 'Player not found');
 	const rows = list.flatMap((s) => (s.row ? [s.row] : []));
@@ -27,6 +27,7 @@ export const load: PageServerLoad = ({ params }) => {
 		},
 		history: seasonHistory(list),
 		legends: playerLegends(counted, params.id),
-		achievements: careerAchievements(db, params.id)
+		achievements: careerAchievements(db, params.id),
+		allLegends: url.searchParams.has('all')
 	};
 };

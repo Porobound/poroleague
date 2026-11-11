@@ -37,9 +37,11 @@ test.beforeAll(() => {
 	seedEmptySeason('mobileDraft', 'draft');
 	seedAchievements(me, [
 		'first-blood',
-		'veteran-10',
-		'legend-renata-glasc-master',
-		'legend-master-yi-pg-expert'
+		'seasons-bronze',
+		'legend-renata-glasc-bronze',
+		'legend-renata-glasc-silver',
+		'legend-renata-glasc-gold',
+		'legend-master-yi-pg-bronze'
 	]);
 });
 test.afterAll(() => {

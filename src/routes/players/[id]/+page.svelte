@@ -45,8 +45,6 @@
 		</div>
 	{/if}
 
-	<Achievements data={data.achievements} />
-
 	<section>
 		<h2>Season by season</h2>
 		<SeasonHistory rows={data.history} playerId={player.playerId} />
@@ -58,6 +56,8 @@
 			<PlayerLegends legends={data.legends} />
 		</section>
 	{/if}
+
+	<Achievements data={data.achievements} all={data.allLegends} />
 </div>
 
 <style>
