@@ -120,11 +120,11 @@ Long-term goals across seasons, shown on the career page (`/players/[id]`). Defi
 
 Players show off what they earned. Rules are pure, in `src/lib/league/cosmetics.ts`; the ownership check is `equip` in `src/lib/server/cosmetics.ts`.
 
-- **Slots:** one title, one badge, one avatar frame, each from one earned achievement; all optional. None equipped = plain name.
-- **Title:** the achievement's `title` text, in its tier colour (accent for one-offs). **Badge:** the achievement's icon in a small chip. **Frame:** the tier's rank ring around the avatar, so only tiered (Bronze / Silver / Gold) achievements can be frames.
-- **Model:** `players.title_achievement`, `badge_achievement`, `frame_achievement` hold achievement ids (no FK: ids are code). An id no longer in the list draws nothing.
-- **Equipping:** owner only, from **Customize profile** on their career page (three selects listing only what they earned, live preview). The server saves all three slots or none: each is empty or an achievement the player owns, and a frame needs a tier. Anyone else gets 403. No audit row (not a result change), no organizer moderation. Achievements are never revoked, so equipped items stay valid.
-- **Where:** career and season player page headers show frame, badge and title. Season standings and the top cut (bracket and phone cards) show the badge only. Everything else (schedule, match, audit, admin, leaderboard) shows plain names, and so do Discord posts and the API (#144 adds them there).
+- **Slots:** one title, one badge, one avatar frame; all optional. None equipped = plain name.
+- **Title:** an earned achievement's name, as plain text under the player's name. **Badge:** an earned achievement's icon in a 20 px chip with a tier-coloured border; its name and requirement show in a tooltip on hover, keyboard focus or tap (inside a link, such as a bracket slot or a match row, on hover only). Without JavaScript it keeps a native `title`. **Frame:** a bronze, silver or gold ring around the avatar. A frame is a tier, not an achievement: a player may wear a tier they have earned at least one achievement in.
+- **Model:** `players.title_achievement` and `badge_achievement` hold achievement ids (no FK: ids are code); `frame_tier` holds `bronze`, `silver` or `gold`. An id no longer in the list draws nothing.
+- **Equipping:** owner only, from **Customize profile** on their career page (`?customize` opens it), with a live preview. The fields are native grouped selects listing only what they earned; with JavaScript a picker with icons and a filter stands in for them. The server saves all three slots or none: a title or badge must be an achievement the player owns, a frame a tier they own something in. Anyone else gets 403. No audit row (not a result change), no organizer moderation. Achievements are never revoked, so equipped items stay valid.
+- **Where:** career and season player page headers show frame, badge and title. Season standings, the top-cut bracket and the top cut's match rows on phones show the badge only. Everything else (schedule, match, audit, admin, leaderboard) shows plain names, and so do Discord posts and the API (#144 adds them there).
 - Name and avatar stay synced from Discord; login never touches cosmetics.
 - Erasure clears all three; a former player shows a plain name.
 

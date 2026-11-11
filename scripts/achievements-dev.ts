@@ -24,7 +24,7 @@ db.transaction(() => {
 		db.prepare('delete from player_achievements where player_id = ?').run(me.id);
 		// Equipped cosmetics must stay earned.
 		db.prepare(
-			'update players set title_achievement = null, badge_achievement = null, frame_achievement = null where id = ?'
+			'update players set title_achievement = null, badge_achievement = null, frame_tier = null where id = ?'
 		).run(me.id);
 	}
 	const add = db.prepare(
