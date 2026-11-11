@@ -6,10 +6,10 @@ const slug = SEASONS.topCut;
 // Top cut 1 wears the longest title as their badge: the bracket shows only the badge.
 test.beforeAll(() => {
 	seedFinishedGroups('topCut');
-	seedAchievements(player('topCut', 1), ['legend-master-yi-pg-master']);
+	seedAchievements(player('topCut', 1), ['legend-master-yi-pg-gold']);
 	seedCosmetics(player('topCut', 1), {
-		title: 'legend-master-yi-pg-master',
-		badge: 'legend-master-yi-pg-master'
+		title: 'legend-master-yi-pg-gold',
+		badge: 'legend-master-yi-pg-gold'
 	});
 });
 test.afterAll(() => removeSeason('topCut'));
@@ -96,10 +96,12 @@ test('top cut from setup to champion', async ({ browser }) => {
 test('the bracket shows badges, not titles', async ({ page }) => {
 	await page.goto(`/seasons/${slug}/top-cut`);
 	const bracket = page.getByRole('region', { name: 'Bracket' });
-	await expect(
-		bracket.getByRole('img', { name: 'Master Yi (PG) Master badge' }).first()
-	).toBeVisible();
+	const badge = bracket.getByRole('img', { name: /^Badge: Master Yi \(PG\) Master\./ }).first();
+	await expect(badge).toBeVisible();
 	await expect(bracket.getByText('Master Yi (PG) Master', { exact: true })).toHaveCount(0);
+	// A slot is a link, so its badge is not a button: hovering explains it.
+	await badge.hover();
+	await expect(page.getByText('Play 25 matches as Master Yi (PG).')).toBeVisible();
 });
 
 test('the bracket on a phone shows round chips and match rows', async ({ browser }) => {
@@ -133,8 +135,11 @@ test('the bracket on a phone shows round chips and match rows', async ({ browser
 		.getByRole('group', { name: 'Rounds' })
 		.getByRole('button', { name: 'Semifinals' })
 		.click();
+	// Match rows carry the badge too.
 	await expect(
-		page.getByRole('img', { name: 'Master Yi (PG) Master badge' }).first()
+		page
+			.getByRole('list', { name: 'Semifinals' })
+			.getByRole('img', { name: /^Badge: Master Yi \(PG\) Master\./ })
 	).toBeVisible();
 	expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });

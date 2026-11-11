@@ -175,11 +175,17 @@ it('the season player page shows the same look', async () => {
 	});
 });
 
-const FB = { name: 'First Blood', icon: '/achievements/items/first-blood.png', tier: null };
+const FB = {
+	name: 'First Blood',
+	description: 'Win your first match.',
+	kind: 'item' as const,
+	icon: '/achievements/items/first-blood.png',
+	tier: null
+};
 
 it('standings rows carry the badge, nothing else', () => {
 	inSeason();
-	equip('p1', { title: 'first-blood', badge: 'first-blood', frame: 'legend-ahri-master' });
+	equip('p1', { title: 'first-blood', badge: 'first-blood', frame: 'gold' });
 	const s = db.select().from(seasons).get()!;
 	const rows = groupStandings(s, seasonEntries(s.id))[0].rows;
 	expect(rows.find((r) => r.playerId === 'p1')!.badge).toEqual(FB);
