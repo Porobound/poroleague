@@ -11,7 +11,7 @@ merge to main ──► :main + :<sha> ──► dev server
 Actions → promote ──► :prod = :<sha> ──► prod
 ```
 
-Each host runs the image with Docker Compose next to a `cloudflared` tunnel, so no ports are open. The container applies migrations on start, then serves on port 3000.
+Each host runs the image with Docker Compose next to a `cloudflared` tunnel, so no ports are open. The container applies migrations on start, then serves on port 3000. On start the app also awards any achievements the current rules find in past results (idempotent, award-only).
 
 ### First-time host setup
 
@@ -113,10 +113,16 @@ New Riftbound sets come out about every quarter. Add their legends to `src/lib/l
 
 1. Find the new set's legends in [Piltover Archive's legend list](https://piltoverarchive.com/cards?types=legend&rarities=rare).
 2. Add each by champion name, in A–Z order. If a champion gets a second legend, give both entries the community nickname, like `Master Yi (PG)` and `Master Yi (XP)`. That renames the existing entry; see below.
-3. `npm run check && npx vitest run`, then open a PR.
+3. `npm run icons:fetch` to download the new champions' achievement icons, then `npm run check && npx vitest run`, and open a PR with the new files in `static/achievements/`.
 
 Matches store the legend's name as text. Never remove a legend that has been picked, and when you rename one, rename its old picks too, or its stats start from zero. On the server, with the app stopped:
 
 ```sh
 sqlite3 data/poroleague.db "UPDATE matches SET p1_legend = 'Jinx (A)' WHERE p1_legend = 'Jinx'; UPDATE matches SET p2_legend = 'Jinx (A)' WHERE p2_legend = 'Jinx';"
+```
+
+Achievement ids are derived from legend names, so a rename leaves earned rows under the old id: rename them in `player_achievements` too (`legend-<old-key>-…` → `legend-<new-key>-…`, key = lowercase, apostrophes dropped, other non-alphanumerics → `-`):
+
+```sh
+sqlite3 data/poroleague.db "UPDATE player_achievements SET achievement_id = replace(achievement_id, 'legend-jinx-', 'legend-jinx-a-') WHERE achievement_id LIKE 'legend-jinx-%';"
 ```
