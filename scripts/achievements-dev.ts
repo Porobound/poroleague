@@ -1,4 +1,4 @@
-// Dev only: grants (dated now) or clears your achievements, to check tiles, locked and progress
+// Dev only: grants (dated now) or clears your achievements, to check rows, locked and progress
 // states, and long names. `none` clears; the next app start re-awards what your results earned.
 import Database from 'better-sqlite3';
 import { ACHIEVEMENTS } from '#lib/league/achievements.ts';
