@@ -444,7 +444,7 @@ describe('GET /api/v1/seasons/:slug/legends', () => {
 
 describe('cosmetics on player objects', () => {
 	const AHRI = {
-		id: 'legend-ahri-master',
+		id: 'legend-ahri-gold',
 		name: 'Ahri Master',
 		title: 'Ahri Master',
 		tier: 'gold',
@@ -457,9 +457,9 @@ describe('cosmetics on player objects', () => {
 		seedMatch({ seasonId: s.id, group: 1, round: 1, p1Id: 'p1', p2Id: 'p2' });
 		db.update(players)
 			.set({
-				titleAchievement: 'legend-ahri-master',
-				badgeAchievement: 'legend-ahri-master',
-				frameAchievement: 'legend-renamed-master'
+				titleAchievement: 'legend-ahri-gold',
+				badgeAchievement: 'legend-renamed-gold',
+				frameTier: 'silver'
 			})
 			.where(eq(players.id, 'p1'))
 			.run();
@@ -467,7 +467,7 @@ describe('cosmetics on player objects', () => {
 
 	it('every endpoint sends the equipped title, badge and frame, icons absolute', async () => {
 		const { body } = await season('s1');
-		const p1 = { ...ref('p1', 'Player 1'), title: AHRI, badge: AHRI };
+		const p1 = { ...ref('p1', 'Player 1'), title: AHRI, frame: 'silver' };
 		expect(body.players[0]).toEqual({ ...p1, group: 1, dropped: false });
 		const row = body.groups[0].standings.find(
 			(r: { player: { id: string } }) => r.player.id === 'p1'
@@ -479,6 +479,6 @@ describe('cosmetics on player objects', () => {
 
 	it('an unknown equipped id is null, like on the site', async () => {
 		const { body } = await season('s1');
-		expect(body.players[0].frame).toBeNull(); // legend-renamed-master isn't in the list
+		expect(body.players[0].badge).toBeNull(); // legend-renamed-gold isn't in the list
 	});
 });

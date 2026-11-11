@@ -2,7 +2,7 @@
 // show, so a page redesign can't break a consumer. Avatars and Discord ids never leave here.
 import { json } from '@sveltejs/kit';
 import { achievementById, type Achievement } from '#lib/league/achievements.ts';
-import { NOTHING, type Equipped } from '#lib/league/cosmetics.ts';
+import { look, NOTHING, type Equipped } from '#lib/league/cosmetics.ts';
 import { roundName } from '#lib/league/bracket.ts';
 import { gameWinPct, legendMatches, legendStats, matchWinPct } from '#lib/league/legendStats.ts';
 import { published } from '#lib/league/publish.ts';
@@ -50,7 +50,7 @@ export const playerRef = (p: Person, origin: string) => ({
 	former: p.former,
 	title: equipped(p.titleAchievement, origin),
 	badge: equipped(p.badgeAchievement, origin),
-	frame: equipped(p.frameAchievement, origin)
+	frame: look(p).frame
 });
 
 const summary = (s: Season) => ({

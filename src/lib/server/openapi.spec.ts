@@ -140,7 +140,7 @@ describe('responses match the spec', () => {
 			.set({
 				titleAchievement: 'first-blood',
 				badgeAchievement: 'champion',
-				frameAchievement: 'legend-jinx-master'
+				frameTier: 'gold'
 			})
 			.where(eq(players.id, 'p1'))
 			.run();
