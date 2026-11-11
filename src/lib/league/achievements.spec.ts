@@ -1,9 +1,11 @@
 import { beforeEach, describe, expect, it } from 'vitest';
+import { existsSync } from 'node:fs';
 import { LEGENDS } from '#lib/legends.ts';
 import {
 	ACHIEVEMENTS,
 	achievementById,
 	champion,
+	emblem,
 	evaluate,
 	key,
 	type History,
@@ -252,5 +254,15 @@ describe('seasons, comeback and one-offs', () => {
 		const h = H([], [S({ cutAt: D(40) }), S({ id: 2, cutAt: D(20), championAt: D(25) })]);
 		expect(get(h, 'top-cut').hit).toEqual({ at: D(20), seasonId: 2 });
 		expect(get(h, 'champion').hit).toEqual({ at: D(25), seasonId: 2 });
+	});
+});
+
+describe('icons', () => {
+	it('are all in static/', () => {
+		const paths = [
+			...ACHIEVEMENTS.map((a) => a.icon),
+			...(['bronze', 'silver', 'gold'] as const).map(emblem)
+		];
+		expect(paths.filter((p) => !existsSync(`static${p}`))).toEqual([]);
 	});
 });
