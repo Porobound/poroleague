@@ -45,7 +45,8 @@ export const SEASONS = {
 	holidayEarly: 'e2e-holiday-early',
 	holidayBadge: 'e2e-holiday-badge',
 	holidayPublish: 'e2e-holiday-publish',
-	achievements: 'e2e-achievements'
+	achievements: 'e2e-achievements',
+	cosmetics: 'e2e-cosmetics'
 };
 export type SeasonKey = keyof typeof SEASONS;
 

@@ -1,12 +1,14 @@
 <script lang="ts">
 	import Achievements from '#lib/components/Achievements.svelte';
 	import Avatar from '#lib/components/Avatar.svelte';
+	import Customize from '#lib/components/Customize.svelte';
+	import Flair from '#lib/components/Flair.svelte';
 	import PlayerLegends from '#lib/components/PlayerLegends.svelte';
 	import SeasonHistory from '#lib/components/SeasonHistory.svelte';
 	import { pct } from '#lib/format.ts';
 	import type { PageProps } from './$types';
 
-	let { data }: PageProps = $props();
+	let { data, form }: PageProps = $props();
 	const { player, totals } = $derived(data);
 	const n = $derived(data.history.length);
 </script>
@@ -16,13 +18,36 @@
 </svelte:head>
 
 <div class="page">
-	<section class="player-head">
-		<Avatar name={player.displayName} src={player.avatar} size={72} former={player.former} />
+	{#if form?.message}<p class="pb-notice" role="status">{form.message}</p>{/if}
+
+	<section class="player-head" aria-labelledby="player-h">
+		<Avatar
+			name={player.displayName}
+			src={player.avatar}
+			size={72}
+			former={player.former}
+			frame={data.cosmetics.frame}
+		/>
 		<div class="who">
 			<span class="eyebrow">Career</span>
-			<h1 class={[player.former && 'pb-former']}>{player.displayName}</h1>
-			<span class="muted small">{n} season{n === 1 ? '' : 's'} · first season {data.first}</span>
+			<div class="name-row">
+				<h1 id="player-h" class={[player.former && 'pb-former']}>{player.displayName}</h1>
+				{#if data.cosmetics.badge}<Flair badge={data.cosmetics.badge} />{/if}
+			</div>
+			<p class="muted small">
+				{#if data.cosmetics.title}<span class="cos-title">{data.cosmetics.title}</span
+					>{' · '}{/if}{n}
+				season{n === 1 ? '' : 's'} · first season {data.first}
+			</p>
 		</div>
+		{#if data.customize}
+			<Customize
+				name={player.displayName}
+				avatar={player.avatar}
+				{...data.customize}
+				error={form?.customizeError}
+			/>
+		{/if}
 	</section>
 
 	{#if totals.played}
@@ -64,15 +89,28 @@
 	.player-head {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 24px;
+		gap: 16px 24px;
 		align-items: center;
 	}
 	.who {
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
+		gap: 2px;
+		flex: 1 1 180px;
+		min-width: 0;
 	}
-	.who h1 {
+	.who h1,
+	.who p {
 		margin: 0;
+	}
+	.name-row {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		min-width: 0;
+	}
+	.name-row h1 {
+		min-width: 0;
+		overflow-wrap: anywhere;
 	}
 </style>
