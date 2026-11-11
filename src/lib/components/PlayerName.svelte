@@ -35,13 +35,16 @@
 	const link = $derived(former ? null : href);
 </script>
 
-<svelte:element
-	this={link ? 'a' : 'span'}
-	class={[cell ? 'pb-player' : 'pb-pname', !cell && former && 'is-former', extra]}
-	href={link ?? undefined}
-	><Avatar {name} src={avatar} {size} {former} /><span
+{#snippet who()}
+	<Avatar {name} src={avatar} {size} {former} /><span
 		class={[cell ? 'pb-player-name' : 'pb-pname-text', cell && former && 'pb-former']}>{name}</span
-	>{#if badge && !former}<Flair {badge} />{/if}{#if tag}<span class="pb-badge pb-badge-sm"
-			>{tag}</span
-		>{/if}{@render children?.()}</svelte:element
+	>
+{/snippet}
+
+<!-- Only the avatar and name are the link: the badge is a button of its own. -->
+<span class={[cell ? 'pb-player' : 'pb-pname', !cell && former && 'is-former', extra]}
+	>{#if link}<a class="pb-pname-link" href={link}>{@render who()}</a
+		>{:else}{@render who()}{/if}{#if badge && !former}<Flair {badge} />{/if}{#if tag}<span
+			class="pb-badge pb-badge-sm">{tag}</span
+		>{/if}{@render children?.()}</span
 >
