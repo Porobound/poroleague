@@ -4,6 +4,7 @@ import {
 	freezeTimes,
 	removeSeason,
 	renamePlayer,
+	seedAchievements,
 	seedEmptySeason,
 	seedEntries,
 	seedFinishedGroups,
@@ -34,6 +35,14 @@ test('a season in play', async ({ browser }) => {
 		flag: 'We played 2-1 but the second game was conceded after a misclick, so this needs a look.'
 	});
 	seedEmptySeason('shotsDraft', 'draft');
+	// Seeds bypass the award. One finished legend track, one league tier and a one-off show every row state.
+	seedAchievements(me, [
+		'first-blood',
+		'dice-bronze',
+		'legend-renata-glasc-bronze',
+		'legend-renata-glasc-silver',
+		'legend-renata-glasc-gold'
+	]);
 	freezeTimes(NOW);
 	const pages: [string, string, string?][] = [
 		['visitor-seasons', '/seasons'],

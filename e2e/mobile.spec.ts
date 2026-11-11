@@ -4,6 +4,7 @@ import { expect, test, type Page } from '@playwright/test';
 import {
 	removeSeason,
 	renamePlayer,
+	seedAchievements,
 	seedEmptySeason,
 	seedHoliday,
 	seedResult,
@@ -34,6 +35,14 @@ test.beforeAll(() => {
 	seedHoliday('mobile', 1, day(1), day(5), 'approved');
 	seedHoliday('mobile', 3, day(1), day(5));
 	seedEmptySeason('mobileDraft', 'draft');
+	seedAchievements(me, [
+		'first-blood',
+		'seasons-bronze',
+		'legend-renata-glasc-bronze',
+		'legend-renata-glasc-silver',
+		'legend-renata-glasc-gold',
+		'legend-master-yi-pg-bronze'
+	]);
 });
 test.afterAll(() => {
 	for (const key of ['mobile', 'mobileSignup', 'mobileDraft'] as const) removeSeason(key);

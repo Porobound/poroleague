@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Achievements from '#lib/components/Achievements.svelte';
 	import Avatar from '#lib/components/Avatar.svelte';
 	import PlayerLegends from '#lib/components/PlayerLegends.svelte';
 	import SeasonHistory from '#lib/components/SeasonHistory.svelte';
@@ -55,6 +56,8 @@
 			<PlayerLegends legends={data.legends} />
 		</section>
 	{/if}
+
+	<Achievements data={data.achievements} all={data.allLegends} />
 </div>
 
 <style>
