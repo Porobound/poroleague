@@ -5,6 +5,7 @@ import {
 	removeSeason,
 	renamePlayer,
 	seedAchievements,
+	seedCosmetics,
 	seedEmptySeason,
 	seedEntries,
 	seedFinishedGroups,
@@ -43,6 +44,7 @@ test('a season in play', async ({ browser }) => {
 		'legend-renata-glasc-silver',
 		'legend-renata-glasc-gold'
 	]);
+	seedCosmetics(me, { title: 'legend-renata-glasc-gold', badge: 'first-blood', frame: 'gold' });
 	freezeTimes(NOW);
 	const pages: [string, string, string?][] = [
 		['visitor-seasons', '/seasons'],
@@ -61,6 +63,7 @@ test('a season in play', async ({ browser }) => {
 		['player-season', s, me],
 		['player-schedule', `${s}/schedule`, me],
 		['player-own-page', `${s}/players/${me}`, me],
+		['player-career-customize', `/players/${me}?customize`, me],
 		['player-match-open', `${s}/matches/${open}`, me],
 		['player-match-reported', `${s}/matches/${reported}`, me],
 		['player-login-not-organizer', '/login/not-organizer', me],

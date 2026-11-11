@@ -25,6 +25,16 @@
 			? coversLabel(holidayWeeks({ from, to }, cal), cal.roundsPerWeek, cal.maxRound)
 			: ''
 	);
+	// One muted line under the name: group · rank · season. Chips are kept for states that need a look.
+	const meta = $derived(
+		[
+			player.group && groupName(player.group),
+			!player.dropped && row && `#${data.rank} in group`,
+			season.name
+		]
+			.filter(Boolean)
+			.join(' · ')
+	);
 	const HOLIDAY = {
 		pending: { h: 'Holiday requested', badge: 'Pending', tone: '' },
 		approved: { h: 'Holiday approved', badge: 'Approved', tone: 'pb-badge-win' },
@@ -58,67 +68,62 @@
 			<div class="name-row">
 				<h1 id="player-h" class={[player.former && 'pb-former']}>{player.displayName}</h1>
 				{#if data.cosmetics.badge}<Flair badge={data.cosmetics.badge} />{/if}
-				<a href="/players/{player.playerId}">Career</a>
-				{#if data.canRequest && cal}
-					<ConfirmButton
-						action="?/requestHoliday"
-						variant="ghost"
-						small
-						label="Going away?"
-						title="Going away?"
-						confirmLabel="Request holiday"
-						confirmDisabled={!from || !to || !!problem}
-					>
-						<p>
-							Once an organizer approves it, your matches in those weeks unlock so you can play them
-							before you go.
-						</p>
-						<label class="pb-field">
-							First day away
-							<input
-								class="pb-input"
-								type="date"
-								name="from"
-								min={cal.today}
-								max={cal.deadline}
-								bind:value={from}
-							/>
-						</label>
-						<label class="pb-field">
-							Last day away
-							<input
-								class="pb-input"
-								type="date"
-								name="to"
-								min={from || cal.today}
-								max={cal.deadline}
-								bind:value={to}
-							/>
-						</label>
-						{#if problem}
-							<p role="alert" class="small">{problem}</p>
-						{:else if covers}
-							<p aria-live="polite" class="muted small">Covers {covers}.</p>
-						{/if}
-					</ConfirmButton>
-				{/if}
 			</div>
-			{#if data.cosmetics.title}
-				<p class="cos-title" data-tier={data.cosmetics.title.tier}>{data.cosmetics.title.text}</p>
+			<p class="head-meta muted small">
+				<span
+					>{#if data.cosmetics.title}<span class="cos-title">{data.cosmetics.title}</span
+						>{' · '}{/if}{meta}</span
+				>
+				{#if player.dropped}<span class="pb-badge pb-badge-loss">Dropped</span>{/if}
+				{#if data.away}<span class="pb-badge">On holiday · {data.away}</span>{/if}
+				{#if player.former}<span>· Account erased.</span>{/if}
+			</p>
+		</div>
+		<div class="head-actions">
+			<a href="/players/{player.playerId}">Career</a>
+			{#if data.canRequest && cal}
+				<ConfirmButton
+					action="?/requestHoliday"
+					variant="ghost"
+					small
+					label="Going away?"
+					title="Going away?"
+					confirmLabel="Request holiday"
+					confirmDisabled={!from || !to || !!problem}
+				>
+					<p>
+						Once an organizer approves it, your matches in those weeks unlock so you can play them
+						before you go.
+					</p>
+					<label class="pb-field">
+						First day away
+						<input
+							class="pb-input"
+							type="date"
+							name="from"
+							min={cal.today}
+							max={cal.deadline}
+							bind:value={from}
+						/>
+					</label>
+					<label class="pb-field">
+						Last day away
+						<input
+							class="pb-input"
+							type="date"
+							name="to"
+							min={from || cal.today}
+							max={cal.deadline}
+							bind:value={to}
+						/>
+					</label>
+					{#if problem}
+						<p role="alert" class="small">{problem}</p>
+					{:else if covers}
+						<p aria-live="polite" class="muted small">Covers {covers}.</p>
+					{/if}
+				</ConfirmButton>
 			{/if}
-			<div class="badges">
-				{#if player.group}<span class="pb-badge">{groupName(player.group)}</span>{/if}
-				{#if player.dropped}
-					<span class="pb-badge pb-badge-loss">Dropped</span>
-				{:else if row}
-					<span class="pb-badge pb-badge-rank">#{data.rank} in group</span>
-				{/if}
-				{#if data.away}
-					<span class="pb-badge">On holiday · {data.away}</span>
-				{/if}
-				<span class="muted small">{season.name}</span>
-				{#if player.former}<span class="muted small">· Account erased.</span>{/if}
-			</div>
 		</div>
 	</section>
 
@@ -370,22 +375,27 @@
 	}
 	.name-row {
 		display: flex;
-		flex-wrap: wrap;
-		align-items: baseline;
-		gap: 4px 14px;
-		margin-bottom: 6px;
+		align-items: center;
+		gap: 10px;
+		min-width: 0;
 	}
 	.name-row h1 {
 		margin: 0;
+		min-width: 0;
+		overflow-wrap: anywhere;
 	}
-	.cos-title {
-		margin: 0 0 8px;
-	}
-	.badges {
+	.head-meta {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 8px;
 		align-items: center;
+		gap: 4px 8px;
+		margin: 4px 0 0;
+	}
+	.head-actions {
+		display: flex;
+		align-items: center;
+		gap: 16px;
+		margin-left: auto;
 	}
 	.head-text {
 		flex: 1 1 200px;
@@ -394,6 +404,9 @@
 	@media (max-width: 640px) {
 		.player-head {
 			gap: 14px;
+		}
+		.head-actions {
+			flex: 1 1 100%;
 		}
 	}
 </style>

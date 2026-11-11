@@ -843,7 +843,23 @@ a:hover {
 .pb-pname-link:hover .pb-player-name {
 	color: var(--accent);
 }
-/* Customize panel on the owner's career page. */
+/* The design system's flex and grid classes would otherwise show a hidden element. */
+[hidden] {
+	display: none !important;
+}
+/* Equipped title: plain text, a step above the muted line it sits in. */
+.cos-title {
+	color: var(--ink);
+	font-weight: 500;
+}
+/* Customize panel on the owner's career page: the button sits at the header's right edge and the
+   open panel takes the row below. */
+.cz {
+	margin-left: auto;
+}
+.cz[open] {
+	flex: 1 1 100%;
+}
 .cz > summary {
 	list-style: none;
 	width: fit-content;
@@ -855,24 +871,40 @@ a:hover {
 	margin-top: 16px;
 	display: flex;
 	flex-direction: column;
-	gap: 20px;
+	gap: 16px;
 	padding: 24px;
 	background: var(--surface-raised);
 	border: 1px solid var(--line);
 	border-radius: var(--radius-md);
 }
-.cz h2 {
+.cz h2,
+.cz p {
 	margin: 0;
+}
+.cz h2 {
 	font: 600 20px/26px var(--font-display);
+}
+.cz-body {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+	gap: 24px;
+	align-items: start;
+}
+.cz-fields {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+	min-width: 0;
 }
 .cz .pv {
 	display: flex;
 	flex-direction: column;
-	gap: 14px;
+	gap: 12px;
 	padding: 16px;
 	background: var(--surface);
 	border: 1px dashed var(--line);
 	border-radius: var(--radius-md);
+	min-width: 0;
 }
 .cz .pv-head {
 	display: flex;
@@ -883,14 +915,13 @@ a:hover {
 .cz .pv-who {
 	display: flex;
 	flex-direction: column;
-	gap: 4px;
+	gap: 2px;
 	min-width: 0;
 }
 .cz .pv-name {
 	display: flex;
-	flex-wrap: wrap;
 	align-items: center;
-	gap: 4px 8px;
+	gap: 8px;
 	font: 700 22px/28px var(--font-display);
 	overflow-wrap: anywhere;
 }

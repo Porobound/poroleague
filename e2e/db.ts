@@ -234,3 +234,16 @@ export const seedAchievements = (playerId: string, ids: string[]) =>
 		);
 		for (const id of ids) add.run(playerId, id);
 	});
+
+// Equipped cosmetics as if saved on the career page; seed the achievements first (seedAchievements).
+export const seedCosmetics = (
+	playerId: string,
+	c: { title?: string; badge?: string; frame?: 'bronze' | 'silver' | 'gold' }
+) =>
+	write((db) =>
+		db
+			.prepare(
+				'update players set title_achievement = ?, badge_achievement = ?, frame_tier = ? where id = ?'
+			)
+			.run(c.title ?? null, c.badge ?? null, c.frame ?? null, playerId)
+	);
