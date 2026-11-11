@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Avatar from '#lib/components/Avatar.svelte';
 	import ConfirmButton from '#lib/components/ConfirmButton.svelte';
-	import MatchCard from '#lib/components/MatchCard.svelte';
+	import MatchRows from '#lib/components/MatchRows.svelte';
 	import PlayerLegends from '#lib/components/PlayerLegends.svelte';
 	import SeasonHistory from '#lib/components/SeasonHistory.svelte';
 	import { pct } from '#lib/format.ts';
@@ -12,7 +12,9 @@
 	let { data, form }: PageProps = $props();
 	let typed = $state('');
 	const { season, player, row } = $derived(data);
-	const isMe = $derived(data.user?.id === player.playerId);
+	const played = $derived(
+		data.matches.filter((c) => c.status === 'reported' || c.status === 'flagged').length
+	);
 	let from = $state('');
 	let to = $state('');
 	const cal = $derived(data.calendar);
@@ -164,33 +166,22 @@
 		</section>
 	{/if}
 
-	{#if data.early.length}
-		<section aria-labelledby="early-h">
-			<h2 id="early-h">Unlocked early</h2>
+	<section class="matches" aria-labelledby="matches-h">
+		<div class="matches-h">
+			<h2 id="matches-h">Matches this season</h2>
+			{#if data.matches.length}
+				<span class="muted small">{played} of {data.matches.length} played</span>
+			{/if}
+		</div>
+		{#if data.matches.some((c) => c.early)}
 			<p class="muted">
-				A holiday opened these before their week. Results stay hidden from everyone else until the
-				week is published.
+				A holiday opened some of these before their week. Results stay hidden from everyone else
+				until the week is published.
 			</p>
-			<div class="cards">
-				{#each data.early as c (c.id)}<MatchCard {...c.props} />{/each}
-			</div>
-		</section>
-	{/if}
-
-	{#if data.upNext.length}
-		<section aria-labelledby="up-next">
-			<h2 id="up-next">{isMe ? 'Who you play next' : 'Up next'}</h2>
-			<div class="cards">
-				{#each data.upNext as c (c.id)}<MatchCard {...c.props} />{/each}
-			</div>
-		</section>
-	{/if}
-
-	<section>
-		<h2>Matches this season</h2>
+		{/if}
 		{#if data.matches.length}
-			<div class="cards">
-				{#each data.matches as c (c.id)}<MatchCard {...c.props} />{/each}
+			<div class="panel rows">
+				<MatchRows cards={data.matches} player={player.playerId} label="Matches this season" />
 			</div>
 		{:else}
 			<p class="muted">The schedule appears once the groups are locked.</p>
@@ -270,6 +261,25 @@
 </div>
 
 <style>
+	.matches {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+	.matches p {
+		margin: 0;
+	}
+	.matches-h {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 4px 12px;
+	}
+	.rows {
+		padding: 0;
+		overflow: hidden;
+	}
 	.holiday {
 		display: flex;
 		flex-direction: column;

@@ -24,9 +24,13 @@ test('both players see the early match, the opponent reports it, it stays hidden
 }) => {
 	const p1 = await browser.newPage(as(player('holidayEarly', 1)));
 	await p1.goto(`/seasons/${slug}/players/${player('holidayEarly', 1)}`);
-	await expect(
-		p1.getByRole('region', { name: 'Unlocked early' }).getByText('HolidayEarly 4')
-	).toBeVisible();
+	const mine = p1.getByRole('list', { name: 'Matches this season' }).getByRole('listitem');
+	await expect(mine.first()).toContainText('HolidayEarly 4');
+	await expect(mine.first().getByText('Early', { exact: true })).toBeVisible();
+	await expect(p1.getByText('A holiday opened some of these before their week.')).toBeVisible();
+	const visitor = await browser.newPage();
+	await visitor.goto(`/seasons/${slug}/players/${player('holidayEarly', 1)}`);
+	await expect(visitor.getByRole('listitem').filter({ hasText: 'HolidayEarly 4' })).toHaveCount(0);
 
 	for (const id of [player('holidayEarly', 2), null]) {
 		const someone = id ? await browser.newPage(as(id)) : await browser.newPage();
@@ -40,7 +44,10 @@ test('both players see the early match, the opponent reports it, it stays hidden
 	await p4.goto(`/seasons/${slug}`);
 	await expect(p4.getByText('A holiday opened one of your matches early.')).toBeVisible();
 	await p4.getByRole('link', { name: 'Play before the week starts' }).click();
-	await p4.getByRole('region', { name: 'Unlocked early' }).getByRole('link').last().click();
+	await p4
+		.getByRole('list', { name: 'Matches this season' })
+		.getByRole('link', { name: /against HolidayEarly 1(?!\d).*Report result/ })
+		.click();
 
 	const game = (n: number) => p4.getByRole('radiogroup', { name: new RegExp(`^Game ${n}`) });
 	await p4.getByLabel('Legend').nth(0).selectOption('Ahri');

@@ -1,6 +1,7 @@
 import { isHttpError, isRedirect } from '@sveltejs/kit';
 import { and, eq } from 'drizzle-orm';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Card } from '#lib/matchCard.ts';
 import {
 	actions as playerPageActions,
 	load as playerPage
@@ -470,9 +471,9 @@ describe('unlocked matches', () => {
 	const report = (user: User) =>
 		matchActions.report!(event({ slug: 's1', id: String(m13) }, user, result));
 	const cards = async (id: string, user: User | null) =>
-		((await loaded(playerPage(event({ slug: 's1', id }, user)))).early as { id: number }[]).map(
-			(c) => c.id
-		);
+		((await loaded(playerPage(event({ slug: 's1', id }, user)))).matches as Card[])
+			.filter((c) => c.early)
+			.map((c) => c.id);
 
 	it('the match page opens for its two players and organizers only', async () => {
 		expect(await mode(m13, as('p1'))).toBe('report');
@@ -550,7 +551,7 @@ describe('unlocked matches', () => {
 		expect(await cards('p1', null)).toEqual([]);
 		expect(await cards('p2', as('p1'))).toEqual([]);
 		const d = await loaded(playerPage(event({ slug: 's1', id: 'p1' }, as('p1'))));
-		expect((d.matches as { id: number }[]).map((c) => c.id)).not.toContain(m13);
+		expect((d.matches as Card[])[0].id).toBe(m13);
 	});
 
 	it('the season page tells both players until it is played', async () => {
