@@ -9,8 +9,7 @@ const CDRAGON =
 const OUT = 'static/achievements';
 const ITEMS = {
 	'first-blood': 'spell/SummonerDot',
-	'veteran-3': 'item/3340',
-	'veteran-10': 'item/3026',
+	seasons: 'item/3340',
 	'perfect-group': 'item/3031',
 	comeback: 'spell/SummonerHeal',
 	'top-cut': 'spell/SummonerFlash',
@@ -34,8 +33,9 @@ for (const name of new Set(LEGENDS.map(champion))) {
 	await get(`${DDRAGON}/img/champion/${id}.png`, `${OUT}/champions/${key(name)}.png`);
 }
 for (const t of ['bronze', 'silver', 'gold']) {
+	// The emblem sits in the middle of a 1280×720 canvas. The committed files are cropped to it:
+	// magick <file> -crop 280x280+500+198 +repage -resize 160x160 <file>
 	await get(`${CDRAGON}/ranked-emblem/emblem-${t}.png`, `${OUT}/tiers/${t}.png`);
-	await get(`${CDRAGON}/ranked-mini-crests/${t}.svg`, `${OUT}/tiers/${t}.svg`);
 }
 for (const [id, path] of Object.entries(ITEMS))
 	await get(`${DDRAGON}/img/${path}.png`, `${OUT}/items/${id}.png`);

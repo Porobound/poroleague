@@ -185,46 +185,56 @@ describe('result writes award', () => {
 });
 
 describe('careerAchievements', () => {
-	it('shows started legend tracks, league tracks and one-offs; earned rows win over progress', () => {
+	it('gives one row per started track, with the tier reached and progress to the next', () => {
 		seedPlayers(2);
 		const s = season('a');
 		win(s.id, 1, 1);
 		win(s.id, 2, 2);
 		db.insert(playerAchievements)
 			.values([
-				{ playerId: 'p1', achievementId: 'legend-jinx-master', unlockedAt: D(5), seasonId: null },
-				{ playerId: 'p1', achievementId: 'legend-renamed-player', unlockedAt: D(5), seasonId: null }
+				{ playerId: 'p1', achievementId: 'legend-jinx-bronze', unlockedAt: D(5), seasonId: null },
+				{ playerId: 'p1', achievementId: 'legend-jinx-silver', unlockedAt: D(6), seasonId: null },
+				{ playerId: 'p1', achievementId: 'legend-jinx-gold', unlockedAt: D(7), seasonId: null },
+				{
+					playerId: 'p1',
+					achievementId: 'legend-renamed-bronze',
+					unlockedAt: D(5),
+					seasonId: null
+				},
+				{ playerId: 'p1', achievementId: 'dice-bronze', unlockedAt: D(2), seasonId: s.id }
 			])
 			.run();
 		const c = careerAchievements(db, 'p1');
-		expect(c.earned).toBe(1); // unknown ids don't count
-		expect(c.legends.map((t) => t.title)).toEqual(['Jinx', 'Ahri']);
-		const [jinx, ahri] = c.legends;
-		expect(jinx.tiles.map((t) => [t.earned, t.have])).toEqual([
-			[null, 0],
-			[null, 0],
-			['2026-01-05', 25]
-		]);
-		expect(ahri.tiles[0]).toMatchObject({
-			name: 'Ahri Player',
-			have: 2,
-			need: 3,
-			earned: null,
-			crest: '/achievements/tiers/bronze.svg'
+		expect(c.earned).toBe(4); // unknown ids don't count
+		// In progress first, finished tracks last. Legends never played aren't listed.
+		expect(c.legends.map((t) => t.name)).toEqual(['Ahri', 'Jinx']);
+		const [ahri, jinx] = c.legends;
+		expect(ahri).toMatchObject({
+			kind: 'legend',
+			icon: '/achievements/champions/ahri.png',
+			tier: null,
+			next: { have: 2, need: 3, name: 'Ahri Player' }
 		});
-		expect(c.tracks.map((t) => [t.title, t.tiles.map((x) => x.have)])).toEqual([
-			['Variety', [1, 1, 1]], // Ahri has her 2 matches
-			['Dice rolls', [2, 2, 2]]
+		expect(ahri.tiers.map((t) => [t.name, t.need, t.earned])).toEqual([
+			['Ahri Player', 3, null],
+			['Ahri Expert', 10, null],
+			['Ahri Master', 25, null]
 		]);
-		expect(c.ones.map((t) => t.id)).toEqual([
-			'first-blood',
-			'veteran-3',
-			'veteran-10',
-			'perfect-group',
-			'comeback',
-			'top-cut',
-			'champion'
+		expect(jinx).toMatchObject({ tier: 'gold', next: null });
+		expect(jinx.tiers.map((t) => t.earned)).toEqual(['2026-01-05', '2026-01-06', '2026-01-07']);
+		expect(c.league.map((t) => [t.name, t.kind, t.tier, t.next])).toEqual([
+			['Variety', 'rank', null, { have: 1, need: 3, name: 'Variety Player' }], // Ahri has her 2 matches
+			['Dice', 'rank', 'bronze', { have: 2, need: 6, name: 'Dice Expert' }],
+			['Seasons', 'item', null, { have: 1, need: 2, name: 'Veteran' }],
+			['Comeback', 'item', null, { have: 0, need: 1, name: 'Comeback Kid' }]
 		]);
-		expect(c.ones[0]).toMatchObject({ have: 1, need: 1, earned: null, crest: null }); // seeded rows weren't awarded
+		// A rank track shows the emblem of the tier reached.
+		expect(c.league[1].icon).toBe('/achievements/tiers/bronze.png');
+		expect(c.ones.map((t) => [t.id, t.earned])).toEqual([
+			['first-blood', null], // seeded results weren't awarded
+			['perfect-group', null],
+			['top-cut', null],
+			['champion', null]
+		]);
 	});
 });
