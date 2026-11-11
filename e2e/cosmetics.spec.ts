@@ -80,6 +80,48 @@ test('without JavaScript the pickers are plain grouped selects', async ({ browse
 	await expect(page.getByRole('region', { name }).getByText(/^First Blood · /)).toBeVisible();
 });
 
+test('a visitor hides cosmetics for themselves on every page, and brings them back', async ({
+	browser
+}) => {
+	const page = await browser.newPage(); // not logged in; the tests above left a title, badge and frame on
+	const head = page.getByRole('region', { name });
+	const worn = async (count: number) => {
+		await expect(head.getByRole('button', { name: /^Badge: First Blood/ })).toHaveCount(count);
+		await expect(head.getByRole('img', { name: 'Bronze frame' })).toHaveCount(count);
+		const title = head.getByText('First Blood ·', { exact: true });
+		await (count ? expect(title).toBeVisible() : expect(title).toBeHidden());
+	};
+	await page.goto(`/players/${me}`);
+	await worn(1);
+	await page.getByRole('button', { name: 'Hide titles, badges and frames' }).click();
+	await worn(0);
+	await expect(head.getByRole('heading', { name })).toBeVisible(); // the plain name stays
+	await page.goto(`/seasons/${slug}/players/${me}`);
+	await worn(0);
+	await page.goto(`/seasons/${slug}`);
+	await expect(page.getByRole('button', { name: /^Badge:/ })).toHaveCount(0);
+
+	await page.goto(`/players/${me}`);
+	await page.getByRole('button', { name: 'Show them again' }).click();
+	await worn(1);
+});
+
+test('with cosmetics hidden, the owner still sees their picks in Customize', async ({
+	browser
+}) => {
+	const page = await browser.newPage(as(me));
+	// The badge is a button in two places: the page header and the preview's standings row.
+	const badges = page.getByRole('region', { name }).getByRole('button', { name: /^Badge:/ });
+	await page.goto(`/players/${me}?customize`);
+	await expect(badges).toHaveCount(2);
+	await page.getByRole('button', { name: 'Hide titles, badges and frames' }).click();
+	await page.goto(`/players/${me}?customize`);
+	await expect(badges).toHaveCount(1); // the preview's
+	const form = page.getByRole('form', { name: 'Customize your profile' });
+	await expect(form.getByRole('img', { name: 'Bronze frame' }).first()).toBeVisible();
+	await expect(form.getByRole('button', { name: /^Badge: First Blood/ })).toBeVisible();
+});
+
 test("another player can't customize someone else's profile", async ({ browser }) => {
 	const page = await browser.newPage(as(player('cosmetics', 2)));
 	await page.goto(`/players/${me}`);

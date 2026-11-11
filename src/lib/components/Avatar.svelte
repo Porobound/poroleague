@@ -59,14 +59,9 @@
 {/snippet}
 
 {#if frame && !former}
-	<span
-		class="pb-framed pb-frame-{frame}"
-		style:padding="{Math.max(3, Math.round(size * 0.14))}px"
-		role="img"
-		aria-label="{TIER[frame]} frame"
-	>
+	<span class="pb-framed pb-frame-{frame}" style:padding="{Math.max(3, Math.round(size * 0.14))}px">
 		{@render face()}
-		<svg class="pb-ring" viewBox="0 0 100 100" aria-hidden="true">
+		<svg class="pb-ring" viewBox="0 0 100 100" role="img" aria-label="{TIER[frame]} frame">
 			<circle cx="50" cy="50" r="46" fill="none" stroke="currentColor" stroke-width="5" />
 			{#if frame !== 'bronze'}
 				<circle

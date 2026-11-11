@@ -1,4 +1,4 @@
-import { error, fail } from '@sveltejs/kit';
+import { error, fail, redirect } from '@sveltejs/kit';
 import { ACHIEVEMENTS } from '#lib/league/achievements.ts';
 import { choices, look, picks, type Slot } from '#lib/league/cosmetics.ts';
 import { legendMatches, playerLegends } from '#lib/league/legendStats.ts';
@@ -23,6 +23,7 @@ export const load: PageServerLoad = ({ params, locals, url }) => {
 	return {
 		player: me,
 		cosmetics: look(me),
+		plain: !!locals.plain,
 		customize: c && {
 			// ?customize links straight to the open panel.
 			open: url.searchParams.has('customize'),
@@ -48,6 +49,18 @@ export const load: PageServerLoad = ({ params, locals, url }) => {
 };
 
 export const actions: Actions = {
+	// Anyone, logged in or not, flips whether they see cosmetics at all. Read in hooks.server.ts.
+	cosmetics: ({ cookies, url }) => {
+		if (cookies.get('cosmetics') === 'off') cookies.delete('cosmetics', { path: '/' });
+		else
+			cookies.set('cosmetics', 'off', {
+				path: '/',
+				maxAge: 60 * 60 * 24 * 365,
+				sameSite: 'lax',
+				httpOnly: true
+			});
+		redirect(303, url.pathname);
+	},
 	// The owner equips earned achievements. Not a result change: no audit row.
 	customize: async (event) => {
 		const user = playerAction(event);

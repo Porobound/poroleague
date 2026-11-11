@@ -34,5 +34,11 @@ export const handle: Handle = async ({ event, resolve }) => {
 		: null;
 	event.locals.session = row ? { id: row.session.id, accessToken: row.session.accessToken } : null;
 	const theme = event.cookies.get('theme') === 'light' ? 'light' : 'dark';
-	return resolve(event, { transformPageChunk: ({ html }) => html.replace('%theme%', theme) });
+	// A viewer's own choice to see plain names: CSS hides titles, badges and frames (app.css).
+	event.locals.plain = event.cookies.get('cosmetics') === 'off';
+	const cosmetics = event.locals.plain ? 'off' : 'on';
+	return resolve(event, {
+		transformPageChunk: ({ html }) =>
+			html.replace('%theme%', theme).replace('%cosmetics%', cosmetics)
+	});
 };

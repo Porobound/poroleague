@@ -71,8 +71,9 @@
 			</div>
 			<p class="head-meta muted small">
 				<span
-					>{#if data.cosmetics.title}<span class="cos-title">{data.cosmetics.title}</span
-						>{' · '}{/if}{meta}</span
+					>{#if data.cosmetics.title}<span class="cos"
+							><span class="cos-title">{data.cosmetics.title}</span>{' · '}</span
+						>{/if}{meta}</span
 				>
 				{#if player.dropped}<span class="pb-badge pb-badge-loss">Dropped</span>{/if}
 				{#if data.away}<span class="pb-badge">On holiday · {data.away}</span>{/if}
