@@ -2,7 +2,7 @@
 
 League website for the Porobound community's Riftbound TCG league. Players log in with Discord, sign up for a season and report their own matches. Organizers run the season: groups, results, drops and tiebreaks.
 
-- [Rules](docs/rules.md) (shown at `/rules`) · [Spec](docs/spec.md) · [Plans](docs/superpowers/plans/) · [Operations](docs/ops.md) · [Erasure runbook](docs/erasure.md)
+- [Rules](docs/rules.md) (shown at `/rules`) · [Spec](docs/spec.md) · [Operations](docs/ops.md) · [Erasure runbook](docs/erasure.md)
 - Tracking: [project board](https://github.com/orgs/Porobound/projects/1) and milestones
 
 SvelteKit 3 (adapter-node) · TypeScript · SQLite via Drizzle (better-sqlite3) · Vitest · Playwright. Login is hand-rolled Discord OAuth (`identify guilds.members.read`): only members of one server (`GUILD_ID`) can log in, and the organizer role comes from that server.
@@ -104,7 +104,7 @@ src/routes/          pages and endpoints
 drizzle/             SQL migrations (commit these)
 e2e/                 Playwright tests, seed, fixtures
 scripts/             container migrate, host backup, dev data helpers
-docs/                rules, spec, plans, runbooks
+docs/                rules, spec, runbooks
 ```
 
 ## Contributing

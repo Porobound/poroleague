@@ -1,6 +1,6 @@
 # Poroleague
 
-Community Riftbound TCG league site. Spec: `docs/spec.md`. Plans: `docs/superpowers/plans/`.
+Community Riftbound TCG league site. Spec: `docs/spec.md`.
 
 ## Stack
 
@@ -19,7 +19,7 @@ Before pushing: `npm run lint` (CI runs `prettier --check`), `npm run check`, `n
 
 ## Workflow
 
-Plan in `docs/superpowers/plans/` → the plan's tasks replace the issue's checklist → branch → one commit per task, ticking its box → PR. The owner merges.
+Plan in the issue: the plan's tasks are its checklist → branch → one commit per task, ticking its box → PR. The owner merges. Plans are not committed: a decision that outlives the work goes in `docs/spec.md`, in the PR that makes it true.
 
 ## Worktrees
 
