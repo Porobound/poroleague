@@ -9,6 +9,13 @@ on:
 permissions:
   contents: read
 
+# One run per branch. A PR's newer push cancels its older run. On main, runs queue instead of
+# racing to push :main, so the newest commit's image is always the last one published. Only one
+# run waits at a time: a commit merged while another waits is skipped and gets no :<sha> image.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   test:
     timeout-minutes: 10
