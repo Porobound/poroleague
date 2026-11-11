@@ -11,7 +11,7 @@ import {
 	seedResult,
 	seedSeason
 } from '../e2e/db.ts';
-import { ORGANIZER as org, SEASONS, player } from '../e2e/fixtures.ts';
+import { ORGANIZER as org, SEASONS, as, player } from '../e2e/fixtures.ts';
 import { NOW, day } from './now.ts';
 import { shot } from './shot.ts';
 
@@ -86,4 +86,17 @@ test('top cut setup', async ({ browser }) => {
 	const s = `/seasons/${SEASONS.shotsCut}`;
 	await shot(browser, 'visitor-topcut-groups-done', s);
 	await shot(browser, 'org-topcut-setup', `${s}/admin/top-cut`, org);
+	// One semifinal walked over, so the bracket shows a decided and an open match.
+	const page = await browser.newPage(as(org));
+	await page.goto(`${s}/admin/top-cut`);
+	await page.getByRole('button', { name: 'Publish top cut' }).click();
+	await page.getByRole('dialog').getByRole('button', { name: 'Publish top cut' }).click();
+	await page.getByRole('button', { name: 'Walkover', exact: true }).first().click();
+	const dialog = page.getByRole('dialog', { name: 'Advance a player without playing?' });
+	await dialog.getByRole('radio').first().check();
+	await dialog.getByRole('button', { name: 'Advance' }).click();
+	await page.getByRole('status').waitFor();
+	await page.close();
+	freezeTimes(NOW);
+	await shot(browser, 'visitor-topcut', `${s}/top-cut`);
 });

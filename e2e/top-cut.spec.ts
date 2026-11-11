@@ -85,7 +85,7 @@ test('top cut from setup to champion', async ({ browser }) => {
 	await expect(p1.getByText('Champion')).toBeVisible();
 });
 
-test('the bracket on a phone shows round chips and cards', async ({ browser }) => {
+test('the bracket on a phone shows round chips and match rows', async ({ browser }) => {
 	const page = await browser.newPage({
 		...as(player('topCut', 2)),
 		viewport: { width: 390, height: 844 }
@@ -95,6 +95,20 @@ test('the bracket on a phone shows round chips and cards', async ({ browser }) =
 		page.getByRole('group', { name: 'Rounds' }).getByRole('button', { name: 'Final', exact: true })
 	).toBeVisible();
 	await expect(page.getByText('Out in the semifinals.')).toBeVisible();
+	const [one, four, five] = [1, 4, 5].map((n) => playerName('topCut', n));
+	const final = page.getByRole('list', { name: 'Final', exact: true }).getByRole('listitem');
+	await expect(final).toHaveCount(1);
+	await expect(final.getByRole('link')).toContainText(`${one}`);
+	await expect(final).toContainText('W/O');
+	await expect(final).toContainText(`${one} advances`);
+	await page
+		.getByRole('group', { name: 'Rounds' })
+		.getByRole('button', { name: 'Semifinals' })
+		.click();
+	const semis = page.getByRole('list', { name: 'Semifinals' }).getByRole('listitem');
+	await expect(semis).toHaveCount(2);
+	await expect(semis.filter({ hasText: five })).toContainText(/2.*1/);
+	await expect(semis.filter({ hasText: four })).toContainText('W/O');
 	await expect(
 		page.getByRole('navigation', { name: 'Pages' }).getByRole('link', { name: 'Top cut' })
 	).toHaveAttribute('aria-current', 'page');
