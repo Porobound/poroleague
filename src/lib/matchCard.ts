@@ -122,7 +122,8 @@ export function matchCard(m: CardMatch, c: CardContext) {
 		legend,
 		games,
 		href: person(id)?.former ? null : `/seasons/${c.season.slug}/players/${id}`,
-		tag: holidayTag(id)
+		tag: holidayTag(id),
+		badge: null as Badge | null // set by withBadges
 	});
 	const mode = matchMode(m, {
 		viewerId: c.viewerId,
@@ -174,17 +175,21 @@ export function matchCard(m: CardMatch, c: CardContext) {
 }
 export type Card = ReturnType<typeof matchCard>;
 
-type Badged = Card['props']['sides'][number] & { badge: Badge | null };
-// Top cut only: every other card keeps plain names.
+// Top cut only: every other card and row keeps plain names.
 export function withBadges(
 	card: Card,
 	badge: (id: string) => Badge | null,
 	m: { p1Id: string; p2Id: string }
-) {
+): Card {
 	const [a, b] = card.props.sides;
-	const sides: [Badged, Badged] = [
-		{ ...a, badge: badge(m.p1Id) },
-		{ ...b, badge: badge(m.p2Id) }
-	];
-	return { ...card, props: { ...card.props, sides } };
+	return {
+		...card,
+		props: {
+			...card.props,
+			sides: [
+				{ ...a, badge: badge(m.p1Id) },
+				{ ...b, badge: badge(m.p2Id) }
+			]
+		}
+	};
 }

@@ -94,6 +94,11 @@ test('signup', async ({ browser }) => {
 test('top cut setup', async ({ browser }) => {
 	removeSeason('shotsSignup');
 	seedFinishedGroups('shotsCut', 2, [day(-30), day(-2)]);
+	// Two of the four in the cut wear a badge, so the bracket and its phone rows show them.
+	seedAchievements(player('shotsCut', 1), ['legend-ahri-gold']);
+	seedCosmetics(player('shotsCut', 1), { badge: 'legend-ahri-gold' });
+	seedAchievements(player('shotsCut', 4), ['dice-silver']);
+	seedCosmetics(player('shotsCut', 4), { badge: 'dice-silver' });
 	freezeTimes(NOW);
 	const s = `/seasons/${SEASONS.shotsCut}`;
 	await shot(browser, 'visitor-topcut-groups-done', s);

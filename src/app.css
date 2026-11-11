@@ -867,6 +867,10 @@ a:hover {
 .cz > summary::-webkit-details-marker {
 	display: none;
 }
+/* A closed panel is laid out at its widest, off the phone's edge, though nothing shows: give it no boxes. */
+.cz:not([open]) > form {
+	display: none;
+}
 .cz[open] > form {
 	margin-top: 16px;
 	display: flex;

@@ -48,9 +48,9 @@ test.beforeAll(() => {
 	]);
 	// Everything equipped, with the longest title.
 	seedCosmetics(me, {
-		title: 'legend-master-yi-pg-master',
-		badge: 'legend-master-yi-pg-master',
-		frame: 'legend-master-yi-pg-master'
+		title: 'legend-master-yi-pg-gold',
+		badge: 'legend-master-yi-pg-gold',
+		frame: 'gold'
 	});
 });
 test.afterAll(() => {

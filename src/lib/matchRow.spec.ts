@@ -67,6 +67,7 @@ describe('vsRow', () => {
 					former: false,
 					legend: 'Jinx',
 					tag: null,
+					badge: null,
 					you: false,
 					dice: false,
 					result: 'won'
@@ -77,6 +78,7 @@ describe('vsRow', () => {
 					former: false,
 					legend: 'Viktor',
 					tag: null,
+					badge: null,
 					you: true,
 					dice: true,
 					result: 'lost'

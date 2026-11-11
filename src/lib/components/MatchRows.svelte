@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Avatar from '#lib/components/Avatar.svelte';
+	import Flair from '#lib/components/Flair.svelte';
 	import type { Card } from '#lib/matchCard.ts';
 	import { povRow, vsRow, type VsRow } from '#lib/matchRow.ts';
 
@@ -61,6 +62,7 @@
 		<span class="pb-mrow-tx">
 			<span class="pb-mrow-who">
 				<span class="pb-mrow-nm">{s.name}</span>
+				{#if s.badge}<Flair badge={s.badge} inert />{/if}
 				{#if s.you}<span class="pb-you">You</span>{/if}
 				{#if s.dice}{@render die()}{/if}
 				{#if s.result}<span class="pb-sr">{' ' + s.result}</span>{/if}

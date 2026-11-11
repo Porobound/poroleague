@@ -26,6 +26,7 @@ export function vsRow(c: Card) {
 			former: s.former,
 			legend: done ? s.legend : null,
 			tag: onHoliday(s.tag),
+			badge: s.former ? null : s.badge,
 			you: c.you === i,
 			dice: done && c.props.dice === i,
 			result: best === null ? null : best === i ? ('won' as const) : ('lost' as const)

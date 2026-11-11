@@ -210,12 +210,18 @@ describe('On holiday tag', () => {
 
 describe('withBadges', () => {
 	it('adds each side its badge, leaving the card as it was', () => {
-		const FB = { name: 'First Blood', icon: '/achievements/items/first-blood.png', tier: null };
+		const FB = {
+			name: 'First Blood',
+			description: 'Win your first match.',
+			kind: 'item' as const,
+			icon: '/achievements/items/first-blood.png',
+			tier: null
+		};
 		const m = match();
 		const card = matchCard(m, ctx());
 		const badged = withBadges(card, (id) => (id === m.p1Id ? FB : null), m);
 		expect(badged.props.sides.map((s) => s.badge)).toEqual([FB, null]);
-		expect(card.props.sides.every((s) => !('badge' in s))).toBe(true);
+		expect(card.props.sides.map((s) => s.badge)).toEqual([null, null]); // plain by default, and untouched
 	});
 });
 

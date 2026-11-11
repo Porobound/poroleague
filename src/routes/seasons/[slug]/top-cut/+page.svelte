@@ -125,7 +125,7 @@
 													<span class="sd">{p?.label ?? ''}</span>
 													<span class="nm"
 														><span class="t">{p?.name ?? (s.bye ? 'Bye' : 'TBD')}</span
-														>{#if p?.badge && !p.former}<Flair badge={p.badge} />{/if}</span
+														>{#if p?.badge && !p.former}<Flair badge={p.badge} inert />{/if}</span
 													>
 													<span class="sc">{s.games?.[k] ?? ''}</span>
 												</span>
