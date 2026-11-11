@@ -2,8 +2,9 @@ import { and, eq, inArray, isNull, ne, or } from 'drizzle-orm';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import {
 	ACHIEVEMENTS,
-	type Achievement,
 	evaluate,
+	kind,
+	type Kind,
 	type History,
 	type Tier
 } from '#lib/league/achievements.ts';
@@ -129,7 +130,6 @@ export const backfillAchievements = (db: Db) =>
 
 // What the career page draws. A track is one row: its icon at the highest earned tier, a pip per
 // tier, and progress towards the first tier not yet earned.
-export type Kind = 'legend' | 'rank' | 'item'; // champion portrait, rank emblem, item icon
 export type TierView = {
 	id: string;
 	name: string;
@@ -160,8 +160,6 @@ const LEAGUE_TRACKS: Record<string, string> = {
 	seasons: 'Seasons',
 	comeback: 'Comeback'
 };
-const kind = (a: Achievement): Kind =>
-	a.legend ? 'legend' : a.icon.startsWith('/achievements/tiers/') ? 'rank' : 'item';
 
 // The career page's Achievements: earned from the table (award-only), progress derived now.
 export function careerAchievements(db: Db, playerId: string) {

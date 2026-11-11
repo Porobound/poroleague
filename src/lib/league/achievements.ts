@@ -138,6 +138,11 @@ const seasonEvent =
 		h.seasons.flatMap((s) => (s[k] ? [{ at: s[k], seasonId: s.id }] : [])).sort(byDate);
 type Def = Achievement & { hits: Hits };
 
+// How an icon is framed: champion portrait, rank emblem or item icon.
+export type Kind = 'legend' | 'rank' | 'item';
+export const kind = (a: Pick<Achievement, 'legend' | 'icon'>): Kind =>
+	a.legend ? 'legend' : a.icon.startsWith('/achievements/tiers/') ? 'rank' : 'item';
+
 export const key = (s: string) =>
 	s
 		.toLowerCase()

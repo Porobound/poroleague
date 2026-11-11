@@ -64,6 +64,13 @@
       "when": 1793637561614,
       "tag": "0008_mature_jack_power",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1794421222478,
+      "tag": "0009_fearless_hellion",
+      "breakpoints": true
     }
   ]
 }
