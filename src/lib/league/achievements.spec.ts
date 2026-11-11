@@ -124,14 +124,14 @@ const n = (k: number, o: Partial<HistoryMatch> = {}) => Array.from({ length: k }
 
 describe('legend tracks', () => {
 	it('unlock on the match that reaches the threshold, from either side', () => {
-		expect(get(H(n(2)), 'legend-ahri-player')).toMatchObject({ have: 2, need: 3, hit: null });
+		expect(get(H(n(2)), 'legend-ahri-bronze')).toMatchObject({ have: 2, need: 3, hit: null });
 		day = 0;
 		const h = H(
 			[...n(2), M({ p1Id: 'op', p2Id: 'me', p1Legend: 'Annie', p2Legend: 'Ahri', seasonId: 2 })],
 			[S(), S({ id: 2 })]
 		);
-		expect(get(h, 'legend-ahri-player')).toMatchObject({ have: 3, hit: { at: D(3), seasonId: 2 } });
-		expect(get(h, 'legend-ahri-expert')).toMatchObject({ have: 3, need: 10, hit: null });
+		expect(get(h, 'legend-ahri-bronze')).toMatchObject({ have: 3, hit: { at: D(3), seasonId: 2 } });
+		expect(get(h, 'legend-ahri-silver')).toMatchObject({ have: 3, need: 10, hit: null });
 	});
 
 	it('count losses and mirrors: matches, not wins', () => {
@@ -140,7 +140,7 @@ describe('legend tracks', () => {
 			M({ p2Legend: 'Ahri' }),
 			M({ p1Games: 1, p2Games: 1 })
 		]);
-		expect(get(h, 'legend-ahri-player').hit).toEqual({ at: D(3), seasonId: 1 });
+		expect(get(h, 'legend-ahri-bronze').hit).toEqual({ at: D(3), seasonId: 1 });
 	});
 });
 
@@ -176,23 +176,23 @@ describe('league tracks', () => {
 			M({ p1Legend: 'Jinx' }),
 			M({ p1Legend: 'Viktor' })
 		]);
-		expect(get(h, 'variety-player')).toMatchObject({ have: 3, hit: { at: D(6) } });
-		expect(get(H(n(5, { p1Legend: 'Ahri' })), 'variety-player').have).toBe(1);
+		expect(get(h, 'variety-bronze')).toMatchObject({ have: 3, hit: { at: D(6) } });
+		expect(get(H(n(5, { p1Legend: 'Ahri' })), 'variety-bronze').have).toBe(1);
 	});
 
 	it('Dice: rolls won', () => {
 		const h = H([...n(2), M({ diceWinnerId: 'op' }), M()]);
-		expect(get(h, 'dice-player')).toMatchObject({ have: 3, hit: { at: D(4) } });
+		expect(get(h, 'dice-bronze')).toMatchObject({ have: 3, hit: { at: D(4) } });
 	});
 });
 
-describe('one-offs', () => {
+describe('seasons, comeback and one-offs', () => {
 	it('First Blood: the first win, not a draw or loss', () => {
 		const h = H([M({ p1Games: 1, p2Games: 1 }), M({ p1Games: 0, p2Games: 2 }), M()]);
 		expect(get(h, 'first-blood').hit).toEqual({ at: D(3), seasonId: 1 });
 	});
 
-	it('Veteran: the first counted match of the 3rd season', () => {
+	it('Seasons: the first counted match of the Nth season', () => {
 		const seasons = [1, 2, 3, 4].map((id) => S({ id }));
 		const h = H(
 			[
@@ -204,8 +204,8 @@ describe('one-offs', () => {
 			],
 			[...seasons.slice(0, 3), S({ id: 4, dropped: new Set(['gone']) })]
 		);
-		expect(get(h, 'veteran-3')).toMatchObject({ have: 3, hit: { at: D(5), seasonId: 3 } });
-		expect(get(h, 'veteran-10')).toMatchObject({ have: 3, need: 10, hit: null });
+		expect(get(h, 'seasons-bronze')).toMatchObject({ have: 2, hit: { at: D(2), seasonId: 2 } });
+		expect(get(h, 'seasons-silver')).toMatchObject({ have: 3, need: 5, hit: null });
 	});
 
 	it('Perfect Group: every non-void group match won, dated by the finalize', () => {
@@ -227,18 +227,24 @@ describe('one-offs', () => {
 	});
 
 	it('Comeback: won after losing game 1, only with per-game results', () => {
-		expect(get(H([M({ games: '211', p1Games: 2, p2Games: 1 })]), 'comeback').have).toBe(1);
+		const five = H(Array.from({ length: 5 }, () => M({ games: '211', p1Games: 2, p2Games: 1 })));
+		expect(get(five, 'comeback-silver')).toMatchObject({ have: 5, hit: { at: D(5) } });
+		expect(get(five, 'comeback-gold')).toMatchObject({ have: 5, need: 15, hit: null });
+		expect(get(H([M({ games: '211', p1Games: 2, p2Games: 1 })]), 'comeback-bronze').have).toBe(1);
 		expect(
 			get(
 				H([M({ p1Id: 'op', p2Id: 'me', games: '122', p1Games: 1, p2Games: 2, p2Legend: 'Ahri' })]),
-				'comeback'
+				'comeback-bronze'
 			).have
 		).toBe(1);
-		expect(get(H([M({ games: '121', p1Games: 2, p2Games: 1 })]), 'comeback').have).toBe(0);
-		expect(get(H([M({ games: null, p1Games: 2, p2Games: 1 })]), 'comeback').have).toBe(0);
-		expect(get(H([M({ games: 'D11' })]), 'comeback').have).toBe(0);
+		expect(get(H([M({ games: '121', p1Games: 2, p2Games: 1 })]), 'comeback-bronze').have).toBe(0);
+		expect(get(H([M({ games: null, p1Games: 2, p2Games: 1 })]), 'comeback-bronze').have).toBe(0);
+		expect(get(H([M({ games: 'D11' })]), 'comeback-bronze').have).toBe(0);
 		expect(
-			get(H([M({ p1Id: 'op', p2Id: 'me', games: 'D22', p1Games: 0, p2Games: 2 })]), 'comeback').have
+			get(
+				H([M({ p1Id: 'op', p2Id: 'me', games: 'D22', p1Games: 0, p2Games: 2 })]),
+				'comeback-bronze'
+			).have
 		).toBe(0);
 	});
 
