@@ -5,6 +5,7 @@ import {
 	removeSeason,
 	renamePlayer,
 	seedAchievements,
+	seedCosmetics,
 	seedEmptySeason,
 	seedHoliday,
 	seedResult,
@@ -41,8 +42,16 @@ test.beforeAll(() => {
 		'legend-renata-glasc-bronze',
 		'legend-renata-glasc-silver',
 		'legend-renata-glasc-gold',
-		'legend-master-yi-pg-bronze'
+		'legend-master-yi-pg-bronze',
+		'legend-master-yi-pg-silver',
+		'legend-master-yi-pg-gold'
 	]);
+	// Everything equipped, with the longest title.
+	seedCosmetics(me, {
+		title: 'legend-master-yi-pg-gold',
+		badge: 'legend-master-yi-pg-gold',
+		frame: 'gold'
+	});
 });
 test.afterAll(() => {
 	for (const key of ['mobile', 'mobileSignup', 'mobileDraft'] as const) removeSeason(key);
@@ -74,6 +83,7 @@ const pages = () => ({
 		s,
 		`${s}/schedule`,
 		`${s}/players/${me}`,
+		`/players/${me}`,
 		`${s}/matches/${open}`,
 		`${s}/matches/${reported}`,
 		'/login/not-organizer'
@@ -162,6 +172,17 @@ test('API reference fits a phone', async ({ page }) => {
 		expect.soft(r.scroll, `${theme}: scrolls sideways`).toBe(false);
 		expect.soft(r.outer, `${theme}: cut off at the right edge`).toEqual([]);
 	}
+});
+
+test.describe('customize', () => {
+	test.use(as(me));
+	test('the open Customize panel fits a phone', async ({ page }) => {
+		await page.goto(`/players/${me}`);
+		await page.getByText('Customize profile', { exact: true }).click();
+		const r = await page.evaluate(probe, W);
+		expect.soft(r.scroll, 'scrolls sideways').toBe(false);
+		expect.soft(r.outer, 'cut off at the right edge').toEqual([]);
+	});
 });
 
 // Runs last: only one season can be running, so the season in play makes way for one in signup.
