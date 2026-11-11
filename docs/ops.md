@@ -4,7 +4,7 @@ Running the site: hosts, deploys, backups, restores, and keeping rules and legen
 
 ## Deploy
 
-CI builds the image on every PR without pushing it. A passing push to `main` publishes `ghcr.io/porobound/poroleague:main` and a commit-SHA tag. The dev server runs `:main`; prod runs `:prod`, which only moves when you promote. Both hosts pull new images on their own every 5 minutes.
+CI builds the image on every PR without pushing it. A passing push to `main` publishes `ghcr.io/porobound/poroleague:main` and a commit-SHA tag. Runs on `main` go one at a time, so `:main` always ends up on the newest commit; a commit merged while another run is already waiting is skipped and gets no image of its own. The dev server runs `:main`; prod runs `:prod`, which only moves when you promote. Both hosts pull new images on their own every 5 minutes.
 
 ```
 merge to main ──► :main + :<sha> ──► dev server
