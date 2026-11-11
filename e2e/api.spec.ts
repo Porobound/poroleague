@@ -18,11 +18,11 @@ test.beforeAll(() => {
 	const [first] = seedSeason('api', { publishedRound: 2 });
 	seedResult(first, 2, 1, { flag: REASON, legends: ['Jinx', 'Ahri'] });
 	seedEmptySeason('apiDraft', 'draft');
-	seedAchievements(player('api', 1), ['first-blood', 'legend-jinx-master']);
+	seedAchievements(player('api', 1), ['first-blood', 'legend-jinx-gold']);
 	seedCosmetics(player('api', 1), {
-		title: 'legend-jinx-master',
+		title: 'legend-jinx-gold',
 		badge: 'first-blood',
-		frame: 'legend-jinx-master'
+		frame: 'gold'
 	});
 });
 test.afterAll(() => {
@@ -74,10 +74,10 @@ test('a player has achievements and cosmetics, with icons that load', async ({ r
 	shared(res);
 	const body = await res.json();
 	expect(body.achievements.map((a: { id: string }) => a.id)).toEqual(
-		expect.arrayContaining(['first-blood', 'legend-jinx-master'])
+		expect.arrayContaining(['first-blood', 'legend-jinx-gold'])
 	);
 	expect(body.title.title).toBe('Jinx Master');
-	expect(body.frame.tier).toBe('gold');
+	expect(body.frame).toBe('gold');
 	expect(body.badge.icon).toMatch(
 		/^http:\/\/localhost:\d+\/achievements\/items\/first-blood\.png$/
 	);

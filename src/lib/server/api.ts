@@ -223,7 +223,7 @@ export function playerDetail(id: string, origin: string) {
 			former: former(),
 			titleAchievement: players.titleAchievement,
 			badgeAchievement: players.badgeAchievement,
-			frameAchievement: players.frameAchievement
+			frameTier: players.frameTier
 		})
 		.from(players)
 		.where(eq(players.id, id))

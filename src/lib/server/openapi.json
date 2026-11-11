@@ -623,8 +623,8 @@
 						"description": "Equipped badge."
 					},
 					"frame": {
-						"oneOf": [{ "$ref": "#/components/schemas/Achievement" }, { "type": "null" }],
-						"description": "Equipped avatar frame."
+						"oneOf": [{ "$ref": "#/components/schemas/Tier" }, { "type": "null" }],
+						"description": "Equipped avatar frame: draw a ring in this tier's colour. `null` if none."
 					},
 					"achievements": {
 						"type": "array",

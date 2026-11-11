@@ -148,7 +148,7 @@ describe('responses match the spec', () => {
 		db.insert(playerAchievements)
 			.values({
 				playerId: 'p1',
-				achievementId: 'legend-jinx-master',
+				achievementId: 'legend-jinx-gold',
 				unlockedAt: new Date(),
 				seasonId: null
 			})

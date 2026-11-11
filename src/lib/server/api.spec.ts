@@ -507,8 +507,8 @@ describe('GET /api/v1/players/:id', () => {
 		seedPlayers(1);
 		seedEntries(seedSeason({ status: 'play' }).id, ['p1']);
 		earn('p1', 'first-blood', 1);
-		earn('p1', 'legend-ahri-player', 5);
-		earn('p1', 'legend-renamed-player', 9); // no longer in the list: left out
+		earn('p1', 'legend-ahri-bronze', 5);
+		earn('p1', 'legend-renamed-bronze', 9); // no longer in the list: left out
 		db.update(players).set({ badgeAchievement: 'first-blood' }).where(eq(players.id, 'p1')).run();
 		const firstBlood = {
 			id: 'first-blood',
@@ -524,7 +524,7 @@ describe('GET /api/v1/players/:id', () => {
 			badge: firstBlood,
 			achievements: [
 				{
-					id: 'legend-ahri-player',
+					id: 'legend-ahri-bronze',
 					name: 'Ahri Player',
 					title: 'Ahri Player',
 					tier: 'bronze',
