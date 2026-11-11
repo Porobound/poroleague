@@ -1,4 +1,4 @@
-import { weekOf } from './time';
+import { weekOf } from '#lib/league/time.ts';
 
 export const droppedIds = (people: { playerId: string; dropped: boolean }[]) =>
 	new Set(people.filter((p) => p.dropped).map((p) => p.playerId));
