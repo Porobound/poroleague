@@ -111,9 +111,14 @@ test('report, flag, organizer fix', async ({ browser }) => {
 	await expect(chips(reporter)).toHaveCount(3);
 	await expect(chips(reporter).first()).toHaveAttribute('title', `Game 1: ${p2} won`);
 
-	// Match lists mark the resolved flag on that match only.
+	// The schedule row shows the fixed result; flags stay off match rows.
 	await reporter.goto(`/seasons/${slug}/schedule`);
-	await expect(reporter.getByRole('img', { name: 'Flag resolved by an organizer' })).toHaveCount(1);
+	await expect(
+		reporter
+			.getByRole('list', { name: 'Group A · Round 1' })
+			.getByRole('link', { name: new RegExp(`${p1}.*1 to 2.*${p2}`) })
+	).toHaveAttribute('href', `/seasons/${slug}/matches/${match}`);
+	await expect(reporter.getByRole('img', { name: /Flag/ })).toHaveCount(0);
 
 	// Every change is in the public audit log, newest first.
 	await reporter.goto(`/seasons/${slug}/audit`);

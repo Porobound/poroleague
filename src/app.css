@@ -307,35 +307,34 @@ a:hover {
 	grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
 	gap: 16px;
 }
-.round summary {
+/* Schedule: round panels of match rows, side by side when they fit. */
+.rounds {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(min(460px, 100%), 1fr));
+	gap: 16px;
+	align-items: start;
+}
+.panel.rows {
+	min-width: 0;
+	padding: 0;
+	overflow: hidden;
+}
+.rows-head {
 	display: flex;
 	flex-wrap: wrap;
-	align-items: center;
-	gap: 8px 16px;
-	cursor: pointer;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 4px 12px;
+	padding: 14px 16px 10px;
+	border-bottom: 1px solid var(--line);
 }
-.round summary h2 {
+.rows-head h2 {
 	margin: 0;
+	font-size: 17px;
+	line-height: 24px;
 }
-.round[open] summary {
-	margin-bottom: 16px;
-}
-.round[open] summary .pb-disclosure-chev {
-	transform: rotate(90deg);
-}
-.grow-left {
-	margin-left: auto;
-}
-.overdue {
-	display: flex;
-	flex-direction: column;
-	gap: 12px;
+.panel.overdue {
 	border-left: 3px solid var(--signal);
-	padding-left: 16px;
-}
-.overdue h2,
-.overdue p {
-	margin: 0;
 }
 .stats {
 	display: grid;
@@ -548,10 +547,6 @@ a:hover {
 	.panel {
 		padding: 16px;
 	}
-	.round summary {
-		min-height: 44px;
-	}
-
 	.seg a {
 		display: inline-flex;
 		align-items: center;
