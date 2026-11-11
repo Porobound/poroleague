@@ -92,7 +92,9 @@
 						<span class="pb-mrow-rd">
 							{#if typeof r.round === 'number'}
 								<span aria-hidden="true">R{r.round}</span><span class="pb-sr">Round {r.round}</span>
-							{:else}{r.round}{/if}
+							{:else}<span aria-hidden="true">{r.round}</span><span class="pb-sr"
+									>{c.props.head}</span
+								>{/if}
 						</span>
 						<span class={['pb-mrow-opp', r.opponent.former && 'is-former']}>
 							<Avatar

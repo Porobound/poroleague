@@ -26,7 +26,7 @@ export const load: PageServerLoad = async (event) => {
 	const scheduled = hasSchedule(season.status);
 	const groups = scheduled ? groupStandings(season, list) : [];
 	const me = list.find((e) => e.playerId === locals.user?.id);
-	// Only a signed-up player gets match cards here, so only they need the holidays read.
+	// Only a signed-up player gets match rows here, so only they need the holidays read.
 	const marks = me && scheduled ? seasonUnlocks(season) : null;
 	const ctx = {
 		...cardContext(season, list, locals.user?.id ?? null),
@@ -76,7 +76,7 @@ export const load: PageServerLoad = async (event) => {
 						? matchCard(
 								myCut.match,
 								cardContext(season, list, viewer, new Date(), cut.rounds.length)
-							).props
+							)
 						: null
 				}
 			: null,

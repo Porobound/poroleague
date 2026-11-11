@@ -3,7 +3,7 @@
 	import Avatar from '#lib/components/Avatar.svelte';
 	import ConfirmButton from '#lib/components/ConfirmButton.svelte';
 	import StandingsTable from '#lib/components/StandingsTable.svelte';
-	import MatchCard from '#lib/components/MatchCard.svelte';
+	import MatchRows from '#lib/components/MatchRows.svelte';
 	import PhaseBar from '#lib/components/PhaseBar.svelte';
 	import { date, day, tzName } from '#lib/format.ts';
 	import { groupName, signupInfo, STATUS_LABEL } from '#lib/season.ts';
@@ -17,7 +17,7 @@
 	const AVATARS = 12;
 	const info = $derived(signupInfo(data.entries.length, season));
 	const fresh = $derived(data.groups.every((g) => g.rows.every((r) => !r.played)));
-	// Every match of this week is reported; flagged, void or overdue ones keep the cards showing.
+	// Every match of this week is reported; flagged, void or overdue ones keep the rows showing.
 	const allDone = $derived(
 		!data.pending && data.myWeek.length > 0 && data.myWeek.every((c) => c.status === 'reported')
 	);
@@ -163,9 +163,16 @@
 	{/if}
 
 	{#if data.topCut?.myMatch}
-		<section>
+		<section class="matches narrow">
 			<div class="section-head"><h2>Your top cut match</h2></div>
-			<div class="cards"><MatchCard {...data.topCut.myMatch} /></div>
+			<div class="panel rows">
+				<MatchRows
+					cards={[data.topCut.myMatch]}
+					player={user?.id}
+					label="Your top cut match"
+					header={false}
+				/>
+			</div>
 		</section>
 	{/if}
 
@@ -179,7 +186,7 @@
 	{/if}
 
 	{#if data.signedUp && season.status === 'play' && data.week >= 1}
-		<section aria-labelledby="this-week">
+		<section class="matches narrow" aria-labelledby="this-week">
 			<div class="section-head">
 				<h2 id="this-week">Your matches this week</h2>
 				<a href="/seasons/{season.slug}/players/{user?.id}">Your page</a>
@@ -190,8 +197,13 @@
 					<a href="/seasons/{season.slug}/players/{user?.id}">See your results</a>
 				</div>
 			{:else if data.myWeek.length}
-				<div class="cards">
-					{#each data.myWeek as c (c.id)}<MatchCard {...c.props} />{/each}
+				<div class="panel rows">
+					<MatchRows
+						cards={data.myWeek}
+						player={user?.id}
+						label="Your matches this week"
+						header={false}
+					/>
 				</div>
 			{:else if data.pending}
 				<p class="empty">This week's pairings aren't out yet. Watch the pairings channel.</p>
@@ -203,13 +215,18 @@
 	{/if}
 
 	{#if data.ahead && (data.ahead.matches.length || data.ahead.byes.length)}
-		<section aria-labelledby="up-next">
+		<section class="matches narrow" aria-labelledby="up-next">
 			<div class="section-head">
 				<h2 id="up-next">Up next: {aheadText(data.ahead.weeks)}</h2>
 			</div>
 			{#if data.ahead.matches.length}
-				<div class="cards">
-					{#each data.ahead.matches as c (c.id)}<MatchCard {...c.props} />{/each}
+				<div class="panel rows">
+					<MatchRows
+						cards={data.ahead.matches}
+						player={user?.id}
+						label="Up next: {aheadText(data.ahead.weeks)}"
+						header={false}
+					/>
 				</div>
 			{/if}
 			{#if data.ahead.byes.length}{@render byeNote(data.ahead.byes)}{/if}
@@ -465,6 +482,15 @@
 	}
 	.section-head h2 {
 		margin: 0;
+	}
+	.matches {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+	.rows {
+		padding: 0;
+		overflow: hidden;
 	}
 	.stat {
 		display: none;

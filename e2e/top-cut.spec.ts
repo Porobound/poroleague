@@ -43,6 +43,12 @@ test('top cut from setup to champion', async ({ browser }) => {
 	// Player 1 reports their semifinal against Player 5 from the bracket.
 	const p1 = await browser.newPage(as(player('topCut', 1)));
 	await p1.goto(`/seasons/${slug}`);
+	const myCut = p1
+		.getByRole('list', { name: 'Your top cut match' })
+		.getByRole('link', { name: /^Semifinal 1 / });
+	await expect(myCut).toContainText('SF 1');
+	await expect(myCut).toContainText(playerName('topCut', 5));
+	await expect(myCut).toContainText('Report');
 	await mainNav(p1).getByRole('link', { name: 'Top cut' }).click();
 	await expect(p1.getByRole('heading', { name: 'Semifinals are up.' })).toBeVisible();
 	await p1
