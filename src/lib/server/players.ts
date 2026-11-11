@@ -46,7 +46,7 @@ export function erasePlayer(playerId: string, actorId: string) {
 				erasedAt: new Date(),
 				titleAchievement: null,
 				badgeAchievement: null,
-				frameAchievement: null
+				frameTier: null
 			})
 			.where(eq(players.id, playerId))
 			.run();

@@ -2,21 +2,22 @@ import { describe, expect, it } from 'vitest';
 import { ACHIEVEMENTS } from '#lib/league/achievements.ts';
 import { canEquip, choices, look, NOTHING, picks } from '#lib/league/cosmetics.ts';
 
-const owned = new Set([
-	'first-blood',
-	'legend-ahri-master',
-	'dice-player',
-	'legend-renamed-player'
-]);
+const owned = new Set(['first-blood', 'legend-ahri-gold', 'dice-bronze', 'legend-renamed-bronze']);
 
 describe('canEquip', () => {
-	it('allows only owned, known achievements; frames need a tier', () => {
+	it('allows a title or badge only from owned, known achievements', () => {
 		expect(canEquip('title', 'first-blood', owned)).toBe(true);
-		expect(canEquip('badge', 'legend-ahri-master', owned)).toBe(true);
-		expect(canEquip('frame', 'legend-ahri-master', owned)).toBe(true);
-		expect(canEquip('frame', 'first-blood', owned)).toBe(false); // one-off: no tier
+		expect(canEquip('badge', 'legend-ahri-gold', owned)).toBe(true);
 		expect(canEquip('title', 'champion', owned)).toBe(false); // not owned
-		expect(canEquip('badge', 'legend-renamed-player', owned)).toBe(false); // unknown id
+		expect(canEquip('badge', 'legend-renamed-bronze', owned)).toBe(false); // unknown id
+	});
+
+	it('allows a frame only in a tier the player has earned something in', () => {
+		expect(canEquip('frame', 'gold', owned)).toBe(true);
+		expect(canEquip('frame', 'bronze', owned)).toBe(true);
+		expect(canEquip('frame', 'silver', owned)).toBe(false); // nothing silver earned
+		expect(canEquip('frame', 'legend-ahri-gold', owned)).toBe(false); // an achievement, not a tier
+		expect(canEquip('frame', 'gold', new Set(['first-blood']))).toBe(false); // one-offs have no tier
 	});
 
 	it('always allows clearing a slot', () => {
@@ -30,48 +31,62 @@ describe('look', () => {
 		expect(look(NOTHING)).toEqual({ title: null, badge: null, frame: null });
 	});
 
-	it('maps ids to the title text, badge icon and frame tier', () => {
+	it('maps the columns to the title text, the badge and the frame tier', () => {
 		expect(
 			look({
-				titleAchievement: 'legend-ahri-master',
-				badgeAchievement: 'first-blood',
-				frameAchievement: 'dice-player'
+				titleAchievement: 'legend-ahri-gold',
+				badgeAchievement: 'dice-bronze',
+				frameTier: 'silver'
 			})
 		).toEqual({
-			title: { text: 'Ahri Master', tier: 'gold' },
-			badge: { name: 'First Blood', icon: '/achievements/items/first-blood.png', tier: null },
-			frame: 'bronze'
+			title: 'Ahri Master',
+			badge: {
+				name: 'Dice Player',
+				description: 'Win 3 dice rolls.',
+				kind: 'rank',
+				icon: '/achievements/tiers/bronze.png',
+				tier: 'bronze'
+			},
+			frame: 'silver'
+		});
+		expect(look({ ...NOTHING, badgeAchievement: 'legend-ahri-gold' }).badge).toMatchObject({
+			kind: 'legend',
+			tier: 'gold'
+		});
+		expect(look({ ...NOTHING, badgeAchievement: 'first-blood' }).badge).toMatchObject({
+			kind: 'item',
+			tier: null
 		});
 	});
 
-	it('draws nothing for an id no longer in the list', () => {
+	it('draws nothing for an id no longer in the list or a value that is not a tier', () => {
 		expect(
-			look({ titleAchievement: 'gone', badgeAchievement: 'gone', frameAchievement: 'gone' })
+			look({ titleAchievement: 'gone', badgeAchievement: 'gone', frameTier: 'platinum' })
 		).toEqual({ title: null, badge: null, frame: null });
 	});
 
 	it('reads the columns back as form picks', () => {
-		expect(picks({ ...NOTHING, badgeAchievement: 'first-blood' })).toEqual({
+		expect(picks({ ...NOTHING, badgeAchievement: 'first-blood', frameTier: 'gold' })).toEqual({
 			title: null,
 			badge: 'first-blood',
-			frame: null
+			frame: 'gold'
 		});
 	});
 });
 
 describe('choices', () => {
-	it('offers only earned achievements, in list order; frames best tier first', () => {
+	it('offers only earned achievements, in list order and grouped; frames are the earned tiers', () => {
 		const c = choices(owned);
 		expect(c.titles.map((o) => o.id)).toEqual(
 			ACHIEVEMENTS.filter((a) => owned.has(a.id)).map((a) => a.id)
 		);
-		expect(c.badges.find((o) => o.id === 'first-blood')).toEqual({
-			id: 'first-blood',
-			label: 'First Blood',
-			tier: null,
-			icon: '/achievements/items/first-blood.png'
-		});
-		expect(c.frames.map((o) => o.label)).toEqual(['Gold · Ahri Master', 'Bronze · Dice Player']);
+		expect(c.badges.map((o) => [o.label, o.group])).toEqual([
+			['Ahri Master', 'Legends'],
+			['Dice Player', 'League'],
+			['First Blood', 'One-offs']
+		]);
+		expect(c.badges[2].badge.icon).toBe('/achievements/items/first-blood.png');
+		expect(c.frames).toEqual(['bronze', 'gold']);
 	});
 
 	it('is empty for a player with nothing earned', () => {

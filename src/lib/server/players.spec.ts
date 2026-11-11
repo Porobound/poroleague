@@ -93,7 +93,7 @@ describe('erasePlayer', () => {
 			.set({
 				titleAchievement: 'first-blood',
 				badgeAchievement: 'first-blood',
-				frameAchievement: 'dice-player'
+				frameTier: 'bronze'
 			})
 			.where(eq(players.id, 'p1'))
 			.run();
@@ -101,7 +101,7 @@ describe('erasePlayer', () => {
 		expect(player('p1')).toMatchObject({
 			titleAchievement: null,
 			badgeAchievement: null,
-			frameAchievement: null
+			frameTier: null
 		});
 	});
 
