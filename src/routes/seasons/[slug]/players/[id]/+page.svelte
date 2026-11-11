@@ -124,8 +124,9 @@
 						<span class="pb-badge">On holiday · {data.away}</span>
 					{/if}
 					<span class="muted small"
-						>{#if data.cosmetics.title}<span class="cos-title">{data.cosmetics.title}</span
-							>{' · '}{/if}{season.name}</span
+						>{#if data.cosmetics.title}<span class="cos"
+								><span class="cos-title">{data.cosmetics.title}</span>{' · '}</span
+							>{/if}{season.name}</span
 					>
 					{#if player.former}<span class="muted small">· Account erased.</span>{/if}
 				</div>
