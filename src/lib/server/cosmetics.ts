@@ -20,7 +20,7 @@ export function equip(playerId: string, p: Picks): Slot | null {
 	const bad = SLOTS.find((s) => !canEquip(s, p[s], owned));
 	if (bad) return bad;
 	db.update(players)
-		.set({ titleAchievement: p.title, badgeAchievement: p.badge, frameAchievement: p.frame })
+		.set({ titleAchievement: p.title, badgeAchievement: p.badge, frameTier: p.frame })
 		.where(eq(players.id, playerId))
 		.run();
 	return null;

@@ -19,22 +19,22 @@ const earn = (playerId: string, ids: string[]) =>
 		.run();
 const slots = (id: string) => {
 	const p = db.select().from(players).where(eq(players.id, id)).get()!;
-	return [p.titleAchievement, p.badgeAchievement, p.frameAchievement];
+	return [p.titleAchievement, p.badgeAchievement, p.frameTier];
 };
 
 describe('equip', () => {
 	it('saves owned achievements in all three slots', () => {
 		seedPlayers(2);
-		earn('p1', ['first-blood', 'legend-ahri-master']);
-		expect(ownedAchievements('p1')).toEqual(new Set(['first-blood', 'legend-ahri-master']));
+		earn('p1', ['first-blood', 'legend-ahri-gold']);
+		expect(ownedAchievements('p1')).toEqual(new Set(['first-blood', 'legend-ahri-gold']));
 		expect(
 			equip('p1', {
-				title: 'legend-ahri-master',
+				title: 'legend-ahri-gold',
 				badge: 'first-blood',
-				frame: 'legend-ahri-master'
+				frame: 'gold'
 			})
 		).toBeNull();
-		expect(slots('p1')).toEqual(['legend-ahri-master', 'first-blood', 'legend-ahri-master']);
+		expect(slots('p1')).toEqual(['legend-ahri-gold', 'first-blood', 'gold']);
 		expect(slots('p2')).toEqual([null, null, null]);
 	});
 
@@ -46,11 +46,11 @@ describe('equip', () => {
 		expect(slots('p1')).toEqual([null, null, null]);
 	});
 
-	it('refuses a frame without a tier, and unknown ids', () => {
+	it('refuses a frame in a tier the player has nothing in, and unknown ids', () => {
 		seedPlayers(1);
-		earn('p1', ['first-blood', 'legend-renamed-player']);
-		expect(equip('p1', { title: null, badge: null, frame: 'first-blood' })).toBe('frame');
-		expect(equip('p1', { title: 'legend-renamed-player', badge: null, frame: null })).toBe('title');
+		earn('p1', ['first-blood', 'legend-renamed-bronze']);
+		expect(equip('p1', { title: null, badge: null, frame: 'gold' })).toBe('frame');
+		expect(equip('p1', { title: 'legend-renamed-bronze', badge: null, frame: null })).toBe('title');
 	});
 
 	it('clears a slot', () => {
