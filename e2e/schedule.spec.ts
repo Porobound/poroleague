@@ -1,5 +1,5 @@
 // The schedule lists each round as match rows; every row is one link to its match.
-import { expect, test } from '@playwright/test';
+import { expect, test, type Locator } from '@playwright/test';
 import { removeSeason, seedResult, seedSeason } from './db.ts';
 import { SEASONS, as, player, playerName } from './fixtures.ts';
 
@@ -41,4 +41,14 @@ test('rows show the score, link to the match, and offer Report on your open matc
 	await expect(rows2.filter({ hasText: name(4) })).toHaveAccessibleName(`${name(2)} vs ${name(4)}`);
 	await rows2.filter({ hasText: name(3) }).click();
 	await expect(page).toHaveURL(`/seasons/${slug}/matches/${ids[2]}`);
+});
+
+test('every second row is striped, apart from your own', async ({ page }) => {
+	const bg = (row: Locator) => row.evaluate((el) => getComputedStyle(el).backgroundColor);
+	await page.goto(`/seasons/${slug}/schedule?week=1`);
+	const rows = page.getByRole('list', { name: 'Group A · Round 2' }).getByRole('link');
+	// Your own match sorts first and keeps its tint; the second row gets the stripe.
+	const [mine, second] = [await bg(rows.nth(0)), await bg(rows.nth(1))];
+	expect(second).not.toBe('rgba(0, 0, 0, 0)');
+	expect(second).not.toBe(mine);
 });

@@ -307,6 +307,13 @@ a:hover {
 	grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
 	gap: 16px;
 }
+/* Match rows: striped like table rows. Your own row keeps its tint; hover goes a step darker. */
+.pb-mrows li:nth-child(even) > .pb-mrow:not(.is-mine) {
+	background: color-mix(in srgb, var(--frost) 40%, transparent);
+}
+.pb-mrows li:nth-child(even) > a.pb-mrow:not(.is-mine):hover {
+	background: color-mix(in srgb, var(--frost) 75%, transparent);
+}
 /* Schedule: round panels of match rows, side by side when they fit. */
 .rounds {
 	display: grid;
