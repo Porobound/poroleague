@@ -3,7 +3,7 @@
 	"info": {
 		"title": "Poroleague API",
 		"version": "1",
-		"description": "Poroleague's public data as JSON, for stat sites, bots and tools. It's the same data the site shows to anyone: seasons, standings, results, the top cut and legend stats.\n\n- **Read-only and anonymous.** `GET` only, no key, no login. Requests are answered the same whether you're logged in or not.\n- **Base URL:** `https://league.porobound.com/api/v1`\n- **Browser-friendly:** responses allow any origin (`Access-Control-Allow-Origin: *`).\n- **Cached for 60 seconds.** A new result can take up to a minute to show. Errors aren't cached.\n- **Rate limited:** 30 requests per 10 seconds per IP. Over that you get `429` for 10 seconds.\n- **Stable within v1:** fields may be added; nothing is renamed or removed without a new version (`/api/v2`).\n\n## Conventions\n\n- Dates are `YYYY-MM-DD` in league time (Europe/Helsinki). Timestamps are ISO 8601 in UTC.\n- Players appear as `{ \"id\", \"name\", \"former\", \"title\", \"badge\", \"frame\" }`. The `id` is the site's own id, stable across seasons and names. `former` is true for a player who asked to be erased; their name is then \"Former player\" with a short code. `title`, `badge` and `frame` are what the player equipped from their achievements (each an achievement object, or `null`): show `title.title`, `badge.icon` and a `frame.tier` ring. Erased players have none.\n- A missing season or path is a `404` with a JSON body: `{ \"error\": \"Season not found\" }`. Any method but `GET` is refused with `405` (plain text).\n- Draft and deleted seasons don't exist as far as the API is concerned.\n\n## Example: legend meta across seasons\n\n```js\nconst API = 'https://league.porobound.com/api/v1';\nconst seasons = await (await fetch(`${API}/seasons`)).json();\nfor (const s of seasons) {\n\tconst legends = await (await fetch(`${API}/seasons/${s.slug}/legends`)).json();\n\tconsole.log(`\\n${s.name} (${s.status})`);\n\tfor (const l of legends)\n\t\tconsole.log(\n\t\t\t`${l.legend.padEnd(12)} ${String(l.picks).padStart(3)} picks  ${l.wins}-${l.draws}-${l.losses}  ` +\n\t\t\t\t(l.matchWinPct === null ? '—' : `${Math.round(l.matchWinPct * 100)}%`)\n\t\t);\n}\n```"
+		"description": "Poroleague's public data as JSON, for stat sites, bots and tools. It's the same data the site shows to anyone: seasons, standings, results, the top cut and legend stats.\n\n- **Read-only and anonymous.** `GET` only, no key, no login. Requests are answered the same whether you're logged in or not.\n- **Base URL:** `https://league.porobound.com/api/v1`\n- **Browser-friendly:** responses allow any origin (`Access-Control-Allow-Origin: *`).\n- **Cached for 60 seconds.** A new result can take up to a minute to show. Errors aren't cached.\n- **Rate limited:** 30 requests per 10 seconds per IP. Over that you get `429` for 10 seconds.\n- **Stable within v1:** fields may be added; nothing is renamed or removed without a new version (`/api/v2`).\n\n## Conventions\n\n- Dates are `YYYY-MM-DD` in league time (Europe/Helsinki). Timestamps are ISO 8601 in UTC.\n- Players appear as `{ \"id\", \"name\", \"former\", \"title\", \"badge\", \"frame\" }`. The `id` is the site's own id, stable across seasons and names. `former` is true for a player who asked to be erased; their name is then \"Former player\" with a short code. `title`, `badge` and `frame` are what the player equipped: `title` and `badge` are achievement objects (show `title.title` and `badge.icon`), `frame` is a tier (`bronze`, `silver` or `gold`) to draw as a ring; each is `null` when not set. Erased players have none.\n- A missing season or path is a `404` with a JSON body: `{ \"error\": \"Season not found\" }`. Any method but `GET` is refused with `405` (plain text).\n- Draft and deleted seasons don't exist as far as the API is concerned.\n\n## Example: legend meta across seasons\n\n```js\nconst API = 'https://league.porobound.com/api/v1';\nconst seasons = await (await fetch(`${API}/seasons`)).json();\nfor (const s of seasons) {\n\tconst legends = await (await fetch(`${API}/seasons/${s.slug}/legends`)).json();\n\tconsole.log(`\\n${s.name} (${s.status})`);\n\tfor (const l of legends)\n\t\tconsole.log(\n\t\t\t`${l.legend.padEnd(12)} ${String(l.picks).padStart(3)} picks  ${l.wins}-${l.draws}-${l.losses}  ` +\n\t\t\t\t(l.matchWinPct === null ? '—' : `${Math.round(l.matchWinPct * 100)}%`)\n\t\t);\n}\n```"
 	},
 	"servers": [{ "url": "/api/v1" }],
 	"tags": [
@@ -181,15 +181,15 @@
 						"description": "Equipped badge: show its `icon` next to the name. `null` if none."
 					},
 					"frame": {
-						"oneOf": [{ "$ref": "#/components/schemas/Achievement" }, { "type": "null" }],
-						"description": "Equipped avatar frame: a ring in its `tier` colour (always a tiered achievement). `null` if none."
+						"oneOf": [{ "$ref": "#/components/schemas/Tier" }, { "type": "null" }],
+						"description": "Equipped avatar frame: draw a ring in this tier's colour. `null` if none."
 					}
 				}
 			},
 			"Tier": {
 				"type": "string",
 				"enum": ["bronze", "silver", "gold"],
-				"description": "Achievement tier: Player = bronze, Expert = silver, Master = gold."
+				"description": "An achievement's tier, also what an avatar frame is."
 			},
 			"Achievement": {
 				"type": "object",
@@ -197,7 +197,7 @@
 				"additionalProperties": false,
 				"required": ["id", "name", "title", "tier", "icon"],
 				"properties": {
-					"id": { "type": "string", "examples": ["legend-ahri-master"] },
+					"id": { "type": "string", "examples": ["legend-ahri-gold"] },
 					"name": { "type": "string", "examples": ["Ahri Master"] },
 					"title": {
 						"type": "string",
@@ -296,8 +296,8 @@
 									"description": "Equipped badge: show its `icon` next to the name. `null` if none."
 								},
 								"frame": {
-									"oneOf": [{ "$ref": "#/components/schemas/Achievement" }, { "type": "null" }],
-									"description": "Equipped avatar frame: a ring in its `tier` colour (always a tiered achievement). `null` if none."
+									"oneOf": [{ "$ref": "#/components/schemas/Tier" }, { "type": "null" }],
+									"description": "Equipped avatar frame: draw a ring in this tier's colour. `null` if none."
 								},
 								"group": {
 									"type": ["integer", "null"],
