@@ -3,10 +3,11 @@ import { LEGENDS, type Legend } from '#lib/legends.ts';
 export type Tier = 'bronze' | 'silver' | 'gold';
 
 // One achievement, for the career page and for cosmetics (#143). Rows store `id`: never rename one.
+// A tiered id ends in its tier, not its name, so a tier can be renamed.
 export type Achievement = {
 	id: string;
 	track: string; // the tiers of one track read as a progression; a one-off is its own track
-	tier: Tier | null; // LoL rank emblem: Player = Bronze, Expert = Silver, Master = Gold
+	tier: Tier | null; // null for a one-off
 	name: string;
 	description: string;
 	title: string; // shown with the player's name when equipped (#143)
@@ -30,28 +31,31 @@ export const champion = (legend: string) => legend.replace(/ \((PG|XP)\)$/, '');
 export const emblem = (t: Tier) => `/achievements/tiers/${t}.png`;
 export const crest = (t: Tier) => `/achievements/tiers/${t}.svg`;
 
-const LEVELS = [
-	['bronze', 'Player'],
-	['silver', 'Expert'],
-	['gold', 'Master']
-] as const;
+const TIERS = ['bronze', 'silver', 'gold'] as const;
+type Three<T> = [T, T, T];
+// Most tracks name their tiers after the track: "Ahri Player", "Ahri Expert", "Ahri Master".
+const levels = (label: string): Three<string> => [
+	`${label} Player`,
+	`${label} Expert`,
+	`${label} Master`
+];
 
 function tiered(
 	track: string,
-	label: string,
+	names: Three<string>,
 	describe: (n: number) => string,
-	needs: [number, number, number],
+	needs: Three<number>,
 	hits: Hits,
 	icon: (t: Tier) => string,
 	legend: Legend | null = null
 ): Def[] {
-	return LEVELS.map(([tier, level], i) => ({
-		id: `${track}-${level.toLowerCase()}`,
+	return TIERS.map((tier, i) => ({
+		id: `${track}-${tier}`,
 		track,
 		tier,
-		name: `${label} ${level}`,
+		name: names[i],
 		description: describe(needs[i]),
-		title: `${label} ${level}`,
+		title: names[i],
 		icon: icon(tier),
 		legend,
 		need: needs[i],
@@ -59,7 +63,7 @@ function tiered(
 	}));
 }
 
-const flat = (id: string, name: string, description: string, hits: Hits, need = 1): Def => ({
+const flat = (id: string, name: string, description: string, hits: Hits): Def => ({
 	id,
 	track: id,
 	tier: null,
@@ -68,7 +72,7 @@ const flat = (id: string, name: string, description: string, hits: Hits, need = 
 	title: name,
 	icon: `/achievements/items/${id}.png`,
 	legend: null,
-	need,
+	need: 1,
 	hits
 });
 
@@ -78,7 +82,7 @@ const DEFS: Def[] = [
 	...LEGENDS.flatMap((l) =>
 		tiered(
 			`legend-${key(l)}`,
-			l,
+			levels(l),
 			(n) => `Play ${n} matches as ${l}.`,
 			[3, 10, 25],
 			none,
@@ -88,18 +92,31 @@ const DEFS: Def[] = [
 	),
 	...tiered(
 		'variety',
-		'Variety',
+		levels('Variety'),
 		(n) => `Play at least 2 matches each with ${n} different legends.`,
 		[3, 5, 10],
 		none,
 		emblem
 	),
-	...tiered('dice', 'Dice', (n) => `Win ${n} dice rolls.`, [3, 6, 20], none, emblem),
+	...tiered('dice', levels('Dice'), (n) => `Win ${n} dice rolls.`, [3, 6, 20], none, emblem),
+	...tiered(
+		'seasons',
+		['Veteran', 'Old Guard', 'Elder'],
+		(n) => `Play in ${n} seasons.`,
+		[2, 5, 10],
+		none,
+		() => '/achievements/items/seasons.png'
+	),
+	...tiered(
+		'comeback',
+		['Comeback Kid', 'Comeback King', 'Comeback Emperor'],
+		(n) => (n === 1 ? 'Win a match after losing game 1.' : `Win ${n} matches after losing game 1.`),
+		[1, 5, 15],
+		none,
+		() => '/achievements/items/comeback.png'
+	),
 	flat('first-blood', 'First Blood', 'Win your first match.', none),
-	flat('veteran-3', 'Veteran', 'Play in 3 seasons.', none, 3),
-	flat('veteran-10', 'Old Guard', 'Play in 10 seasons.', none, 10),
 	flat('perfect-group', 'Perfect Group', 'Win every group match of a season.', none),
-	flat('comeback', 'Comeback', 'Win a match after losing game 1.', none),
 	flat('top-cut', 'Top Cut', 'Reach a top cut.', none),
 	flat('champion', 'Champion', 'Win a top-cut final.', none)
 ];
