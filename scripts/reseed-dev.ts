@@ -93,7 +93,7 @@ type M = { id: number; round: number; a: string; b: string; reported?: Result; b
 db.transaction(() => {
 	db.prepare(`delete from sessions where player_id <> ?`).run(ME);
 	db.exec(`
-		update players set title_achievement = null, badge_achievement = null, frame_achievement = null;
+		update players set title_achievement = null, badge_achievement = null, frame_tier = null;
 		delete from player_achievements; delete from holidays; delete from audit; delete from matches; delete from entries; delete from seasons;
 		delete from sqlite_sequence where name in ('holidays', 'audit', 'matches', 'seasons');
 	`);
@@ -565,7 +565,7 @@ const earnedBy = db.prepare(
 	'select achievement_id id from player_achievements where player_id = ?'
 );
 const setLook = db.prepare(
-	'update players set title_achievement = ?, badge_achievement = ?, frame_achievement = ? where id = ?'
+	'update players set title_achievement = ?, badge_achievement = ?, frame_tier = ? where id = ?'
 );
 const fakes = db
 	.prepare('select id from players where id <> ? and erased_at is null order by id')
@@ -577,7 +577,7 @@ for (const { id } of fakes) {
 	setLook.run(
 		maybe(mine),
 		maybe(mine),
-		maybe(mine.filter((x) => achievementById.get(x)?.tier)),
+		maybe([...new Set(mine.flatMap((x) => achievementById.get(x)?.tier ?? []))]),
 		id
 	);
 }
@@ -589,13 +589,13 @@ const top = db
 db.prepare(
 	'insert or ignore into player_achievements (player_id, achievement_id, unlocked_at) values (?, ?, unixepoch())'
 ).run(top.id, LONGEST.id);
-setLook.run(LONGEST.id, LONGEST.id, LONGEST.id, top.id);
+setLook.run(LONGEST.id, LONGEST.id, LONGEST.tier, top.id);
 console.log(
 	'Cosmetics:',
 	db
 		.prepare(
-			`select count(title_achievement) titles, count(badge_achievement) badges, count(frame_achievement) frames,
-			 sum(title_achievement is null and badge_achievement is null and frame_achievement is null) bare from players`
+			`select count(title_achievement) titles, count(badge_achievement) badges, count(frame_tier) frames,
+			 sum(title_achievement is null and badge_achievement is null and frame_tier is null) bare from players`
 		)
 		.get(),
 	`· longest title "${LONGEST.title}"`
