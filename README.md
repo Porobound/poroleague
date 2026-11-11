@@ -84,7 +84,7 @@ Or `npm run db:reseed-dev -- <your-discord-id>` applies pending migrations, back
 | `npm run check`                                                                          | Type-check                                    |
 | `npx vitest run` / `npm run test:coverage`                                               | Unit tests / with coverage                    |
 | `npm run test:e2e`                                                                       | Browser tests (see below)                     |
-| `npm run shots`                                                                          | Regenerate page screenshots, see `CLAUDE.md`  |
+| `npm run shots`                                                                          | Regenerate page screenshots (needs Docker)    |
 | `npm run build` / `npm run preview`                                                      | Production build / serve it locally           |
 | `npm run lint` / `npm run format`                                                        | Prettier check / fix                          |
 | `npm run db:generate` / `npm run db:migrate`                                             | Migration from `schema.ts` / apply migrations |
