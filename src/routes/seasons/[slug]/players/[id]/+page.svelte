@@ -114,7 +114,7 @@
 					{/if}
 				</div>
 				{#if data.cosmetics.title}
-					<p class="cos-title" data-tier={data.cosmetics.title.tier}>{data.cosmetics.title.text}</p>
+					<p class="cos-title">{data.cosmetics.title}</p>
 				{/if}
 				<div class="badges">
 					{#if player.group}<span class="pb-badge">{groupName(player.group)}</span>{/if}

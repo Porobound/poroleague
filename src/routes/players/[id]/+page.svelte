@@ -36,13 +36,20 @@
 					<h1 class={['profile-name', player.former && 'pb-former']}>{player.displayName}</h1>
 					{#if data.cosmetics.badge}<Flair badge={data.cosmetics.badge} />{/if}
 				</div>
-				{#if data.cosmetics.title}
-					<span class="cos-title" data-tier={data.cosmetics.title.tier}
-						>{data.cosmetics.title.text}</span
-					>
-				{/if}
-				<span class="muted small">{n} season{n === 1 ? '' : 's'} · first season {data.first}</span>
+				<span class="muted small">
+					{#if data.cosmetics.title}<span class="cos-title">{data.cosmetics.title}</span
+						>{' · '}{/if}{n}
+					season{n === 1 ? '' : 's'} · first season {data.first}
+				</span>
 			</div>
+			{#if data.customize}
+				<Customize
+					name={player.displayName}
+					avatar={player.avatar}
+					{...data.customize}
+					error={form?.customizeError}
+				/>
+			{/if}
 		</div>
 		{#if totals.played}
 			<div class="profile-stats profile-stats-4" role="group" aria-label="Career stats">
@@ -63,10 +70,6 @@
 			</div>
 		{/if}
 	</section>
-
-	{#if data.customize}
-		<Customize name={player.displayName} avatar={player.avatar} {...data.customize} />
-	{/if}
 
 	{#if !totals.played}
 		<div class="empty">
@@ -97,17 +100,19 @@
 		display: flex;
 		flex-direction: column;
 		gap: 4px;
+		flex: 1 1 180px;
 		/* Lets a long name wrap inside the card instead of widening this column. */
 		min-width: 0;
 	}
 	.name-row {
 		display: flex;
-		flex-wrap: wrap;
 		align-items: center;
-		gap: 4px 10px;
+		gap: 10px;
+		min-width: 0;
 	}
 	/* A long name with no spaces breaks instead of running out of the card. */
 	.who h1 {
+		min-width: 0;
 		overflow-wrap: anywhere;
 	}
 </style>

@@ -89,7 +89,7 @@ const career = async (id: string, user: User | null) =>
 const inSeason = () => {
 	seedPlayers(2);
 	seedEntries(seedSeason({ status: 'play' }).id, ['p1', 'p2'], 1);
-	earn('p1', ['first-blood', 'legend-ahri-master']);
+	earn('p1', ['first-blood', 'legend-ahri-gold']);
 };
 
 describe('career page', () => {
@@ -97,15 +97,21 @@ describe('career page', () => {
 		inSeason();
 		expect(
 			await customize('p1', as('p1'), {
-				title: 'legend-ahri-master',
+				title: 'legend-ahri-gold',
 				badge: 'first-blood',
-				frame: 'legend-ahri-master'
+				frame: 'gold'
 			})
-		).toEqual({ message: 'Profile updated.' });
+		).toEqual({ message: 'Profile updated. Your badge shows in standings and the bracket.' });
 		const d = await career('p1', null);
 		expect(d.cosmetics).toEqual({
-			title: { text: 'Ahri Master', tier: 'gold' },
-			badge: { name: 'First Blood', icon: '/achievements/items/first-blood.png', tier: null },
+			title: 'Ahri Master',
+			badge: {
+				name: 'First Blood',
+				description: 'Win your first match.',
+				kind: 'item',
+				icon: '/achievements/items/first-blood.png',
+				tier: null
+			},
 			frame: 'gold'
 		});
 		expect(d.customize).toBeNull();
@@ -115,7 +121,7 @@ describe('career page', () => {
 		inSeason();
 		expect((await career('p1', as('p2'))).customize).toBeNull();
 		const mine = (await career('p1', as('p1'))).customize!;
-		expect(mine.choices.frames.map((o: { id: string }) => o.id)).toEqual(['legend-ahri-master']);
+		expect(mine.choices.frames).toEqual(['gold']);
 		expect(mine.equipped).toEqual({ title: null, badge: null, frame: null });
 		expect(mine.left).toBe(ACHIEVEMENTS.length - 2);
 	});
@@ -140,10 +146,10 @@ describe('career page', () => {
 		inSeason();
 		const r = (await customize('p1', as('p1'), { title: 'champion', badge: '', frame: '' })) as {
 			status: number;
-			data: { message: string };
+			data: { customizeError: string };
 		};
 		expect(r.status).toBe(400);
-		expect(r.data.message).toBe('You haven’t earned that title.');
+		expect(r.data.customizeError).toBe('You haven’t earned that title.');
 		await customize('p1', as('p1'), { title: 'first-blood', badge: '', frame: '' });
 		await customize('p1', as('p1'), { title: '', badge: '', frame: '' });
 		expect(slots('p1')).toEqual([null, null, null]);
@@ -152,14 +158,14 @@ describe('career page', () => {
 
 it('the season player page shows the same look', async () => {
 	inSeason();
-	equip('p1', { title: 'first-blood', badge: null, frame: 'legend-ahri-master' });
+	equip('p1', { title: 'first-blood', badge: null, frame: 'gold' });
 	const d = (await seasonPlayerPage({
 		params: { slug: 's1', id: 'p1' },
 		locals: { user: null, session: null },
 		url: new URL('http://localhost/x')
 	} as never)) as { cosmetics: unknown };
 	expect(d.cosmetics).toEqual({
-		title: { text: 'First Blood', tier: null },
+		title: 'First Blood',
 		badge: null,
 		frame: 'gold'
 	});

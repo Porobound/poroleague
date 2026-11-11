@@ -24,6 +24,8 @@ export const load: PageServerLoad = ({ params, locals, url }) => {
 		player: me,
 		cosmetics: look(me),
 		customize: c && {
+			// ?customize links straight to the open panel.
+			open: url.searchParams.has('customize'),
 			choices: c,
 			equipped: picks(me),
 			left: ACHIEVEMENTS.length - c.badges.length
@@ -50,7 +52,7 @@ export const actions: Actions = {
 	customize: async (event) => {
 		const user = playerAction(event);
 		if (user.id !== event.params.id)
-			return fail(403, { message: 'You can only customize your own profile.' });
+			return fail(403, { customizeError: 'You can only customize your own profile.' });
 		const form = await event.request.formData();
 		const pick = (k: Slot) => String(form.get(k) ?? '') || null;
 		const bad = equip(user.id, {
@@ -58,11 +60,7 @@ export const actions: Actions = {
 			badge: pick('badge'),
 			frame: pick('frame')
 		});
-		if (bad === 'frame')
-			return fail(400, {
-				message: 'Pick a frame from a Bronze, Silver or Gold achievement you’ve earned.'
-			});
-		if (bad) return fail(400, { message: `You haven’t earned that ${bad}.` });
-		return { message: 'Profile updated.' };
+		if (bad) return fail(400, { customizeError: `You haven’t earned that ${bad}.` });
+		return { message: 'Profile updated. Your badge shows in standings and the bracket.' };
 	}
 };
