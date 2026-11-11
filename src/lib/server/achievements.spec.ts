@@ -40,9 +40,14 @@ describe('awardAchievements', () => {
 		win(b.id, 1, 9);
 		awardAchievements(db, ['p1', 'p2']);
 		expect(row('p1', 'first-blood')).toMatchObject({ unlockedAt: D(1), seasonId: a.id });
-		expect(row('p1', 'legend-ahri-player')).toMatchObject({ unlockedAt: D(9), seasonId: b.id });
-		expect(row('p1', 'dice-player')).toMatchObject({ unlockedAt: D(9) });
-		expect(rows('p2').map((r) => r.achievementId)).toEqual(['legend-annie-player']);
+		expect(row('p1', 'legend-ahri-bronze')).toMatchObject({ unlockedAt: D(9), seasonId: b.id });
+		expect(row('p1', 'dice-bronze')).toMatchObject({ unlockedAt: D(9) });
+		// The second season's first match makes both of them Veterans.
+		expect(row('p1', 'seasons-bronze')).toMatchObject({ unlockedAt: D(9), seasonId: b.id });
+		expect(rows('p2').map((r) => r.achievementId)).toEqual([
+			'legend-annie-bronze',
+			'seasons-bronze'
+		]);
 	});
 
 	it('is idempotent and never rewrites or removes a row', () => {
