@@ -116,6 +116,18 @@ Long-term goals across seasons, shown on the career page (`/players/[id]`). Defi
 - **Adding one later** is a definition plus an icon: the start-up backfill awards it to everyone who already qualified, dated when they did. Lowering a threshold awards more players; raising one takes nothing away.
 - Not in Discord posts or the API. No manual or organizer awards.
 
+## Profile cosmetics
+
+Players show off what they earned. Rules are pure, in `src/lib/league/cosmetics.ts`; the ownership check is `equip` in `src/lib/server/cosmetics.ts`.
+
+- **Slots:** one title, one badge, one avatar frame; all optional. None equipped = plain name.
+- **Title:** an earned achievement's name, as plain text under the player's name. **Badge:** an earned achievement's icon in a 20 px chip with a tier-coloured border; its name and requirement show in a tooltip on hover, keyboard focus or tap (inside a link, such as a bracket slot or a match row, on hover only). Without JavaScript it keeps a native `title`. **Frame:** a bronze, silver or gold ring around the avatar. A frame is a tier, not an achievement: a player may wear a tier they have earned at least one achievement in.
+- **Model:** `players.title_achievement` and `badge_achievement` hold achievement ids (no FK: ids are code); `frame_tier` holds `bronze`, `silver` or `gold`. An id no longer in the list draws nothing.
+- **Equipping:** owner only, from **Customize profile** on their career page (`?customize` opens it), with a live preview. The fields are native grouped selects listing only what they earned; with JavaScript a picker with icons and a filter stands in for them. The server saves all three slots or none: a title or badge must be an achievement the player owns, a frame a tier they own something in. Anyone else gets 403. No audit row (not a result change), no organizer moderation. Achievements are never revoked, so equipped items stay valid.
+- **Where:** career and season player page headers show frame, badge and title. Season standings, the top-cut bracket and the top cut's match rows on phones show the badge only. Everything else (schedule, match, audit, admin, leaderboard) shows plain names, and so do Discord posts and the API (#144 adds them there).
+- Name and avatar stay synced from Discord; login never touches cosmetics.
+- Erasure clears all three; a former player shows a plain name.
+
 ## Discord integration
 
 - **v1 (in site):** webhooks, URLs in env vars, one `fetch` per event.
