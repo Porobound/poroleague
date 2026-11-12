@@ -847,6 +847,14 @@ a:hover {
 [hidden] {
 	display: none !important;
 }
+/* A viewer who chose plain names (the cosmetics cookie, hooks.server.ts) sees no title, badge or
+   frame on any page. The owner's Customize preview keeps them, so they can still see their picks. */
+[data-cosmetics='off'] :is(.pb-flair, .pb-ring, .cos):not(.cz *) {
+	display: none;
+}
+[data-cosmetics='off'] .pb-framed:not(.cz *) {
+	padding: 0 !important;
+}
 /* Equipped title: plain text, a step above the muted line it sits in. */
 .cos-title {
 	color: var(--ink);

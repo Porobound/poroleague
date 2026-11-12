@@ -35,8 +35,9 @@
 				{#if data.cosmetics.badge}<Flair badge={data.cosmetics.badge} />{/if}
 			</div>
 			<p class="muted small">
-				{#if data.cosmetics.title}<span class="cos-title">{data.cosmetics.title}</span
-					>{' · '}{/if}{n}
+				{#if data.cosmetics.title}<span class="cos"
+						><span class="cos-title">{data.cosmetics.title}</span>{' · '}</span
+					>{/if}{n}
 				season{n === 1 ? '' : 's'} · first season {data.first}
 			</p>
 		</div>
@@ -83,9 +84,26 @@
 	{/if}
 
 	<Achievements data={data.achievements} all={data.allLegends} />
+
+	<!-- A viewer's own choice, kept in a cookie: it needs no account and no JavaScript. -->
+	<form method="POST" action="?/cosmetics" class="muted small cos-pref">
+		{#if data.plain}
+			<span>Titles, badges and avatar frames are hidden for you on every page.</span>
+			<button class="pb-btn pb-btn-ghost pb-btn-sm">Show them again</button>
+		{:else}
+			<span>Rather see plain names?</span>
+			<button class="pb-btn pb-btn-ghost pb-btn-sm">Hide titles, badges and frames</button>
+		{/if}
+	</form>
 </div>
 
 <style>
+	.cos-pref {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 4px 12px;
+	}
 	.player-head {
 		display: flex;
 		flex-wrap: wrap;
