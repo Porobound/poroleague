@@ -1,6 +1,8 @@
 // Public read-only API (`/api/v1`, documented in openapi.json): fixed shapes over the same data the public pages
 // show, so a page redesign can't break a consumer. Avatars and Discord ids never leave here.
 import { json } from '@sveltejs/kit';
+import { achievementById, type Achievement } from '#lib/league/achievements.ts';
+import { look, NOTHING, type Equipped } from '#lib/league/cosmetics.ts';
 import { roundName } from '#lib/league/bracket.ts';
 import { gameWinPct, legendMatches, legendStats, matchWinPct } from '#lib/league/legendStats.ts';
 import { published } from '#lib/league/publish.ts';
@@ -26,10 +28,29 @@ export const apiSeason = (slug: string) => {
 	return s && s.status !== 'draft' ? s : null;
 };
 
-export const playerRef = (p: { playerId: string; displayName: string; former: boolean }) => ({
+// Icons are site paths; the API sends absolute URLs so a bot can embed them.
+export const achievementDto = (a: Achievement, origin: string) => ({
+	id: a.id,
+	name: a.name,
+	title: a.title,
+	tier: a.tier,
+	icon: new URL(a.icon, origin).href
+});
+
+// An equipped slot. An id no longer in the list is null, as on the site.
+const equipped = (id: string | null, origin: string) => {
+	const a = id ? achievementById.get(id) : undefined;
+	return a ? achievementDto(a, origin) : null;
+};
+
+type Person = { playerId: string; displayName: string; former: boolean } & Equipped;
+export const playerRef = (p: Person, origin: string) => ({
 	id: p.playerId,
 	name: p.displayName,
-	former: p.former
+	former: p.former,
+	title: equipped(p.titleAchievement, origin),
+	badge: equipped(p.badgeAchievement, origin),
+	frame: look(p).frame
 });
 
 const summary = (s: Season) => ({
@@ -45,8 +66,19 @@ export const seasonList = () =>
 		.filter((s) => s.status !== 'draft')
 		.map(summary);
 
-export function seasonDetail(s: Season) {
-	const list = seasonEntries(s.id);
+const people = (seasonId: number, origin: string) => {
+	const list = seasonEntries(seasonId);
+	const by = new Map(list.map((e) => [e.playerId, e]));
+	const ref = (id: string) =>
+		playerRef(
+			by.get(id) ?? { playerId: id, displayName: 'Unknown', former: false, ...NOTHING },
+			origin
+		);
+	return { list, ref };
+};
+
+export function seasonDetail(s: Season, origin: string) {
+	const { list, ref } = people(s.id, origin);
 	// A draw isn't final until the groups are locked: organizers can still redraw.
 	const locked = hasSchedule(s.status);
 	return {
@@ -56,7 +88,7 @@ export function seasonDetail(s: Season) {
 		topCutSize: s.topCutSize,
 		topCutDate: s.topCutDate,
 		players: list.map((e) => ({
-			...playerRef(e),
+			...playerRef(e, origin),
 			group: locked ? e.group : null,
 			dropped: e.dropped
 		})),
@@ -66,7 +98,7 @@ export function seasonDetail(s: Season) {
 					name: groupName(g.group),
 					standings: g.rows.map((r, i) => ({
 						rank: i + 1,
-						player: playerRef({ playerId: r.playerId, displayName: r.name, former: r.former }),
+						player: ref(r.playerId),
 						played: r.played,
 						wins: r.wins,
 						draws: r.draws,
@@ -82,20 +114,10 @@ export function seasonDetail(s: Season) {
 	};
 }
 
-const people = (seasonId: number) => {
-	const list = seasonEntries(seasonId);
-	const by = new Map(list.map((e) => [e.playerId, e]));
-	const ref = (id: string) => {
-		const e = by.get(id);
-		return e ? playerRef(e) : { id, name: 'Unknown', former: false };
-	};
-	return { list, ref };
-};
-
 // Group matches of published rounds, then the playoffs once the bracket is out. Flag reasons stay
 // private: they're free text, removed on erasure.
-export function seasonMatchList(s: Season) {
-	const { list, ref } = people(s.id);
+export function seasonMatchList(s: Season, origin: string) {
+	const { list, ref } = people(s.id, origin);
 	const dropped = droppedIds(list);
 	const now = new Date();
 	const week = currentWeek(s.startDate, now);
@@ -140,10 +162,10 @@ export function seasonMatchList(s: Season) {
 }
 
 // null until the bracket is published.
-export function topCut(s: Season) {
+export function topCut(s: Season, origin: string) {
 	const cut = cutState(s);
 	if (!cut.published) return null;
-	const { ref } = people(s.id);
+	const { ref } = people(s.id, origin);
 	const maybe = (id: string | null) => (id ? ref(id) : null);
 	return {
 		champion: maybe(cut.champion),

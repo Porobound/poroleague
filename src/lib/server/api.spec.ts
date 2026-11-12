@@ -15,9 +15,18 @@ import { deleteSeason, dropPlayer } from '#lib/server/seasons.ts';
 import { seedEntries, seedMatch, seedPlayers, seedSeason } from '#lib/server/test/seed.ts';
 
 const call = async (get: (e: never) => Response | Promise<Response>, params = {}) => {
-	const res = await get({ params } as never);
+	const res = await get({ params, url: new URL('http://localhost/api/v1/x') } as never);
 	return { status: res.status, body: await res.json() };
 };
+// A player object with nothing equipped.
+const ref = (id: string, name: string, former = false) => ({
+	id,
+	name,
+	former,
+	title: null,
+	badge: null,
+	frame: null
+});
 const season = (slug: string) => call(seasonGet, { slug });
 
 describe('GET /api/v1/seasons', () => {
@@ -54,8 +63,8 @@ describe('GET /api/v1/seasons/:slug', () => {
 		const { body } = await season('s1');
 		expect(body.groups).toEqual([]);
 		expect(body.players).toEqual([
-			{ id: 'p1', name: 'Player 1', former: false, group: null, dropped: false },
-			{ id: 'p2', name: 'Player 2', former: false, group: null, dropped: false }
+			{ ...ref('p1', 'Player 1'), group: null, dropped: false },
+			{ ...ref('p2', 'Player 2'), group: null, dropped: false }
 		]);
 	});
 
@@ -105,7 +114,7 @@ describe('GET /api/v1/seasons/:slug', () => {
 			]);
 			expect(g.standings[1]).toEqual({
 				rank: 2,
-				player: { id: 'p2', name: 'Player 2', former: false },
+				player: ref('p2', 'Player 2'),
 				played: 2,
 				wins: 1,
 				draws: 0,
@@ -121,9 +130,7 @@ describe('GET /api/v1/seasons/:slug', () => {
 		it('lists a dropped player but leaves them out of the standings', async () => {
 			const { body } = await season('s1');
 			expect(body.players.find((p: { id: string }) => p.id === 'p3')).toEqual({
-				id: 'p3',
-				name: 'Player 3',
-				former: false,
+				...ref('p3', 'Player 3'),
 				group: 1,
 				dropped: true
 			});
@@ -307,12 +314,12 @@ describe('top cut', () => {
 
 		const { status, body } = await call(topCutGet, { slug: 's1' });
 		expect(status).toBe(200);
-		expect(body.champion).toEqual({ id: 'p1', name: 'Player 1', former: false });
+		expect(body.champion).toEqual(ref('p1', 'Player 1'));
 		expect(body.rounds.map((r: { name: string }) => r.name)).toEqual(['Semifinals', 'Final']);
 		expect(body.rounds[1].slots).toEqual([
 			{
-				p1: { id: 'p1', name: 'Player 1', former: false },
-				p2: { id: 'p4', name: 'Player 4', former: false },
+				p1: ref('p1', 'Player 1'),
+				p2: ref('p4', 'Player 4'),
 				bye: false,
 				winner: 'p1',
 				matchId: slot(2, 0).id
@@ -432,5 +439,46 @@ describe('GET /api/v1/seasons/:slug/legends', () => {
 		const ez = list.find((r) => r.legend === 'Ezreal')!;
 		expect(ez.matchWinPct).toBe(1);
 		expect(ez.gameWinPct).toBeCloseTo(10 / 15);
+	});
+});
+
+describe('cosmetics on player objects', () => {
+	const AHRI = {
+		id: 'legend-ahri-gold',
+		name: 'Ahri Master',
+		title: 'Ahri Master',
+		tier: 'gold',
+		icon: 'http://localhost/achievements/champions/ahri.png'
+	};
+	beforeEach(() => {
+		seedPlayers(2);
+		const s = seedSeason({ status: 'play', publishedRound: 1 });
+		seedEntries(s.id, ['p1', 'p2'], 1);
+		seedMatch({ seasonId: s.id, group: 1, round: 1, p1Id: 'p1', p2Id: 'p2' });
+		db.update(players)
+			.set({
+				titleAchievement: 'legend-ahri-gold',
+				badgeAchievement: 'legend-renamed-gold',
+				frameTier: 'silver'
+			})
+			.where(eq(players.id, 'p1'))
+			.run();
+	});
+
+	it('every endpoint sends the equipped title, badge and frame, icons absolute', async () => {
+		const { body } = await season('s1');
+		const p1 = { ...ref('p1', 'Player 1'), title: AHRI, frame: 'silver' };
+		expect(body.players[0]).toEqual({ ...p1, group: 1, dropped: false });
+		const row = body.groups[0].standings.find(
+			(r: { player: { id: string } }) => r.player.id === 'p1'
+		);
+		expect(row.player).toEqual(p1);
+		expect((await matchesOf())[0].p1).toEqual(p1);
+		expect(body.players[1]).toEqual({ ...ref('p2', 'Player 2'), group: 1, dropped: false });
+	});
+
+	it('an unknown equipped id is null, like on the site', async () => {
+		const { body } = await season('s1');
+		expect(body.players[0].badge).toBeNull(); // legend-renamed-gold isn't in the list
 	});
 });

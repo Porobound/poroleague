@@ -78,7 +78,7 @@ describe('responses match the spec', () => {
 		get: (e: never) => Response | Promise<Response>,
 		params: Record<string, string> = {}
 	) => {
-		const res = await get({ params } as never);
+		const res = await get({ params, url: new URL('http://localhost/api/v1/x') } as never);
 		const body = await res.json();
 		const validate = validator(path, res.status);
 		validate(body);
@@ -136,6 +136,14 @@ describe('responses match the spec', () => {
 			.map((x) => db.select().from(matches).where(eq(matches.id, x.match!.id)).get()!);
 		report(played, '1D1');
 		walkover(season(), skipped, skipped.p1Id, 'org');
+		db.update(players)
+			.set({
+				titleAchievement: 'first-blood',
+				badgeAchievement: 'champion',
+				frameTier: 'gold'
+			})
+			.where(eq(players.id, 'p1'))
+			.run();
 		erasePlayer('p9', 'org');
 
 		const early = seedSeason({ slug: 'early', status: 'signup' }).id;
