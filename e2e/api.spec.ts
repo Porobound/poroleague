@@ -1,7 +1,14 @@
 // The public API over HTTP: the headers come from hooks.server.ts, so only a real server shows them.
 import { expect, test, type APIResponse } from '@playwright/test';
-import { removeSeason, seedEmptySeason, seedResult, seedSeason } from './db.ts';
-import { ORGANIZER, SEASONS, as } from './fixtures.ts';
+import {
+	removeSeason,
+	seedAchievements,
+	seedCosmetics,
+	seedEmptySeason,
+	seedResult,
+	seedSeason
+} from './db.ts';
+import { ORGANIZER, SEASONS, as, player } from './fixtures.ts';
 
 const API = '/api/v1/seasons';
 
@@ -11,6 +18,12 @@ test.beforeAll(() => {
 	const [first] = seedSeason('api', { publishedRound: 2 });
 	seedResult(first, 2, 1, { flag: REASON, legends: ['Jinx', 'Ahri'] });
 	seedEmptySeason('apiDraft', 'draft');
+	seedAchievements(player('api', 1), ['first-blood', 'legend-jinx-gold']);
+	seedCosmetics(player('api', 1), {
+		title: 'legend-jinx-gold',
+		badge: 'first-blood',
+		frame: 'gold'
+	});
 });
 test.afterAll(() => {
 	removeSeason('api');
@@ -41,12 +54,40 @@ test('a season has its players and group', async ({ request }) => {
 });
 
 test('misses answer in JSON with the same headers', async ({ request }) => {
-	for (const path of [`${API}/${SEASONS.apiDraft}`, `${API}/nope`, '/api/v1/nope', '/api/v1']) {
+	for (const path of [
+		`${API}/${SEASONS.apiDraft}`,
+		`${API}/nope`,
+		'/api/v1/players/nope',
+		'/api/v1/nope',
+		'/api/v1'
+	]) {
 		const res = await request.get(path);
 		expect(res.status()).toBe(404);
 		shared(res);
 		expect(await res.json()).toHaveProperty('error');
 	}
+});
+
+test('a player has achievements and cosmetics, with icons that load', async ({ request }) => {
+	const res = await request.get(`/api/v1/players/${player('api', 1)}`);
+	expect(res.status()).toBe(200);
+	shared(res);
+	const body = await res.json();
+	expect(body.achievements.map((a: { id: string }) => a.id)).toEqual(
+		expect.arrayContaining(['first-blood', 'legend-jinx-gold'])
+	);
+	expect(body.title.title).toBe('Jinx Master');
+	expect(body.frame).toBe('gold');
+	expect(body.badge.icon).toMatch(
+		/^http:\/\/localhost:\d+\/achievements\/items\/first-blood\.png$/
+	);
+	const icon = await request.get(body.badge.icon);
+	expect(icon.status()).toBe(200);
+	expect(icon.headers()['content-type']).toBe('image/png');
+
+	const season = await (await request.get(`${API}/${SEASONS.api}`)).json();
+	const p1 = season.players.find((p: { id: string }) => p.id === player('api', 1));
+	expect(p1.badge.id).toBe('first-blood');
 });
 
 test('serves its OpenAPI spec', async ({ request }) => {
@@ -97,7 +138,7 @@ test('the footer links to the API reference', async ({ page }) => {
 	await expect(page).toHaveURL('/api');
 	await expect(page.getByRole('heading', { level: 1, name: 'Poroleague API' })).toBeVisible();
 	const sidebar = page.getByRole('complementary', { name: 'Sidebar for Poroleague API' });
-	for (const tag of ['Seasons', 'Matches', 'Top cut', 'Legends'])
+	for (const tag of ['Seasons', 'Matches', 'Top cut', 'Legends', 'Players'])
 		await expect(sidebar.getByRole('link', { name: tag, exact: true })).toBeVisible();
 });
 
