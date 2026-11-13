@@ -1,7 +1,15 @@
 // Holiday mode: requests, the organizer's Holidays section, matches unlocked early (and a
 // revoked holiday's), and the end of the season waiting for every week to be published.
 import { test } from '@playwright/test';
-import { freezeTimes, removeSeason, seedHoliday, seedResult, seedSeason } from '../e2e/db.ts';
+import {
+	freezeTimes,
+	publishReplays,
+	removeSeason,
+	seedHoliday,
+	seedReplay,
+	seedResult,
+	seedSeason
+} from '../e2e/db.ts';
 import { ORGANIZER as org, SEASONS, player } from '../e2e/fixtures.ts';
 import { NOW, day } from './now.ts';
 import { shot } from './shot.ts';
@@ -28,6 +36,9 @@ test('holidays', async ({ browser }) => {
 	await shot(browser, 'player-match-early', `${s}/matches/${ids[4]}`, p1);
 	await shot(browser, 'player-holiday-revoked', `${s}/players/${p3}`, p3);
 	seedResult(ids[4], 2, 1);
+	// A private replay the opponent has agreed to publish: the Publish button and its advice.
+	seedReplay(ids[4], 1);
+	publishReplays(ids[4], false, true);
 	freezeTimes(NOW);
 	await shot(browser, 'player-match-early-reported', `${s}/matches/${ids[4]}`, p1);
 });

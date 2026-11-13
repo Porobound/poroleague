@@ -221,7 +221,7 @@ export const actions: Actions = {
 		const on = (await event.request.formData()).get('on') === '1';
 		const { match } = context(event);
 		const them = matchPlayers(match).find((p) => p.id !== user.id)!;
-		if (user.id !== match.p1Id && user.id !== match.p2Id)
+		if (!inMatch(match, user.id))
 			return fail(403, { error: true, message: 'Only the two players can publish replays.' });
 		if (!setPublish(match, user.id, on))
 			return fail(409, { error: true, message: 'Add a replay first.' });

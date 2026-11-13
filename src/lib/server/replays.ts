@@ -9,13 +9,15 @@ export const inMatch = (m: Match, playerId: string) => playerId === m.p1Id || pl
 
 // A replay shows its uploader's deck and hand: the two players and organizers see it, everyone
 // else only once both players have published. `hidden`: an early match nobody else knows was played.
-export const isPublic = (m: Match) => m.p1PublishReplay && m.p2PublishReplay;
 export const canSeeReplays = (
 	m: Match,
 	viewerId: string | null,
 	organizer = false,
 	hidden = false
-) => (!hidden && isPublic(m)) || organizer || (!!viewerId && inMatch(m, viewerId));
+) =>
+	(!hidden && m.p1PublishReplay && m.p2PublishReplay) ||
+	organizer ||
+	(!!viewerId && inMatch(m, viewerId));
 
 // The games that have a replay, without the files.
 export const matchReplays = (matchId: number) =>
@@ -119,6 +121,8 @@ export const setPublish = (m: Match, playerId: string, on: boolean) =>
 			!tx.select({ game: replays.game }).from(replays).where(eq(replays.matchId, m.id)).get()
 		)
 			return false;
+		// Said already (a resubmitted form): no second line in the log.
+		if ((playerId === m.p1Id ? m.p1PublishReplay : m.p2PublishReplay) === on) return true;
 		tx.update(matches)
 			.set(playerId === m.p1Id ? { p1PublishReplay: on } : { p2PublishReplay: on })
 			.where(eq(matches.id, m.id))

@@ -152,7 +152,7 @@ test('replays go public once both players publish', async ({ browser }) => {
 	await expect(replays(visitor).getByRole('button')).toHaveCount(0);
 
 	// A new file is not what the two agreed to publish.
-	await upload(two, file(['Ahri, Nine-Tailed Fox', 'Annie, Dark Child']));
+	await upload(two, file(['Ahri, Nine-Tailed Fox', 'Annie, Dark Child']), 'Game 1');
 	await expect(two.getByText(`Private: only you and ${p1} can watch these replays.`)).toBeVisible();
 	await isPublic(false);
 

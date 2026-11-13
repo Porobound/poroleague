@@ -150,7 +150,17 @@ describe('who sees replays', () => {
 	it('needs a replay to publish', () => {
 		expect(setPublish(match(), 'p1', true)).toBe(false);
 		expect(published(match())).toEqual([false, false]);
-		expect(auditLines(seasonId)).toEqual([]);
+		expect(auditLines(seasonId, { organizer: true })).toEqual([]);
+	});
+
+	it('saying it twice is logged once', () => {
+		saveReplay(match(), SINCE, 'p1', replayFile());
+		expect(setPublish(match(), 'p1', true)).toBe(true);
+		expect(setPublish(match(), 'p1', true)).toBe(true);
+		expect(setPublish(match(), 'p2', false)).toBe(true);
+		expect(
+			auditLines(seasonId, { organizer: true }).filter((l) => /publish/.test(l.what))
+		).toHaveLength(1);
 	});
 
 	it('only a player of the match can publish', () => {

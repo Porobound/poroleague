@@ -379,8 +379,7 @@
 								onchange={tooBig}
 							/>
 							<span class="pb-hint">
-								One JSON file per game; it replaces a replay already added for that game. Only you
-								and {opponent} can see it until you both publish.
+								One JSON file per game. Only you and {opponent} can see it until you both publish.
 							</span>
 						</label>
 						<label class="pb-field">
