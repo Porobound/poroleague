@@ -18,6 +18,14 @@ import {
 	saveReport
 } from '#lib/server/matches.ts';
 import { cardContext, earlyNote, liveState, matchCard } from '#lib/matchCard.ts';
+import { MAX_REPLAY_BYTES, TOO_BIG } from '#lib/replay.ts';
+import {
+	canSeeReplays,
+	deleteReplay,
+	inMatch,
+	matchReplays,
+	saveReplay
+} from '#lib/server/replays.ts';
 import { getSeason, seasonEntries } from '#lib/server/seasons.ts';
 import { cutRounds, waitingOnFlag } from '#lib/server/topCut.ts';
 import { postResult, postToOrganizers } from '#lib/server/webhooks.ts';
@@ -63,12 +71,17 @@ function context(event: Event, organizer = false, { season, match, hidden } = fi
 
 export const load: PageServerLoad = async (event) => {
 	// Organizers may look at an early match; currentRole re-checks the role with Discord at most
-	// once a minute, never the session flag alone. Published matches need neither.
+	// once a minute, never the session flag alone. They also see a played match's replays. Other
+	// matches need no role.
 	const found = find(event);
-	const organizer = found.hidden && !!event.locals.user?.isOrganizer && (await currentRole(event));
+	const organizer =
+		(found.hidden || found.match?.p1Games != null) &&
+		!!event.locals.user?.isOrganizer &&
+		(await currentRole(event));
 	const { season, match, mode, closed, voided, waiting } = context(event, organizer, found);
 	const [p1, p2] = matchPlayers(match);
 	const viewer = event.locals.user?.id ?? null;
+	const playing = viewer === p1.id || viewer === p2.id;
 	const { away, revoked } = seasonUnlocks(season);
 	const card = matchCard(match, {
 		...cardContext(season, seasonEntries(season.id), viewer, new Date(), cutRounds(season.id)),
@@ -77,7 +90,8 @@ export const load: PageServerLoad = async (event) => {
 	});
 	return {
 		season,
-		match,
+		// Without who has agreed to publish replays: that is between the two players.
+		match: { ...match, p1PublishReplay: undefined, p2PublishReplay: undefined },
 		// Same status rule as every match card.
 		status: card.status,
 		head: card.props.head,
@@ -98,6 +112,21 @@ export const load: PageServerLoad = async (event) => {
 		p1,
 		p2,
 		legends: LEGENDS,
+		// Null: no result to have replays of, or not this viewer's to see.
+		replays:
+			match.p1Games !== null && canSeeReplays(match, viewer, organizer)
+				? {
+						games: matchReplays(match.id).map((r) => ({
+							game: r.game,
+							by: (r.uploadedBy === p1.id ? p1 : p2).displayName
+						})),
+						// A match with an erased player keeps no replays.
+						canUpload: playing && !p1.former && !p2.former,
+						canDelete: playing || organizer,
+						// How many games the match had, for choosing which one a file is.
+						played: match.games?.length ?? match.p1Games + (match.p2Games ?? 0)
+					}
+				: null,
 		// Only the form needs it; anyone else gets no hint of a player's last legend.
 		prefill:
 			mode === 'report'
@@ -151,5 +180,43 @@ export const actions: Actions = {
 			)
 		);
 		return { message: 'Flagged. An organizer will check it.' };
+	},
+
+	// Either player adds or replaces a game's replay, at any time once the result is in.
+	replay: async (event) => {
+		const user = playerAction(event);
+		const form = await event.request.formData();
+		const file = form.get('file');
+		if (!(file instanceof File) || !file.size)
+			return fail(400, { error: true, message: 'Choose a replay file first.' });
+		if (file.size > MAX_REPLAY_BYTES) return fail(400, { error: true, message: TOO_BIG });
+		const text = await file.text();
+		// Empty: the game the file says it is.
+		const game = Number(form.get('game'));
+		const { season, match } = context(event);
+		if (!inMatch(match, user.id))
+			return fail(403, { error: true, message: 'Only the two players can add a replay.' });
+		const error = saveReplay(
+			match,
+			season.createdAt,
+			user.id,
+			text,
+			Number.isInteger(game) && game > 0 ? game : undefined
+		);
+		if (error) return fail(400, { error: true, message: error });
+		const opponent = matchPlayers(match).find((p) => p.id !== user.id)!.displayName;
+		return { message: `Replay saved. Only you and ${opponent} can see it.` };
+	},
+
+	deleteReplay: async (event) => {
+		const user = playerAction(event);
+		const organizer = user.isOrganizer && (await currentRole(event));
+		const game = Number((await event.request.formData()).get('game'));
+		const { match } = context(event, organizer);
+		if (!organizer && !inMatch(match, user.id))
+			return fail(403, { error: true, message: "This replay isn't yours to delete." });
+		if (!deleteReplay(match, user.id, game))
+			return fail(404, { error: true, message: 'That replay is already gone.' });
+		return { message: `Game ${game} replay deleted.` };
 	}
 };

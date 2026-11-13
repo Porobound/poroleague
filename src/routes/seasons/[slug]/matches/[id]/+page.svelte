@@ -4,6 +4,7 @@
 	import GameRows from '#lib/components/GameRows.svelte';
 	import MatchCard from '#lib/components/MatchCard.svelte';
 	import { parseReport } from '#lib/league/report.ts';
+	import { MAX_REPLAY_BYTES, TOO_BIG } from '#lib/replay.ts';
 	import { MediaQuery } from 'svelte/reactivity';
 	import type { PageProps } from './$types';
 
@@ -74,6 +75,17 @@
 		void changes;
 		return reportForm ? parseReport(new FormData(reportForm), m.p1Id, m.p2Id) : null;
 	});
+
+	const RIFTATLAS = 'https://play.riftatlas.com/?replayFile=1';
+	const fileUrl = (game: number) => `/seasons/${data.season.slug}/matches/${m.id}/replay/${game}`;
+	// Watch: the link opens RiftAtlas, this saves the file to drop there. RiftAtlas takes no file by URL.
+	const download = (game: number) =>
+		Object.assign(document.createElement('a'), { href: fileUrl(game), download: '' }).click();
+	// The server refuses bigger request bodies outright; say so before the upload.
+	const tooBig = (e: Event & { currentTarget: HTMLInputElement }) =>
+		e.currentTarget.setCustomValidity(
+			(e.currentTarget.files?.[0]?.size ?? 0) > MAX_REPLAY_BYTES ? TOO_BIG : ''
+		);
 </script>
 
 <svelte:head>
@@ -172,6 +184,11 @@
 			</fieldset>
 			{#if errors.dice}<p class="pb-hint is-error" role="alert">{errors.dice}</p>{/if}
 
+			<p class="muted small">
+				Played on RiftAtlas? Download the replay JSON of each game within 6 hours, before RiftAtlas
+				deletes it. You can add it to this match once the result is saved.
+			</p>
+
 			<div class="actions action-bar">
 				<ConfirmButton
 					inForm
@@ -265,6 +282,84 @@
 			<p class="muted">Reporting closed at the season deadline. An organizer enters the result.</p>
 		{/if}
 
+		{#if data.replays && (data.replays.games.length || data.replays.canUpload)}
+			{@const r = data.replays}
+			<section class="panel replays" aria-labelledby="replays-h">
+				<h2 id="replays-h">Replays</h2>
+				{#if r.games.length}
+					<ul>
+						{#each r.games as g (g.game)}
+							<li>
+								<span><strong>Game {g.game}</strong> <span class="muted">from {g.by}</span></span>
+								<span class="replay-actions">
+									<a
+										class="pb-btn pb-btn-primary pb-btn-sm"
+										href={RIFTATLAS}
+										target="_blank"
+										rel="noopener"
+										onclick={() => download(g.game)}
+										>Watch<span class="pb-sr"> game {g.game}</span></a
+									>
+									<a class="pb-btn pb-btn-ghost pb-btn-sm" href={fileUrl(g.game)} download
+										>Download<span class="pb-sr"> game {g.game}</span></a
+									>
+									{#if r.canDelete}
+										<ConfirmButton
+											action="?/deleteReplay"
+											variant="ghost"
+											confirmVariant="danger"
+											small
+											label="Delete"
+											title="Delete the game {g.game} replay?"
+											confirmLabel="Delete replay"
+											fields={{ game: String(g.game) }}
+										/>
+									{/if}
+								</span>
+							</li>
+						{/each}
+					</ul>
+					<p class="muted small">
+						Watch downloads the replay and opens RiftAtlas in a new tab: drop the downloaded file on
+						that page.
+					</p>
+				{/if}
+				{#if r.canUpload}
+					<form method="POST" action="?/replay" enctype="multipart/form-data" class="upload">
+						<label class="pb-field">
+							Replay file from RiftAtlas
+							<input
+								class="pb-input"
+								type="file"
+								name="file"
+								accept=".json,application/json"
+								required
+								onchange={tooBig}
+							/>
+							<span class="pb-hint">
+								One JSON file per game; it replaces a replay already added for that game. Only you
+								and {opponent} can see it.
+							</span>
+						</label>
+						<label class="pb-field">
+							Which game is it?
+							<select class="pb-input pb-select" name="game">
+								<option value="">The game the file says</option>
+								{#each { length: r.played }, i (i)}
+									<option value={i + 1}>Game {i + 1}</option>
+								{/each}
+							</select>
+							<span class="pb-hint">
+								Choose a game if the series moved to a new RiftAtlas room, where the count starts
+								over.
+							</span>
+						</label>
+						<button class="pb-btn pb-btn-secondary">Add replay</button>
+					</form>
+				{/if}
+			</section>
+		{/if}
+
 		<a href="/seasons/{data.season.slug}">Back to season</a>
 	{/if}
 </div>
@@ -309,6 +404,32 @@
 	.report .actions {
 		border-top: 1px solid var(--line);
 		padding-top: 24px;
+	}
+	.replays,
+	.upload {
+		display: flex;
+		flex-direction: column;
+		gap: 16px;
+	}
+	.upload {
+		align-items: flex-start;
+	}
+	.replays ul {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+	}
+	.replays li,
+	.replay-actions {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 8px;
+	}
+	.replays li {
+		justify-content: space-between;
+		padding: 10px 0;
+		border-top: 1px solid var(--line);
 	}
 	@media (max-width: 640px) {
 		.report {

@@ -2,6 +2,8 @@
 // running season at a time, so each spec seeds its own in beforeAll and removes it in afterAll.
 import Database from 'better-sqlite3';
 import { createHash } from 'node:crypto';
+import { gzipSync } from 'node:zlib';
+import { replayFile } from '../src/lib/server/test/replayFile.ts';
 import { DB, ORGANIZER, SEASONS, player, playerName, token, type SeasonKey } from './fixtures.ts';
 
 type Db = Database.Database;
@@ -137,6 +139,16 @@ export const seedResult = (
 		log.run({ action: 'report', id: matchId });
 		if (flag) log.run({ action: 'flag', id: matchId });
 	});
+
+// A replay of one game of a reported match, uploaded by p1 (the legends must be the result's).
+export const seedReplay = (matchId: number, game: number, legends = ['Ahri, Fox', 'Annie, Fire']) =>
+	write((db) =>
+		db
+			.prepare(
+				'insert into replays (match_id, game, replay_id, uploaded_by, data) select id, ?, ?, p1_id, ? from matches where id = ?'
+			)
+			.run(game, `seed:${matchId}:${game}`, gzipSync(replayFile({ game, legends })), matchId)
+	);
 
 // A season whose group stage is over: groups of three (two by default), every match played
 // (1 > 2 > 3, 4 > 5 > 6, …) and published, status topcut, top 2 per group.

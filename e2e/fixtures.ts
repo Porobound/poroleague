@@ -34,6 +34,7 @@ export const SEASONS = {
 	apiDraft: 'e2e-api-draft',
 	early: 'e2e-early',
 	schedule: 'e2e-schedule',
+	replays: 'e2e-replays',
 	shotsEarly: 'spring-2041',
 	shots: 'autumn-2039',
 	shotsDraft: 'spring-2040',

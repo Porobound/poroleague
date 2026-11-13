@@ -6,6 +6,7 @@ import {
 	renamePlayer,
 	seedEmptySeason,
 	seedHoliday,
+	seedReplay,
 	seedResult,
 	seedSeason
 } from './db.ts';
@@ -27,6 +28,7 @@ test.beforeAll(() => {
 	[reported, , open, flagged] = ids; // Mobile 1's round 1 and 2 matches; Mobile 2 vs 4
 	renamePlayer(player('mobile', 2), 'Bartholomew Featherstonehaugh-Villanueva');
 	seedResult(reported, 2, 1);
+	seedReplay(reported, 1);
 	seedResult(flagged, 0, 2, {
 		flag: 'We played 2-1 but the second game was conceded after a misclick, so this needs a look.'
 	});
