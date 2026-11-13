@@ -1,12 +1,13 @@
+import { gunzipSync } from 'node:zlib';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { auditLines } from '#lib/server/auditLog.ts';
-import { getMatch, type Match } from '#lib/server/matches.ts';
+import { getMatch, organizerEdit, type Match } from '#lib/server/matches.ts';
 import { erasePlayer } from '#lib/server/players.ts';
 import {
 	canSeeReplays,
 	deleteReplay,
 	matchReplays,
-	replayFile as stored,
+	replayGzip as stored,
 	saveReplay,
 	setPublish
 } from '#lib/server/replays.ts';
@@ -44,7 +45,7 @@ describe('saveReplay', () => {
 		const file = replayFile({ game: 2 });
 		expect(saveReplay(match(), SINCE, 'p2', file)).toBeNull();
 		expect(matchReplays(matchId)).toMatchObject([{ game: 2, uploadedBy: 'p2' }]);
-		expect(stored(matchId, 2)!.toString()).toBe(file);
+		expect(gunzipSync(stored(matchId, 2)!).toString()).toBe(file);
 		expect(stored(matchId, 1)).toBeUndefined();
 	});
 
@@ -57,16 +58,53 @@ describe('saveReplay', () => {
 		expect(matchReplays(matchId)).toEqual([]);
 	});
 
-	it('replaces the game it already has, and both players decide on publishing again', () => {
-		saveReplay(match(), SINCE, 'p1', replayFile({ replayId: 'mine' }));
+	const publishBoth = () => {
 		setPublish(match(), 'p1', true);
 		setPublish(match(), 'p2', true);
 		expect(published(match())).toEqual([true, true]);
-		expect(saveReplay(match(), SINCE, 'p2', replayFile({ replayId: 'theirs' }))).toBeNull();
+	};
+
+	it('replaces a game with the other view of it, and both decide on publishing again', () => {
+		saveReplay(match(), SINCE, 'p1', replayFile({ completedAt: 1 }));
+		publishBoth();
+		expect(saveReplay(match(), SINCE, 'p2', replayFile({ completedAt: 2 }))).toBeNull();
 		expect(matchReplays(matchId)).toMatchObject([{ game: 1, uploadedBy: 'p2' }]);
 		expect(published(match())).toEqual([false, false]);
-		// The same file again is a replace too, not a clash with itself.
-		expect(saveReplay(match(), SINCE, 'p2', replayFile({ replayId: 'theirs' }))).toBeNull();
+	});
+
+	it('the same file again changes nothing', () => {
+		const file = replayFile();
+		saveReplay(match(), SINCE, 'p1', file);
+		publishBoth();
+		expect(saveReplay(match(), SINCE, 'p2', file)).toBeNull();
+		expect(matchReplays(matchId)).toMatchObject([{ game: 1, uploadedBy: 'p1' }]);
+		expect(published(match())).toEqual([true, true]);
+		expect(
+			auditLines(seasonId, { organizer: true }).filter((l) => /uploaded/.test(l.what))
+		).toHaveLength(1);
+	});
+
+	it('a file from another room never replaces a game on its own number', () => {
+		// The series moved to a second room: its first game also says "game 1".
+		saveReplay(match(), SINCE, 'p1', replayFile({ replayId: 'room1:1' }));
+		const second = replayFile({ replayId: 'room2:1' });
+		expect(saveReplay(match(), SINCE, 'p1', second)).toBe(
+			'Game 1 already has another replay. Choose which game this file is, or choose game 1 to replace that one.'
+		);
+		expect(saveReplay(match(), SINCE, 'p1', second, 2)).toBeNull();
+		expect(matchReplays(matchId).map((r) => r.game)).toEqual([1, 2]);
+		// Chosen wrongly: choosing again moves it, and a chosen game does replace.
+		expect(saveReplay(match(), SINCE, 'p1', second, 3)).toBeNull();
+		expect(matchReplays(matchId).map((r) => r.game)).toEqual([1, 3]);
+		expect(saveReplay(match(), SINCE, 'p1', second, 1)).toBeNull();
+		expect(matchReplays(matchId).map((r) => r.game)).toEqual([1]);
+		expect(saveReplay(match(), SINCE, 'p1', second, 4)).toMatch(/game 4/);
+	});
+
+	it('refuses a match with an erased player: erasure deleted its replays for good', () => {
+		erasePlayer('p2', 'p4');
+		expect(saveReplay(match(), SINCE, 'p1', replayFile())).toMatch(/was erased/);
+		expect(matchReplays(matchId)).toEqual([]);
 	});
 
 	it('refuses a replay that is already on another match', () => {
@@ -115,8 +153,10 @@ it('every change is in the audit log', () => {
 	setPublish(match(), 'p2', true);
 	setPublish(match(), 'p2', false);
 	deleteReplay(match(), 'p1', 1);
+	// Organizers only: the public log would tell who has a private replay and who won't publish.
+	expect(auditLines(seasonId)).toEqual([]);
 	expect(
-		auditLines(seasonId)
+		auditLines(seasonId, { organizer: true })
 			.reverse()
 			.map((l) => `${l.label}: ${l.actor}: ${l.what}`)
 	).toEqual([
@@ -136,4 +176,34 @@ it("erasing a player deletes their matches' replays, whoever uploaded them", () 
 	expect(matchReplays(matchId)).toEqual([]);
 	expect(published(match())).toEqual([false, false]);
 	expect(matchReplays(other)).toHaveLength(1);
+});
+
+describe('an organizer edit', () => {
+	const result = {
+		games: null,
+		p1Games: 2,
+		p2Games: 1,
+		p1Legend: 'Azir',
+		p2Legend: 'Evelynn',
+		diceWinnerId: 'p1'
+	};
+	beforeEach(() => {
+		saveReplay(match(), SINCE, 'p1', replayFile({ game: 3 }));
+		setPublish(match(), 'p1', true);
+	});
+
+	it('keeps the replays when legends and games stand', () => {
+		organizerEdit(match(), 'p4', { ...result, p1Games: 1, p2Games: 2, diceWinnerId: 'p2' });
+		expect(matchReplays(matchId)).toHaveLength(1);
+		expect(published(match())).toEqual([true, false]);
+	});
+
+	it('drops them when a legend changes or a game goes', () => {
+		organizerEdit(match(), 'p4', { ...result, p2Legend: 'Vex' });
+		expect(matchReplays(matchId)).toEqual([]);
+		expect(published(match())).toEqual([false, false]);
+		saveReplay(match(), SINCE, 'p1', replayFile({ game: 3, legends: ['Azir, A', 'Vex, B'] }));
+		organizerEdit(match(), 'p4', { ...result, p2Legend: 'Vex', p2Games: 0 });
+		expect(matchReplays(matchId)).toEqual([]);
+	});
 });

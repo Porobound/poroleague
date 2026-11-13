@@ -10,6 +10,7 @@ Answer within one month of the request.
    - renames them "Former player" plus a short random code (e.g. "Former player 3f9a") and removes their avatar and Discord link;
    - logs them out everywhere;
    - clears the reasons on flags they filed;
+   - deletes the replays of all their matches, and refuses new ones for those matches;
    - takes them off seasons in signup or groups, and drops them from seasons in play (their matches there are void; the drop can't be cancelled);
    - writes an `erase` row to the audit log of each season they stay in.
 

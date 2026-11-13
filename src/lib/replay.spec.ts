@@ -74,6 +74,11 @@ describe('checkReplay', () => {
 		expect(check({ legends: ['Azir', 'Azir'] })).toMatch(/reported as/);
 	});
 
+	it("lets through legends it can't read: another language, or a name the league lacks", () => {
+		expect(check({ legends: ['아지르', '이블린'] })).toBeNull();
+		expect(check({ legends: ['Azir', 'Someone New'] })).toBeNull();
+	});
+
 	it('matches legends across spelling and the Master Yi variants', () => {
 		const m = { p1Legend: "Kai'Sa", p2Legend: 'Master Yi (PG)' };
 		expect(check({ legends: ['Master Yi', 'Kai’Sa'] }, m)).toBeNull();

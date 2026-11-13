@@ -8,6 +8,7 @@ import { cardContext, matchCard } from '#lib/matchCard.ts';
 import { db } from '#lib/server/db/index.ts';
 import { audit, entries, former, matches, players, seasons } from '#lib/server/db/schema.ts';
 import { groupName } from '#lib/season.ts';
+import { dropReplays } from '#lib/server/replays.ts';
 import { cutRounds, syncBracket } from '#lib/server/topCut.ts';
 
 export type Match = typeof matches.$inferSelect;
@@ -184,6 +185,16 @@ export function organizerEdit(m: Match, actorId: string, values: Report) {
 			.where(eq(matches.id, m.id))
 			.run();
 		if (m.stage === 'group') clearTiebreaks(tx, m.seasonId);
+		// Replays were checked against the old result: other legends or fewer games, and they no
+		// longer show this match.
+		const games = (r: Pick<Match, 'games' | 'p1Games' | 'p2Games'>) =>
+			r.games?.length ?? (r.p1Games ?? 0) + (r.p2Games ?? 0);
+		if (
+			values.p1Legend !== m.p1Legend ||
+			values.p2Legend !== m.p2Legend ||
+			games(values) < games(m)
+		)
+			dropReplays(tx, [m.id]);
 		tx.insert(audit)
 			.values({
 				seasonId: m.seasonId,

@@ -1,6 +1,11 @@
 // RiftAtlas replay files ("riftatlas-replay" version 2). The game is a table of nodes, each
 // ['o', [key, value][]] or ['a', value[]], where a value is a primitive or a {r: index} reference.
 
+import { LEGENDS } from '#lib/legends.ts';
+
+export const MAX_REPLAY_BYTES = 5 * 1024 * 1024;
+export const TOO_BIG = 'A replay file can be 5 MB at most.';
+
 export type ReplayInfo = {
 	replayId: string;
 	game: number; // 1-based game of the series
@@ -36,7 +41,10 @@ export function readReplay(text: string): { ok: true; info: ReplayInfo } | Retur
 		const state = get(get(get(root.frames).at(-1)).state);
 		const players: unknown[] = get(state.players);
 		if (players.length !== 2) return bad('A league replay has exactly two players.');
-		const legends = players.map((p) => get(get(get(get(p).board).legend)[0]).name.split(',')[0]);
+		const legends = players.map((p) => {
+			const zone: any[] = get(get(get(p).board).legend).map(get);
+			return (zone.find((c) => c.type === 'legend') ?? zone[0]).name.split(',')[0];
+		});
 		const info = {
 			replayId: root.replayId,
 			game: state.gameNumber,
@@ -64,6 +72,7 @@ const champion = (legend: string) =>
 		.replace(/\(.*\)/, '')
 		.toLowerCase()
 		.replace(/[^a-z0-9]/g, '');
+const KNOWN = new Set(LEGENDS.map(champion));
 
 export type Reported = {
 	p1Games: number | null;
@@ -80,7 +89,14 @@ export function checkReplay(info: ReplayInfo, m: Reported, now: Date, since: Dat
 	if (info.game > played)
 		return `This is the replay of game ${info.game}, but the match was reported with ${played} ${played === 1 ? 'game' : 'games'}.`;
 	const pair = (a: string, b: string) => [champion(a), champion(b)].sort().join();
-	if (m.p1Legend && m.p2Legend && pair(...info.legends) !== pair(m.p1Legend, m.p2Legend))
+	// Only names the league knows can contradict the result: RiftAtlas in another language, or a
+	// legend it names differently, must not block a real replay.
+	if (
+		m.p1Legend &&
+		m.p2Legend &&
+		info.legends.every((l) => KNOWN.has(champion(l))) &&
+		pair(...info.legends) !== pair(m.p1Legend, m.p2Legend)
+	)
 		return `This replay is ${info.legends.join(' vs ')}, but the match was reported as ${m.p1Legend} vs ${m.p2Legend}.`;
 	// Five minutes of clock difference between RiftAtlas and here is fine.
 	if (info.completedAt > now.getTime() + 5 * 60_000) return 'This replay is dated in the future.';
