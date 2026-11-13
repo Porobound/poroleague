@@ -12,6 +12,7 @@ import { groupName } from '#lib/season.ts';
 import { db } from '#lib/server/db/index.ts';
 import { audit, entries, matches, seasons } from '#lib/server/db/schema.ts';
 import type { Match, Tx } from '#lib/server/matches.ts';
+import { dropReplays } from '#lib/server/replays.ts';
 import {
 	groupStandings,
 	seasonEntries,
@@ -156,6 +157,7 @@ export function syncBracket(tx: Tx, season: { id: number }, actorId: string) {
 			.find((m) => m && (m.reportedBy || m.walkoverId || m.flaggedBy));
 		if (outdated) {
 			tx.update(matches).set(CLEARED).where(eq(matches.id, outdated.id)).run();
+			dropReplays(tx, [outdated.id]);
 			tx.insert(audit)
 				.values({
 					seasonId: season.id,

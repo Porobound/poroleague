@@ -31,6 +31,9 @@ type Change = Partial<Report> & {
 	from?: string;
 	to?: string;
 	status?: string;
+	replay?: number;
+	replayDeleted?: number;
+	replayPublished?: boolean;
 };
 const LABEL: Record<string, string> = {
 	report: 'Report',
@@ -48,7 +51,8 @@ const LABEL: Record<string, string> = {
 	walkover: 'Walkover',
 	champion: 'Champion',
 	reset: 'Reset',
-	holiday: 'Holiday'
+	holiday: 'Holiday',
+	replay: 'Replay'
 };
 export const auditLabel = (action: string) => LABEL[action] ?? action;
 
@@ -139,6 +143,10 @@ export function auditLines(
 					after?.holiday
 						? `${name(after.holiday)} — holiday ${dateSpan(after.from!, after.to!)} ${after.status}`
 						: '',
+					after?.replay ? `Game ${after.replay} replay uploaded` : '',
+					after?.replayDeleted ? `Game ${after.replayDeleted} replay deleted` : '',
+					after?.replayPublished === true ? 'Agreed to publish the replays' : '',
+					after?.replayPublished === false ? 'Took back publishing the replays' : '',
 					r.action === 'publish' && after?.rounds
 						? `Week ${after.week} published · R${after.rounds[0]}${after.rounds[1] > after.rounds[0] ? `–${after.rounds[1]}` : ''}`
 						: ''
