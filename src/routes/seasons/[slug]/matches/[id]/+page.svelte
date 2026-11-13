@@ -323,6 +323,48 @@
 						Watch downloads the replay and opens RiftAtlas in a new tab: drop the downloaded file on
 						that page.
 					</p>
+					{#if r.published}
+						{@const [mine, theirs] = r.published}
+						<div class="publish">
+							<p>
+								<strong>
+									{#if mine && theirs}
+										Public: anyone can watch these replays.
+									{:else if mine}
+										You said yes to publishing. Waiting for {opponent}.
+									{:else if theirs}
+										{opponent} wants to publish these replays. They go public if you publish too.
+									{:else}
+										Private: only you and {opponent} can watch these replays.
+									{/if}
+								</strong>
+							</p>
+							<p class="muted small">
+								A replay shows the uploader's deck and every card in their hand. Talk to {opponent}
+								first and publish only if you're both fine with that: replays go public once you both
+								publish, and either of you can take it back. Adding, replacing or deleting a replay makes
+								them private again.
+							</p>
+							<ConfirmButton
+								action="?/publishReplays"
+								variant="secondary"
+								small
+								label={mine ? 'Unpublish' : 'Publish'}
+								title={mine ? 'Take back publishing?' : 'Publish these replays?'}
+								confirmLabel={mine ? 'Unpublish' : 'Publish'}
+								fields={{ on: mine ? '0' : '1' }}
+							>
+								<p>
+									{#if mine}
+										Only you and {opponent} will see the replays.
+									{:else}
+										Everyone will see the uploader's deck and hand once {opponent} has published too.
+										Agreed with {opponent}?
+									{/if}
+								</p>
+							</ConfirmButton>
+						</div>
+					{/if}
 				{/if}
 				{#if r.canUpload}
 					<form method="POST" action="?/replay" enctype="multipart/form-data" class="upload">
@@ -338,7 +380,7 @@
 							/>
 							<span class="pb-hint">
 								One JSON file per game; it replaces a replay already added for that game. Only you
-								and {opponent} can see it.
+								and {opponent} can see it until you both publish.
 							</span>
 						</label>
 						<label class="pb-field">
@@ -404,6 +446,9 @@
 	.report .actions {
 		border-top: 1px solid var(--line);
 		padding-top: 24px;
+	}
+	.publish p {
+		margin: 0 0 8px;
 	}
 	.replays,
 	.upload {

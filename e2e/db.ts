@@ -150,6 +150,14 @@ export const seedReplay = (matchId: number, game: number, legends = ['Ahri, Fox'
 			.run(game, `seed:${matchId}:${game}`, gzipSync(replayFile({ game, legends })), matchId)
 	);
 
+// Both players said yes: the match's replays are public.
+export const publishReplays = (matchId: number) =>
+	write((db) =>
+		db
+			.prepare('update matches set p1_publish_replay = 1, p2_publish_replay = 1 where id = ?')
+			.run(matchId)
+	);
+
 // A season whose group stage is over: groups of three (two by default), every match played
 // (1 > 2 > 3, 4 > 5 > 6, …) and published, status topcut, top 2 per group.
 export const seedFinishedGroups = (

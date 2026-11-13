@@ -141,6 +141,16 @@ describe('vsRow', () => {
 		expect(vsRow(card({ round: 4 }, c)).chips).toEqual([]);
 	});
 
+	it('a match both players published replays of gets the Replay available chip', () => {
+		const c = ctx('p3', { ...season, publishedRound: 4 });
+		const both = { ...reported, p1PublishReplay: true, p2PublishReplay: true };
+		expect(vsRow(card({ round: 4, ...both }, c)).chips).toEqual(['Replay available']);
+		expect(povRow(card({ round: 4, ...both }, c), 'p1').chips).toEqual(['Replay available']);
+		expect(vsRow(card({ round: 4, ...both, p2PublishReplay: false }, c)).chips).toEqual([]);
+		// An early match is nobody else's business yet.
+		expect(vsRow(card({ round: 5, ...both }, c)).chips).toEqual(['Early']);
+	});
+
 	it('walkover: mid "W/O", note "<name> advances"', () => {
 		const c = cardContext({ ...season, status: 'topcut' }, people, 'p1', NOW, 3);
 		const r = vsRow(card({ ...playoff, walkoverId: 'p2' }, c));

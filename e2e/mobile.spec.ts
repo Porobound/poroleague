@@ -2,6 +2,7 @@
 // anything cut off at the right edge. Controls under 44 px tall are warnings, logged per page.
 import { expect, test, type Page } from '@playwright/test';
 import {
+	publishReplays,
 	removeSeason,
 	renamePlayer,
 	seedEmptySeason,
@@ -29,6 +30,7 @@ test.beforeAll(() => {
 	renamePlayer(player('mobile', 2), 'Bartholomew Featherstonehaugh-Villanueva');
 	seedResult(reported, 2, 1);
 	seedReplay(reported, 1);
+	publishReplays(reported);
 	seedResult(flagged, 0, 2, {
 		flag: 'We played 2-1 but the second game was conceded after a misclick, so this needs a look.'
 	});

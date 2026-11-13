@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { replayFile } from '../src/lib/server/test/replayFile.ts';
-import { removeSeason, seedResult, seedSeason } from './db.ts';
+import { removeSeason, seedReplay, seedResult, seedSeason } from './db.ts';
 import { ORGANIZER, SEASONS, as, player, playerName } from './fixtures.ts';
 
 const slug = SEASONS.replays;
@@ -109,6 +109,64 @@ test('upload, watch, and who can see a replay', async ({ browser }) => {
 	await org.goto(`/seasons/${slug}/audit`);
 	await expect(org.getByText('Game 2 replay uploaded')).toBeVisible();
 	expect((await opponent.request.get(`${url()}/replay/1`)).status()).toBe(404);
+});
+
+test('replays go public once both players publish', async ({ browser }) => {
+	seedReplay(match, 1);
+	const publish = async (page: Page) => {
+		await page.getByRole('button', { name: 'Publish', exact: true }).click();
+		await page.getByRole('dialog').getByRole('button', { name: 'Publish', exact: true }).click();
+	};
+	const visitor = await browser.newPage();
+	const chip = visitor.getByText('Replay available');
+	const isPublic = async (yes: boolean) => {
+		await visitor.goto(url());
+		await expect(replays(visitor)).toHaveCount(yes ? 1 : 0);
+		expect((await visitor.request.get(`${url()}/replay/1`)).status()).toBe(yes ? 200 : 404);
+		await visitor.goto(`/seasons/${slug}/schedule`);
+		await expect(visitor.getByText(p1).first()).toBeVisible();
+		await expect(chip).toHaveCount(yes ? 1 : 0);
+	};
+
+	// One yes isn't enough, and the page tells each player where things stand.
+	const one = await browser.newPage(as(player('replays', 1)));
+	await one.goto(url());
+	await expect(one.getByText(`Private: only you and ${p2} can watch these replays.`)).toBeVisible();
+	await expect(one.getByText(`Talk to ${p2} first`)).toBeVisible();
+	await publish(one);
+	await expect(one.getByRole('status')).toHaveText(
+		`You said yes. The replays go public once ${p2} publishes too.`
+	);
+	await isPublic(false);
+
+	const two = await browser.newPage(as(player('replays', 2)));
+	await two.goto(url());
+	await expect(two.getByText(`${p1} wants to publish these replays.`)).toBeVisible();
+	await publish(two);
+	await expect(two.getByRole('status')).toHaveText('Published. Anyone can watch the replays now.');
+	await isPublic(true);
+
+	// A visitor watches but changes nothing.
+	await visitor.goto(url());
+	await expect(replays(visitor).getByRole('link', { name: 'Watch game 1' })).toBeVisible();
+	await expect(replays(visitor).getByRole('button')).toHaveCount(0);
+
+	// A new file is not what the two agreed to publish.
+	await upload(two, file(['Ahri, Nine-Tailed Fox', 'Annie, Dark Child']));
+	await expect(two.getByText(`Private: only you and ${p1} can watch these replays.`)).toBeVisible();
+	await isPublic(false);
+
+	// Either player can take a yes back.
+	await publish(two);
+	await one.reload();
+	await publish(one);
+	await isPublic(true);
+	await one.getByRole('button', { name: 'Unpublish' }).click();
+	await one.getByRole('dialog').getByRole('button', { name: 'Unpublish' }).click();
+	await expect(one.getByRole('status')).toHaveText(
+		`Unpublished. Only you and ${p2} see the replays.`
+	);
+	await isPublic(false);
 });
 
 test('the report form reminds players to save the replay', async ({ browser }) => {

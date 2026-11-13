@@ -24,7 +24,8 @@ import {
 	deleteReplay,
 	inMatch,
 	matchReplays,
-	saveReplay
+	saveReplay,
+	setPublish
 } from '#lib/server/replays.ts';
 import { getSeason, seasonEntries } from '#lib/server/seasons.ts';
 import { cutRounds, waitingOnFlag } from '#lib/server/topCut.ts';
@@ -114,7 +115,7 @@ export const load: PageServerLoad = async (event) => {
 		legends: LEGENDS,
 		// Null: no result to have replays of, or not this viewer's to see.
 		replays:
-			match.p1Games !== null && canSeeReplays(match, viewer, organizer)
+			match.p1Games !== null && canSeeReplays(match, viewer, organizer, found.hidden)
 				? {
 						games: matchReplays(match.id).map((r) => ({
 							game: r.game,
@@ -124,7 +125,13 @@ export const load: PageServerLoad = async (event) => {
 						canUpload: playing && !p1.former && !p2.former,
 						canDelete: playing || organizer,
 						// How many games the match had, for choosing which one a file is.
-						played: match.games?.length ?? match.p1Games + (match.p2Games ?? 0)
+						played: match.games?.length ?? match.p1Games + (match.p2Games ?? 0),
+						// Who has said yes to showing them to everyone; the viewer's own side first.
+						published: playing
+							? viewer === p1.id
+								? ([match.p1PublishReplay, match.p2PublishReplay] as const)
+								: ([match.p2PublishReplay, match.p1PublishReplay] as const)
+							: null
 					}
 				: null,
 		// Only the form needs it; anyone else gets no hint of a player's last legend.
@@ -206,6 +213,25 @@ export const actions: Actions = {
 		if (error) return fail(400, { error: true, message: error });
 		const opponent = matchPlayers(match).find((p) => p.id !== user.id)!.displayName;
 		return { message: `Replay saved. Only you and ${opponent} can see it.` };
+	},
+
+	// A player's yes or no to showing the replays to everyone; it takes both.
+	publishReplays: async (event) => {
+		const user = playerAction(event);
+		const on = (await event.request.formData()).get('on') === '1';
+		const { match } = context(event);
+		const them = matchPlayers(match).find((p) => p.id !== user.id)!;
+		if (user.id !== match.p1Id && user.id !== match.p2Id)
+			return fail(403, { error: true, message: 'Only the two players can publish replays.' });
+		if (!setPublish(match, user.id, on))
+			return fail(409, { error: true, message: 'Add a replay first.' });
+		if (!on) return { message: `Unpublished. Only you and ${them.displayName} see the replays.` };
+		const theirs = them.id === match.p1Id ? match.p1PublishReplay : match.p2PublishReplay;
+		return {
+			message: theirs
+				? 'Published. Anyone can watch the replays now.'
+				: `You said yes. The replays go public once ${them.displayName} publishes too.`
+		};
 	},
 
 	deleteReplay: async (event) => {
