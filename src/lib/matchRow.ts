@@ -9,7 +9,9 @@ const chips = (c: Card) =>
 		? ['Holiday revoked']
 		: c.early
 			? ['Early']
-			: [];
+			: c.replay
+				? ['Replay available']
+				: [];
 const onHoliday = (tag: string | null) => (tag === 'On holiday' ? tag : null);
 const canReport = (c: Card) => c.props.link.label === 'Report';
 

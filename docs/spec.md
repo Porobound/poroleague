@@ -49,6 +49,20 @@ Only one season can be running (signup, groups, play or top cut) at a time; draf
 - Void matches (a player dropped) can't be reported or flagged.
 - Match page: `/seasons/[slug]/matches/[id]` (report, edit, flag, read-only).
 
+## Replays
+
+- Games are played on RiftAtlas, which deletes replays after 6 hours (90 days for paid members) and has no public API. So the league stores the replay JSON a player downloads there: one file per game of a reported match, gzipped in the `replays` table, 5 MB at most.
+- Either player adds or replaces a game's replay once the result is in, at any time and without a flag. Organizers can delete replays but add none. A match with an erased player takes none.
+- The file says which game it is, and that number is used for a free game or for the same game again (the other player's view). It never replaces a different replay: a series that moved to a second RiftAtlas room has two files saying "game 1", so the uploader then chooses the game, and a chosen game does replace.
+- A file is refused unless it is a `riftatlas-replay` version 2 file between two players, its game number is one the match had, it ended after the season was created and not in the future, and its RiftAtlas id is on no other match. Its legends must be the reported ones (by champion, either way round) when both are names in `src/lib/legends.ts`; names the league can't read (RiftAtlas in another language, a legend named differently) skip that check. Files aren't signed, so a hand-made one can pass. Player names aren't compared: RiftAtlas names differ from Discord names.
+- An organizer edit that changes a legend or removes a game deletes the match's replays: they were checked against the old result.
+- A replay shows its uploader's deck and hand. Only the two players and organizers see a match's replays until **both** players publish; then everyone who can see the match does, and its rows carry a "Replay available" chip. Either player can unpublish. Adding, replacing or deleting a replay unpublishes for both.
+- Watch downloads the file and opens `https://play.riftatlas.com/?replayFile=1`, where the viewer drops it; RiftAtlas takes no file by URL.
+- Uploads, deletes and each player's publish or unpublish go to the audit log, on lines only organizers see: the public log would say who has a private replay and who hasn't agreed to publish. For the same reason the match page's data leaves the two publish flags out.
+- Downloads are sent gzipped as stored (`content-encoding: gzip`).
+- Replays are deleted when a player of the match is erased and when a top-cut result is cleared.
+- The server's request body limit is raised to 6 MB for the upload (`BODY_SIZE_LIMIT`, server-wide).
+
 ## Holiday mode
 
 A player going away asks for a holiday; once an organizer approves it, their matches in the covered unpublished weeks unlock early, so they and each opponent can play and report them before they go.

@@ -2,6 +2,7 @@
 import { test } from '@playwright/test';
 import {
 	freezeTimes,
+	publishReplays,
 	removeSeason,
 	renamePlayer,
 	seedEmptySeason,
@@ -32,6 +33,7 @@ test('a season in play', async ({ browser }) => {
 	renamePlayer(player('shots', 2), 'Bartholomew Featherstonehaugh-Villanueva');
 	seedResult(reported, 2, 1);
 	seedReplay(reported, 1);
+	publishReplays(reported);
 	seedResult(flagged, 0, 2, {
 		flag: 'We played 2-1 but the second game was conceded after a misclick, so this needs a look.'
 	});

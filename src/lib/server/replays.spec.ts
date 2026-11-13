@@ -134,13 +134,33 @@ describe('who sees replays', () => {
 			canSeeReplays(match(), null),
 			canSeeReplays(match(), 'p3', true)
 		];
+		saveReplay(match(), SINCE, 'p1', replayFile());
 		expect(sees()).toEqual([true, false, false, true]);
 		setPublish(match(), 'p1', true);
 		expect(sees()).toEqual([true, false, false, true]);
 		setPublish(match(), 'p2', true);
 		expect(sees()).toEqual([true, true, true, true]);
+		// An early match stays between its players until its week is published.
+		expect(canSeeReplays(match(), 'p3', false, true)).toBe(false);
+		expect(canSeeReplays(match(), 'p2', false, true)).toBe(true);
 		setPublish(match(), 'p1', false);
 		expect(sees()).toEqual([true, false, false, true]);
+	});
+
+	it('needs a replay to publish', () => {
+		expect(setPublish(match(), 'p1', true)).toBe(false);
+		expect(published(match())).toEqual([false, false]);
+		expect(auditLines(seasonId, { organizer: true })).toEqual([]);
+	});
+
+	it('saying it twice is logged once', () => {
+		saveReplay(match(), SINCE, 'p1', replayFile());
+		expect(setPublish(match(), 'p1', true)).toBe(true);
+		expect(setPublish(match(), 'p1', true)).toBe(true);
+		expect(setPublish(match(), 'p2', false)).toBe(true);
+		expect(
+			auditLines(seasonId, { organizer: true }).filter((l) => /publish/.test(l.what))
+		).toHaveLength(1);
 	});
 
 	it('only a player of the match can publish', () => {

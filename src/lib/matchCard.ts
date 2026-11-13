@@ -23,6 +23,8 @@ export type CardMatch = {
 	stage?: 'group' | 'playoff';
 	slot?: number | null;
 	walkoverId?: string | null;
+	p1PublishReplay?: boolean;
+	p2PublishReplay?: boolean;
 };
 type Person = {
 	playerId: string;
@@ -141,6 +143,8 @@ export function matchCard(m: CardMatch, c: CardContext) {
 		week,
 		early,
 		walkover,
+		// Both players published, which they can only do once the match has a replay.
+		replay: !early && !!m.p1PublishReplay && !!m.p2PublishReplay,
 		props: {
 			head:
 				m.stage === 'playoff'
