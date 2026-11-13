@@ -10,7 +10,8 @@ RUN cp .env.example .env && npm run build && rm .env && npm prune --omit=dev
 
 FROM node:24-slim
 WORKDIR /app
-ENV NODE_ENV=production DATABASE_URL=/data/poroleague.db
+# Replay uploads are up to 5 MB plus form overhead; the default body limit is 512 KB.
+ENV NODE_ENV=production DATABASE_URL=/data/poroleague.db BODY_SIZE_LIMIT=6M
 COPY --from=build /app/package.json ./
 COPY --from=build /app/node_modules node_modules
 COPY --from=build /app/build build
