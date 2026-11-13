@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { index, integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { blob, index, integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import { HOLIDAY_STATUSES } from '#lib/league/holiday.ts';
 
 const createdAt = () =>
@@ -99,9 +99,30 @@ export const matches = sqliteTable(
 		flaggedBy: text('flagged_by').references(() => players.id),
 		flagReason: text('flag_reason'),
 		flagResolvedBy: text('flag_resolved_by').references(() => players.id),
-		flagResolvedAt: integer('flag_resolved_at', { mode: 'timestamp' })
+		flagResolvedAt: integer('flag_resolved_at', { mode: 'timestamp' }),
+		// Replays go public only once both players have published.
+		p1PublishReplay: integer('p1_publish_replay', { mode: 'boolean' }).notNull().default(false),
+		p2PublishReplay: integer('p2_publish_replay', { mode: 'boolean' }).notNull().default(false)
 	},
 	(t) => [index('matches_season_idx').on(t.seasonId)]
+);
+
+// One RiftAtlas replay file per game of a match, as the uploader saw the game (their deck and hand).
+export const replays = sqliteTable(
+	'replays',
+	{
+		matchId: integer('match_id')
+			.notNull()
+			.references(() => matches.id),
+		game: integer('game').notNull(), // 1-based, from the file
+		replayId: text('replay_id').notNull().unique(), // RiftAtlas' id: one file, one match
+		uploadedBy: text('uploaded_by')
+			.notNull()
+			.references(() => players.id),
+		data: blob('data', { mode: 'buffer' }).notNull(), // the JSON file, gzipped
+		createdAt: createdAt()
+	},
+	(t) => [primaryKey({ columns: [t.matchId, t.game] })]
 );
 
 export const audit = sqliteTable(

@@ -8,6 +8,7 @@ import {
 	holidays,
 	matches,
 	players,
+	replays,
 	seasons,
 	sessions
 } from '#lib/server/db/schema.ts';
@@ -34,6 +35,6 @@ migrate(db, { migrationsFolder: 'drizzle' });
 beforeEach(() => {
 	// No test reaches the network by accident; stub fetch in the test that needs it.
 	vi.stubGlobal('fetch', () => Promise.reject(new Error('fetch called in a test; stub it')));
-	for (const t of [holidays, audit, sessions, matches, entries, seasons, players])
+	for (const t of [replays, holidays, audit, sessions, matches, entries, seasons, players])
 		db.delete(t).run();
 });

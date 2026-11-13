@@ -57,6 +57,13 @@
       "when": 1793635494165,
       "tag": "0007_neat_morgan_stark",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1794597146465,
+      "tag": "0008_blue_scarlet_spider",
+      "breakpoints": true
     }
   ]
 }
