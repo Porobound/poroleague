@@ -18,11 +18,12 @@ import {
 	saveReport
 } from '#lib/server/matches.ts';
 import { cardContext, earlyNote, liveState, matchCard } from '#lib/matchCard.ts';
+import { MAX_REPLAY_BYTES, TOO_BIG } from '#lib/replay.ts';
 import {
 	canSeeReplays,
 	deleteReplay,
+	inMatch,
 	matchReplays,
-	MAX_REPLAY_BYTES,
 	saveReplay
 } from '#lib/server/replays.ts';
 import { getSeason, seasonEntries } from '#lib/server/seasons.ts';
@@ -89,7 +90,8 @@ export const load: PageServerLoad = async (event) => {
 	});
 	return {
 		season,
-		match,
+		// Without who has agreed to publish replays: that is between the two players.
+		match: { ...match, p1PublishReplay: undefined, p2PublishReplay: undefined },
 		// Same status rule as every match card.
 		status: card.status,
 		head: card.props.head,
@@ -118,8 +120,11 @@ export const load: PageServerLoad = async (event) => {
 							game: r.game,
 							by: (r.uploadedBy === p1.id ? p1 : p2).displayName
 						})),
-						canUpload: playing,
-						canDelete: playing || organizer
+						// A match with an erased player keeps no replays.
+						canUpload: playing && !p1.former && !p2.former,
+						canDelete: playing || organizer,
+						// How many games the match had, for choosing which one a file is.
+						played: match.games?.length ?? match.p1Games + (match.p2Games ?? 0)
 					}
 				: null,
 		// Only the form needs it; anyone else gets no hint of a player's last legend.
@@ -180,16 +185,24 @@ export const actions: Actions = {
 	// Either player adds or replaces a game's replay, at any time once the result is in.
 	replay: async (event) => {
 		const user = playerAction(event);
-		const file = (await event.request.formData()).get('file');
+		const form = await event.request.formData();
+		const file = form.get('file');
 		if (!(file instanceof File) || !file.size)
 			return fail(400, { error: true, message: 'Choose a replay file first.' });
-		if (file.size > MAX_REPLAY_BYTES)
-			return fail(400, { error: true, message: 'A replay file can be 5 MB at most.' });
+		if (file.size > MAX_REPLAY_BYTES) return fail(400, { error: true, message: TOO_BIG });
 		const text = await file.text();
+		// Empty: the game the file says it is.
+		const game = Number(form.get('game'));
 		const { season, match } = context(event);
-		if (user.id !== match.p1Id && user.id !== match.p2Id)
+		if (!inMatch(match, user.id))
 			return fail(403, { error: true, message: 'Only the two players can add a replay.' });
-		const error = saveReplay(match, season.createdAt, user.id, text);
+		const error = saveReplay(
+			match,
+			season.createdAt,
+			user.id,
+			text,
+			Number.isInteger(game) && game > 0 ? game : undefined
+		);
 		if (error) return fail(400, { error: true, message: error });
 		const opponent = matchPlayers(match).find((p) => p.id !== user.id)!.displayName;
 		return { message: `Replay saved. Only you and ${opponent} can see it.` };
@@ -200,7 +213,7 @@ export const actions: Actions = {
 		const organizer = user.isOrganizer && (await currentRole(event));
 		const game = Number((await event.request.formData()).get('game'));
 		const { match } = context(event, organizer);
-		if (!organizer && user.id !== match.p1Id && user.id !== match.p2Id)
+		if (!organizer && !inMatch(match, user.id))
 			return fail(403, { error: true, message: "This replay isn't yours to delete." });
 		if (!deleteReplay(match, user.id, game))
 			return fail(404, { error: true, message: 'That replay is already gone.' });

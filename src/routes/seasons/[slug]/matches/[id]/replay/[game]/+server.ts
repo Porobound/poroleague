@@ -1,7 +1,7 @@
 import { error } from '@sveltejs/kit';
 import { currentRole } from '#lib/server/auth.ts';
 import { getMatch } from '#lib/server/matches.ts';
-import { canSeeReplays, replayFile } from '#lib/server/replays.ts';
+import { canSeeReplays, replayGzip } from '#lib/server/replays.ts';
 import { getSeason } from '#lib/server/seasons.ts';
 import type { RequestHandler } from './$types';
 
@@ -15,12 +15,14 @@ export const GET: RequestHandler = async (event) => {
 	const match = Number.isInteger(id) ? getMatch(season.id, id) : undefined;
 	const file =
 		match && canSeeReplays(match, locals.user?.id ?? null, organizer)
-			? replayFile(match.id, game)
+			? replayGzip(match.id, game)
 			: undefined;
 	if (!file) error(404, 'Replay not found');
-	return new Response(file, {
+	// Sent gzipped as stored; the browser saves the plain JSON.
+	return new Response(new Uint8Array(file), {
 		headers: {
 			'content-type': 'application/json',
+			'content-encoding': 'gzip',
 			'content-disposition': `attachment; filename="poroleague-${season.slug}-match-${id}-game-${game}.json"`,
 			'cache-control': 'private, no-store'
 		}

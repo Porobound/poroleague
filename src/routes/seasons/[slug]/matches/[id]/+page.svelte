@@ -4,6 +4,7 @@
 	import GameRows from '#lib/components/GameRows.svelte';
 	import MatchCard from '#lib/components/MatchCard.svelte';
 	import { parseReport } from '#lib/league/report.ts';
+	import { MAX_REPLAY_BYTES, TOO_BIG } from '#lib/replay.ts';
 	import { MediaQuery } from 'svelte/reactivity';
 	import type { PageProps } from './$types';
 
@@ -83,9 +84,7 @@
 	// The server refuses bigger request bodies outright; say so before the upload.
 	const tooBig = (e: Event & { currentTarget: HTMLInputElement }) =>
 		e.currentTarget.setCustomValidity(
-			(e.currentTarget.files?.[0]?.size ?? 0) > 5 * 1024 * 1024
-				? 'A replay file can be 5 MB at most.'
-				: ''
+			(e.currentTarget.files?.[0]?.size ?? 0) > MAX_REPLAY_BYTES ? TOO_BIG : ''
 		);
 </script>
 
@@ -340,6 +339,19 @@
 							<span class="pb-hint">
 								One JSON file per game; it replaces a replay already added for that game. Only you
 								and {opponent} can see it.
+							</span>
+						</label>
+						<label class="pb-field">
+							Which game is it?
+							<select class="pb-input pb-select" name="game">
+								<option value="">The game the file says</option>
+								{#each { length: r.played }, i (i)}
+									<option value={i + 1}>Game {i + 1}</option>
+								{/each}
+							</select>
+							<span class="pb-hint">
+								Choose a game if the series moved to a new RiftAtlas room, where the count starts
+								over.
 							</span>
 						</label>
 						<button class="pb-btn pb-btn-secondary">Add replay</button>

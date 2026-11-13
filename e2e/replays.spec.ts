@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { readFileSync } from 'node:fs';
 import { replayFile } from '../src/lib/server/test/replayFile.ts';
 import { removeSeason, seedResult, seedSeason } from './db.ts';
 import { ORGANIZER, SEASONS, as, player, playerName } from './fixtures.ts';
@@ -9,13 +10,15 @@ let open: number; // round 2: Replays 1 vs Replays 3, unreported
 const url = () => `/seasons/${slug}/matches/${match}`;
 const [p1, p2] = [playerName('replays', 1), playerName('replays', 2)];
 // Dated now, after the season was seeded: an older game can't be this season's.
-const file = (legends?: string[]) => replayFile({ legends, completedAt: Date.now() });
-const upload = async (page: Page, text: string) => {
+const file = (legends?: string[], replayId?: string) =>
+	replayFile({ legends, replayId, completedAt: Date.now() });
+const upload = async (page: Page, text: string, game?: string) => {
 	await page.getByLabel('Replay file from RiftAtlas').setInputFiles({
 		name: 'replay.json',
 		mimeType: 'application/json',
 		buffer: Buffer.from(text)
 	});
+	if (game) await page.getByLabel('Which game is it?').selectOption(game);
 	await page.getByRole('button', { name: 'Add replay' }).click();
 };
 const replays = (page: Page) => page.getByRole('region', { name: 'Replays' });
@@ -60,8 +63,28 @@ test('upload, watch, and who can see a replay', async ({ browser }) => {
 	]);
 	expect(download.suggestedFilename()).toBe(`poroleague-${slug}-match-${match}-game-1.json`);
 	expect(popup.url()).toBe('https://play.riftatlas.com/?replayFile=1');
+	// It travels gzipped; what lands on disk is the JSON.
+	expect(readFileSync(await download.path(), 'utf8')).toBe(game1);
 	const got = await opponent.request.get(`${url()}/replay/1`);
+	expect(got.headers()['content-encoding']).toBe('gzip');
 	expect(await got.text()).toBe(game1);
+
+	// The series moved to a new room, whose first game also says "game 1": it replaces nothing
+	// until the player says which game it is.
+	const room2 = file(['Ahri, Nine-Tailed Fox', 'Annie, Dark Child'], 'ROOM2:1');
+	await upload(uploader, room2);
+	await expect(uploader.getByRole('status')).toContainText('Game 1 already has another replay.');
+	await upload(uploader, room2, 'Game 2');
+	await expect(replays(uploader).getByRole('listitem')).toHaveCount(2);
+	expect(await (await opponent.request.get(`${url()}/replay/1`)).text()).toBe(game1);
+	// The same form sent again changes nothing.
+	await uploader.reload();
+	await expect(replays(uploader).getByRole('listitem')).toHaveCount(2);
+
+	// The public log says nothing of replays; the organizer's does.
+	await opponent.goto(`/seasons/${slug}/audit`);
+	await expect(opponent.getByText(p1).first()).toBeVisible();
+	await expect(opponent.getByText('replay uploaded')).toHaveCount(0);
 
 	// Nobody else sees it or can fetch it: not another player, not a visitor.
 	for (const options of [as(player('replays', 3)), {}]) {
@@ -77,10 +100,14 @@ test('upload, watch, and who can see a replay', async ({ browser }) => {
 	const org = await browser.newPage(as(ORGANIZER));
 	await org.goto(url());
 	await expect(org.getByLabel('Replay file from RiftAtlas')).toHaveCount(0);
-	await replays(org).getByRole('button', { name: 'Delete' }).click();
-	await org.getByRole('dialog').getByRole('button', { name: 'Delete replay' }).click();
-	await expect(org.getByRole('status')).toHaveText('Game 1 replay deleted.');
+	for (const game of [1, 2]) {
+		await replays(org).getByRole('button', { name: 'Delete' }).first().click();
+		await org.getByRole('dialog').getByRole('button', { name: 'Delete replay' }).click();
+		await expect(org.getByRole('status')).toHaveText(`Game ${game} replay deleted.`);
+	}
 	await expect(replays(org)).toHaveCount(0);
+	await org.goto(`/seasons/${slug}/audit`);
+	await expect(org.getByText('Game 2 replay uploaded')).toBeVisible();
 	expect((await opponent.request.get(`${url()}/replay/1`)).status()).toBe(404);
 });
 
