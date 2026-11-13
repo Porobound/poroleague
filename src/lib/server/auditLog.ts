@@ -31,6 +31,9 @@ type Change = Partial<Report> & {
 	from?: string;
 	to?: string;
 	status?: string;
+	replay?: number;
+	replayDeleted?: number;
+	replayPublished?: boolean;
 };
 const LABEL: Record<string, string> = {
 	report: 'Report',
@@ -48,7 +51,8 @@ const LABEL: Record<string, string> = {
 	walkover: 'Walkover',
 	champion: 'Champion',
 	reset: 'Reset',
-	holiday: 'Holiday'
+	holiday: 'Holiday',
+	replay: 'Replay'
 };
 export const auditLabel = (action: string) => LABEL[action] ?? action;
 
@@ -71,6 +75,8 @@ const settings = (before: Change | null, after: Change | null) =>
 
 // Newest first, one readable line per audit row. With `publishedRound`, rows of matches in
 // unpublished rounds (holiday mode reports those early) are left out, or labelled for organizers.
+// Replay rows are for organizers only: they'd tell everyone a private replay exists, and which
+// player hasn't agreed to publish.
 export function auditLines(
 	seasonId: number,
 	o: { limit?: number; publishedRound?: number; organizer?: boolean } = {}
@@ -86,7 +92,7 @@ export function auditLines(
 		r.round !== null &&
 		!isPublished({ stage: r.stage, round: r.round }, o.publishedRound);
 	return seasonAudit(seasonId)
-		.filter((r) => o.organizer || !early(r))
+		.filter((r) => o.organizer || (!early(r) && r.action !== 'replay'))
 		.slice(0, o.limit)
 		.map((r) => {
 			const cleared = r.action === 'reset' ? (r.after as Change | null)?.cleared : undefined;
@@ -139,6 +145,10 @@ export function auditLines(
 					after?.holiday
 						? `${name(after.holiday)} — holiday ${dateSpan(after.from!, after.to!)} ${after.status}`
 						: '',
+					after?.replay ? `Game ${after.replay} replay uploaded` : '',
+					after?.replayDeleted ? `Game ${after.replayDeleted} replay deleted` : '',
+					after?.replayPublished === true ? 'Agreed to publish the replays' : '',
+					after?.replayPublished === false ? 'Took back publishing the replays' : '',
 					r.action === 'publish' && after?.rounds
 						? `Week ${after.week} published · R${after.rounds[0]}${after.rounds[1] > after.rounds[0] ? `–${after.rounds[1]}` : ''}`
 						: ''

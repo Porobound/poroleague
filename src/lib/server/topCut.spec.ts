@@ -8,7 +8,9 @@ import { erasePlayer, leaderboard } from '#lib/server/players.ts';
 import { load as cutPage } from '../../routes/seasons/[slug]/top-cut/+page.server.ts';
 import { load as matchPage } from '../../routes/seasons/[slug]/matches/[id]/+page.server.ts';
 import { auditLines } from '#lib/server/auditLog.ts';
+import { matchReplays, saveReplay, setPublish } from '#lib/server/replays.ts';
 import { playerSeasons, seasonHistory, seasonProgress } from '#lib/server/seasons.ts';
+import { replayFile } from '#lib/server/test/replayFile.ts';
 import { cutPreview, cutState, finishCut, publishCut, waitingOnFlag, walkover } from './topCut.ts';
 
 let id: number;
@@ -128,6 +130,10 @@ describe('advancing', () => {
 		walkover(season(), slot(1, 1).match!, 'p2', 'p1');
 		saveReport(slot(2, 0).match!, 'p1', won(2, 0)); // p1 beats p2 in the final
 		expect(cutState(season()).champion).toBe('p1');
+		const played = slot(2, 0).match!;
+		const file = replayFile({ legends: ['Jinx, Loose Cannon', 'Viktor, Herald'] });
+		expect(saveReplay(played, new Date(0), 'p1', file)).toBeNull();
+		setPublish(played, 'p1', true);
 
 		// The loser can still flag the semi, and the organizer's fix moves the final on.
 		expect((await page(slot(1, 0).match!, 'p5')).mode).toBe('flag');
@@ -137,6 +143,9 @@ describe('advancing', () => {
 		expect([final.p1, final.p2]).toEqual(['p5', 'p2']);
 		expect(final.match).toMatchObject({ reportedBy: null, p1Games: null });
 		expect(cutState(season()).champion).toBeNull();
+		// The cleared result's replay is of a final other players now play.
+		expect(matchReplays(played.id)).toEqual([]);
+		expect(final.match).toMatchObject({ p1PublishReplay: false });
 
 		// The log keeps who played the cleared final.
 		const lines = auditLines(id).map((l) => l.what);

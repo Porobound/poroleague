@@ -14,6 +14,7 @@ import {
 	seasons,
 	sessions
 } from '#lib/server/db/schema.ts';
+import { dropReplays } from '#lib/server/replays.ts';
 import { dropPlayer, groupStandings, seasonEntries } from '#lib/server/seasons.ts';
 import { cutState } from '#lib/server/topCut.ts';
 
@@ -43,6 +44,16 @@ export function erasePlayer(playerId: string, actorId: string) {
 			.run();
 		tx.delete(sessions).where(eq(sessions.playerId, playerId)).run();
 		tx.update(matches).set({ flagReason: null }).where(eq(matches.flaggedBy, playerId)).run();
+		// A replay holds their RiftAtlas name, and their deck and hand if they uploaded it.
+		dropReplays(
+			tx,
+			tx
+				.select({ id: matches.id })
+				.from(matches)
+				.where(or(eq(matches.p1Id, playerId), eq(matches.p2Id, playerId)))
+				.all()
+				.map((m) => m.id)
+		);
 		tx.update(audit)
 			.set({ after: sql`json_remove(${audit.after}, '$.flagReason')` })
 			.where(and(eq(audit.actorId, playerId), eq(audit.action, 'flag')))

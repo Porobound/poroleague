@@ -28,6 +28,7 @@ it('migrates a fresh DB and is safe to rerun', () => {
 			'holidays',
 			'matches',
 			'players',
+			'replays',
 			'seasons',
 			'sessions'
 		]);

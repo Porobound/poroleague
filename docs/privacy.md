@@ -17,6 +17,7 @@ When you play:
 
 - your sign-ups, match results, the legends you played and who won the dice roll;
 - the reason you give when you flag a result;
+- replays of your games, if you or your opponent add them to a match. A replay file comes from RiftAtlas and holds both players' RiftAtlas names, every move of the game, and the deck and hand of the player who added it. Only the two players and organizers can open it unless both players choose to publish it;
 - a log of reports, flags and organizer changes, with who made them.
 
 ## Why
@@ -35,7 +36,7 @@ The site posts results and pairings in the league's Discord channels, naming the
 ## Your rights
 
 - **See your data:** ask an organizer and we'll send you what the site stores about you.
-- **Be erased:** ask an organizer. We anonymise you: your name becomes "Former player" with a short random code, and your avatar, Discord link, logins and flag reasons are removed. Your results in finished seasons stay, so those standings don't change. In a season that's still running, you leave it: off the signup list or groups if they aren't locked yet, or dropped once play has started, which voids your matches in that season (as when any player drops out). If you ask during a season, we also remove Discord posts that name you within one month.
+- **Be erased:** ask an organizer. We anonymise you: your name becomes "Former player" with a short random code, and your avatar, Discord link, logins and flag reasons are removed, along with the replays of all your matches. Your results in finished seasons stay, so those standings don't change. In a season that's still running, you leave it: off the signup list or groups if they aren't locked yet, or dropped once play has started, which voids your matches in that season (as when any player drops out). If you ask during a season, we also remove Discord posts that name you within one month.
 - You can also complain to your national data protection authority.
 
 ## Backups
