@@ -113,6 +113,11 @@
 		// The server refuses bigger request bodies outright; say so before the upload.
 		e.currentTarget.setCustomValidity((file?.size ?? 0) > MAX_REPLAY_BYTES ? TOO_BIG : '');
 	};
+	// For organizers, whose `names` are the match's player 1 and 2: "Ann added games 1, 3."
+	const added = (name: string, i: number) => {
+		const n = r.games.filter((g) => g.files.some((f) => f.side === i + 1)).map((g) => g.game);
+		return `${name} added ${n.length ? `game${n.length > 1 ? 's' : ''} ${n.join(', ')}` : 'none'}.`;
+	};
 	// "Add yours": the upload form, ready for the file.
 	const addMine = () => {
 		add!.open = true;
@@ -385,15 +390,18 @@
 			</div>
 		{:else if has && r.published && r.role === 'organizer'}
 			{@const first = pressed[0] ? 0 : 1}
-			<p class="pb-replays-status">
-				{#if r.public}
-					Both players published.
-				{:else if pressed.includes(true)}
-					{names[first]} pressed Publish; {names[1 - first]} hasn't.
-				{:else}
-					Neither player has pressed Publish.
-				{/if}
-			</p>
+			<div class="pb-replays-status">
+				<span>{names.map(added).join(' ')}</span>
+				<span>
+					{#if r.public}
+						Both players published.
+					{:else if pressed.includes(true)}
+						{names[first]} pressed Publish; {names[1 - first]} hasn't.
+					{:else}
+						Neither player has pressed Publish.
+					{/if}
+				</span>
+			</div>
 		{/if}
 	</section>
 {/if}
