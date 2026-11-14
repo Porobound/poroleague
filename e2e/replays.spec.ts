@@ -146,12 +146,14 @@ test('upload, watch, and who can see a replay', async ({ browser }) => {
 	await expect(which(uploader).getByText('replay.json')).toBeVisible();
 	await expect(which(uploader).getByRole('radio')).toHaveCount(3);
 	await expect(
-		which(uploader).getByRole('radio', { name: `Game 1 Replaces the replay added by ${p1}` })
+		which(uploader).getByRole('radio', {
+			name: `Game 1 Replaces your replay. ${p2} hasn't added one.`
+		})
 	).toBeVisible();
 	const save = uploader.getByRole('button', { name: 'Save replay' });
 	await expect(save).toBeDisabled();
 	await expect(files(uploader)).toHaveCount(1);
-	await which(uploader).getByRole('radio', { name: 'Game 2 No replay yet' }).check();
+	await which(uploader).getByRole('radio', { name: 'Game 2 No replays yet.' }).check();
 	await save.click();
 	await expect(uploader.getByRole('status')).toHaveText(
 		'Replay added for game 2. It stays private until you both publish.'

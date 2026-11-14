@@ -195,7 +195,9 @@ test('the replay upload form fits a phone', async ({ browser }) => {
 		await page.getByRole('button', { name: 'Upload' }).click();
 	};
 	const opponent = await browser.newPage(as(player('mobile', 2)));
-	await fits(opponent, 'player', path, () => opponent.getByText('Add or replace your replay').click());
+	await fits(opponent, 'player', path, () =>
+		opponent.getByText('Add or replace your replay').click()
+	);
 	await opponent.reload();
 	await send(opponent, 'theirs');
 	await expect(opponent.getByRole('status')).toContainText('Replay added for game 2.');
@@ -203,7 +205,9 @@ test('the replay upload form fits a phone', async ({ browser }) => {
 	await fits(mine, 'player', path, async () => {
 		await send(mine, 'mine');
 		await expect(
-			mine.getByText('Goes next to the replay added by Bartholomew Featherstonehaugh-Villanueva')
+			mine.getByText(
+				"You haven't added one. Bartholomew Featherstonehaugh-Villanueva has added theirs."
+			)
 		).toBeVisible();
 	});
 });

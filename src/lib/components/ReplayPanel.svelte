@@ -339,17 +339,18 @@
 								<span class="pb-replays-file">{@render ico('file')}{picked}</span>
 							{/if}
 							{#each r.games as { game, files } (game)}
-								{@const own = files.find((f) => f.side === r.side)}
 								<label class="pb-choice">
 									<input type="radio" name="game" value={game} required bind:group={pick} />
 									<span>
 										<strong>Game {game}</strong>
 										<span class="pb-choice-sub">
-											{own
-												? `Replaces the replay added by ${own.by}`
-												: files.length
-													? `Goes next to the replay added by ${files[0].by}`
-													: 'No replay yet'}
+											{files.length
+												? `${files.some(mine) ? 'Replaces your replay.' : "You haven't added one."} ${
+														files.some((f) => !mine(f))
+															? `${opponent} has added theirs.`
+															: `${opponent} hasn't added one.`
+													}`
+												: 'No replays yet.'}
 										</span>
 									</span>
 								</label>

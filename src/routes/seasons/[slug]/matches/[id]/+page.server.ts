@@ -234,7 +234,9 @@ export const actions: Actions = {
 		}
 		return {
 			message: `Replay ${result.replaced ? 'replaced' : 'added'} for game ${result.game}. ${
-				replaysPublic(match, found.hidden) ? 'It is public.' : 'It stays private until you both publish.'
+				replaysPublic(match, found.hidden)
+					? 'It is public.'
+					: 'It stays private until you both publish.'
 			}`
 		};
 	},
