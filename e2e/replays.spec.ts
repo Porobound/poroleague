@@ -63,7 +63,10 @@ test('upload, watch, and who can see a replay', async ({ browser }) => {
 	await uploader.goto(url());
 	await expect(rows(uploader)).toHaveCount(0);
 	await expect(
-		replays(uploader).getByText('RiftAtlas deletes replays after 6 hours')
+		replays(uploader).getByText(
+			"No replays yet. They're optional: if you'd like to share a game, download your replay from RiftAtlas and add it here. Each player can add one file per game.",
+			{ exact: true }
+		)
 	).toBeVisible();
 	await expect(badge(uploader, 'Private')).toHaveCount(0);
 	// The form opens on demand.

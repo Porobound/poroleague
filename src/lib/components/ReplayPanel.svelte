@@ -296,7 +296,7 @@
 		{:else}
 			<p class="pb-replays-empty">
 				{r.role === 'player'
-					? 'No replays yet. RiftAtlas deletes replays after 6 hours, so add yours while you still have the files: one JSON file per game.'
+					? "No replays yet. They're optional: if you'd like to share a game, download your replay from RiftAtlas and add it here. Each player can add one file per game."
 					: 'No replays yet.'}
 			</p>
 		{/if}
