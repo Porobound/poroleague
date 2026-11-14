@@ -1,5 +1,4 @@
 import { error } from '@sveltejs/kit';
-import { isPublished } from '#lib/league/publish.ts';
 import { currentRole } from '#lib/server/auth.ts';
 import { getMatch, matchPlayers } from '#lib/server/matches.ts';
 import { canSeeReplays, replayFileName, replayGzip, sideOf } from '#lib/server/replays.ts';
@@ -16,14 +15,7 @@ export const GET: RequestHandler = async (event) => {
 	const side = params.side === '1' ? 1 : params.side === '2' ? 2 : null;
 	const match = Number.isInteger(id) && side ? getMatch(season.id, id) : undefined;
 	const file =
-		match &&
-		side &&
-		canSeeReplays(
-			match,
-			locals.user?.id ?? null,
-			organizer,
-			!isPublished(match, season.publishedRound)
-		)
+		match && side && canSeeReplays(match, season.publishedRound, locals.user?.id ?? null, organizer)
 			? replayGzip(match.id, game, sideOf(match, side))
 			: undefined;
 	if (!file || !match || !side) error(404, 'Replay not found');
