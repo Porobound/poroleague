@@ -43,7 +43,7 @@ test('a match with replays, after pressing Watch', async ({ browser }) => {
 	);
 	const url = `/seasons/${SEASONS.shotsReplays}/matches/${match}`;
 	await shot(browser, 'player-match-replays-upload', url, player('shotsReplays', 1), (page) =>
-		page.getByText('Add or replace a replay').click()
+		page.getByText('Add or replace your replay').click()
 	);
 	// A second file that says "game 1": nothing is stored, so both views get the same step.
 	await shot(
@@ -52,7 +52,7 @@ test('a match with replays, after pressing Watch', async ({ browser }) => {
 		url,
 		player('shotsReplays', 1),
 		async (page) => {
-			await page.getByText('Add or replace a replay').click();
+			await page.getByText('Add or replace your replay').click();
 			await page.getByLabel('Replay file').setInputFiles({
 				name: 'riftatlas-replay-game-1.json',
 				mimeType: 'application/json',

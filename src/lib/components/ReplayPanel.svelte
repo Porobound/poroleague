@@ -301,8 +301,8 @@
 		{/if}
 		{#if r.canUpload}
 			<details class="pb-replays-add" open={!!upload} bind:this={add}>
-				<summary class={['pb-btn', has ? 'pb-btn-ghost' : 'pb-btn-primary']}
-					>{@render ico('up')}{has ? 'Add or replace a replay' : 'Add a replay'}</summary
+				<summary class={['pb-btn', has ? 'pb-btn-ghost' : 'pb-btn-secondary']}
+					>{@render ico('up')}{has ? 'Add or replace your replay' : 'Add a replay'}</summary
 				>
 				<!-- Without a reload a refused file stays in the input, for the which-game step to send again. -->
 				<form
@@ -328,7 +328,7 @@
 								aria-invalid={upload === 'refused' || undefined}
 								onchange={chosen}
 							/>
-							<span class="pb-hint">One JSON file per game, downloaded from RiftAtlas.</span>
+							<span class="pb-hint">Your own download from RiftAtlas, one JSON file per game.</span>
 						</label>
 					</div>
 					{#if which}

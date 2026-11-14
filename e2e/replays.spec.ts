@@ -16,7 +16,7 @@ const file = (legends?: string[], replayId?: string) =>
 	replayFile({ legends, replayId, completedAt: Date.now() });
 const replays = (page: Page) => page.getByRole('region', { name: 'Replays' });
 // The button that opens the upload form: "Add a replay" until the match has one.
-const opener = (page: Page) => replays(page).getByText(/^Add( or replace)? a replay$/);
+const opener = (page: Page) => replays(page).getByText(/^Add (a|or replace your) replay$/);
 const field = (page: Page) => page.getByLabel('Replay file');
 const choose = (page: Page, text: string) =>
 	field(page).setInputFiles({
@@ -87,7 +87,7 @@ test('upload, watch, and who can see a replay', async ({ browser }) => {
 		'Replay added for game 1. It stays private until you both publish.'
 	);
 	await expect(field(uploader)).toBeHidden();
-	await expect(opener(uploader)).toHaveText('Add or replace a replay');
+	await expect(opener(uploader)).toHaveText('Add or replace your replay');
 	// Every played game has a row; the ones without a replay have nothing to press.
 	await expect(rows(uploader)).toHaveText([
 		/^Game 1\s*Your replay\s*Both sides\s*Shows both decks and hands · added \w{3} \d+ \w{3}/,
