@@ -207,9 +207,18 @@ test('replays go public once both players publish', async ({ browser }) => {
 		await visitor.goto(url());
 		await expect(replays(visitor)).toHaveCount(yes ? 1 : 0);
 		expect((await visitor.request.get(`${url()}/replay/1`)).status()).toBe(yes ? 200 : 404);
-		await visitor.goto(`/seasons/${slug}/schedule`);
-		await expect(visitor.getByText(p1).first()).toBeVisible();
-		await expect(chip).toHaveCount(yes ? 1 : 0);
+		// The marker is on the match's row, on the schedule and on a player's page.
+		for (const [path, names] of [
+			['schedule', [p1, p2]],
+			[`players/${player('replays', 1)}`, [p2]]
+		] as const) {
+			await visitor.goto(`/seasons/${slug}/${path}`);
+			let row = visitor.getByRole('link');
+			for (const hasText of names) row = row.filter({ hasText });
+			await expect(row).toHaveCount(1);
+			await expect(row.getByText('Replay available')).toHaveCount(yes ? 1 : 0);
+			await expect(chip).toHaveCount(yes ? 1 : 0);
+		}
 	};
 	// The organizer is told who pressed, and has nothing to press.
 	const org = await browser.newPage(as(ORGANIZER));
@@ -354,8 +363,10 @@ test('Cancel, and the which-game step without JavaScript', async ({ browser }) =
 test('the report form reminds players to save the replay', async ({ browser }) => {
 	const page = await browser.newPage(as(player('replays', 1)));
 	await page.goto(`/seasons/${slug}/matches/${open}`);
-	await expect(
-		page.getByText('Download the replay JSON of each game within 6 hours')
-	).toBeVisible();
+	const note = page.getByRole('note');
+	await expect(note.getByText('Save your replays', { exact: true })).toBeVisible();
+	await expect(note).toContainText(
+		"RiftAtlas deletes replays after 6 hours. Download each game's replay there now. You can add them to the match once this result is saved."
+	);
 	await expect(replays(page)).toHaveCount(0);
 });
