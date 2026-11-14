@@ -42,7 +42,8 @@
 		up: 'M12 20V9m0 0l-4 4m4-4l4 4M5 4h14',
 		file: 'M7 3h7l4 4v14H7zM14 3v4h4'
 	};
-	const has = $derived(r.games.some((g) => g.files.length));
+	const count = $derived(r.games.reduce((n, g) => n + g.files.length, 0));
+	const has = $derived(count > 0);
 	const opponent = $derived(names[1]);
 	const pressed = $derived(r.published ?? [false, false]);
 	const SHOWS = "A replay shows the uploader's whole deck and hand.";
@@ -145,7 +146,7 @@
 	>
 {/snippet}
 
-{#snippet remove(game: number, side: number, label: string, sr = '')}
+{#snippet remove(game: number, replay: Replay, label: string, sr = '')}
 	<ConfirmButton
 		action="?/deleteReplay"
 		variant="ghost"
@@ -153,11 +154,11 @@
 		class="pb-replay-del"
 		{label}
 		{sr}
-		title="Delete the game {game} replay?"
+		title="Delete {mine(replay) ? 'your' : `${replay.by}'s`} replay of game {game}?"
 		confirmLabel="Delete replay"
-		fields={{ game: String(game), side: String(side) }}
+		fields={{ game: String(game), side: String(replay.side) }}
 	>
-		<p>This can't be undone.</p>
+		<p>This can't be undone.{r.public && count > 1 ? ' The other replays stay public.' : ''}</p>
 	</ConfirmButton>
 {/snippet}
 
@@ -196,7 +197,7 @@
 				>{@render ico('down')}Download<span class="pb-sr">{whose}</span></a
 			>
 			{#if r.role === 'organizer'}
-				{@render remove(game, replay.side, 'Delete', whose)}
+				{@render remove(game, replay, 'Delete', whose)}
 			{:else if mine(replay)}
 				<details class="pb-replay-more">
 					<summary class="pb-btn pb-btn-ghost" aria-label="More for your replay of game {game}"
@@ -209,7 +210,7 @@
 						></summary
 					>
 					<div class="pb-replay-menu">
-						{@render remove(game, replay.side, 'Delete your replay')}
+						{@render remove(game, replay, 'Delete your replay')}
 					</div>
 				</details>
 			{/if}
