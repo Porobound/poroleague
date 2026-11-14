@@ -42,6 +42,19 @@
 		<circle cx="9" cy="9" r="1.2" fill="currentColor" />
 	</svg>
 {/snippet}
+{#snippet replay()}
+	<span class="pb-mrow-rp">
+		<svg
+			class="pb-ico-play"
+			width="12"
+			height="12"
+			viewBox="0 0 24 24"
+			fill="currentColor"
+			aria-hidden="true"
+			><path d="M8 5.5v13a1 1 0 0 0 1.5.86l11-6.5a1 1 0 0 0 0-1.72l-11-6.5A1 1 0 0 0 8 5.5z" /></svg
+		><span class="pb-mrow-rp-t">Replay</span><span class="pb-sr">{' available'}</span>
+	</span>
+{/snippet}
 {#snippet badges(list: (string | null)[])}
 	{#each list as t (t)}
 		{#if t}<span class="pb-badge pb-badge-sm">{t}</span>{/if}
@@ -111,12 +124,15 @@
 									{#if r.overdue}<span class="pb-mrow-note is-warn">Overdue</span>{/if}
 									{@render badges([r.opponent.tag, ...r.chips])}
 								</span>
-								{#if r.legend || r.opponent.legend}
+								{#if r.legend || r.opponent.legend || r.replay}
 									<span class="pb-mrow-sub">
-										<span>
-											{#if r.legend}<span class="pb-mrow-as">as {r.legend} · vs{' '}</span>{/if}{r
-												.opponent.legend}
-										</span>
+										{#if r.legend || r.opponent.legend}
+											<span class="pb-mrow-legs">
+												{#if r.legend}<span class="pb-mrow-as">as {r.legend} · vs{' '}</span>{/if}{r
+													.opponent.legend}
+											</span>
+										{/if}
+										{#if r.replay}{@render replay()}{/if}
 									</span>
 								{/if}
 							</span>
@@ -159,6 +175,7 @@
 							{:else}
 								<span class="pb-mrow-mut">{r.mid}</span>
 							{/if}
+							{#if r.replay}{@render replay()}{/if}
 						</span>
 						{@render side(r.sides[1], 1)}
 						{#if r.note || r.chips.length}
