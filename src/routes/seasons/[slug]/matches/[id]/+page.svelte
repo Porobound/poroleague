@@ -3,8 +3,8 @@
 	import ConfirmButton from '#lib/components/ConfirmButton.svelte';
 	import GameRows from '#lib/components/GameRows.svelte';
 	import MatchCard from '#lib/components/MatchCard.svelte';
+	import ReplayPanel from '#lib/components/ReplayPanel.svelte';
 	import { parseReport } from '#lib/league/report.ts';
-	import { MAX_REPLAY_BYTES, TOO_BIG } from '#lib/replay.ts';
 	import { MediaQuery } from 'svelte/reactivity';
 	import type { PageProps } from './$types';
 
@@ -75,17 +75,6 @@
 		void changes;
 		return reportForm ? parseReport(new FormData(reportForm), m.p1Id, m.p2Id) : null;
 	});
-
-	const RIFTATLAS = 'https://play.riftatlas.com/?replayFile=1';
-	const fileUrl = (game: number) => `/seasons/${data.season.slug}/matches/${m.id}/replay/${game}`;
-	// Watch: the link opens RiftAtlas, this saves the file to drop there. RiftAtlas takes no file by URL.
-	const download = (game: number) =>
-		Object.assign(document.createElement('a'), { href: fileUrl(game), download: '' }).click();
-	// The server refuses bigger request bodies outright; say so before the upload.
-	const tooBig = (e: Event & { currentTarget: HTMLInputElement }) =>
-		e.currentTarget.setCustomValidity(
-			(e.currentTarget.files?.[0]?.size ?? 0) > MAX_REPLAY_BYTES ? TOO_BIG : ''
-		);
 </script>
 
 <svelte:head>
@@ -282,123 +271,12 @@
 			<p class="muted">Reporting closed at the season deadline. An organizer enters the result.</p>
 		{/if}
 
-		{#if data.replays && (data.replays.games.length || data.replays.canUpload)}
-			{@const r = data.replays}
-			<section class="panel replays" aria-labelledby="replays-h">
-				<h2 id="replays-h">Replays</h2>
-				{#if r.games.length}
-					<ul>
-						{#each r.games as g (g.game)}
-							<li>
-								<span><strong>Game {g.game}</strong> <span class="muted">from {g.by}</span></span>
-								<span class="replay-actions">
-									<a
-										class="pb-btn pb-btn-primary pb-btn-sm"
-										href={RIFTATLAS}
-										target="_blank"
-										rel="noopener"
-										onclick={() => download(g.game)}
-										>Watch<span class="pb-sr"> game {g.game}</span></a
-									>
-									<a class="pb-btn pb-btn-ghost pb-btn-sm" href={fileUrl(g.game)} download
-										>Download<span class="pb-sr"> game {g.game}</span></a
-									>
-									{#if r.canDelete}
-										<ConfirmButton
-											action="?/deleteReplay"
-											variant="ghost"
-											confirmVariant="danger"
-											small
-											label="Delete"
-											title="Delete the game {g.game} replay?"
-											confirmLabel="Delete replay"
-											fields={{ game: String(g.game) }}
-										/>
-									{/if}
-								</span>
-							</li>
-						{/each}
-					</ul>
-					<p class="muted small">
-						Watch downloads the replay and opens RiftAtlas in a new tab: drop the downloaded file on
-						that page.
-					</p>
-					{#if r.published}
-						{@const [mine, theirs] = r.published}
-						<div class="publish">
-							<p>
-								<strong>
-									{#if mine && theirs}
-										Public: anyone can watch these replays.
-									{:else if mine}
-										You said yes to publishing. Waiting for {opponent}.
-									{:else if theirs}
-										{opponent} wants to publish these replays. They go public if you publish too.
-									{:else}
-										Private: only you and {opponent} can watch these replays.
-									{/if}
-								</strong>
-							</p>
-							<p class="muted small">
-								A replay shows the uploader's deck and every card in their hand. Talk to {opponent}
-								first and publish only if you're both fine with that: replays go public once you both
-								publish, and either of you can take it back. Adding, replacing or deleting a replay makes
-								them private again.
-							</p>
-							<ConfirmButton
-								action="?/publishReplays"
-								variant="secondary"
-								small
-								label={mine ? 'Unpublish' : 'Publish'}
-								title={mine ? 'Take back publishing?' : 'Publish these replays?'}
-								confirmLabel={mine ? 'Unpublish' : 'Publish'}
-								fields={{ on: mine ? '0' : '1' }}
-							>
-								<p>
-									{#if mine}
-										Only you and {opponent} will see the replays.
-									{:else}
-										Everyone will see the uploader's deck and hand once {opponent} has published too.
-										Agreed with {opponent}?
-									{/if}
-								</p>
-							</ConfirmButton>
-						</div>
-					{/if}
-				{/if}
-				{#if r.canUpload}
-					<form method="POST" action="?/replay" enctype="multipart/form-data" class="upload">
-						<label class="pb-field">
-							Replay file from RiftAtlas
-							<input
-								class="pb-input"
-								type="file"
-								name="file"
-								accept=".json,application/json"
-								required
-								onchange={tooBig}
-							/>
-							<span class="pb-hint">
-								One JSON file per game. Only you and {opponent} can see it until you both publish.
-							</span>
-						</label>
-						<label class="pb-field">
-							Which game is it?
-							<select class="pb-input pb-select" name="game">
-								<option value="">The game the file says</option>
-								{#each { length: r.played }, i (i)}
-									<option value={i + 1}>Game {i + 1}</option>
-								{/each}
-							</select>
-							<span class="pb-hint">
-								Choose a game if the series moved to a new RiftAtlas room, where the count starts
-								over.
-							</span>
-						</label>
-						<button class="pb-btn pb-btn-secondary">Add replay</button>
-					</form>
-				{/if}
-			</section>
+		{#if data.replays}
+			<ReplayPanel
+				replays={data.replays}
+				{opponent}
+				base="/seasons/{data.season.slug}/matches/{m.id}"
+			/>
 		{/if}
 
 		<a href="/seasons/{data.season.slug}">Back to season</a>
@@ -445,35 +323,6 @@
 	.report .actions {
 		border-top: 1px solid var(--line);
 		padding-top: 24px;
-	}
-	.publish p {
-		margin: 0 0 8px;
-	}
-	.replays,
-	.upload {
-		display: flex;
-		flex-direction: column;
-		gap: 16px;
-	}
-	.upload {
-		align-items: flex-start;
-	}
-	.replays ul {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-	}
-	.replays li,
-	.replay-actions {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-		gap: 8px;
-	}
-	.replays li {
-		justify-content: space-between;
-		padding: 10px 0;
-		border-top: 1px solid var(--line);
 	}
 	@media (max-width: 640px) {
 		.report {

@@ -23,7 +23,7 @@ import {
 	canSeeReplays,
 	deleteReplay,
 	inMatch,
-	matchReplays,
+	replaySlots,
 	saveReplay,
 	setPublish
 } from '#lib/server/replays.ts';
@@ -117,15 +117,16 @@ export const load: PageServerLoad = async (event) => {
 		replays:
 			match.p1Games !== null && canSeeReplays(match, viewer, organizer, found.hidden)
 				? {
-						games: matchReplays(match.id).map((r) => ({
-							game: r.game,
-							by: (r.uploadedBy === p1.id ? p1 : p2).displayName
-						})),
+						games: replaySlots(match, season.slug, (id) => (id === p1.id ? p1 : p2).displayName),
+						// Players and organizers can delete; a visitor is here because they are public.
+						role: playing
+							? ('player' as const)
+							: organizer
+								? ('organizer' as const)
+								: ('visitor' as const),
+						public: match.p1PublishReplay && match.p2PublishReplay,
 						// A match with an erased player keeps no replays.
 						canUpload: playing && !p1.former && !p2.former,
-						canDelete: playing || organizer,
-						// How many games the match had, for choosing which one a file is.
-						played: match.games?.length ?? match.p1Games + (match.p2Games ?? 0),
 						// Who has said yes to showing them to everyone; the viewer's own side first.
 						published: playing
 							? viewer === p1.id

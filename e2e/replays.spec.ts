@@ -22,6 +22,13 @@ const upload = async (page: Page, text: string, game?: string) => {
 	await page.getByRole('button', { name: 'Add replay' }).click();
 };
 const replays = (page: Page) => page.getByRole('region', { name: 'Replays' });
+// One row per played game; a pressed Watch adds its own list of steps.
+const rows = (page: Page) =>
+	replays(page)
+		.getByRole('listitem')
+		.filter({ hasText: /^Game \d/ });
+const badge = (page: Page, text: 'Private' | 'Public') =>
+	replays(page).getByText(text, { exact: true });
 
 test.beforeAll(() => {
 	[match, , open] = seedSeason('replays', { publishedRound: 3 });
@@ -33,7 +40,11 @@ test('upload, watch, and who can see a replay', async ({ browser }) => {
 	const game1 = file(['Ahri, Nine-Tailed Fox', 'Annie, Dark Child']);
 	const uploader = await browser.newPage(as(player('replays', 1)));
 	await uploader.goto(url());
-	await expect(replays(uploader).getByRole('listitem')).toHaveCount(0);
+	await expect(rows(uploader)).toHaveCount(0);
+	await expect(
+		replays(uploader).getByText('RiftAtlas deletes replays after 6 hours')
+	).toBeVisible();
+	await expect(badge(uploader, 'Private')).toHaveCount(0);
 
 	// A file of other legends isn't this match.
 	await upload(uploader, file());
@@ -47,9 +58,18 @@ test('upload, watch, and who can see a replay', async ({ browser }) => {
 	await expect(uploader.getByRole('status')).toHaveText(
 		`Replay saved. Only you and ${p2} can see it.`
 	);
-	await expect(replays(uploader).getByRole('listitem')).toHaveText(
-		new RegExp(`Game 1\\s+from ${p1}`)
-	);
+	// Every played game has a row; the ones without a replay have nothing to press.
+	await expect(rows(uploader)).toHaveText([
+		new RegExp(`^Game 1\\s*Added by ${p1} · \\w{3} \\d+ \\w{3}`),
+		/^Game 2\s*No replay\s*$/,
+		/^Game 3\s*No replay\s*$/
+	]);
+	await expect(rows(uploader).nth(1).getByRole('link')).toHaveCount(0);
+	await expect(rows(uploader).nth(1).getByRole('button')).toHaveCount(0);
+	await expect(badge(uploader, 'Private')).toBeVisible();
+	await expect(
+		replays(uploader).getByText('Watch saves the replay file and opens RiftAtlas in a new tab.')
+	).toBeVisible();
 
 	// The opponent gets the file back as uploaded; Watch saves it and opens RiftAtlas.
 	const context = await browser.newContext(as(player('replays', 2)));
@@ -61,13 +81,26 @@ test('upload, watch, and who can see a replay', async ({ browser }) => {
 		opponent.waitForEvent('popup'),
 		replays(opponent).getByRole('link', { name: 'Watch game 1' }).click()
 	]);
-	expect(download.suggestedFilename()).toBe(`poroleague-${slug}-match-${match}-game-1.json`);
+	const name = `poroleague-${slug}-match-${match}-game-1.json`;
+	expect(download.suggestedFilename()).toBe(name);
 	expect(popup.url()).toBe('https://play.riftatlas.com/?replayFile=1');
 	// It travels gzipped; what lands on disk is the JSON.
 	expect(readFileSync(await download.path(), 'utf8')).toBe(game1);
 	const got = await opponent.request.get(`${url()}/replay/1`);
 	expect(got.headers()['content-encoding']).toBe('gzip');
 	expect(await got.text()).toBe(game1);
+	// The row then says where the file went and what to do with it.
+	const next = rows(opponent).first().getByRole('status');
+	await expect(next).toContainText(`Saved to your downloads as ${name}.`);
+	await expect(next.getByRole('link', { name: 'Open RiftAtlas' })).toHaveAttribute(
+		'href',
+		'https://play.riftatlas.com/?replayFile=1'
+	);
+	const [again] = await Promise.all([
+		opponent.waitForEvent('download'),
+		next.getByRole('link', { name: 'Download again' }).click()
+	]);
+	expect(again.suggestedFilename()).toBe(name);
 
 	// The series moved to a new room, whose first game also says "game 1": it replaces nothing
 	// until the player says which game it is.
@@ -75,11 +108,11 @@ test('upload, watch, and who can see a replay', async ({ browser }) => {
 	await upload(uploader, room2);
 	await expect(uploader.getByRole('status')).toContainText('Game 1 already has another replay.');
 	await upload(uploader, room2, 'Game 2');
-	await expect(replays(uploader).getByRole('listitem')).toHaveCount(2);
+	await expect(rows(uploader).filter({ hasText: 'Added by' })).toHaveCount(2);
 	expect(await (await opponent.request.get(`${url()}/replay/1`)).text()).toBe(game1);
 	// The same form sent again changes nothing.
 	await uploader.reload();
-	await expect(replays(uploader).getByRole('listitem')).toHaveCount(2);
+	await expect(rows(uploader).filter({ hasText: 'Added by' })).toHaveCount(2);
 
 	// The public log says nothing of replays; the organizer's does.
 	await opponent.goto(`/seasons/${slug}/audit`);
@@ -96,16 +129,25 @@ test('upload, watch, and who can see a replay', async ({ browser }) => {
 		await other.close();
 	}
 
-	// An organizer sees it and can delete it, but adds none.
+	// A player deletes through the row's menu.
+	await expect(replays(uploader).getByRole('button', { name: 'Delete replay' })).toBeHidden();
+	await uploader.getByLabel('More for game 2').click();
+	await replays(uploader).getByRole('button', { name: 'Delete replay' }).click();
+	await uploader.getByRole('dialog').getByRole('button', { name: 'Delete replay' }).click();
+	await expect(uploader.getByRole('status')).toHaveText('Game 2 replay deleted.');
+	await expect(rows(uploader).nth(1)).toHaveText(/No replay\s*$/);
+
+	// An organizer sees it and can delete it straight from the row, but adds none.
 	const org = await browser.newPage(as(ORGANIZER));
 	await org.goto(url());
 	await expect(org.getByLabel('Replay file from RiftAtlas')).toHaveCount(0);
-	for (const game of [1, 2]) {
-		await replays(org).getByRole('button', { name: 'Delete' }).first().click();
-		await org.getByRole('dialog').getByRole('button', { name: 'Delete replay' }).click();
-		await expect(org.getByRole('status')).toHaveText(`Game ${game} replay deleted.`);
-	}
-	await expect(replays(org)).toHaveCount(0);
+	await expect(badge(org, 'Private')).toBeVisible();
+	await expect(org.getByLabel('More for game 1')).toHaveCount(0);
+	await replays(org).getByRole('button', { name: 'Delete game 1 replay' }).click();
+	await org.getByRole('dialog').getByRole('button', { name: 'Delete replay' }).click();
+	await expect(org.getByRole('status')).toHaveText('Game 1 replay deleted.');
+	await expect(replays(org).getByText('No replays yet.', { exact: true })).toBeVisible();
+	await expect(badge(org, 'Private')).toHaveCount(0);
 	await org.goto(`/seasons/${slug}/audit`);
 	await expect(org.getByText('Game 2 replay uploaded')).toBeVisible();
 	expect((await opponent.request.get(`${url()}/replay/1`)).status()).toBe(404);
@@ -142,14 +184,17 @@ test('replays go public once both players publish', async ({ browser }) => {
 	const two = await browser.newPage(as(player('replays', 2)));
 	await two.goto(url());
 	await expect(two.getByText(`${p1} wants to publish these replays.`)).toBeVisible();
+	await expect(badge(two, 'Private')).toBeVisible();
 	await publish(two);
 	await expect(two.getByRole('status')).toHaveText('Published. Anyone can watch the replays now.');
+	await expect(badge(two, 'Public')).toBeVisible();
 	await isPublic(true);
 
 	// A visitor watches but changes nothing.
 	await visitor.goto(url());
 	await expect(replays(visitor).getByRole('link', { name: 'Watch game 1' })).toBeVisible();
 	await expect(replays(visitor).getByRole('button')).toHaveCount(0);
+	await expect(badge(visitor, 'Public')).toHaveCount(0);
 
 	// A new file is not what the two agreed to publish.
 	await upload(two, file(['Ahri, Nine-Tailed Fox', 'Annie, Dark Child']), 'Game 1');
