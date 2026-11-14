@@ -232,15 +232,30 @@ describe('replaySlots', () => {
 		const names: Record<string, string> = { p1: 'Ann Lee', p2: '아지르' };
 		const file = (side: string) => `poroleague-s1-match-${matchId}-game-2-${side}.json`;
 		expect(replaySlots(match(), 's1', (id) => names[id])).toEqual([
-			{ game: 1, files: [] },
+			{ game: 1, split: false, files: [] },
 			{
 				game: 2,
+				split: false,
 				files: [
 					{ side: 1, by: 'Ann Lee', bothSides: false, when, file: file('ann-lee') },
 					{ side: 2, by: '아지르', bothSides: true, when, file: file('player-2') }
 				]
 			},
-			{ game: 3, files: [] }
+			{ game: 3, split: false, files: [] }
+		]);
+	});
+
+	it('marks a game split only when its two one-side files are the same game', () => {
+		saveReplay(match(), SINCE, 'p1', replayFile({ game: 1, hidden: 1 }));
+		saveReplay(match(), SINCE, 'p2', replayFile({ game: 1, hidden: 0 }));
+		saveReplay(match(), SINCE, 'p1', replayFile({ game: 2, hidden: 1 }));
+		saveReplay(match(), SINCE, 'p2', replayFile({ game: 2, hidden: 0, replayId: 'X:2' }), 2);
+		saveReplay(match(), SINCE, 'p1', replayFile({ game: 3, hidden: 1 }));
+		const split = replaySlots(match(), 's1', String).map((s) => [s.files.length, s.split]);
+		expect(split).toEqual([
+			[2, true],
+			[2, false],
+			[1, false]
 		]);
 	});
 

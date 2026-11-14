@@ -28,6 +28,7 @@ export const matchReplays = (matchId: number) =>
 			game: replays.game,
 			uploadedBy: replays.uploadedBy,
 			bothSides: replays.bothSides,
+			replayId: replays.replayId,
 			createdAt: replays.createdAt
 		})
 		.from(replays)
@@ -59,26 +60,32 @@ export const replayFileName = (
 export const sideOf = (m: Match, side: 1 | 2) => (side === 1 ? m.p1Id : m.p2Id);
 
 // One entry per played game, for the match page, with its files in the match's player order.
+// `split`: two one-side files of the same RiftAtlas game, so each shows its own uploader's side.
 export function replaySlots(m: Match, slug: string, name: (playerId: string) => string) {
 	const held = matchReplays(m.id);
 	const played = m.games?.length ?? (m.p1Games ?? 0) + (m.p2Games ?? 0);
-	return Array.from({ length: played }, (_, i) => ({
-		game: i + 1,
-		files: ([1, 2] as const).flatMap((side) => {
-			const r = held.find((r) => r.game === i + 1 && r.uploadedBy === sideOf(m, side));
-			if (!r) return [];
-			const by = name(r.uploadedBy);
-			return [
-				{
-					side,
-					by,
-					bothSides: r.bothSides,
-					when: day(leagueDate(r.createdAt)),
-					file: replayFileName(slug, m.id, i + 1, side, [name(m.p1Id), name(m.p2Id)])
-				}
-			];
-		})
-	}));
+	return Array.from({ length: played }, (_, i) => {
+		const own = held.filter((r) => r.game === i + 1);
+		return {
+			game: i + 1,
+			split:
+				own.length === 2 && !own.some((r) => r.bothSides) && own[0].replayId === own[1].replayId,
+			files: ([1, 2] as const).flatMap((side) => {
+				const r = own.find((r) => r.uploadedBy === sideOf(m, side));
+				if (!r) return [];
+				const by = name(r.uploadedBy);
+				return [
+					{
+						side,
+						by,
+						bothSides: r.bothSides,
+						when: day(leagueDate(r.createdAt)),
+						file: replayFileName(slug, m.id, i + 1, side, [name(m.p1Id), name(m.p2Id)])
+					}
+				];
+			})
+		};
+	});
 }
 
 const slot = (matchId: number, game: number) =>
