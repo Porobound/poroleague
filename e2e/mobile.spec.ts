@@ -57,6 +57,7 @@ const pages = () => ({
 		'/rules',
 		s,
 		`${s}/schedule`,
+		`${s}/schedule?week=1`,
 		`${s}/legends`,
 		`${s}/audit`,
 		`${s}/players/${me}`,
@@ -149,6 +150,15 @@ for (const role of ['visitor', 'player', 'organizer'] as const) {
 		});
 	});
 }
+
+// Both row layouts are measured above with the replay marker beside the long name.
+test('the replay marker is on the row with the long name', async ({ page }) => {
+	for (const path of [`${s}/schedule?week=1`, `${s}/players/${me}`]) {
+		await page.goto(path);
+		const row = page.getByRole('link').filter({ hasText: 'Bartholomew Featherstonehaugh' });
+		await expect(row.filter({ hasText: 'Replay available' })).toHaveCount(1);
+	}
+});
 
 // The publish box and the organizer's status line name the opponent; the pages above show them public.
 test('one-sided publish states fit a phone', async ({ browser }) => {

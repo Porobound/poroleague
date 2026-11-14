@@ -45,6 +45,7 @@ test('a season in play', async ({ browser }) => {
 		['visitor-privacy', '/privacy'],
 		['visitor-season', s],
 		['visitor-schedule', `${s}/schedule`],
+		['visitor-schedule-week-1', `${s}/schedule?week=1`],
 		['visitor-legends', `${s}/legends`],
 		['visitor-audit', `${s}/audit`],
 		['visitor-player', `${s}/players/${me}`],

@@ -9,9 +9,9 @@ const chips = (c: Card) =>
 		? ['Holiday revoked']
 		: c.early
 			? ['Early']
-			: c.replay
-				? ['Replay available']
-				: [];
+			: [];
+// Both players published their replays. A chip wins over it.
+const replay = (c: Card) => c.replay && !chips(c).length;
 const onHoliday = (tag: string | null) => (tag === 'On holiday' ? tag : null);
 const canReport = (c: Card) => c.props.link.label === 'Report';
 
@@ -51,7 +51,8 @@ export function vsRow(c: Card) {
 						: 'vs',
 		note: c.status === 'overdue' ? `Week ${c.week}` : c.walkover ? `${c.walkover} advances` : null,
 		warn: c.status === 'overdue',
-		chips: chips(c)
+		chips: chips(c),
+		replay: replay(c)
 	};
 }
 export type VsRow = ReturnType<typeof vsRow>;
@@ -97,7 +98,8 @@ export function povRow(c: Card, playerId: string) {
 						: typeof c.round === 'number'
 							? `Week ${c.week}`
 							: null,
-		chips: chips(c)
+		chips: chips(c),
+		replay: replay(c)
 	};
 }
 export type PovRow = ReturnType<typeof povRow>;

@@ -86,7 +86,8 @@ describe('vsRow', () => {
 			mid: null,
 			note: null,
 			warn: false,
-			chips: []
+			chips: [],
+			replay: false
 		});
 	});
 
@@ -141,14 +142,20 @@ describe('vsRow', () => {
 		expect(vsRow(card({ round: 4 }, c)).chips).toEqual([]);
 	});
 
-	it('a match both players published replays of gets the Replay available chip', () => {
+	it('a match both players published replays of gets the replay marker, not a chip', () => {
 		const c = ctx('p3', { ...season, publishedRound: 4 });
 		const both = { ...reported, p1PublishReplay: true, p2PublishReplay: true };
-		expect(vsRow(card({ round: 4, ...both }, c)).chips).toEqual(['Replay available']);
-		expect(povRow(card({ round: 4, ...both }, c), 'p1').chips).toEqual(['Replay available']);
-		expect(vsRow(card({ round: 4, ...both, p2PublishReplay: false }, c)).chips).toEqual([]);
+		const marks = (m: Partial<CardMatch>) => {
+			const k = card(m, c);
+			return [vsRow(k), povRow(k, 'p1')].map((r) => [r.replay, r.chips]);
+		};
+		const on = [true, []];
+		const off = [false, []];
+		expect(marks({ round: 4, ...both })).toEqual([on, on]);
+		expect(marks({ round: 4, ...both, p2PublishReplay: false })).toEqual([off, off]);
 		// An early match is nobody else's business yet.
-		expect(vsRow(card({ round: 5, ...both }, c)).chips).toEqual(['Early']);
+		const early = [false, ['Early']];
+		expect(marks({ round: 5, ...both })).toEqual([early, early]);
 	});
 
 	it('walkover: mid "W/O", note "<name> advances"', () => {
@@ -174,7 +181,8 @@ describe('povRow', () => {
 			score: [2, 0],
 			letter: 'W',
 			text: null,
-			chips: []
+			chips: [],
+			replay: false
 		});
 		expect(povRow(c, 'p2')).toMatchObject({
 			opponent: { name: 'Player 1', legend: 'Jinx' },
