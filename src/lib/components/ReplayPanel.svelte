@@ -113,6 +113,11 @@
 		// The server refuses bigger request bodies outright; say so before the upload.
 		e.currentTarget.setCustomValidity((file?.size ?? 0) > MAX_REPLAY_BYTES ? TOO_BIG : '');
 	};
+	// "Add yours": the upload form, ready for the file.
+	const addMine = () => {
+		add!.open = true;
+		add!.querySelector('input')!.focus();
+	};
 	const close = () => {
 		add!.open = false;
 		add!.querySelector('form')!.reset();
@@ -249,6 +254,26 @@
 									{@render row(game, replay)}
 								{/each}
 							</ul>
+						{/if}
+						<!-- One one-side file: the side it hides stays hidden until its player adds theirs. -->
+						{#if r.canUpload && files.length === 1 && !files[0].bothSides}
+							{#if mine(files[0])}
+								<p class="pb-replay-note">
+									{opponent}'s side stays hidden unless they add their replay of this game.
+								</p>
+							{:else}
+								<div class="pb-replay-invite">
+									<span
+										>Your side is hidden in this replay. If you'd like to show it, add your replay
+										of game {game}.</span
+									>
+									<button
+										type="button"
+										class="pb-btn pb-btn-ghost pb-replay-addmine"
+										onclick={addMine}>{@render ico('up')}Add yours</button
+									>
+								</div>
+							{/if}
 						{/if}
 					</li>
 				{/each}
