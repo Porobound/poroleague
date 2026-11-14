@@ -47,14 +47,14 @@
 	const has = $derived(count > 0);
 	const opponent = $derived(names[1]);
 	const pressed = $derived(r.published ?? [false, false]);
-	const SHOWS = "A replay shows the uploader's whole deck and hand.";
+	const SHOWS = 'Replays show decks and hands.';
 	// What the publish box says to a player, and the dialog its button opens.
 	const box = $derived.by(() => {
 		const [mine, theirs] = pressed;
 		if (mine && theirs)
 			return {
 				status: 'Public',
-				line: 'Anyone can watch these replays. A replay you add is public at once.',
+				line: 'Anyone can watch these replays. A replay added later is public at once.',
 				button: 'Unpublish',
 				title: 'Unpublish these replays?',
 				dialog: [`They go back to private: only you, ${opponent} and organizers can open them.`]
@@ -77,12 +77,12 @@
 			primary: theirs,
 			title: 'Publish these replays?',
 			dialog: [
-				`${SHOWS} ${
+				`${SHOWS} Publishing covers every replay of this match, including ones added later.`,
+				`${
 					theirs
 						? `${opponent} has already pressed Publish, so everyone can watch right away.`
 						: `Everyone can watch once ${opponent} presses Publish too.`
-				}`,
-				'Either of you can take it back.'
+				} Either of you can take it back.`
 			]
 		};
 	});
@@ -406,8 +406,8 @@
 			<div class="pb-replays-status">
 				<span>{names.map(added).join(' ')}</span>
 				<span>
-					{#if r.public}
-						Both players published.
+					{#if pressed[0] && pressed[1]}
+						Both players pressed Publish.
 					{:else if pressed.includes(true)}
 						{names[first]} pressed Publish; {names[1 - first]} hasn't.
 					{:else}

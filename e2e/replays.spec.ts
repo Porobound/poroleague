@@ -238,7 +238,13 @@ test('replays go public once both players publish', async ({ browser }) => {
 		await dialog.getByRole('button', { name: button, exact: true }).click();
 	};
 	const publish = (page: Page, says: string) =>
-		press(page, 'Publish', 'Publish these replays?', says, 'Either of you can take it back.');
+		press(
+			page,
+			'Publish',
+			'Publish these replays?',
+			'Replays show decks and hands. Publishing covers every replay of this match, including ones added later.',
+			`${says} Either of you can take it back.`
+		);
 	const visitor = await browser.newPage();
 	const chip = visitor.getByText('Replay available');
 	const isPublic = async (yes: boolean) => {
@@ -269,7 +275,7 @@ test('replays go public once both players publish', async ({ browser }) => {
 	};
 	const PRIVATE = (them: string) => [
 		`Only you, ${them} and organizers can open these replays.`,
-		`A replay shows the uploader's whole deck and hand. Agree with ${them} before you publish.`
+		`Replays show decks and hands. Agree with ${them} before you publish.`
 	];
 
 	// Private: one Publish isn't enough, and the box tells each player where things stand.
@@ -311,9 +317,9 @@ test('replays go public once both players publish', async ({ browser }) => {
 	await publish(one, `${p2} has already pressed Publish, so everyone can watch right away.`);
 	await expect(one.getByRole('status')).toHaveText('Replays are public.');
 	await isPublic(true);
-	await orgSees('Both players published.');
+	await orgSees('Both players pressed Publish.');
 	await expect(badge(org, 'Public')).toBeVisible();
-	const PUBLIC = 'Anyone can watch these replays. A replay you add is public at once.';
+	const PUBLIC = 'Anyone can watch these replays. A replay added later is public at once.';
 	await two.reload();
 	for (const page of [one, two]) {
 		await expect(badge(page, 'Public')).toBeVisible();
