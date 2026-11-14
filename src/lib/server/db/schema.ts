@@ -107,22 +107,28 @@ export const matches = sqliteTable(
 	(t) => [index('matches_season_idx').on(t.seasonId)]
 );
 
-// One RiftAtlas replay file per game of a match, as the uploader saw the game (their deck and hand).
+// A RiftAtlas replay file: one player's download of one game of a match, so a game has up to two.
 export const replays = sqliteTable(
 	'replays',
 	{
 		matchId: integer('match_id')
 			.notNull()
 			.references(() => matches.id),
-		game: integer('game').notNull(), // 1-based, from the file
-		replayId: text('replay_id').notNull().unique(), // RiftAtlas' id: one file, one match
+		game: integer('game').notNull(), // 1-based
+		// RiftAtlas' id of the game: both players' files of it share it, and it is on one match only.
+		replayId: text('replay_id').notNull(),
 		uploadedBy: text('uploaded_by')
 			.notNull()
 			.references(() => players.id),
+		// The file shows both decks and hands; otherwise only the uploader's.
+		bothSides: integer('both_sides', { mode: 'boolean' }).notNull(),
 		data: blob('data', { mode: 'buffer' }).notNull(), // the JSON file, gzipped
 		createdAt: createdAt()
 	},
-	(t) => [primaryKey({ columns: [t.matchId, t.game] })]
+	(t) => [
+		primaryKey({ columns: [t.matchId, t.game, t.uploadedBy] }),
+		index('replays_replay_id_idx').on(t.replayId)
+	]
 );
 
 export const audit = sqliteTable(

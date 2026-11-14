@@ -145,7 +145,7 @@ export const seedReplay = (matchId: number, game: number, legends = ['Ahri, Fox'
 	write((db) =>
 		db
 			.prepare(
-				'insert into replays (match_id, game, replay_id, uploaded_by, data) select id, ?, ?, p1_id, ? from matches where id = ?'
+				'insert into replays (match_id, game, replay_id, uploaded_by, both_sides, data) select id, ?, ?, p1_id, 1, ? from matches where id = ?'
 			)
 			.run(game, `seed:${matchId}:${game}`, gzipSync(replayFile({ game, legends })), matchId)
 	);

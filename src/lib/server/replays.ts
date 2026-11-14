@@ -121,7 +121,9 @@ export function saveReplay(
 		tx.delete(replays)
 			.where(or(slot(m.id, game), eq(replays.replayId, replayId)))
 			.run();
-		tx.insert(replays).values({ matchId: m.id, game, replayId, uploadedBy: actorId, data }).run();
+		tx.insert(replays)
+			.values({ matchId: m.id, game, replayId, uploadedBy: actorId, bothSides: false, data })
+			.run();
 		unpublish(tx, [m.id]);
 		log(tx, m, actorId, { replay: game });
 		return { game, saved: true, unpublished: m.p1PublishReplay || m.p2PublishReplay };
