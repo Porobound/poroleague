@@ -274,7 +274,7 @@
 		{#if data.replays}
 			<ReplayPanel
 				replays={data.replays}
-				{opponent}
+				names={[player(order[0]).displayName, opponent]}
 				base="/seasons/{data.season.slug}/matches/{m.id}"
 			/>
 		{/if}

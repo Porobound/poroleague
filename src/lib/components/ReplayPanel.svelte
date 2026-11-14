@@ -4,7 +4,7 @@
 
 	let {
 		replays: r,
-		opponent,
+		names,
 		base
 	}: {
 		replays: {
@@ -12,10 +12,11 @@
 			role: 'player' | 'organizer' | 'visitor';
 			public: boolean;
 			canUpload: boolean;
-			// Who has pressed Publish, the viewer first; players only.
+			// Who has pressed Publish, in the order of `names`; null for anyone who may not know.
 			published: readonly [boolean, boolean] | null;
 		};
-		opponent: string;
+		// The two players, the viewer first when playing.
+		names: readonly [string, string];
 		// The match page's path; a game's file is at `<base>/replay/<game>`.
 		base: string;
 	} = $props();
@@ -26,6 +27,47 @@
 		ext: 'M14 5h5v5M19 5l-8 8M11 7H6v11h11v-5'
 	};
 	const has = $derived(r.games.some((g) => g.replay));
+	const opponent = $derived(names[1]);
+	const pressed = $derived(r.published ?? [false, false]);
+	const SHOWS = "A replay shows the uploader's whole deck and hand.";
+	// What the publish box says to a player, and the dialog its button opens.
+	const box = $derived.by(() => {
+		const [mine, theirs] = pressed;
+		if (mine && theirs)
+			return {
+				status: 'Public',
+				line: 'Anyone can watch these replays. Adding, replacing or deleting one makes them private again.',
+				button: 'Unpublish',
+				title: 'Unpublish these replays?',
+				dialog: [`They go back to private: only you, ${opponent} and organizers can open them.`]
+			};
+		if (mine)
+			return {
+				status: `Waiting for ${opponent}`,
+				line: `The replays go public when ${opponent} presses Publish too.`,
+				button: 'Take it back',
+				title: 'Take back your Publish?',
+				dialog: ['The replays stay private.']
+			};
+		return {
+			status: theirs ? `${opponent} wants to publish` : 'Private',
+			line: theirs
+				? 'The replays go public when you press Publish too.'
+				: `Only you, ${opponent} and organizers can open these replays.`,
+			advice: theirs ? SHOWS : `${SHOWS} Agree with ${opponent} before you publish.`,
+			button: 'Publish',
+			primary: theirs,
+			title: 'Publish these replays?',
+			dialog: [
+				`${SHOWS} ${
+					theirs
+						? `${opponent} has already pressed Publish, so everyone can watch right away.`
+						: `Everyone can watch once ${opponent} presses Publish too.`
+				}`,
+				'Either of you can take it back.'
+			]
+		};
+	});
 	const fileUrl = (game: number) => `${base}/replay/${game}`;
 	// The game whose Watch was pressed last: its row says what just happened and what to do next.
 	let watched = $state<number | null>(null);
@@ -66,7 +108,12 @@
 		title="Delete the game {game} replay?"
 		confirmLabel="Delete replay"
 		fields={{ game: String(game) }}
-	/>
+	>
+		<p>This can't be undone.</p>
+		{#if pressed.includes(true)}
+			<p>The other replays go back to private until both players publish again.</p>
+		{/if}
+	</ConfirmButton>
 {/snippet}
 
 {#if has || r.canUpload || r.role === 'organizer'}
@@ -160,48 +207,6 @@
 					in there to play it.
 				</span>
 			</p>
-			{#if r.published}
-				{@const [mine, theirs] = r.published}
-				<div class="publish">
-					<p>
-						<strong>
-							{#if mine && theirs}
-								Public: anyone can watch these replays.
-							{:else if mine}
-								You said yes to publishing. Waiting for {opponent}.
-							{:else if theirs}
-								{opponent} wants to publish these replays. They go public if you publish too.
-							{:else}
-								Private: only you and {opponent} can watch these replays.
-							{/if}
-						</strong>
-					</p>
-					<p class="muted small">
-						A replay shows the uploader's deck and every card in their hand. Talk to {opponent}
-						first and publish only if you're both fine with that: replays go public once you both publish,
-						and either of you can take it back. Adding, replacing or deleting a replay makes them private
-						again.
-					</p>
-					<ConfirmButton
-						action="?/publishReplays"
-						variant="secondary"
-						small
-						label={mine ? 'Unpublish' : 'Publish'}
-						title={mine ? 'Take back publishing?' : 'Publish these replays?'}
-						confirmLabel={mine ? 'Unpublish' : 'Publish'}
-						fields={{ on: mine ? '0' : '1' }}
-					>
-						<p>
-							{#if mine}
-								Only you and {opponent} will see the replays.
-							{:else}
-								Everyone will see the uploader's deck and hand once {opponent} has published too. Agreed
-								with {opponent}?
-							{/if}
-						</p>
-					</ConfirmButton>
-				</div>
-			{/if}
 		{:else}
 			<p class="pb-replays-empty">
 				{r.role === 'player'
@@ -240,12 +245,42 @@
 				<button class="pb-btn pb-btn-secondary">Add replay</button>
 			</form>
 		{/if}
+		{#if has && r.published && r.role === 'player'}
+			<div class={['pb-replays-publish', r.public && 'is-public']}>
+				<div class="pb-publish-text">
+					<strong class="pb-publish-status">{box.status}</strong>
+					<span>{box.line}</span>
+					{#if box.advice}<span class="pb-publish-advice">{box.advice}</span>{/if}
+				</div>
+				<ConfirmButton
+					action="?/publishReplays"
+					variant={box.primary ? 'primary' : 'secondary'}
+					label={box.button}
+					title={box.title}
+					confirmLabel={box.button}
+					fields={{ on: pressed[0] ? '0' : '1' }}
+				>
+					{#each box.dialog as line (line)}<p>{line}</p>{/each}
+				</ConfirmButton>
+			</div>
+		{:else if has && r.published && r.role === 'organizer'}
+			{@const first = pressed[0] ? 0 : 1}
+			<p class="pb-replays-status">
+				{#if r.public}
+					Both players published.
+				{:else if pressed.includes(true)}
+					{names[first]} pressed Publish; {names[1 - first]} hasn't.
+				{:else}
+					Neither player has pressed Publish.
+				{/if}
+			</p>
+		{/if}
 	</section>
 {/if}
 
 <style>
-	.publish p {
-		margin: 0 0 8px;
+	.pb-replays :global(.pb-dialog-body p) {
+		margin: 0;
 	}
 	.upload {
 		display: flex;

@@ -226,12 +226,12 @@ export const actions: Actions = {
 			return fail(403, { error: true, message: 'Only the two players can publish replays.' });
 		if (!setPublish(match, user.id, on))
 			return fail(409, { error: true, message: 'Add a replay first.' });
-		if (!on) return { message: `Unpublished. Only you and ${them.displayName} see the replays.` };
+		if (!on) return { message: 'Replays are private.' };
 		const theirs = them.id === match.p1Id ? match.p1PublishReplay : match.p2PublishReplay;
 		return {
 			message: theirs
-				? 'Published. Anyone can watch the replays now.'
-				: `You said yes. The replays go public once ${them.displayName} publishes too.`
+				? 'Replays are public.'
+				: `You pressed Publish. The replays go public when ${them.displayName} does too.`
 		};
 	},
 
@@ -244,6 +244,10 @@ export const actions: Actions = {
 			return fail(403, { error: true, message: "This replay isn't yours to delete." });
 		if (!deleteReplay(match, user.id, game))
 			return fail(404, { error: true, message: 'That replay is already gone.' });
-		return { message: `Game ${game} replay deleted.` };
+		// Deleting cleared whatever the players had pressed.
+		const pressed = match.p1PublishReplay || match.p2PublishReplay;
+		return {
+			message: `Game ${game} replay deleted.${pressed ? ' Replays are private again.' : ''}`
+		};
 	}
 };
