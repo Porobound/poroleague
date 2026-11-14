@@ -152,7 +152,7 @@
 {/snippet}
 
 {#snippet row(game: number, replay: Replay)}
-	{@const whose = ` game ${game} from ${replay.by}`}
+	{@const whose = ` ${replay.by}'s replay of game ${game}`}
 	<li class="pb-replay">
 		<div class="pb-replay-main">
 			<span class="pb-replay-who">
@@ -186,10 +186,10 @@
 				>{@render ico('down')}Download<span class="pb-sr">{whose}</span></a
 			>
 			{#if r.role === 'organizer'}
-				{@render remove(game, replay.side, 'Delete', ` game ${game} replay from ${replay.by}`)}
+				{@render remove(game, replay.side, 'Delete', whose)}
 			{:else if mine(replay)}
 				<details class="pb-replay-more">
-					<summary class="pb-btn pb-btn-ghost" aria-label="More for game {game}"
+					<summary class="pb-btn pb-btn-ghost" aria-label="More for your replay of game {game}"
 						><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"
 							><circle cx="5" cy="12" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle
 								cx="19"
@@ -199,7 +199,7 @@
 						></summary
 					>
 					<div class="pb-replay-menu">
-						{@render remove(game, replay.side, 'Delete replay')}
+						{@render remove(game, replay.side, 'Delete your replay')}
 					</div>
 				</details>
 			{/if}
