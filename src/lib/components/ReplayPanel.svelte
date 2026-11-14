@@ -283,7 +283,7 @@
 				<span>
 					Watch saves the replay file and opens
 					<a href={RIFTATLAS} target="_blank" rel="noopener">RiftAtlas</a> in a new tab. Drop the file
-					in there to play it.
+					in there to play it. Each replay plays on its own.
 				</span>
 			</p>
 		{:else}
