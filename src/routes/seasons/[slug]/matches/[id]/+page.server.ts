@@ -24,6 +24,7 @@ import {
 	deleteReplay,
 	inMatch,
 	replaySlots,
+	replaysPublic,
 	saveReplay,
 	setPublish,
 	sideOf
@@ -125,7 +126,7 @@ export const load: PageServerLoad = async (event) => {
 							: organizer
 								? ('organizer' as const)
 								: ('visitor' as const),
-						public: match.p1PublishReplay && match.p2PublishReplay,
+						public: replaysPublic(match, found.hidden),
 						// The viewer playing as the match's player 1 or 2: the files they added are theirs.
 						side: viewer === p1.id ? (1 as const) : viewer === p2.id ? (2 as const) : null,
 						// A match with an erased player keeps no replays.
@@ -231,10 +232,11 @@ export const actions: Actions = {
 				upload: 'which' as const
 			});
 		}
-		const pub = !found.hidden && match.p1PublishReplay && match.p2PublishReplay;
 		return {
 			message: `Replay ${result.replaced ? 'replaced' : 'added'} for game ${result.game}. ${
-				pub ? 'It is public.' : 'It stays private until you both publish.'
+				replaysPublic(match, found.hidden)
+					? 'It is public.'
+					: 'It stays private until you both publish.'
 			}`
 		};
 	},

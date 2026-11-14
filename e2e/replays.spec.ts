@@ -16,7 +16,7 @@ const file = (legends?: string[], replayId?: string) =>
 	replayFile({ legends, replayId, completedAt: Date.now() });
 const replays = (page: Page) => page.getByRole('region', { name: 'Replays' });
 // The button that opens the upload form: "Add a replay" until the match has one.
-const opener = (page: Page) => replays(page).getByText(/^Add( or replace)? a replay$/);
+const opener = (page: Page) => replays(page).getByText(/^Add (a|or replace your) replay$/);
 const field = (page: Page) => page.getByLabel('Replay file');
 const choose = (page: Page, text: string) =>
 	field(page).setInputFiles({
@@ -63,7 +63,10 @@ test('upload, watch, and who can see a replay', async ({ browser }) => {
 	await uploader.goto(url());
 	await expect(rows(uploader)).toHaveCount(0);
 	await expect(
-		replays(uploader).getByText('RiftAtlas deletes replays after 6 hours')
+		replays(uploader).getByText(
+			"No replays yet. They're optional: if you'd like to share a game, download your replay from RiftAtlas and add it here. Each player can add one file per game.",
+			{ exact: true }
+		)
 	).toBeVisible();
 	await expect(badge(uploader, 'Private')).toHaveCount(0);
 	// The form opens on demand.
@@ -72,6 +75,11 @@ test('upload, watch, and who can see a replay', async ({ browser }) => {
 
 	// A file of other legends isn't this match: the form stays open, the field marked.
 	await upload(uploader, file());
+	// Nobody has published: the form says so quietly, without the public warning.
+	await expect(
+		replays(uploader).getByText('It stays private until you both publish.', { exact: true })
+	).toBeVisible();
+	await expect(replays(uploader).getByRole('note')).toHaveCount(0);
 	await expect(uploader.getByRole('status')).toHaveText(
 		'This replay is Azir vs Evelynn, but the match was reported as Ahri vs Annie.'
 	);
@@ -87,7 +95,7 @@ test('upload, watch, and who can see a replay', async ({ browser }) => {
 		'Replay added for game 1. It stays private until you both publish.'
 	);
 	await expect(field(uploader)).toBeHidden();
-	await expect(opener(uploader)).toHaveText('Add or replace a replay');
+	await expect(opener(uploader)).toHaveText('Add or replace your replay');
 	// Every played game has a row; the ones without a replay have nothing to press.
 	await expect(rows(uploader)).toHaveText([
 		/^Game 1\s*Your replay\s*Both sides\s*Shows both decks and hands · added \w{3} \d+ \w{3}/,
@@ -146,12 +154,14 @@ test('upload, watch, and who can see a replay', async ({ browser }) => {
 	await expect(which(uploader).getByText('replay.json')).toBeVisible();
 	await expect(which(uploader).getByRole('radio')).toHaveCount(3);
 	await expect(
-		which(uploader).getByRole('radio', { name: `Game 1 Replaces the replay added by ${p1}` })
+		which(uploader).getByRole('radio', {
+			name: `Game 1 Replaces your replay. ${p2} hasn't added one.`
+		})
 	).toBeVisible();
 	const save = uploader.getByRole('button', { name: 'Save replay' });
 	await expect(save).toBeDisabled();
 	await expect(files(uploader)).toHaveCount(1);
-	await which(uploader).getByRole('radio', { name: 'Game 2 No replay yet' }).check();
+	await which(uploader).getByRole('radio', { name: 'Game 2 No replays yet.' }).check();
 	await save.click();
 	await expect(uploader.getByRole('status')).toHaveText(
 		'Replay added for game 2. It stays private until you both publish.'
@@ -159,6 +169,22 @@ test('upload, watch, and who can see a replay', async ({ browser }) => {
 	await expect(files(uploader)).toHaveCount(2);
 	expect(await (await opponent.request.get(fileOf(1))).text()).toBe(game1);
 	expect(await (await opponent.request.get(fileOf(2))).text()).toBe(room2);
+
+	// The opponent's file of yet another game also says "game 1": the notice says the file in the
+	// way is someone else's, and each game says what both players have added there.
+	await opponent.goto(url());
+	await upload(opponent, file(['Ahri, Nine-Tailed Fox', 'Annie, Dark Child'], 'ROOM3:1'));
+	await expect(opponent.getByRole('status')).toHaveText(
+		`Game 1 has ${p1}'s replay of another game. Choose which game this file is.`
+	);
+	for (const name of [
+		`Game 1 You haven't added one. ${p1} has added theirs.`,
+		`Game 2 You haven't added one. ${p1} has added theirs.`,
+		'Game 3 No replays yet.'
+	])
+		await expect(which(opponent).getByRole('radio', { name })).toBeVisible();
+	await opponent.getByRole('link', { name: 'Cancel' }).click();
+	await expect(which(opponent)).toHaveCount(0);
 
 	// The public log says nothing of replays; the organizer's does.
 	await opponent.goto(`/seasons/${slug}/audit`);
@@ -220,7 +246,13 @@ test('replays go public once both players publish', async ({ browser }) => {
 		await dialog.getByRole('button', { name: button, exact: true }).click();
 	};
 	const publish = (page: Page, says: string) =>
-		press(page, 'Publish', 'Publish these replays?', says, 'Either of you can take it back.');
+		press(
+			page,
+			'Publish',
+			'Publish these replays?',
+			'Replays show decks and hands. Publishing covers every replay of this match, including ones added later.',
+			`${says} Either of you can take it back.`
+		);
 	const visitor = await browser.newPage();
 	const chip = visitor.getByText('Replay available');
 	const isPublic = async (yes: boolean) => {
@@ -251,7 +283,7 @@ test('replays go public once both players publish', async ({ browser }) => {
 	};
 	const PRIVATE = (them: string) => [
 		`Only you, ${them} and organizers can open these replays.`,
-		`A replay shows the uploader's whole deck and hand. Agree with ${them} before you publish.`
+		`Replays show decks and hands. Agree with ${them} before you publish.`
 	];
 
 	// Private: one Publish isn't enough, and the box tells each player where things stand.
@@ -293,9 +325,9 @@ test('replays go public once both players publish', async ({ browser }) => {
 	await publish(one, `${p2} has already pressed Publish, so everyone can watch right away.`);
 	await expect(one.getByRole('status')).toHaveText('Replays are public.');
 	await isPublic(true);
-	await orgSees('Both players published.');
+	await orgSees('Both players pressed Publish.');
 	await expect(badge(org, 'Public')).toBeVisible();
-	const PUBLIC = 'Anyone can watch these replays. A replay you add is public at once.';
+	const PUBLIC = 'Anyone can watch these replays. A replay added later is public at once.';
 	await two.reload();
 	for (const page of [one, two]) {
 		await expect(badge(page, 'Public')).toBeVisible();
@@ -314,9 +346,18 @@ test('replays go public once both players publish', async ({ browser }) => {
 
 	// The other player adds their own file of game 1: it goes next to the first, public at once.
 	// Their file isn't the same RiftAtlas game as the seeded one, so they say which game it is.
+	// The form warns before they send it.
 	const theirs = file(['Ahri, Nine-Tailed Fox', 'Annie, Dark Child']);
+	await opener(two).click();
+	await expect(replays(two).getByRole('note')).toHaveText(
+		"This match's replays are public. A file you add is public at once, and it shows your deck and hand."
+	);
+	await expect(replays(two).getByText('It stays private until you both publish.')).toHaveCount(0);
 	await upload(two, theirs, 'Game 1');
 	await expect(two.getByRole('status')).toHaveText('Replay added for game 1. It is public.');
+	// No new Publish: a visitor watches it straight away.
+	await visitor.goto(url());
+	await expect(files(visitor)).toHaveCount(2);
 	await one.reload();
 	for (const page of [one, two])
 		await expect(rows(page)).toHaveText([
@@ -400,7 +441,7 @@ test('the report form reminds players to save the replay', async ({ browser }) =
 	const note = page.getByRole('note');
 	await expect(note.getByText('Replays are optional', { exact: true })).toBeVisible();
 	await expect(note).toContainText(
-		"Want to keep them? RiftAtlas deletes replays after 6 hours, so download each game's replay there before then. You can add them to this match any time after the result is saved."
+		"If you'd like to share this match, download your replays from RiftAtlas soon: a free account keeps them for 6 hours, a subscription for longer. You can add them once this result is saved."
 	);
 	await expect(replays(page)).toHaveCount(0);
 });

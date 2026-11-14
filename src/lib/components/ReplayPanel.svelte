@@ -20,6 +20,7 @@
 				files: Replay[];
 			}[];
 			role: 'player' | 'organizer' | 'visitor';
+			// Both pressed Publish and the match's week is published.
 			public: boolean;
 			// The viewer's side when playing: their own files.
 			side: 1 | 2 | null;
@@ -46,14 +47,14 @@
 	const has = $derived(count > 0);
 	const opponent = $derived(names[1]);
 	const pressed = $derived(r.published ?? [false, false]);
-	const SHOWS = "A replay shows the uploader's whole deck and hand.";
+	const SHOWS = 'Replays show decks and hands.';
 	// What the publish box says to a player, and the dialog its button opens.
 	const box = $derived.by(() => {
 		const [mine, theirs] = pressed;
 		if (mine && theirs)
 			return {
 				status: 'Public',
-				line: 'Anyone can watch these replays. A replay you add is public at once.',
+				line: 'Anyone can watch these replays. A replay added later is public at once.',
 				button: 'Unpublish',
 				title: 'Unpublish these replays?',
 				dialog: [`They go back to private: only you, ${opponent} and organizers can open them.`]
@@ -76,12 +77,12 @@
 			primary: theirs,
 			title: 'Publish these replays?',
 			dialog: [
-				`${SHOWS} ${
+				`${SHOWS} Publishing covers every replay of this match, including ones added later.`,
+				`${
 					theirs
 						? `${opponent} has already pressed Publish, so everyone can watch right away.`
 						: `Everyone can watch once ${opponent} presses Publish too.`
-				}`,
-				'Either of you can take it back.'
+				} Either of you can take it back.`
 			]
 		};
 	});
@@ -295,14 +296,14 @@
 		{:else}
 			<p class="pb-replays-empty">
 				{r.role === 'player'
-					? 'No replays yet. RiftAtlas deletes replays after 6 hours, so add yours while you still have the files: one JSON file per game.'
+					? "No replays yet. They're optional: if you'd like to share a game, download your replay from RiftAtlas and add it here. Each player can add one file per game."
 					: 'No replays yet.'}
 			</p>
 		{/if}
 		{#if r.canUpload}
 			<details class="pb-replays-add" open={!!upload} bind:this={add}>
-				<summary class={['pb-btn', has ? 'pb-btn-ghost' : 'pb-btn-primary']}
-					>{@render ico('up')}{has ? 'Add or replace a replay' : 'Add a replay'}</summary
+				<summary class={['pb-btn', has ? 'pb-btn-ghost' : 'pb-btn-secondary']}
+					>{@render ico('up')}{has ? 'Add or replace your replay' : 'Add a replay'}</summary
 				>
 				<!-- Without a reload a refused file stays in the input, for the which-game step to send again. -->
 				<form
@@ -328,7 +329,7 @@
 								aria-invalid={upload === 'refused' || undefined}
 								onchange={chosen}
 							/>
-							<span class="pb-hint">One JSON file per game, downloaded from RiftAtlas.</span>
+							<span class="pb-hint">Your own download from RiftAtlas, one JSON file per game.</span>
 						</label>
 					</div>
 					{#if which}
@@ -338,22 +339,33 @@
 								<span class="pb-replays-file">{@render ico('file')}{picked}</span>
 							{/if}
 							{#each r.games as { game, files } (game)}
-								{@const own = files.find((f) => f.side === r.side)}
 								<label class="pb-choice">
 									<input type="radio" name="game" value={game} required bind:group={pick} />
 									<span>
 										<strong>Game {game}</strong>
 										<span class="pb-choice-sub">
-											{own
-												? `Replaces the replay added by ${own.by}`
-												: files.length
-													? `Goes next to the replay added by ${files[0].by}`
-													: 'No replay yet'}
+											{files.length
+												? `${files.some(mine) ? 'Replaces your replay.' : "You haven't added one."} ${
+														files.some((f) => !mine(f))
+															? `${opponent} has added theirs.`
+															: `${opponent} hasn't added one.`
+													}`
+												: 'No replays yet.'}
 										</span>
 									</span>
 								</label>
 							{/each}
 						</fieldset>
+					{/if}
+					{#if r.public}
+						<p class="pb-replays-warn" role="note">
+							{@render ico('ext')}<span
+								>This match's replays are public. A file you add is public at once, and it shows
+								your deck and hand.</span
+							>
+						</p>
+					{:else}
+						<p class="pb-replays-quiet">It stays private until you both publish.</p>
 					{/if}
 					<div class="pb-replays-form-actions">
 						<button class="pb-btn pb-btn-primary" disabled={which && !!picked && !pick}
@@ -394,8 +406,8 @@
 			<div class="pb-replays-status">
 				<span>{names.map(added).join(' ')}</span>
 				<span>
-					{#if r.public}
-						Both players published.
+					{#if pressed[0] && pressed[1]}
+						Both players pressed Publish.
 					{:else if pressed.includes(true)}
 						{names[first]} pressed Publish; {names[1 - first]} hasn't.
 					{:else}

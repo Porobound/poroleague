@@ -1,6 +1,6 @@
 // The replay panel in states the main pages don't show: a pressed Watch and the row menu, the upload
-// form and its which-game step, one player's Publish, and a match whose games hold files that
-// show one side or both.
+// form (private and public) and its which-game step for either player, one player's Publish, and a
+// match whose games hold files that show one side or both.
 import { test } from '@playwright/test';
 import {
 	freezeTimes,
@@ -43,16 +43,16 @@ test('a match with replays, after pressing Watch', async ({ browser }) => {
 	);
 	const url = `/seasons/${SEASONS.shotsReplays}/matches/${match}`;
 	await shot(browser, 'player-match-replays-upload', url, player('shotsReplays', 1), (page) =>
-		page.getByText('Add or replace a replay').click()
+		page.getByText('Add or replace your replay').click()
 	);
-	// A second file that says "game 1": nothing is stored, so both views get the same step.
-	await shot(
-		browser,
-		'player-match-replays-which',
-		url,
-		player('shotsReplays', 1),
-		async (page) => {
-			await page.getByText('Add or replace a replay').click();
+	// A second file that says "game 1": nothing is stored, so both views get the same step. Player 1
+	// has a file of another game there; player 2 finds player 1's.
+	for (const [name, side] of [
+		['player-match-replays-which', 1],
+		['player-match-replays-which-theirs', 2]
+	] as const)
+		await shot(browser, name, url, player('shotsReplays', side), async (page) => {
+			await page.getByText('Add or replace your replay').click();
 			await page.getByLabel('Replay file').setInputFiles({
 				name: 'riftatlas-replay-game-1.json',
 				mimeType: 'application/json',
@@ -62,8 +62,7 @@ test('a match with replays, after pressing Watch', async ({ browser }) => {
 			});
 			await page.getByRole('button', { name: 'Upload' }).click();
 			await page.getByRole('group', { name: 'Which game is this file?' }).waitFor();
-		}
-	);
+		});
 	// One player has pressed Publish: what that player, the other one and an organizer see.
 	publishReplays(match, true, false);
 	for (const [name, who] of [
@@ -72,6 +71,15 @@ test('a match with replays, after pressing Watch', async ({ browser }) => {
 		['org-match-replays-one-published', ORGANIZER]
 	])
 		await shot(browser, name, `/seasons/${SEASONS.shotsReplays}/matches/${match}`, who);
+	// Both pressed Publish: the upload form warns that a new file is public at once.
+	publishReplays(match);
+	await shot(
+		browser,
+		'player-match-replays-upload-public',
+		url,
+		player('shotsReplays', 1),
+		(page) => page.getByText('Add or replace your replay').click()
+	);
 });
 
 // Game 1: a one-side file from each player of the same game. Game 2: one from the long-named
