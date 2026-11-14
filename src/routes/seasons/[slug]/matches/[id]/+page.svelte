@@ -118,28 +118,6 @@
 			bind:this={reportForm}
 			onchange={() => changes++}
 		>
-			<div class="pb-callout" role="note">
-				<span class="pb-callout-ico">
-					<svg
-						width="20"
-						height="20"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="2"
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						aria-hidden="true"><path d="M12 7v5l3 2M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z" /></svg
-					>
-				</span>
-				<div class="pb-callout-body">
-					<strong class="pb-callout-title">Save your replays</strong>
-					<span>
-						RiftAtlas deletes replays after 6 hours. Download each game's replay there now. You can
-						add them to the match once this result is saved.
-					</span>
-				</div>
-			</div>
 			<section class="games" aria-labelledby="games-h">
 				<span id="games-h" class="eyebrow">Games</span>
 				<GameRows
@@ -194,6 +172,30 @@
 				{/each}
 			</fieldset>
 			{#if errors.dice}<p class="pb-hint is-error" role="alert">{errors.dice}</p>{/if}
+
+			<div class="pb-callout" role="note">
+				<span class="pb-callout-ico">
+					<svg
+						width="20"
+						height="20"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						aria-hidden="true"><path d="M12 7v5l3 2M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z" /></svg
+					>
+				</span>
+				<div class="pb-callout-body">
+					<strong class="pb-callout-title">Replays are optional</strong>
+					<span>
+						Want to keep them? RiftAtlas deletes replays after 6 hours, so download each game's
+						replay there before then. You can add them to this match any time after the result is
+						saved.
+					</span>
+				</div>
+			</div>
 
 			<div class="actions action-bar">
 				<ConfirmButton

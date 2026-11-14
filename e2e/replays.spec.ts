@@ -364,9 +364,9 @@ test('the report form reminds players to save the replay', async ({ browser }) =
 	const page = await browser.newPage(as(player('replays', 1)));
 	await page.goto(`/seasons/${slug}/matches/${open}`);
 	const note = page.getByRole('note');
-	await expect(note.getByText('Save your replays', { exact: true })).toBeVisible();
+	await expect(note.getByText('Replays are optional', { exact: true })).toBeVisible();
 	await expect(note).toContainText(
-		"RiftAtlas deletes replays after 6 hours. Download each game's replay there now. You can add them to the match once this result is saved."
+		"Want to keep them? RiftAtlas deletes replays after 6 hours, so download each game's replay there before then. You can add them to this match any time after the result is saved."
 	);
 	await expect(replays(page)).toHaveCount(0);
 });
