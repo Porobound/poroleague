@@ -41,6 +41,7 @@ export const SEASONS = {
 	shotsSignup: 'summer-2040',
 	shotsCut: 'winter-2039',
 	shotsHoliday: 'summer-2039',
+	shotsReplays: 'spring-2039',
 	holidayRequest: 'e2e-holiday-request',
 	holidayDecide: 'e2e-holiday-decide',
 	holidayEarly: 'e2e-holiday-early',

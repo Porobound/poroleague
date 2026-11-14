@@ -4,6 +4,8 @@
 	let {
 		action,
 		label,
+		sr = '',
+		class: extra = '',
 		title,
 		confirmLabel,
 		variant = 'primary',
@@ -17,6 +19,9 @@
 	}: {
 		action?: string;
 		label: string;
+		// Rest of the label, for screen readers only.
+		sr?: string;
+		class?: string;
 		title: string;
 		confirmLabel: string;
 		variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
@@ -39,14 +44,15 @@
 
 <button
 	type="button"
-	class={['pb-btn', `pb-btn-${variant}`, small && 'pb-btn-sm']}
+	class={['pb-btn', `pb-btn-${variant}`, small && 'pb-btn-sm', extra]}
 	{disabled}
 	onclick={(e) => {
 		if (!inForm || e.currentTarget.form?.reportValidity()) {
 			open = true;
 			dialog?.showModal();
 		}
-	}}>{label}</button
+	}}
+	>{label}{#if sr}<span class="pb-sr">{sr}</span>{/if}</button
 >
 
 <dialog

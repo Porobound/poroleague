@@ -2,7 +2,7 @@ import { error } from '@sveltejs/kit';
 import { isPublished } from '#lib/league/publish.ts';
 import { currentRole } from '#lib/server/auth.ts';
 import { getMatch } from '#lib/server/matches.ts';
-import { canSeeReplays, replayGzip } from '#lib/server/replays.ts';
+import { canSeeReplays, replayFileName, replayGzip } from '#lib/server/replays.ts';
 import { getSeason } from '#lib/server/seasons.ts';
 import type { RequestHandler } from './$types';
 
@@ -30,7 +30,7 @@ export const GET: RequestHandler = async (event) => {
 		headers: {
 			'content-type': 'application/json',
 			'content-encoding': 'gzip',
-			'content-disposition': `attachment; filename="poroleague-${season.slug}-match-${id}-game-${game}.json"`,
+			'content-disposition': `attachment; filename="${replayFileName(season.slug, id, game)}"`,
 			'cache-control': 'private, no-store'
 		}
 	});

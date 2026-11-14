@@ -8,6 +8,7 @@ import {
 	deleteReplay,
 	matchReplays,
 	replayGzip as stored,
+	replaySlots,
 	saveReplay,
 	setPublish
 } from '#lib/server/replays.ts';
@@ -123,6 +124,36 @@ describe('deleteReplay', () => {
 		expect(matchReplays(matchId)).toEqual([]);
 		expect(published(match())).toEqual([false, false]);
 		expect(deleteReplay(match(), 'p2', 1)).toBe(false);
+	});
+});
+
+describe('replaySlots', () => {
+	it('lists every played game, with or without a replay', () => {
+		saveReplay(match(), SINCE, 'p2', replayFile({ game: 2 }));
+		const when = new Date().toLocaleDateString('en-GB', {
+			weekday: 'short',
+			day: 'numeric',
+			month: 'short',
+			timeZone: 'Europe/Helsinki'
+		});
+		expect(replaySlots(match(), 's1', (id) => id.toUpperCase())).toEqual([
+			{ game: 1, replay: null },
+			{ game: 2, replay: { by: 'P2', when, file: `poroleague-s1-match-${matchId}-game-2.json` } },
+			{ game: 3, replay: null }
+		]);
+	});
+
+	it('counts the games from the per-game result when there is one', () => {
+		const id = seedMatch({
+			seasonId,
+			round: 2,
+			p1Id: 'p3',
+			p2Id: 'p4',
+			p1Games: 2,
+			p2Games: 0,
+			games: '11'
+		}).id;
+		expect(replaySlots(match(id), 's1', String).map((s) => s.game)).toEqual([1, 2]);
 	});
 });
 

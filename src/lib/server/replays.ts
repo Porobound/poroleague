@@ -1,5 +1,7 @@
 import { gzipSync } from 'node:zlib';
 import { and, asc, eq, inArray, isNotNull, or } from 'drizzle-orm';
+import { day } from '#lib/format.ts';
+import { leagueDate } from '#lib/league/time.ts';
 import { checkReplay, MAX_REPLAY_BYTES, readReplay, TOO_BIG } from '#lib/replay.ts';
 import { db } from '#lib/server/db/index.ts';
 import { audit, matches, players, replays } from '#lib/server/db/schema.ts';
@@ -27,6 +29,28 @@ export const matchReplays = (matchId: number) =>
 		.where(eq(replays.matchId, matchId))
 		.orderBy(asc(replays.game))
 		.all();
+
+export const replayFileName = (slug: string, matchId: number, game: number) =>
+	`poroleague-${slug}-match-${matchId}-game-${game}.json`;
+
+// One entry per played game, for the match page; `replay` is null where nobody added one.
+export function replaySlots(m: Match, slug: string, name: (playerId: string) => string) {
+	const held = new Map(matchReplays(m.id).map((r) => [r.game, r]));
+	const played = m.games?.length ?? (m.p1Games ?? 0) + (m.p2Games ?? 0);
+	return Array.from({ length: played }, (_, i) => {
+		const r = held.get(i + 1);
+		return {
+			game: i + 1,
+			replay: r
+				? {
+						by: name(r.uploadedBy),
+						when: day(leagueDate(r.createdAt)),
+						file: replayFileName(slug, m.id, i + 1)
+					}
+				: null
+		};
+	});
+}
 
 const slot = (matchId: number, game: number) =>
 	and(eq(replays.matchId, matchId), eq(replays.game, game));
