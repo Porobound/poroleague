@@ -151,10 +151,14 @@ export function saveReplay(
 	});
 }
 
-export const deleteReplay = (m: Match, actorId: string, game: number) =>
+// `uploaderId`'s file of the game. Who may delete it is the caller's to check.
+export const deleteReplay = (m: Match, actorId: string, game: number, uploaderId: string) =>
 	db.transaction((tx) => {
-		if (!tx.delete(replays).where(slot(m.id, game)).run().changes) return false;
-		unpublish(tx, [m.id]);
+		const file = and(slot(m.id, game), eq(replays.uploadedBy, uploaderId));
+		if (!tx.delete(replays).where(file).run().changes) return false;
+		// Nothing left to publish: "both published" keeps meaning "has a public replay".
+		if (!tx.select({ game: replays.game }).from(replays).where(eq(replays.matchId, m.id)).get())
+			unpublish(tx, [m.id]);
 		log(tx, m, actorId, { replayDeleted: game });
 		return true;
 	});
