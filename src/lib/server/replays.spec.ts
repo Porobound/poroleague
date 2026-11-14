@@ -9,6 +9,7 @@ import {
 	canSeeReplays,
 	deleteReplay,
 	matchReplays,
+	replayFileName,
 	replayGzip as stored,
 	replaySlots,
 	saveReplay,
@@ -241,6 +242,20 @@ describe('replaySlots', () => {
 			},
 			{ game: 3, files: [] }
 		]);
+	});
+
+	it("names the two files of a game apart even when the players' names do not", () => {
+		const names = (p1: string, p2: string) =>
+			([1, 2] as const).map((side) => replayFileName('s1', 7, 1, side, [p1, p2]));
+		const file = (who: string) => `poroleague-s1-match-7-game-1-${who}.json`;
+		expect(names('Ann Lee', 'Bo')).toEqual([file('ann-lee'), file('bo')]);
+		expect(names('Ann Lee', '아지르')).toEqual([file('ann-lee'), file('player-2')]);
+		for (const [p1, p2] of [
+			['Ann', 'Ann'],
+			['Ann Lee', 'ann_lee!'],
+			['아지르', '이블린']
+		])
+			expect(names(p1, p2)).toEqual([file('player-1'), file('player-2')]);
 	});
 
 	it('counts the games from the per-game result when there is one', () => {

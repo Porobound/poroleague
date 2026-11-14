@@ -35,20 +35,25 @@ export const matchReplays = (matchId: number) =>
 		.orderBy(asc(replays.game))
 		.all();
 
-// `side`: the uploader is the match's player 1 or 2; it names the file when their name can't.
+const nameSlug = (name: string) =>
+	name
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, '-')
+		.replace(/^-|-$/g, '');
+
+// `side`: the uploader is the match's player 1 or 2, of `names`; it names the file when their
+// name can't, or can't tell it from the other player's file.
 export const replayFileName = (
 	slug: string,
 	matchId: number,
 	game: number,
 	side: 1 | 2,
-	uploader: string
-) =>
-	`poroleague-${slug}-match-${matchId}-game-${game}-${
-		uploader
-			.toLowerCase()
-			.replace(/[^a-z0-9]+/g, '-')
-			.replace(/^-|-$/g, '') || `player-${side}`
-	}.json`;
+	names: readonly [string, string]
+) => {
+	const [p1, p2] = names.map(nameSlug);
+	const by = side === 1 ? p1 : p2;
+	return `poroleague-${slug}-match-${matchId}-game-${game}-${by && p1 !== p2 ? by : `player-${side}`}.json`;
+};
 
 // The match's player 1 or 2.
 export const sideOf = (m: Match, side: 1 | 2) => (side === 1 ? m.p1Id : m.p2Id);
@@ -69,7 +74,7 @@ export function replaySlots(m: Match, slug: string, name: (playerId: string) => 
 					by,
 					bothSides: r.bothSides,
 					when: day(leagueDate(r.createdAt)),
-					file: replayFileName(slug, m.id, i + 1, side, by)
+					file: replayFileName(slug, m.id, i + 1, side, [name(m.p1Id), name(m.p2Id)])
 				}
 			];
 		})

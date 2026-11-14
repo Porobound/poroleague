@@ -27,13 +27,14 @@ export const GET: RequestHandler = async (event) => {
 			? replayGzip(match.id, game, sideOf(match, side))
 			: undefined;
 	if (!file || !match || !side) error(404, 'Replay not found');
-	const by = matchPlayers(match)[side - 1].displayName;
+	const [p1, p2] = matchPlayers(match);
+	const name = replayFileName(season.slug, id, game, side, [p1.displayName, p2.displayName]);
 	// Sent gzipped as stored; the browser saves the plain JSON.
 	return new Response(new Uint8Array(file), {
 		headers: {
 			'content-type': 'application/json',
 			'content-encoding': 'gzip',
-			'content-disposition': `attachment; filename="${replayFileName(season.slug, id, game, side, by)}"`,
+			'content-disposition': `attachment; filename="${name}"`,
 			'cache-control': 'private, no-store'
 		}
 	});
