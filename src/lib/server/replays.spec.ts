@@ -1,6 +1,6 @@
 import { gunzipSync } from 'node:zlib';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { actions } from '../../routes/seasons/[slug]/matches/[id]/+page.server.ts';
+import { actions, load } from '../../routes/seasons/[slug]/matches/[id]/+page.server.ts';
 import { auditLines } from '#lib/server/auditLog.ts';
 import { currentRole } from '#lib/server/auth.ts';
 import { getMatch, organizerEdit, type Match } from '#lib/server/matches.ts';
@@ -223,6 +223,8 @@ describe('the match page', () => {
 			request: new Request(url, { method: 'POST', body })
 		} as never;
 	};
+	type Data = { match: object; replays: { published: boolean[] | null } | null };
+	const loaded = async (...who: [string | null, boolean?]) => (await load(event(...who))) as Data;
 	const message = async (
 		action: 'publishReplays' | 'deleteReplay',
 		...args: Parameters<typeof event>
@@ -232,6 +234,27 @@ describe('the match page', () => {
 		vi.mocked(currentRole).mockResolvedValue(true);
 		saveReplay(match(), SINCE, 'p1', replayFile());
 		setPublish(match(), 'p2', true);
+	});
+
+	it('tells who pressed Publish to the players and a re-checked organizer only', async () => {
+		expect((await loaded('p1')).replays?.published).toEqual([false, true]);
+		expect((await loaded('p2')).replays?.published).toEqual([true, false]);
+		expect((await loaded('p4', true)).replays?.published).toEqual([false, true]);
+		// Private: nobody else gets the panel at all.
+		expect((await loaded('p3')).replays).toBeNull();
+		expect((await loaded(null)).replays).toBeNull();
+		// The session says organizer, Discord no longer does.
+		vi.mocked(currentRole).mockResolvedValue(false);
+		expect((await loaded('p4', true)).replays).toBeNull();
+
+		// Public: they watch, without the flags.
+		setPublish(match(), 'p1', true);
+		for (const who of [['p3'], [null], ['p4', true]] as [string | null, boolean?][]) {
+			const data = await loaded(...who);
+			expect(data.replays).toMatchObject({ public: true, published: null });
+			expect(JSON.stringify(data.match)).not.toMatch(/PublishReplay/);
+		}
+		expect(JSON.stringify((await loaded('p1')).match)).not.toMatch(/PublishReplay/);
 	});
 
 	it('says where publishing stands after each press', async () => {

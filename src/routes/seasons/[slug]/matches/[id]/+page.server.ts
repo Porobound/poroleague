@@ -91,7 +91,7 @@ export const load: PageServerLoad = async (event) => {
 	});
 	return {
 		season,
-		// Without who has agreed to publish replays: that is between the two players.
+		// Without who has pressed Publish on the replays: `replays.published` says it to who may know.
 		match: { ...match, p1PublishReplay: undefined, p2PublishReplay: undefined },
 		// Same status rule as every match card.
 		status: card.status,
@@ -127,12 +127,14 @@ export const load: PageServerLoad = async (event) => {
 						public: match.p1PublishReplay && match.p2PublishReplay,
 						// A match with an erased player keeps no replays.
 						canUpload: playing && !p1.former && !p2.former,
-						// Who has said yes to showing them to everyone; the viewer's own side first.
-						published: playing
-							? viewer === p1.id
-								? ([match.p1PublishReplay, match.p2PublishReplay] as const)
-								: ([match.p2PublishReplay, match.p1PublishReplay] as const)
-							: null
+						// Who has pressed Publish, the viewer's own side first: for the two players, and for
+						// an organizer whose role was just re-checked. Nobody else learns it.
+						published:
+							playing || organizer
+								? viewer === p2.id
+									? ([match.p2PublishReplay, match.p1PublishReplay] as const)
+									: ([match.p1PublishReplay, match.p2PublishReplay] as const)
+								: null
 					}
 				: null,
 		// Only the form needs it; anyone else gets no hint of a player's last legend.
