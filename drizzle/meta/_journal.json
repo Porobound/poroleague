@@ -64,6 +64,13 @@
       "when": 1794597146465,
       "tag": "0008_blue_scarlet_spider",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1794651790934,
+      "tag": "0009_uneven_shadow_king",
+      "breakpoints": true
     }
   ]
 }

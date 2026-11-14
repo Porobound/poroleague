@@ -12,8 +12,24 @@ describe('readReplay', () => {
 		const r = readReplay(replayFile({ game: 2, replayId: 'R:2', completedAt: 1000 }));
 		expect(r).toEqual({
 			ok: true,
-			info: { replayId: 'R:2', game: 2, legends: ['Azir', 'Evelynn'], completedAt: 1000 }
+			info: {
+				replayId: 'R:2',
+				game: 2,
+				legends: ['Azir', 'Evelynn'],
+				completedAt: 1000,
+				bothSides: true
+			}
 		});
+	});
+
+	it('tells a file showing one side from one showing both', () => {
+		const both = (hidden?: number) => {
+			const r = readReplay(replayFile({ hidden }));
+			return r.ok && r.info.bothSides;
+		};
+		expect(both()).toBe(true);
+		expect(both(0)).toBe(false);
+		expect(both(1)).toBe(false);
 	});
 
 	it('rejects what is not a RiftAtlas replay', () => {
@@ -37,6 +53,44 @@ describe('readReplay', () => {
 		expect(error(JSON.stringify({ ...file, root: { r: 9999 } }))).toMatch(/damaged/);
 		expect(error(JSON.stringify({ ...file, nodes: file.nodes.slice(3) }))).toMatch(/damaged/);
 	});
+
+	it('rejects a file referencing one large node many times, quickly', () => {
+		const n = 20_000;
+		const hostile = (players: number) =>
+			JSON.stringify({
+				format: 'riftatlas-replay',
+				version: 2,
+				root: { r: 5 },
+				nodes: [
+					['o', Array.from({ length: n }, (_, i) => [`k${i}`, i])],
+					['a', Array.from({ length: n }, () => ({ r: 0 }))],
+					[
+						'o',
+						[
+							['gameNumber', 1],
+							['players', { r: players }]
+						]
+					],
+					['a', [{ r: 4 }]],
+					['o', [['state', { r: 2 }]]],
+					[
+						'o',
+						[
+							['replayId', 'R:1'],
+							['completedAt', 1],
+							['frames', { r: 3 }]
+						]
+					],
+					['a', [{ r: 7 }, { r: 7 }]],
+					['o', [['board', { r: 8 }]]],
+					['o', [['legend', { r: 1 }]]]
+				]
+			});
+		const start = performance.now();
+		expect(error(hostile(1))).toMatch(/two players/);
+		expect(error(hostile(6))).toMatch(/damaged/);
+		expect(performance.now() - start).toBeLessThan(2000);
+	});
 });
 
 describe('checkReplay', () => {
@@ -46,7 +100,8 @@ describe('checkReplay', () => {
 		replayId: 'R:1',
 		game: 1,
 		legends: ['Azir', 'Evelynn'],
-		completedAt: 5_000_000
+		completedAt: 5_000_000,
+		bothSides: true
 	};
 	const match = { p1Games: 2, p2Games: 0, games: null, p1Legend: 'Evelynn', p2Legend: 'Azir' };
 	const check = (i: Partial<ReplayInfo> = {}, m: Partial<Reported> = {}) =>

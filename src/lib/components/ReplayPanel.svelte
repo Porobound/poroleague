@@ -10,16 +10,22 @@
 		upload = null
 	}: {
 		replays: {
-			games: { game: number; replay: { by: string; when: string; file: string } | null }[];
+			// Each file is the one the match's player `side` (1 or 2) added.
+			games: {
+				game: number;
+				files: { side: 1 | 2; by: string; bothSides: boolean; when: string; file: string }[];
+			}[];
 			role: 'player' | 'organizer' | 'visitor';
 			public: boolean;
+			// The viewer's side when playing: their own files.
+			side: 1 | 2 | null;
 			canUpload: boolean;
 			// Who has pressed Publish, in the order of `names`; null for anyone who may not know.
 			published: readonly [boolean, boolean] | null;
 		};
 		// The two players, the viewer first when playing.
 		names: readonly [string, string];
-		// The match page's path; a game's file is at `<base>/replay/<game>`.
+		// The match page's path; a file is at `<base>/replay/<game>/<side>`.
 		base: string;
 		// Why the last upload wasn't saved: the file was refused, or its game has another replay.
 		upload?: 'refused' | 'which' | null;
@@ -32,7 +38,7 @@
 		up: 'M12 20V9m0 0l-4 4m4-4l4 4M5 4h14',
 		file: 'M7 3h7l4 4v14H7zM14 3v4h4'
 	};
-	const has = $derived(r.games.some((g) => g.replay));
+	const has = $derived(r.games.some((g) => g.files.length));
 	const opponent = $derived(names[1]);
 	const pressed = $derived(r.published ?? [false, false]);
 	const SHOWS = "A replay shows the uploader's whole deck and hand.";
@@ -42,7 +48,7 @@
 		if (mine && theirs)
 			return {
 				status: 'Public',
-				line: 'Anyone can watch these replays. Adding, replacing or deleting one makes them private again.',
+				line: 'Anyone can watch these replays. A replay you add is public at once.',
 				button: 'Unpublish',
 				title: 'Unpublish these replays?',
 				dialog: [`They go back to private: only you, ${opponent} and organizers can open them.`]
@@ -74,13 +80,17 @@
 			]
 		};
 	});
-	const fileUrl = (game: number) => `${base}/replay/${game}`;
-	// The game whose Watch was pressed last: its row says what just happened and what to do next.
-	let watched = $state<number | null>(null);
+	const fileUrl = (game: number, side: number) => `${base}/replay/${game}/${side}`;
+	// The file whose Watch was pressed last, as `<game>/<side>`: its row says what just happened and
+	// what to do next.
+	let watched = $state<string | null>(null);
 	// Watch: the link opens RiftAtlas, this saves the file to drop there. RiftAtlas takes no file by URL.
-	const watch = (game: number, file: string) => {
-		Object.assign(document.createElement('a'), { href: fileUrl(game), download: file }).click();
-		watched = game;
+	const watch = (game: number, side: number, file: string) => {
+		Object.assign(document.createElement('a'), {
+			href: fileUrl(game, side),
+			download: file
+		}).click();
+		watched = `${game}/${side}`;
 	};
 	const which = $derived(upload === 'which');
 	let add = $state<HTMLDetailsElement>();
@@ -116,7 +126,7 @@
 	>
 {/snippet}
 
-{#snippet remove(game: number, label: string, sr = '')}
+{#snippet remove(game: number, side: number, label: string, sr = '')}
 	<ConfirmButton
 		action="?/deleteReplay"
 		variant="ghost"
@@ -126,12 +136,9 @@
 		{sr}
 		title="Delete the game {game} replay?"
 		confirmLabel="Delete replay"
-		fields={{ game: String(game) }}
+		fields={{ game: String(game), side: String(side) }}
 	>
 		<p>This can't be undone.</p>
-		{#if pressed.includes(true)}
-			<p>The other replays go back to private until both players publish again.</p>
-		{/if}
 	</ConfirmButton>
 {/snippet}
 
@@ -147,75 +154,89 @@
 		</header>
 		{#if has}
 			<ol class="pb-replays-list">
-				{#each r.games as { game, replay } (game)}
-					<li class={['pb-replay', !replay && 'is-empty']}>
-						<div class="pb-replay-main">
-							<span class="pb-replay-game">Game {game}</span>
-							<span class="pb-replay-meta">
-								{replay ? `Added by ${replay.by} · ${replay.when}` : 'No replay'}
-							</span>
-						</div>
-						{#if replay}
-							<div class="pb-replay-actions">
-								<a
-									class="pb-btn pb-btn-secondary pb-replay-watch"
-									href={RIFTATLAS}
-									target="_blank"
-									rel="noopener"
-									onclick={() => watch(game, replay.file)}
-									><svg
-										class="pb-ico-play"
-										width="16"
-										height="16"
-										viewBox="0 0 24 24"
-										fill="currentColor"
-										aria-hidden="true"
-										><path
-											d="M8 5.5v13a1 1 0 0 0 1.5.86l11-6.5a1 1 0 0 0 0-1.72l-11-6.5A1 1 0 0 0 8 5.5z"
-										/></svg
-									>Watch<span class="pb-sr"> game {game} on RiftAtlas</span></a
-								>
-								<a class="pb-btn pb-btn-ghost" href={fileUrl(game)} download={replay.file}
-									>{@render ico('down')}Download<span class="pb-sr"> game {game}</span></a
-								>
-								{#if r.role === 'organizer'}
-									{@render remove(game, 'Delete', ` game ${game} replay`)}
-								{:else if r.role === 'player'}
-									<details class="pb-replay-more">
-										<summary class="pb-btn pb-btn-ghost" aria-label="More for game {game}"
-											><svg
-												width="18"
-												height="18"
-												viewBox="0 0 24 24"
-												fill="currentColor"
-												aria-hidden="true"
-												><circle cx="5" cy="12" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle
-													cx="19"
-													cy="12"
-													r="1.8"
-												/></svg
-											></summary
-										>
-										<div class="pb-replay-menu">{@render remove(game, 'Delete replay')}</div>
-									</details>
-								{/if}
+				{#each r.games as { game, files } (game)}
+					<!-- A row per file; a game nobody added a file for still has its row. -->
+					{#each files.length ? files : [null] as replay (replay?.side ?? 0)}
+						<li class={['pb-replay', !replay && 'is-empty']}>
+							<div class="pb-replay-main">
+								<span class="pb-replay-game">Game {game}</span>
+								<span class="pb-replay-meta">
+									{replay ? `Added by ${replay.by} · ${replay.when}` : 'No replay'}
+								</span>
 							</div>
-							{#if watched === game}
-								<div class="pb-replay-next" role="status">
-									<ol>
-										<li>Saved to your downloads as <code>{replay.file}</code>.</li>
-										<li>RiftAtlas opened in a new tab. Drop the file in there.</li>
-									</ol>
-									<div class="pb-replay-next-links">
-										<a href={RIFTATLAS} target="_blank" rel="noopener"
-											>Open RiftAtlas{@render ico('ext', 14)}</a
-										>
-										<a href={fileUrl(game)} download={replay.file}>Download again</a>
-									</div>
+							{#if replay}
+								{@const whose = ` game ${game} from ${replay.by}`}
+								<div class="pb-replay-actions">
+									<a
+										class="pb-btn pb-btn-secondary pb-replay-watch"
+										href={RIFTATLAS}
+										target="_blank"
+										rel="noopener"
+										onclick={() => watch(game, replay.side, replay.file)}
+										><svg
+											class="pb-ico-play"
+											width="16"
+											height="16"
+											viewBox="0 0 24 24"
+											fill="currentColor"
+											aria-hidden="true"
+											><path
+												d="M8 5.5v13a1 1 0 0 0 1.5.86l11-6.5a1 1 0 0 0 0-1.72l-11-6.5A1 1 0 0 0 8 5.5z"
+											/></svg
+										>Watch<span class="pb-sr">{whose} on RiftAtlas</span></a
+									>
+									<a
+										class="pb-btn pb-btn-ghost"
+										href={fileUrl(game, replay.side)}
+										download={replay.file}
+										>{@render ico('down')}Download<span class="pb-sr">{whose}</span></a
+									>
+									{#if r.role === 'organizer'}
+										{@render remove(
+											game,
+											replay.side,
+											'Delete',
+											` game ${game} replay from ${replay.by}`
+										)}
+									{:else if r.role === 'player' && replay.side === r.side}
+										<details class="pb-replay-more">
+											<summary class="pb-btn pb-btn-ghost" aria-label="More for game {game}"
+												><svg
+													width="18"
+													height="18"
+													viewBox="0 0 24 24"
+													fill="currentColor"
+													aria-hidden="true"
+													><circle cx="5" cy="12" r="1.8" /><circle
+														cx="12"
+														cy="12"
+														r="1.8"
+													/><circle cx="19" cy="12" r="1.8" /></svg
+												></summary
+											>
+											<div class="pb-replay-menu">
+												{@render remove(game, replay.side, 'Delete replay')}
+											</div>
+										</details>
+									{/if}
 								</div>
+								{#if watched === `${game}/${replay.side}`}
+									<div class="pb-replay-next" role="status">
+										<ol>
+											<li>Saved to your downloads as <code>{replay.file}</code>.</li>
+											<li>RiftAtlas opened in a new tab. Drop the file in there.</li>
+										</ol>
+										<div class="pb-replay-next-links">
+											<a href={RIFTATLAS} target="_blank" rel="noopener"
+												>Open RiftAtlas{@render ico('ext', 14)}</a
+											>
+											<a href={fileUrl(game, replay.side)} download={replay.file}>Download again</a>
+										</div>
+									</div>
+								{/if}
 							{/if}
-						{/if}
-					</li>
+						</li>
+					{/each}
 				{/each}
 			</ol>
 			<p class="pb-replays-how">
@@ -271,13 +292,18 @@
 							{#if picked}
 								<span class="pb-replays-file">{@render ico('file')}{picked}</span>
 							{/if}
-							{#each r.games as { game, replay } (game)}
+							{#each r.games as { game, files } (game)}
+								{@const own = files.find((f) => f.side === r.side)}
 								<label class="pb-choice">
 									<input type="radio" name="game" value={game} required bind:group={pick} />
 									<span>
 										<strong>Game {game}</strong>
 										<span class="pb-choice-sub">
-											{replay ? `Replaces the replay added by ${replay.by}` : 'No replay yet'}
+											{own
+												? `Replaces the replay added by ${own.by}`
+												: files.length
+													? `Goes next to the replay added by ${files[0].by}`
+													: 'No replay yet'}
 										</span>
 									</span>
 								</label>
