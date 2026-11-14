@@ -208,6 +208,20 @@ test('the replay upload form fits a phone', async ({ browser }) => {
 	});
 });
 
+// A one-side file from the player with the long name: the invite and the row naming them for the
+// other player, the quiet note for them, and the organizer's who-added-what line.
+test('a replay that hides one side fits a phone', async ({ browser }) => {
+	const path = `${s}/matches/${reported}`;
+	seedReplay(reported, 3, { side: 2, bothSides: false });
+	const mine = await browser.newPage(as(me));
+	await fits(mine, 'player', path);
+	await expect(mine.getByRole('button', { name: 'Add yours' })).toBeVisible();
+	const theirs = await browser.newPage(as(player('mobile', 2)));
+	await fits(theirs, 'player', path);
+	await expect(theirs.getByText(/side stays hidden unless they add/)).toBeVisible();
+	await fits(await browser.newPage(as(ORGANIZER)), 'organizer', path);
+});
+
 // Scalar renders after load, so /api waits for it; checked in both themes.
 test('API reference fits a phone', async ({ page }) => {
 	await page.goto('/api');

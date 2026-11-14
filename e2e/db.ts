@@ -140,14 +140,33 @@ export const seedResult = (
 		if (flag) log.run({ action: 'flag', id: matchId });
 	});
 
-// A replay of one game of a reported match, uploaded by p1 (the legends must be the result's).
-export const seedReplay = (matchId: number, game: number, legends = ['Ahri, Fox', 'Annie, Fire']) =>
+// A replay of one game of a reported match (the legends must be the result's), uploaded by the
+// match's player `side`, showing both sides or only the uploader's.
+export const seedReplay = (
+	matchId: number,
+	game: number,
+	{ side = 1, bothSides = true }: { side?: 1 | 2; bothSides?: boolean } = {}
+) =>
 	write((db) =>
 		db
 			.prepare(
-				'insert into replays (match_id, game, replay_id, uploaded_by, both_sides, data) select id, ?, ?, p1_id, 1, ? from matches where id = ?'
+				`insert into replays (match_id, game, replay_id, uploaded_by, both_sides, data)
+				 select id, ?, ?, iif(? = 1, p1_id, p2_id), ?, ? from matches where id = ?`
 			)
-			.run(game, `seed:${matchId}:${game}`, gzipSync(replayFile({ game, legends })), matchId)
+			.run(
+				game,
+				`seed:${matchId}:${game}`,
+				side,
+				Number(bothSides),
+				gzipSync(
+					replayFile({
+						game,
+						legends: ['Ahri, Fox', 'Annie, Fire'],
+						hidden: bothSides ? undefined : 2 - side
+					})
+				),
+				matchId
+			)
 	);
 
 // Who said yes to publishing the match's replays; both make them public.

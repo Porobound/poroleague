@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { replayFile } from '../src/lib/server/test/replayFile.ts';
-import { removeSeason, seedReplay, seedResult, seedSeason } from './db.ts';
+import { publishReplays, removeSeason, seedReplay, seedResult, seedSeason } from './db.ts';
 import { ORGANIZER, SEASONS, as, player, playerName } from './fixtures.ts';
 
 const slug = SEASONS.replays;
@@ -34,17 +34,25 @@ const upload = async (page: Page, text: string, game?: string) => {
 	await which(page).getByRole('radio', { name: game }).check();
 	await page.getByRole('button', { name: 'Save replay' }).click();
 };
-// One row per played game; a pressed Watch adds its own list of steps.
+// One entry per played game, holding its files; a pressed Watch adds its own list of steps.
 const rows = (page: Page) =>
 	replays(page)
 		.getByRole('listitem')
 		.filter({ hasText: /^Game \d/ });
+// One entry per file, whichever game it is in.
+const files = (page: Page) =>
+	replays(page)
+		.getByRole('listitem')
+		.filter({ hasText: /replay\s*(One side|Both sides)/ })
+		.filter({ hasNotText: /^Game \d/ });
 // The header's badge; a player's publish box repeats the word after it.
 const badge = (page: Page, text: 'Private' | 'Public') =>
 	replays(page).getByText(text, { exact: true }).first();
 
+let mixed: number; // round 3: Replays 1 vs Replays 4
+
 test.beforeAll(() => {
-	[match, , open] = seedSeason('replays', { publishedRound: 3 });
+	[match, , open, , mixed] = seedSeason('replays', { publishedRound: 3 });
 	seedResult(match, 2, 1);
 });
 test.afterAll(() => removeSeason('replays'));
@@ -82,7 +90,7 @@ test('upload, watch, and who can see a replay', async ({ browser }) => {
 	await expect(opener(uploader)).toHaveText('Add or replace a replay');
 	// Every played game has a row; the ones without a replay have nothing to press.
 	await expect(rows(uploader)).toHaveText([
-		new RegExp(`^Game 1\\s*Added by ${p1} · \\w{3} \\d+ \\w{3}`),
+		/^Game 1\s*Your replay\s*Both sides\s*Shows both decks and hands · added \w{3} \d+ \w{3}/,
 		/^Game 2\s*No replay\s*$/,
 		/^Game 3\s*No replay\s*$/
 	]);
@@ -101,7 +109,9 @@ test('upload, watch, and who can see a replay', async ({ browser }) => {
 	const [download, popup] = await Promise.all([
 		opponent.waitForEvent('download'),
 		opponent.waitForEvent('popup'),
-		replays(opponent).getByRole('link', { name: 'Watch game 1' }).click()
+		replays(opponent)
+			.getByRole('link', { name: `Watch ${p1}'s replay of game 1 on RiftAtlas` })
+			.click()
 	]);
 	const name = `poroleague-${slug}-match-${match}-game-1-replays-1.json`;
 	expect(download.suggestedFilename()).toBe(name);
@@ -140,13 +150,13 @@ test('upload, watch, and who can see a replay', async ({ browser }) => {
 	).toBeVisible();
 	const save = uploader.getByRole('button', { name: 'Save replay' });
 	await expect(save).toBeDisabled();
-	await expect(rows(uploader).filter({ hasText: 'Added by' })).toHaveCount(1);
+	await expect(files(uploader)).toHaveCount(1);
 	await which(uploader).getByRole('radio', { name: 'Game 2 No replay yet' }).check();
 	await save.click();
 	await expect(uploader.getByRole('status')).toHaveText(
 		'Replay added for game 2. It stays private until you both publish.'
 	);
-	await expect(rows(uploader).filter({ hasText: 'Added by' })).toHaveCount(2);
+	await expect(files(uploader)).toHaveCount(2);
 	expect(await (await opponent.request.get(fileOf(1))).text()).toBe(game1);
 	expect(await (await opponent.request.get(fileOf(2))).text()).toBe(room2);
 
@@ -166,11 +176,14 @@ test('upload, watch, and who can see a replay', async ({ browser }) => {
 	}
 
 	// A player deletes through the row's menu.
-	await expect(replays(uploader).getByRole('button', { name: 'Delete replay' })).toBeHidden();
-	await uploader.getByLabel('More for game 2').click();
-	await replays(uploader).getByRole('button', { name: 'Delete replay' }).click();
+	const own = replays(uploader).getByRole('button', { name: 'Delete your replay' });
+	await expect(own).toBeHidden();
+	await uploader.getByLabel('More for your replay of game 2').click();
+	await own.click();
 	// Nobody has pressed Publish, so deleting takes nothing back.
-	await expect(uploader.getByRole('dialog')).toHaveText(/This can't be undone\.\s*Cancel/);
+	await expect(uploader.getByRole('dialog', { name: 'Delete your replay of game 2?' })).toHaveText(
+		/This can't be undone\.\s*Cancel/
+	);
 	await uploader.getByRole('dialog').getByRole('button', { name: 'Delete replay' }).click();
 	await expect(uploader.getByRole('status')).toHaveText('Game 2 replay deleted.');
 	await expect(rows(uploader).nth(1)).toHaveText(/No replay\s*$/);
@@ -181,9 +194,14 @@ test('upload, watch, and who can see a replay', async ({ browser }) => {
 	await expect(opener(org)).toHaveCount(0);
 	await expect(field(org)).toHaveCount(0);
 	await expect(badge(org, 'Private')).toBeVisible();
-	await expect(org.getByLabel('More for game 1')).toHaveCount(0);
-	await replays(org).getByRole('button', { name: 'Delete game 1 replay' }).click();
-	await org.getByRole('dialog').getByRole('button', { name: 'Delete replay' }).click();
+	await expect(org.getByLabel(/^More for/)).toHaveCount(0);
+	await replays(org)
+		.getByRole('button', { name: `Delete ${p1}'s replay of game 1` })
+		.click();
+	await org
+		.getByRole('dialog', { name: `Delete ${p1}'s replay of game 1?` })
+		.getByRole('button', { name: 'Delete replay' })
+		.click();
 	await expect(org.getByRole('status')).toHaveText('Game 1 replay deleted.');
 	await expect(replays(org).getByText('No replays yet.', { exact: true })).toBeVisible();
 	await expect(badge(org, 'Private')).toHaveCount(0);
@@ -287,7 +305,9 @@ test('replays go public once both players publish', async ({ browser }) => {
 
 	// A visitor watches, but changes nothing and isn't told who pressed what.
 	await visitor.goto(url());
-	await expect(replays(visitor).getByRole('link', { name: 'Watch game 1' })).toBeVisible();
+	await expect(
+		replays(visitor).getByRole('link', { name: `Watch ${p1}'s replay of game 1` })
+	).toBeVisible();
 	await expect(replays(visitor).getByRole('button')).toHaveCount(0);
 	await expect(badge(visitor, 'Public')).toHaveCount(0);
 	await expect(replays(visitor).getByText(/publish/i)).toHaveCount(0);
@@ -300,17 +320,18 @@ test('replays go public once both players publish', async ({ browser }) => {
 	await one.reload();
 	for (const page of [one, two])
 		await expect(rows(page)).toHaveText([
-			new RegExp(`^Game 1\\s*Added by ${p1}`),
-			new RegExp(`^Game 1\\s*Added by ${p2}`),
+			/^Game 1\s*\S.*replay\s*Both sides.*replay\s*Both sides/,
 			/^Game 2\s*No replay/,
 			/^Game 3\s*No replay/
 		]);
+	await expect(files(one)).toHaveText([/^Your replay/, new RegExp(`^${p2}'s replay`)]);
+	await expect(files(two)).toHaveText([new RegExp(`^${p1}'s replay`), /^Your replay/]);
 	expect(await (await visitor.request.get(fileOf(1, 2))).text()).toBe(theirs);
 	// A player has a menu, and so a Delete, on their own row only.
-	await expect(rows(one).first().getByLabel('More for game 1')).toBeVisible();
-	await expect(rows(one).nth(1).getByRole('button')).toHaveCount(0);
-	await expect(rows(two).first().getByRole('button')).toHaveCount(0);
-	await expect(rows(two).nth(1).getByLabel('More for game 1')).toBeVisible();
+	await expect(files(one).first().getByLabel('More for your replay of game 1')).toBeVisible();
+	await expect(files(one).nth(1).getByRole('button')).toHaveCount(0);
+	await expect(files(two).first().getByRole('button')).toHaveCount(0);
+	await expect(files(two).nth(1).getByLabel('More for your replay of game 1')).toBeVisible();
 
 	// Either player can unpublish.
 	await press(
@@ -325,17 +346,17 @@ test('replays go public once both players publish', async ({ browser }) => {
 	// The other player's Publish still stands, and deleting a file keeps it while one is left.
 	await expect(replays(one).getByText(`${p2} wants to publish`, { exact: true })).toBeVisible();
 	const remove = async (page: Page) => {
-		await page.getByLabel('More for game 1').click();
-		await replays(page).getByRole('button', { name: 'Delete replay' }).click();
-		const dialog = page.getByRole('dialog', { name: 'Delete the game 1 replay?' });
+		await page.getByLabel('More for your replay of game 1').click();
+		await replays(page).getByRole('button', { name: 'Delete your replay' }).click();
+		const dialog = page.getByRole('dialog', { name: 'Delete your replay of game 1?' });
 		await expect(dialog).toHaveText(/This can't be undone\.\s*Cancel/);
 		await dialog.getByRole('button', { name: 'Delete replay' }).click();
 		await expect(page.getByRole('status')).toHaveText('Game 1 replay deleted.');
 	};
 	await remove(one);
 	await expect(replays(one).getByText(`${p2} wants to publish`, { exact: true })).toBeVisible();
-	await expect(rows(one).first()).toContainText(`Added by ${p2}`);
-	await expect(one.getByLabel('More for game 1')).toHaveCount(0);
+	await expect(files(one)).toHaveText([new RegExp(`^${p2}'s replay`)]);
+	await expect(one.getByLabel(/^More for/)).toHaveCount(0);
 	await two.reload();
 	await remove(two);
 	await expect(replays(two).getByText('No replays yet.', { exact: false })).toBeVisible();
@@ -358,7 +379,7 @@ test('Cancel, and the which-game step without JavaScript', async ({ browser }) =
 	await opener(page).click();
 	await expect(field(page)).toHaveValue('');
 	await expect(which(page)).toHaveCount(0);
-	await expect(rows(page).filter({ hasText: 'Added by' })).toHaveCount(1);
+	await expect(files(page)).toHaveCount(1);
 
 	// Without JavaScript the page comes back with an empty file field: it asks for both.
 	const plain = await browser.newPage({ ...as(player('replays', 1)), javaScriptEnabled: false });
@@ -370,7 +391,7 @@ test('Cancel, and the which-game step without JavaScript', async ({ browser }) =
 	await which(plain).getByRole('radio', { name: 'Game 3' }).check();
 	await plain.getByRole('button', { name: 'Save replay' }).click();
 	await expect(plain.getByRole('status')).toContainText('Replay added for game 3.');
-	await expect(rows(plain).filter({ hasText: 'Added by' })).toHaveCount(2);
+	await expect(files(plain)).toHaveCount(2);
 });
 
 test('the report form reminds players to save the replay', async ({ browser }) => {
@@ -382,4 +403,85 @@ test('the report form reminds players to save the replay', async ({ browser }) =
 		"Want to keep them? RiftAtlas deletes replays after 6 hours, so download each game's replay there before then. You can add them to this match any time after the result is saved."
 	);
 	await expect(replays(page)).toHaveCount(0);
+});
+
+// Last: the match goes public, which would add a marker to the schedule the tests above count.
+test('each game lists its files and the sides they show', async ({ browser }) => {
+	const [a, d] = [p1, playerName('replays', 4)];
+	seedResult(mixed, 2, 1, { games: '1D21' });
+	seedReplay(mixed, 1, { side: 1, bothSides: false });
+	seedReplay(mixed, 1, { side: 2, bothSides: false });
+	seedReplay(mixed, 2, { side: 2, bothSides: false });
+	seedReplay(mixed, 3, { side: 1 });
+	const path = `/seasons/${slug}/matches/${mixed}`;
+	const invite = /Your side is hidden in this replay/;
+	const note = /side stays hidden unless they add their replay of this game\./;
+	const visit = async (who?: string) => {
+		const page = await browser.newPage(who ? as(who) : {});
+		await page.goto(path);
+		return page;
+	};
+
+	const one = await visit(player('replays', 1));
+	await expect(rows(one)).toHaveText([
+		/^Game 1\s*Each side in its own replay\s*Your replay/,
+		/^Game 2\s*\S.*'s replay/,
+		/^Game 3\s*Your replay/,
+		/^Game 4\s*No replay\s*$/
+	]);
+	await expect(files(one)).toHaveText([
+		/^Your replay\s*One side\s*Shows your deck and hand only · added /,
+		new RegExp(`^${d}'s replay\\s*One side\\s*Shows ${d}'s deck and hand only · added `),
+		new RegExp(`^${d}'s replay\\s*One side`),
+		/^Your replay\s*Both sides\s*Shows both decks and hands · added /
+	]);
+	// Only game 2 hides this player's side; game 3's file shows both.
+	await expect(rows(one).nth(1)).toContainText(
+		"Your side is hidden in this replay. If you'd like to show it, add your replay of game 2."
+	);
+	await expect(replays(one).getByText(invite)).toHaveCount(1);
+	await expect(replays(one).getByText(note)).toHaveCount(0);
+	await expect(one.getByLabel(/^More for your replay/)).toHaveCount(2);
+	// "Add yours" opens the upload form, ready for the file.
+	await expect(field(one)).toBeHidden();
+	await rows(one).nth(1).getByRole('button', { name: 'Add yours' }).click();
+	await expect(field(one)).toBeFocused();
+	await expect(which(one)).toHaveCount(0);
+
+	const four = await visit(player('replays', 4));
+	await expect(rows(four).nth(1)).toContainText(
+		`${a}'s side stays hidden unless they add their replay of this game.`
+	);
+	await expect(replays(four).getByText(note)).toHaveCount(1);
+	await expect(replays(four).getByText(invite)).toHaveCount(0);
+	await expect(files(four)).toHaveText([
+		new RegExp(`^${a}'s replay\\s*One side\\s*Shows ${a}'s deck and hand only`),
+		/^Your replay\s*One side\s*Shows your deck and hand only/,
+		/^Your replay\s*One side/,
+		new RegExp(`^${a}'s replay\\s*Both sides`)
+	]);
+	await expect(four.getByLabel(/^More for your replay/)).toHaveCount(2);
+
+	publishReplays(mixed);
+	const visitor = await visit();
+	await expect(files(visitor)).toHaveCount(4);
+	await expect(rows(visitor).first()).toContainText('Each side in its own replay');
+	await expect(replays(visitor).getByText(invite)).toHaveCount(0);
+	await expect(replays(visitor).getByText(note)).toHaveCount(0);
+	await expect(replays(visitor).getByRole('button')).toHaveCount(0);
+
+	// An organizer is told who added what, and deletes any file.
+	const org = await visit(ORGANIZER);
+	await expect(
+		replays(org).getByText(`${a} added games 1, 3. ${d} added games 1, 2.`, { exact: true })
+	).toBeVisible();
+	await expect(replays(org).getByText(invite)).toHaveCount(0);
+	await expect(replays(org).getByText(note)).toHaveCount(0);
+	await expect(replays(org).getByRole('button', { name: /^Delete / })).toHaveCount(4);
+	await replays(org)
+		.getByRole('button', { name: `Delete ${d}'s replay of game 2` })
+		.click();
+	const dialog = org.getByRole('dialog', { name: `Delete ${d}'s replay of game 2?` });
+	await expect(dialog).toContainText("This can't be undone. The other replays stay public.");
+	await dialog.getByRole('button', { name: 'Cancel' }).click();
 });
