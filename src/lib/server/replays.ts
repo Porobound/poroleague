@@ -79,15 +79,17 @@ const log = (tx: Tx, m: Match, actorId: string, after: object) =>
 		.values({ seasonId: m.seasonId, matchId: m.id, actorId, action: 'replay', after })
 		.run();
 
-// Stores the file as `asGame` of the match, or as the game it says it is. Returns why not, or null
-// when saved. `since`: nothing older can be a game of this season.
+// Stores the file as `asGame` of the match, or as the game it says it is. Returns why not, or the
+// game: saved, or (`saved: false`, nothing stored) holding another replay, so the player has to say
+// which game the file is. `unpublished`: saving took a Publish back. `since`: nothing older can be
+// a game of this season.
 export function saveReplay(
 	m: Match,
 	since: Date,
 	actorId: string,
 	text: string,
 	asGame?: number
-): string | null {
+): string | { game: number; saved: boolean; unpublished?: boolean } {
 	if (Buffer.byteLength(text) > MAX_REPLAY_BYTES) return TOO_BIG;
 	const read = readReplay(text);
 	if (!read.ok) return read.error;
@@ -107,7 +109,7 @@ export function saveReplay(
 		const same = tx.select().from(replays).where(eq(replays.replayId, replayId)).get();
 		if (same && same.matchId !== m.id) return 'This replay is already on another match.';
 		// The same file again (a resubmitted form) changes nothing, so nobody's publish is undone.
-		if (same?.game === game && same.data.equals(data)) return null;
+		if (same?.game === game && same.data.equals(data)) return { game, saved: true };
 		// A series finished in a second RiftAtlas room has two files that say "game 1": the file's
 		// own number never replaces another game's replay, only a game the uploader chose does.
 		const held = tx
@@ -115,15 +117,14 @@ export function saveReplay(
 			.from(replays)
 			.where(slot(m.id, game))
 			.get();
-		if (asGame === undefined && held && held.replayId !== replayId)
-			return `Game ${game} already has another replay. Choose which game this file is, or choose game ${game} to replace that one.`;
+		if (asGame === undefined && held && held.replayId !== replayId) return { game, saved: false };
 		tx.delete(replays)
 			.where(or(slot(m.id, game), eq(replays.replayId, replayId)))
 			.run();
 		tx.insert(replays).values({ matchId: m.id, game, replayId, uploadedBy: actorId, data }).run();
 		unpublish(tx, [m.id]);
 		log(tx, m, actorId, { replay: game });
-		return null;
+		return { game, saved: true, unpublished: m.p1PublishReplay || m.p2PublishReplay };
 	});
 }
 
