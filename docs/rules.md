@@ -11,7 +11,7 @@ Items marked **[TBD]** are not decided yet.
 
 ## 2. Season format
 
-- **Groups.** A group has at most 16 players. With up to 16 the season has one group; with more, players are drawn at random into as few groups as fit, up to 8. Groups can be uneven by one (17 players: 9 and 8; 40 players: 14, 13 and 13). A season takes at most 128 players; once it's full, a spot opens only if someone withdraws.
+- **Groups.** Each season sets how many players a group can have (usually 16) and how many players it takes in all (128 at most). Both are shown on the season page while signup is open. If everyone fits in one group, the season has one group; otherwise players are drawn at random into as few groups as fit, up to 8. Groups can be uneven by one (with groups of up to 16, 17 players: 9 and 8; 40 players: 14, 13 and 13). Once the season is full, a spot opens only if someone withdraws.
 - **Round robin.** You play every other player in your group once. In a group of 12 that's 11 matches.
 - **Byes.** If a group has an odd number of players, one player sits out each round. A bye is not a match and gives no points.
 - **Schedule.** The schedule is set when groups are locked. Each week has a set number of rounds, shown on the season page. With 2 rounds a week, a 12-player group runs about 6 weeks.
@@ -45,6 +45,7 @@ Items marked **[TBD]** are not decided yet.
 - The result counts as soon as it's reported, and it's posted in Discord.
 - The site asks you to confirm before saving. **A saved report is final:** neither player can edit it.
 - **Flags.** If a result is wrong, either player flags it and gives a reason. This includes the reporter fixing their own mistake. After a flag, only organizers can change the result. They either correct it or keep it as reported. A result can only be flagged once. You can still flag after the season deadline, until the season is finalized.
+- **Replays.** Replays are optional. Once a result is in, either player can add the RiftAtlas replay file of each game on the match page. A replay shows the deck and hand of the player who added it, so only the two players and the organizers can watch it, unless both players choose to publish it. Either player can take that back. Organizers can delete a replay.
 - Every report, flag and organizer decision is listed in the public audit log.
 
 ## 6. Late and unplayed matches

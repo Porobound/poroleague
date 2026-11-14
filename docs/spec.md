@@ -22,14 +22,14 @@ Only one season can be running (signup, groups, play or top cut) at a time; draf
 - Admin → Players lists signups in signup order (`entries.created_at`) with a `#` and the signup time until groups are locked; alphabetical by group from then on. A refused save keeps what the organizer typed. Withdrawing deletes the entry, so signing up again goes to the back.
 - Out of scope: waitlist, a direct group-count setting, changing limits after the draw.
 
-4. **play** — weeks of `roundsPerWeek` rounds (12-player group: 11 rounds ≈ 6 weeks). A match past its week shows as **overdue** (derived, no stored state); it still reports normally. Weeks are **published** one at a time by an organizer, so nobody can plan legend picks against opponents weeks ahead (the season's length is never hidden: "Week 2 of 7" and the week tabs always show), (`seasons.published_round`, the last visible round): players, organizers on public pages and the bot API see only published rounds, except a holiday's early matches ([Holiday mode](#holiday-mode)); Admin → Matches shows all and blocks results for unpublished ones that no holiday unlocked. A published week can't be hidden again. Publishing still works after the deadline, so a late week can go out and have its results entered. A week can be published before it starts: its matches show as up next on the season and player pages and can be reported, but the calendar week still drives overdue status and the week's play-by date. Season deadline is hard: player reporting closes at the deadline. Once groups are drawn, the deadline can't be earlier than the last day of the final round's week: saving such a deadline and locking the groups are both refused. All dates/deadlines are in the league timezone (`LEAGUE_TZ = Europe/Helsinki`, config constant); deadline = 23:59 local on the deadline date.
+4. **play** — weeks of `roundsPerWeek` rounds (12-player group: 11 rounds ≈ 6 weeks). A match past its week shows as **overdue** (derived, no stored state); it still reports normally. Weeks are **published** one at a time by an organizer, so nobody can plan legend picks against opponents weeks ahead (the season's length is never hidden: "Week 2 of 7" and the week tabs always show), (`seasons.published_round`, the last visible round): players, organizers on public pages and the public API see only published rounds, except a holiday's early matches ([Holiday mode](#holiday-mode)); Admin → Matches shows all and blocks results for unpublished ones that no holiday unlocked. A published week can't be hidden again. Publishing still works after the deadline, so a late week can go out and have its results entered. A week can be published before it starts: its matches show as up next on the season and player pages and can be reported, but the calendar week still drives overdue status and the week's play-by date. Season deadline is hard: player reporting closes at the deadline. Once groups are drawn, the deadline can't be earlier than the last day of the final round's week: saving such a deadline and locking the groups are both refused. All dates/deadlines are in the league timezone (`LEAGUE_TZ = Europe/Helsinki`, config constant); deadline = 23:59 local on the deadline date.
 5. **finished** — organizer enters results for any unplayed matches (else double loss), breaks unresolved ties, finalizes. The end-of-season step opens at the deadline, or earlier once every non-void match is reported, and only when every week is published. Finalizing is refused while a flag is open or a tie is unresolved, and can't be undone. Organizers enter and edit group results only while the season is in play.
 
 **Top cut** (optional, `topCutSize` > 0): finalize moves the season to `topcut` instead of `finished`. Top X non-dropped players per group, seeded by rank then group (A1, B1, A2, …), standard bracket order with first-round same-group rematches swapped away; bracket = next power of two, byes to top seeds. Single elim, Bo3, same report flow; a level result advances the higher seed; no-shows are organizer walkovers. Organizer publishes the bracket and clicks **Finish season** → `finished`; that is refused until the final has a result and no top-cut flag is open, and the champion is announced then, not when the final is reported, so a disputed final is settled first. Nobody is dropped during the top cut, since a drop would rewrite the standings the bracket was seeded from: a withdrawal (or an erased player) is a walkover.
 
 ## Matches & scoring
 
-- Bo3. Result = game score: 2-0, 2-1, 1-0, 1-1 (and mirrors). 1-1 = draw (time / unfinished). 1-0 = win (time ran out or called early).
+- Bo3, reported game by game: each game is a win for either player or a draw (`matches.games`); game 1 is required, games 2 and 3 only if played, no gaps, nothing after a player's second win (`scoreGames`, `src/lib/league/score.ts`). Result = game score: 2-0, 2-1, 1-0, 1-1, 0-0 (and mirrors). A level score = draw (time / unfinished). 1-0 = win (time ran out or called early).
 - Also recorded: each player's legend (chosen per match, pre-filled with player's last-used legend), dice-roll winner (per match).
 - Points: win 3, draw 1, loss 0.
 - Tiebreakers: points → head-to-head (mini-league among tied players, only once every tied pair has met or the deadline has passed) → game-win % → organizer decision (manual `tiebreak` rank). Any group result change clears those ranks and the organizer confirms the order again; top-cut results leave them alone. Mid-season, players yet to play rank below everyone on the same points.
@@ -110,18 +110,22 @@ Not in UI: managing organizers (Discord role), legend list (config file), messag
 - `/seasons/[slug]/schedule` — rounds and results
 - `/seasons/[slug]/players/[id]` — player page: this season's matches, per-legend record ("played as": W-D-L + game-win % per legend; "against": W-D-L vs each opponent legend), "report" buttons, "who do I play this week"
 - `/seasons/[slug]/legends` — season legend stats: picks, players, W-D-L, match/game win % per legend; win % hidden under 5 non-mirror matches; click a legend → players who used it with their record
+- `/seasons/[slug]/top-cut` — the bracket, once published
+- `/seasons/[slug]/matches/[id]` — match page: report, flag, replays
 - `/seasons/[slug]/audit` — audit log
+- `/rules`, `/privacy` — `docs/rules.md` (up to "Ideas for future seasons") and `docs/privacy.md`, rendered on the server
+- `/login/failed`, `/login/not-member`, `/login/not-organizer` — where a refused login or admin visit lands
 - Legend stats (both pages): void (dropped) matches and deadline double losses excluded. Legends page: mirror matches count as picks, not in W-D-L or win %. Player page: mirrors count as normal results.
 - `/seasons/[slug]/admin` — organizer tools
-- Report form: score, both legends, dice-roll winner.
+- Report form: each game's winner (or draw), both legends, dice-roll winner.
 - Match lists (schedule, season page, season player page, public top cut) are one-line rows; the match page and admin pages keep the full card. A row is one link to its match and names inside it aren't links. Legends show only once a result is in. A flagged result looks like any reported one: flags are organizer business. On the viewer's own open match "Report" takes the place of "vs". A match whose week isn't published carries "Early", or "Holiday revoked" when that applies. The player page is one list, early matches first, then newest round first.
 
 ## Discord integration
 
 - **v1 (in site):** webhooks, URLs in env vars, one `fetch` per event.
-  - results channel: every reported result ("Alice 2-1 Bob (Jinx vs Ahri, Alice won the roll)"); early holiday results when their week is published; top-cut results under their round name ("Quarterfinal 2"), walkovers ("Alice advances (walkover)") and the champion at Finish
+  - results channel: every reported result (an embed: "Alice 2–1 Bob", "Jinx vs Ahri · 🎲 Alice won the roll"); early holiday results when their week is published; top-cut results under their round name ("Quarterfinal 2"), walkovers ("Alice advances (walkover)") and the champion at Finish
   - organizer channel: flags, drops, holiday requests
-  - pairings channel: posted by "Publish week N" in admin when `WEBHOOK_PAIRINGS_URL` is set (all rounds of that week), and once more when the top-cut bracket is published: one message, an embed per round, players as `<@id>` mentions inside embeds (clickable names, no pings)
+  - pairings channel: posted by "Publish week N" in admin when `WEBHOOK_PAIRINGS_URL` is set (all rounds of that week), and once more when the top-cut bracket is published: one message, an embed per round, players by display name (a mention in an embed shows as a raw id for members the viewer's client hasn't cached)
   - Every webhook post disables mentions (`allowed_mentions: none`), since names and flag reasons are user text; nothing pings, pairings included.
   - No DMs in v1: UI copy says "posted in Discord", never "notified".
 - **Player role sync (in site, no bot repo):** one global Discord role (`PLAYER_ROLE_ID`) marks current players. The site calls Discord REST with a bot token (`DISCORD_BOT_TOKEN`): `PUT`/`DELETE /guilds/{GUILD_ID}/members/{id}/roles/{PLAYER_ROLE_ID}`, one `fetch` per event, skipped when the env vars are unset.
@@ -135,7 +139,7 @@ Not in UI: managing organizers (Discord role), legend list (config file), messag
 Read-only JSON at `/api/v1` for third parties. The OpenAPI 3.1 spec `src/lib/server/openapi.json` is the consumer docs: served at `/api/v1/openapi.json`, rendered at `/api` by Scalar.
 
 - Anonymous `GET` only: `/api/v1/*` skips the session, so every viewer gets the same answer. `Access-Control-Allow-Origin: *`.
-- Endpoints: `/seasons`, `/seasons/{slug}`, `/seasons/{slug}/matches`, `/seasons/{slug}/top-cut`, `/seasons/{slug}/legends`. Not exposed: player pages (derivable), audit log (flag reasons), the Elo leaderboard (organizers only).
+- Endpoints: `/seasons`, `/seasons/{slug}`, `/seasons/{slug}/matches`, `/seasons/{slug}/top-cut`, `/seasons/{slug}/legends`. Not exposed: player pages (derivable), audit log (flag reasons), the Elo leaderboard (organizers only), replays.
 - Visibility is the public pages': no drafts or deleted seasons, published rounds only, the bracket once published, flag state (`open`/`resolved`) but never the reason. Results in unpublished rounds (holiday mode) never appear in standings or legends.
 - Players are `{ id, name, former }`: no avatars (their URL holds the Discord id), no Discord ids.
 - Shapes are fixed DTOs in `src/lib/server/api.ts`, separate from page data. v1 only grows; renames or removals mean `/api/v2`.
@@ -148,8 +152,8 @@ Read-only JSON at `/api/v1` for third parties. The OpenAPI 3.1 spec `src/lib/ser
 
 - SvelteKit + `adapter-node`, TypeScript
 - SQLite via Drizzle (`better-sqlite3`), migrations via drizzle-kit
-- Vitest — unit tests on pure league logic only (standings/tiebreakers, round-robin, group split, score validation, legend stats)
-- Styling: from Claude Design output (see below); Pico.css only as fallback
+- Vitest — unit tests for the pure league logic and for server code against an in-memory database; Playwright — e2e for pages and flows, and the page screenshots in `.shots/`
+- Styling: the Porobound design-system snapshot (`src/lib/styles/porobound.css`) plus app styles in `src/app.css` (see below)
 
 ## Visual design
 
@@ -161,16 +165,14 @@ Designs come from Claude Design as HTML. Integration rule: **extract, don't past
 
 ## Ops
 
-- Docker on Proxmox, one app container, SQLite file on a mounted volume.
-- Exposed via `cloudflared` sidecar (Cloudflare Tunnel), no open ports.
-- Nightly `sqlite3 .backup` via cron, copied off-box.
-- GitHub Actions builds image → GHCR on push to `main`; deploy = manual `docker compose pull && docker compose up -d`.
+Details and runbooks: `docs/ops.md`.
+
+- Docker on Proxmox, one app container per host (prod and a dev server), SQLite file on a mounted volume.
+- Exposed via `cloudflared` sidecar (Cloudflare Tunnel), no open ports. Prod is `league.porobound.com`.
+- Nightly `sqlite3 .backup` via cron, encrypted copy off-box (R2); one more backup before every deploy.
+- GitHub Actions builds the image → GHCR. A push to `main` moves `:main`, which the dev server runs; the `promote` workflow points `:prod` at a built commit. Each host pulls its tag every 5 minutes (`scripts/deploy.sh`).
 - Migrations run on container start.
 
 ## Env vars
 
-`DATABASE_URL`, `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `DISCORD_REDIRECT_URI`, `GUILD_ID`, `ORGANIZER_ROLE_ID`, `WEBHOOK_RESULTS_URL`, `WEBHOOK_ORGANIZERS_URL`, `WEBHOOK_PAIRINGS_URL`, `DISCORD_BOT_TOKEN`, `PLAYER_ROLE_ID`, `ORIGIN` (adapter-node), `TUNNEL_TOKEN` (compose, cloudflared).
-
-## Open items
-
-- Domain (needed for Discord OAuth app redirect URI in prod; dev uses `http://localhost:5173`).
+`DATABASE_URL`, `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `DISCORD_REDIRECT_URI`, `GUILD_ID`, `ORGANIZER_ROLE_ID`, `WEBHOOK_RESULTS_URL`, `WEBHOOK_ORGANIZERS_URL`, `WEBHOOK_PAIRINGS_URL`, `DISCORD_BOT_TOKEN`, `PLAYER_ROLE_ID`, `ORIGIN` (adapter-node), `BODY_SIZE_LIMIT` (adapter-node, set in the Dockerfile), `TUNNEL_TOKEN` and `IMAGE_TAG` (compose), `DEV_DISCORD_IDS` (dev data only).

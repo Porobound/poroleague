@@ -17,6 +17,7 @@ When you play:
 
 - your sign-ups, match results, the legends you played and who won the dice roll;
 - the reason you give when you flag a result;
+- holiday requests: the dates you say you'll be away and what the organizers decided. An approved holiday shows on the site;
 - replays of your games, if you or your opponent add them to a match. A replay file comes from RiftAtlas and holds both players' RiftAtlas names, every move of the game, and the deck and hand of the player who added it. Only the two players and organizers can open it unless both players choose to publish it;
 - a log of reports, flags and organizer changes, with who made them.
 

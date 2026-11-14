@@ -12,6 +12,8 @@ Answer within one month of the request.
    - clears the reasons on flags they filed;
    - deletes the replays of all their matches, and refuses new ones for those matches;
    - takes them off seasons in signup or groups, and drops them from seasons in play (their matches there are void; the drop can't be cancelled);
+   - keeps them in a top cut, since a drop would change its seeding: give their open match a walkover (the organizers channel gets a reminder);
+   - takes away their Discord player role, when role sync is on;
    - writes an `erase` row to the audit log of each season they stay in.
 
    Results in finished seasons stay, so those standings don't change. If they log in again later, they start as a new player with no history.
