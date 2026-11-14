@@ -34,6 +34,22 @@ export const matchReplays = (matchId: number) =>
 		.orderBy(asc(replays.game))
 		.all();
 
+// Every replay file of the season's matches, without contents, in one query; whether a match's
+// are public is the caller's to check.
+export const seasonReplays = (seasonId: number) =>
+	db
+		.select({
+			matchId: replays.matchId,
+			game: replays.game,
+			uploadedBy: replays.uploadedBy,
+			bothSides: replays.bothSides,
+			createdAt: replays.createdAt
+		})
+		.from(replays)
+		.innerJoin(matches, eq(matches.id, replays.matchId))
+		.where(eq(matches.seasonId, seasonId))
+		.all();
+
 const nameSlug = (name: string) =>
 	name
 		.toLowerCase()
