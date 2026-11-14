@@ -13,6 +13,8 @@
 			// Each file is the one the match's player `side` (1 or 2) added.
 			games: {
 				game: number;
+				// Two one-side files of the same game: each shows its own uploader's side.
+				split: boolean;
 				files: { side: 1 | 2; by: string; bothSides: boolean; when: string; file: string }[];
 			}[];
 			role: 'player' | 'organizer' | 'visitor';
@@ -154,89 +156,103 @@
 		</header>
 		{#if has}
 			<ol class="pb-replays-list">
-				{#each r.games as { game, files } (game)}
-					<!-- A row per file; a game nobody added a file for still has its row. -->
-					{#each files.length ? files : [null] as replay (replay?.side ?? 0)}
-						<li class={['pb-replay', !replay && 'is-empty']}>
-							<div class="pb-replay-main">
-								<span class="pb-replay-game">Game {game}</span>
-								<span class="pb-replay-meta">
-									{replay ? `Added by ${replay.by} · ${replay.when}` : 'No replay'}
-								</span>
-							</div>
-							{#if replay}
-								{@const whose = ` game ${game} from ${replay.by}`}
-								<div class="pb-replay-actions">
-									<a
-										class="pb-btn pb-btn-secondary pb-replay-watch"
-										href={RIFTATLAS}
-										target="_blank"
-										rel="noopener"
-										onclick={() => watch(game, replay.side, replay.file)}
-										><svg
-											class="pb-ico-play"
-											width="16"
-											height="16"
-											viewBox="0 0 24 24"
-											fill="currentColor"
-											aria-hidden="true"
-											><path
-												d="M8 5.5v13a1 1 0 0 0 1.5.86l11-6.5a1 1 0 0 0 0-1.72l-11-6.5A1 1 0 0 0 8 5.5z"
-											/></svg
-										>Watch<span class="pb-sr">{whose} on RiftAtlas</span></a
-									>
-									<a
-										class="pb-btn pb-btn-ghost"
-										href={fileUrl(game, replay.side)}
-										download={replay.file}
-										>{@render ico('down')}Download<span class="pb-sr">{whose}</span></a
-									>
-									{#if r.role === 'organizer'}
-										{@render remove(
-											game,
-											replay.side,
-											'Delete',
-											` game ${game} replay from ${replay.by}`
-										)}
-									{:else if r.role === 'player' && replay.side === r.side}
-										<details class="pb-replay-more">
-											<summary class="pb-btn pb-btn-ghost" aria-label="More for game {game}"
-												><svg
-													width="18"
-													height="18"
-													viewBox="0 0 24 24"
-													fill="currentColor"
-													aria-hidden="true"
-													><circle cx="5" cy="12" r="1.8" /><circle
-														cx="12"
-														cy="12"
-														r="1.8"
-													/><circle cx="19" cy="12" r="1.8" /></svg
-												></summary
-											>
-											<div class="pb-replay-menu">
-												{@render remove(game, replay.side, 'Delete replay')}
-											</div>
-										</details>
-									{/if}
-								</div>
-								{#if watched === `${game}/${replay.side}`}
-									<div class="pb-replay-next" role="status">
-										<ol>
-											<li>Saved to your downloads as <code>{replay.file}</code>.</li>
-											<li>RiftAtlas opened in a new tab. Drop the file in there.</li>
-										</ol>
-										<div class="pb-replay-next-links">
-											<a href={RIFTATLAS} target="_blank" rel="noopener"
-												>Open RiftAtlas{@render ico('ext', 14)}</a
-											>
-											<a href={fileUrl(game, replay.side)} download={replay.file}>Download again</a>
-										</div>
-									</div>
-								{/if}
+				{#each r.games as { game, split, files } (game)}
+					<li class="pb-replay-game">
+						<div class="pb-replay-ghead">
+							<h3 class="pb-replay-gname">Game {game}</h3>
+							{#if !files.length || split}
+								<span class="pb-replay-gside"
+									>{files.length ? 'Each side in its own replay' : 'No replay'}</span
+								>
 							{/if}
-						</li>
-					{/each}
+						</div>
+						{#if files.length}
+							<ul class="pb-replay-files">
+								{#each files as replay (replay.side)}
+									<li class="pb-replay">
+										<div class="pb-replay-main">
+											<span class="pb-replay-meta">
+												{`Added by ${replay.by} · ${replay.when}`}
+											</span>
+										</div>
+										{#if replay}
+											{@const whose = ` game ${game} from ${replay.by}`}
+											<div class="pb-replay-actions">
+												<a
+													class="pb-btn pb-btn-secondary pb-replay-watch"
+													href={RIFTATLAS}
+													target="_blank"
+													rel="noopener"
+													onclick={() => watch(game, replay.side, replay.file)}
+													><svg
+														class="pb-ico-play"
+														width="16"
+														height="16"
+														viewBox="0 0 24 24"
+														fill="currentColor"
+														aria-hidden="true"
+														><path
+															d="M8 5.5v13a1 1 0 0 0 1.5.86l11-6.5a1 1 0 0 0 0-1.72l-11-6.5A1 1 0 0 0 8 5.5z"
+														/></svg
+													>Watch<span class="pb-sr">{whose} on RiftAtlas</span></a
+												>
+												<a
+													class="pb-btn pb-btn-ghost"
+													href={fileUrl(game, replay.side)}
+													download={replay.file}
+													>{@render ico('down')}Download<span class="pb-sr">{whose}</span></a
+												>
+												{#if r.role === 'organizer'}
+													{@render remove(
+														game,
+														replay.side,
+														'Delete',
+														` game ${game} replay from ${replay.by}`
+													)}
+												{:else if r.role === 'player' && replay.side === r.side}
+													<details class="pb-replay-more">
+														<summary class="pb-btn pb-btn-ghost" aria-label="More for game {game}"
+															><svg
+																width="18"
+																height="18"
+																viewBox="0 0 24 24"
+																fill="currentColor"
+																aria-hidden="true"
+																><circle cx="5" cy="12" r="1.8" /><circle
+																	cx="12"
+																	cy="12"
+																	r="1.8"
+																/><circle cx="19" cy="12" r="1.8" /></svg
+															></summary
+														>
+														<div class="pb-replay-menu">
+															{@render remove(game, replay.side, 'Delete replay')}
+														</div>
+													</details>
+												{/if}
+											</div>
+											{#if watched === `${game}/${replay.side}`}
+												<div class="pb-replay-next" role="status">
+													<ol>
+														<li>Saved to your downloads as <code>{replay.file}</code>.</li>
+														<li>RiftAtlas opened in a new tab. Drop the file in there.</li>
+													</ol>
+													<div class="pb-replay-next-links">
+														<a href={RIFTATLAS} target="_blank" rel="noopener"
+															>Open RiftAtlas{@render ico('ext', 14)}</a
+														>
+														<a href={fileUrl(game, replay.side)} download={replay.file}
+															>Download again</a
+														>
+													</div>
+												</div>
+											{/if}
+										{/if}
+									</li>
+								{/each}
+							</ul>
+						{/if}
+					</li>
 				{/each}
 			</ol>
 			<p class="pb-replays-how">
