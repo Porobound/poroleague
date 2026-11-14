@@ -203,7 +203,7 @@ test('the replay upload form fits a phone', async ({ browser }) => {
 	await fits(mine, 'player', path, async () => {
 		await send(mine, 'mine');
 		await expect(
-			mine.getByText('Replaces the replay added by Bartholomew Featherstonehaugh-Villanueva')
+			mine.getByText('Goes next to the replay added by Bartholomew Featherstonehaugh-Villanueva')
 		).toBeVisible();
 	});
 });
