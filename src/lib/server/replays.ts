@@ -79,24 +79,26 @@ const log = (tx: Tx, m: Match, actorId: string, after: object) =>
 		.values({ seasonId: m.seasonId, matchId: m.id, actorId, action: 'replay', after })
 		.run();
 
-// Stores the file as `asGame` of the match, or as the game it says it is. Returns why not, or the
-// game: saved, or (`saved: false`, nothing stored) holding another replay, so the player has to say
-// which game the file is. `unpublished`: saving took a Publish back. `since`: nothing older can be
-// a game of this season.
+export type Saved =
+	| { game: number; saved: true; replaced: boolean }
+	| { game: number; saved: false; held: 'own' | 'theirs' };
+
+// Stores the uploader's file in a game of the match. Returns why not, or the game: saved
+// (`replaced`: the uploader's own file of that game), or not (nothing stored) because that game
+// holds another game's file, the uploader's own or the opponent's, so the player has to say which
+// game the file is. `asGame`: the game the player chose. `since`: nothing older can be a game of
+// this season.
 export function saveReplay(
 	m: Match,
 	since: Date,
 	actorId: string,
 	text: string,
 	asGame?: number
-): string | { game: number; saved: boolean; unpublished?: boolean } {
+): string | Saved {
 	if (Buffer.byteLength(text) > MAX_REPLAY_BYTES) return TOO_BIG;
 	const read = readReplay(text);
 	if (!read.ok) return read.error;
-	const { replayId } = read.info;
-	const game = asGame ?? read.info.game;
-	const error = checkReplay({ ...read.info, game }, m, new Date(), since);
-	if (error) return error;
+	const { replayId, bothSides } = read.info;
 	const data = gzipSync(text);
 	return db.transaction((tx) => {
 		// Erasure deleted this match's replays; a new one would bring the erased player's name back.
@@ -106,27 +108,46 @@ export function saveReplay(
 			.where(and(inArray(players.id, [m.p1Id, m.p2Id]), isNotNull(players.erasedAt)))
 			.get();
 		if (erased) return 'A player of this match was erased, so it keeps no replays.';
-		const same = tx.select().from(replays).where(eq(replays.replayId, replayId)).get();
-		if (same && same.matchId !== m.id) return 'This replay is already on another match.';
-		// The same file again (a resubmitted form) changes nothing, so nobody's publish is undone.
-		if (same?.game === game && same.data.equals(data)) return { game, saved: true };
-		// A series finished in a second RiftAtlas room has two files that say "game 1": the file's
-		// own number never replaces another game's replay, only a game the uploader chose does.
-		const held = tx
-			.select({ replayId: replays.replayId })
+		const known = tx
+			.select({ matchId: replays.matchId, game: replays.game, uploadedBy: replays.uploadedBy })
+			.from(replays)
+			.where(eq(replays.replayId, replayId))
+			.all();
+		if (known.some((r) => r.matchId !== m.id)) return 'This replay is already on another match.';
+		// A chosen game; else the game already holding a file of this RiftAtlas game (the other
+		// player's view of it); else the game the file says it is.
+		const game =
+			asGame ?? (known.find((r) => r.uploadedBy === actorId) ?? known[0])?.game ?? read.info.game;
+		const error = checkReplay({ ...read.info, game }, m, new Date(), since);
+		if (error) return error;
+		const here = tx
+			.select({ uploadedBy: replays.uploadedBy, replayId: replays.replayId, data: replays.data })
 			.from(replays)
 			.where(slot(m.id, game))
-			.get();
-		if (asGame === undefined && held && held.replayId !== replayId) return { game, saved: false };
+			.all();
+		const own = here.find((r) => r.uploadedBy === actorId);
+		// The same file again (a resubmitted form) changes nothing.
+		if (own?.replayId === replayId && own.data.equals(data))
+			return { game, saved: true, replaced: true };
+		// A series finished in a second RiftAtlas room has two files that say "game 1": the file's
+		// own number never puts it in a game holding another one's file, only a chosen game does.
+		if (asGame === undefined && !known.length && here.length)
+			return { game, saved: false, held: own ? 'own' : 'theirs' };
+		// The uploader's file of this RiftAtlas game moves along when they choose another game.
 		tx.delete(replays)
-			.where(or(slot(m.id, game), eq(replays.replayId, replayId)))
+			.where(
+				and(
+					eq(replays.matchId, m.id),
+					eq(replays.uploadedBy, actorId),
+					or(eq(replays.game, game), eq(replays.replayId, replayId))
+				)
+			)
 			.run();
 		tx.insert(replays)
-			.values({ matchId: m.id, game, replayId, uploadedBy: actorId, bothSides: false, data })
+			.values({ matchId: m.id, game, replayId, uploadedBy: actorId, bothSides, data })
 			.run();
-		unpublish(tx, [m.id]);
 		log(tx, m, actorId, { replay: game });
-		return { game, saved: true, unpublished: m.p1PublishReplay || m.p2PublishReplay };
+		return { game, saved: true, replaced: !!own };
 	});
 }
 
