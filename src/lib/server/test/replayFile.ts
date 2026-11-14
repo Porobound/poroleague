@@ -7,6 +7,7 @@ export function replayFile(
 		completedAt?: number;
 		frames?: number;
 		version?: number;
+		hidden?: number; // the player whose deck the file doesn't show
 	} = {}
 ) {
 	const nodes: unknown[] = [];
@@ -20,7 +21,10 @@ export function replayFile(
 	const legends = o.legends ?? ['Azir, Emperor of the Sands', "Evelynn, Agony's Embrace"];
 	const state = {
 		gameNumber: o.game ?? 1,
-		players: legends.map((name) => ({ board: { legend: [{ name }] } }))
+		players: legends.map((name, i) => ({
+			board: { legend: [{ name }] },
+			...(i !== o.hidden && { deck: { main: [] } })
+		}))
 	};
 	const root = put({
 		replayId: o.replayId ?? `ROOM:${o.game ?? 1}`,

@@ -12,8 +12,24 @@ describe('readReplay', () => {
 		const r = readReplay(replayFile({ game: 2, replayId: 'R:2', completedAt: 1000 }));
 		expect(r).toEqual({
 			ok: true,
-			info: { replayId: 'R:2', game: 2, legends: ['Azir', 'Evelynn'], completedAt: 1000 }
+			info: {
+				replayId: 'R:2',
+				game: 2,
+				legends: ['Azir', 'Evelynn'],
+				completedAt: 1000,
+				bothSides: true
+			}
 		});
+	});
+
+	it('tells a file showing one side from one showing both', () => {
+		const both = (hidden?: number) => {
+			const r = readReplay(replayFile({ hidden }));
+			return r.ok && r.info.bothSides;
+		};
+		expect(both()).toBe(true);
+		expect(both(0)).toBe(false);
+		expect(both(1)).toBe(false);
 	});
 
 	it('rejects what is not a RiftAtlas replay', () => {
@@ -46,7 +62,8 @@ describe('checkReplay', () => {
 		replayId: 'R:1',
 		game: 1,
 		legends: ['Azir', 'Evelynn'],
-		completedAt: 5_000_000
+		completedAt: 5_000_000,
+		bothSides: true
 	};
 	const match = { p1Games: 2, p2Games: 0, games: null, p1Legend: 'Evelynn', p2Legend: 'Azir' };
 	const check = (i: Partial<ReplayInfo> = {}, m: Partial<Reported> = {}) =>

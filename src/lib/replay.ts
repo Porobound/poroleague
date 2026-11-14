@@ -11,6 +11,7 @@ export type ReplayInfo = {
 	game: number; // 1-based game of the series
 	legends: [string, string]; // champion names
 	completedAt: number; // ms
+	bothSides: boolean; // both decks and hands, not only the uploader's
 };
 
 const NOT_REPLAY =
@@ -39,17 +40,19 @@ export function readReplay(text: string): { ok: true; info: ReplayInfo } | Retur
 	try {
 		const root = get(file.root);
 		const state = get(get(get(root.frames).at(-1)).state);
-		const players: unknown[] = get(state.players);
+		const players: any[] = get(state.players).map(get);
 		if (players.length !== 2) return bad('A league replay has exactly two players.');
 		const legends = players.map((p) => {
-			const zone: any[] = get(get(get(p).board).legend).map(get);
+			const zone: any[] = get(get(p.board).legend).map(get);
 			return (zone.find((c) => c.type === 'legend') ?? zone[0]).name.split(',')[0];
 		});
 		const info = {
 			replayId: root.replayId,
 			game: state.gameNumber,
 			legends,
-			completedAt: root.completedAt
+			completedAt: root.completedAt,
+			// A player with deck privacy on has no deck in the other player's file.
+			bothSides: players.every((p) => p.deck != null)
 		};
 		if (
 			typeof info.replayId !== 'string' ||
