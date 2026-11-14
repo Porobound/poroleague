@@ -1,6 +1,7 @@
 // Every page at phone width, as a visitor, a player and an organizer: fails on sideways scroll or
 // anything cut off at the right edge. Controls under 44 px tall are warnings, logged per page.
 import { expect, test, type Page } from '@playwright/test';
+import { replayFile } from '../src/lib/server/test/replayFile.ts';
 import {
 	publishReplays,
 	removeSeason,
@@ -122,10 +123,12 @@ function probe(W: number) {
 	};
 }
 
-const fits = (page: Page, who: string, path: string) =>
+// `before` puts the loaded page in the state to measure.
+const fits = (page: Page, who: string, path: string, before?: () => Promise<void>) =>
 	test.step(`${who} ${path}`, async () => {
 		const res = await page.goto(path);
 		expect.soft(res?.ok(), 'page loads').toBe(true);
+		await before?.();
 		const r = await page.evaluate(probe, W);
 		expect.soft(r.scroll, 'scrolls sideways').toBe(false);
 		expect.soft(r.outer, 'cut off at the right edge').toEqual([]);
@@ -160,6 +163,39 @@ test('one-sided publish states fit a phone', async ({ browser }) => {
 		await fits(await browser.newPage(as(ORGANIZER)), 'organizer', path);
 	}
 	publishReplays(reported);
+});
+
+// The upload form open, then its which-game step, which names whoever added the replay in the way.
+test('the replay upload form fits a phone', async ({ browser }) => {
+	const path = `${s}/matches/${reported}`;
+	const send = async (page: Page, replayId: string) => {
+		await page.getByText('Add or replace a replay').click();
+		await page.getByLabel('Replay file').setInputFiles({
+			name: `riftatlas-replay-${replayId}-game-2.json`,
+			mimeType: 'application/json',
+			buffer: Buffer.from(
+				replayFile({
+					game: 2,
+					replayId,
+					legends: ['Ahri, Fox', 'Annie, Fire'],
+					completedAt: Date.now()
+				})
+			)
+		});
+		await page.getByRole('button', { name: 'Upload' }).click();
+	};
+	const opponent = await browser.newPage(as(player('mobile', 2)));
+	await fits(opponent, 'player', path, () => opponent.getByText('Add or replace a replay').click());
+	await opponent.reload();
+	await send(opponent, 'theirs');
+	await expect(opponent.getByRole('status')).toContainText('Replay added for game 2.');
+	const mine = await browser.newPage(as(me));
+	await fits(mine, 'player', path, async () => {
+		await send(mine, 'mine');
+		await expect(
+			mine.getByText('Replaces the replay added by Bartholomew Featherstonehaugh-Villanueva')
+		).toBeVisible();
+	});
 });
 
 // Scalar renders after load, so /api waits for it; checked in both themes.
