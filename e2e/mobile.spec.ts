@@ -147,6 +147,21 @@ for (const role of ['visitor', 'player', 'organizer'] as const) {
 	});
 }
 
+// The publish box and the organizer's status line name the opponent; the pages above show them public.
+test('one-sided publish states fit a phone', async ({ browser }) => {
+	const path = `${s}/matches/${reported}`;
+	for (const [p1, p2] of [
+		[true, false],
+		[false, true],
+		[false, false]
+	]) {
+		publishReplays(reported, p1, p2);
+		await fits(await browser.newPage(as(me)), 'player', path);
+		await fits(await browser.newPage(as(ORGANIZER)), 'organizer', path);
+	}
+	publishReplays(reported);
+});
+
 // Scalar renders after load, so /api waits for it; checked in both themes.
 test('API reference fits a phone', async ({ page }) => {
 	await page.goto('/api');

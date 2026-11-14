@@ -27,8 +27,9 @@ const rows = (page: Page) =>
 	replays(page)
 		.getByRole('listitem')
 		.filter({ hasText: /^Game \d/ });
+// The header's badge; a player's publish box repeats the word after it.
 const badge = (page: Page, text: 'Private' | 'Public') =>
-	replays(page).getByText(text, { exact: true });
+	replays(page).getByText(text, { exact: true }).first();
 
 test.beforeAll(() => {
 	[match, , open] = seedSeason('replays', { publishedRound: 3 });
@@ -133,6 +134,8 @@ test('upload, watch, and who can see a replay', async ({ browser }) => {
 	await expect(replays(uploader).getByRole('button', { name: 'Delete replay' })).toBeHidden();
 	await uploader.getByLabel('More for game 2').click();
 	await replays(uploader).getByRole('button', { name: 'Delete replay' }).click();
+	// Nobody has pressed Publish, so deleting takes nothing back.
+	await expect(uploader.getByRole('dialog')).toHaveText(/This can't be undone\.\s*Cancel/);
 	await uploader.getByRole('dialog').getByRole('button', { name: 'Delete replay' }).click();
 	await expect(uploader.getByRole('status')).toHaveText('Game 2 replay deleted.');
 	await expect(rows(uploader).nth(1)).toHaveText(/No replay\s*$/);
@@ -155,10 +158,15 @@ test('upload, watch, and who can see a replay', async ({ browser }) => {
 
 test('replays go public once both players publish', async ({ browser }) => {
 	seedReplay(match, 1);
-	const publish = async (page: Page) => {
-		await page.getByRole('button', { name: 'Publish', exact: true }).click();
-		await page.getByRole('dialog').getByRole('button', { name: 'Publish', exact: true }).click();
+	// Presses the publish box's button and confirms the dialog, which says what `says`.
+	const press = async (page: Page, button: string, title: string, ...says: string[]) => {
+		await replays(page).getByRole('button', { name: button, exact: true }).click();
+		const dialog = page.getByRole('dialog', { name: title });
+		for (const line of says) await expect(dialog.getByText(line)).toBeVisible();
+		await dialog.getByRole('button', { name: button, exact: true }).click();
 	};
+	const publish = (page: Page, says: string) =>
+		press(page, 'Publish', 'Publish these replays?', says, 'Either of you can take it back.');
 	const visitor = await browser.newPage();
 	const chip = visitor.getByText('Replay available');
 	const isPublic = async (yes: boolean) => {
@@ -169,49 +177,108 @@ test('replays go public once both players publish', async ({ browser }) => {
 		await expect(visitor.getByText(p1).first()).toBeVisible();
 		await expect(chip).toHaveCount(yes ? 1 : 0);
 	};
+	// The organizer is told who pressed, and has nothing to press.
+	const org = await browser.newPage(as(ORGANIZER));
+	const orgSees = async (line: string) => {
+		await org.goto(url());
+		await expect(replays(org).getByText(line, { exact: true })).toBeVisible();
+		await expect(replays(org).getByRole('button', { name: /publish|take it back/i })).toHaveCount(
+			0
+		);
+	};
+	const PRIVATE = (them: string) => [
+		`Only you, ${them} and organizers can open these replays.`,
+		`A replay shows the uploader's whole deck and hand. Agree with ${them} before you publish.`
+	];
 
-	// One yes isn't enough, and the page tells each player where things stand.
+	// Private: one Publish isn't enough, and the box tells each player where things stand.
 	const one = await browser.newPage(as(player('replays', 1)));
 	await one.goto(url());
-	await expect(one.getByText(`Private: only you and ${p2} can watch these replays.`)).toBeVisible();
-	await expect(one.getByText(`Talk to ${p2} first`)).toBeVisible();
-	await publish(one);
+	for (const line of PRIVATE(p2)) await expect(replays(one).getByText(line)).toBeVisible();
+	await orgSees('Neither player has pressed Publish.');
+	await publish(one, `Everyone can watch once ${p2} presses Publish too.`);
 	await expect(one.getByRole('status')).toHaveText(
-		`You said yes. The replays go public once ${p2} publishes too.`
+		`You pressed Publish. The replays go public when ${p2} does too.`
 	);
+	await expect(replays(one).getByText(`Waiting for ${p2}`, { exact: true })).toBeVisible();
+	await expect(
+		replays(one).getByText(`The replays go public when ${p2} presses Publish too.`)
+	).toBeVisible();
+	await expect(badge(one, 'Private')).toBeVisible();
 	await isPublic(false);
+	await orgSees(`${p1} pressed Publish; ${p2} hasn't.`);
 
 	const two = await browser.newPage(as(player('replays', 2)));
 	await two.goto(url());
-	await expect(two.getByText(`${p1} wants to publish these replays.`)).toBeVisible();
-	await expect(badge(two, 'Private')).toBeVisible();
-	await publish(two);
-	await expect(two.getByRole('status')).toHaveText('Published. Anyone can watch the replays now.');
-	await expect(badge(two, 'Public')).toBeVisible();
-	await isPublic(true);
+	await expect(replays(two).getByText(`${p1} wants to publish`, { exact: true })).toBeVisible();
+	await expect(
+		replays(two).getByText('The replays go public when you press Publish too.')
+	).toBeVisible();
 
-	// A visitor watches but changes nothing.
+	// The first player takes it back: private for both again.
+	await press(one, 'Take it back', 'Take back your Publish?', 'The replays stay private.');
+	await expect(one.getByRole('status')).toHaveText('Replays are private.');
+	for (const line of PRIVATE(p2)) await expect(replays(one).getByText(line)).toBeVisible();
+	await two.reload();
+	for (const line of PRIVATE(p1)) await expect(replays(two).getByText(line)).toBeVisible();
+
+	// The other way round, then both.
+	await publish(two, `Everyone can watch once ${p1} presses Publish too.`);
+	await orgSees(`${p2} pressed Publish; ${p1} hasn't.`);
+	await one.reload();
+	await expect(replays(one).getByText(`${p2} wants to publish`, { exact: true })).toBeVisible();
+	await publish(one, `${p2} has already pressed Publish, so everyone can watch right away.`);
+	await expect(one.getByRole('status')).toHaveText('Replays are public.');
+	await isPublic(true);
+	await orgSees('Both players published.');
+	await expect(badge(org, 'Public')).toBeVisible();
+	const PUBLIC =
+		'Anyone can watch these replays. Adding, replacing or deleting one makes them private again.';
+	await two.reload();
+	for (const page of [one, two]) {
+		await expect(badge(page, 'Public')).toBeVisible();
+		await expect(replays(page).getByText(PUBLIC)).toBeVisible();
+		await expect(replays(page).getByRole('button', { name: 'Unpublish' })).toBeVisible();
+	}
+
+	// A visitor watches, but changes nothing and isn't told who pressed what.
 	await visitor.goto(url());
 	await expect(replays(visitor).getByRole('link', { name: 'Watch game 1' })).toBeVisible();
 	await expect(replays(visitor).getByRole('button')).toHaveCount(0);
 	await expect(badge(visitor, 'Public')).toHaveCount(0);
+	await expect(replays(visitor).getByText(/publish/i)).toHaveCount(0);
 
 	// A new file is not what the two agreed to publish.
 	await upload(two, file(['Ahri, Nine-Tailed Fox', 'Annie, Dark Child']), 'Game 1');
-	await expect(two.getByText(`Private: only you and ${p1} can watch these replays.`)).toBeVisible();
+	for (const line of PRIVATE(p1)) await expect(replays(two).getByText(line)).toBeVisible();
 	await isPublic(false);
 
-	// Either player can take a yes back.
-	await publish(two);
+	// Either player can unpublish.
+	await publish(two, `Everyone can watch once ${p1} presses Publish too.`);
 	await one.reload();
-	await publish(one);
+	await publish(one, `${p2} has already pressed Publish`);
 	await isPublic(true);
-	await one.getByRole('button', { name: 'Unpublish' }).click();
-	await one.getByRole('dialog').getByRole('button', { name: 'Unpublish' }).click();
-	await expect(one.getByRole('status')).toHaveText(
-		`Unpublished. Only you and ${p2} see the replays.`
+	await press(
+		one,
+		'Unpublish',
+		'Unpublish these replays?',
+		`They go back to private: only you, ${p2} and organizers can open them.`
 	);
+	await expect(one.getByRole('status')).toHaveText('Replays are private.');
 	await isPublic(false);
+
+	// The other player's Publish still stands, and deleting a replay takes it back too.
+	await expect(replays(one).getByText(`${p2} wants to publish`, { exact: true })).toBeVisible();
+	await one.getByLabel('More for game 1').click();
+	await replays(one).getByRole('button', { name: 'Delete replay' }).click();
+	const dialog = one.getByRole('dialog', { name: 'Delete the game 1 replay?' });
+	await expect(dialog).toContainText(
+		'The other replays go back to private until both players publish again.'
+	);
+	await dialog.getByRole('button', { name: 'Delete replay' }).click();
+	await expect(one.getByRole('status')).toHaveText(
+		'Game 1 replay deleted. Replays are private again.'
+	);
 });
 
 test('the report form reminds players to save the replay', async ({ browser }) => {
