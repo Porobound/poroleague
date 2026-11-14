@@ -21,43 +21,71 @@ export const canSeeReplays = (
 	organizer ||
 	(!!viewerId && inMatch(m, viewerId));
 
-// The games that have a replay, without the files.
+// The match's replay files, without their contents.
 export const matchReplays = (matchId: number) =>
 	db
-		.select({ game: replays.game, uploadedBy: replays.uploadedBy, createdAt: replays.createdAt })
+		.select({
+			game: replays.game,
+			uploadedBy: replays.uploadedBy,
+			bothSides: replays.bothSides,
+			createdAt: replays.createdAt
+		})
 		.from(replays)
 		.where(eq(replays.matchId, matchId))
 		.orderBy(asc(replays.game))
 		.all();
 
-export const replayFileName = (slug: string, matchId: number, game: number) =>
-	`poroleague-${slug}-match-${matchId}-game-${game}.json`;
+// `side`: the uploader is the match's player 1 or 2; it names the file when their name can't.
+export const replayFileName = (
+	slug: string,
+	matchId: number,
+	game: number,
+	side: 1 | 2,
+	uploader: string
+) =>
+	`poroleague-${slug}-match-${matchId}-game-${game}-${
+		uploader
+			.toLowerCase()
+			.replace(/[^a-z0-9]+/g, '-')
+			.replace(/^-|-$/g, '') || `player-${side}`
+	}.json`;
 
-// One entry per played game, for the match page; `replay` is null where nobody added one.
+// The match's player 1 or 2.
+export const sideOf = (m: Match, side: 1 | 2) => (side === 1 ? m.p1Id : m.p2Id);
+
+// One entry per played game, for the match page, with its files in the match's player order.
 export function replaySlots(m: Match, slug: string, name: (playerId: string) => string) {
-	const held = new Map(matchReplays(m.id).map((r) => [r.game, r]));
+	const held = matchReplays(m.id);
 	const played = m.games?.length ?? (m.p1Games ?? 0) + (m.p2Games ?? 0);
-	return Array.from({ length: played }, (_, i) => {
-		const r = held.get(i + 1);
-		return {
-			game: i + 1,
-			replay: r
-				? {
-						by: name(r.uploadedBy),
-						when: day(leagueDate(r.createdAt)),
-						file: replayFileName(slug, m.id, i + 1)
-					}
-				: null
-		};
-	});
+	return Array.from({ length: played }, (_, i) => ({
+		game: i + 1,
+		files: ([1, 2] as const).flatMap((side) => {
+			const r = held.find((r) => r.game === i + 1 && r.uploadedBy === sideOf(m, side));
+			if (!r) return [];
+			const by = name(r.uploadedBy);
+			return [
+				{
+					side,
+					by,
+					bothSides: r.bothSides,
+					when: day(leagueDate(r.createdAt)),
+					file: replayFileName(slug, m.id, i + 1, side, by)
+				}
+			];
+		})
+	}));
 }
 
 const slot = (matchId: number, game: number) =>
 	and(eq(replays.matchId, matchId), eq(replays.game, game));
 
 // The JSON file as RiftAtlas wrote it, still gzipped: downloads go out that way.
-export const replayGzip = (matchId: number, game: number) =>
-	db.select({ data: replays.data }).from(replays).where(slot(matchId, game)).get()?.data;
+export const replayGzip = (matchId: number, game: number, uploaderId: string) =>
+	db
+		.select({ data: replays.data })
+		.from(replays)
+		.where(and(slot(matchId, game), eq(replays.uploadedBy, uploaderId)))
+		.get()?.data;
 
 // What the players agreed to publish is gone or changed: both decide again.
 const unpublish = (tx: Tx, matchIds: number[]) =>
