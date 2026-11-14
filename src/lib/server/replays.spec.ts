@@ -1,6 +1,8 @@
 import { gunzipSync } from 'node:zlib';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { actions, load } from '../../routes/seasons/[slug]/matches/[id]/+page.server.ts';
 import { auditLines } from '#lib/server/auditLog.ts';
+import { currentRole } from '#lib/server/auth.ts';
 import { getMatch, organizerEdit, type Match } from '#lib/server/matches.ts';
 import { erasePlayer } from '#lib/server/players.ts';
 import {
@@ -14,6 +16,12 @@ import {
 } from '#lib/server/replays.ts';
 import { replayFile } from '#lib/server/test/replayFile.ts';
 import { seedEntries, seedMatch, seedPlayers, seedSeason } from '#lib/server/test/seed.ts';
+
+// The Discord re-check has its own tests (auth.spec.ts); here it says what each test needs.
+vi.mock('#lib/server/auth.ts', async (original) => ({
+	...(await original<typeof import('#lib/server/auth.ts')>()),
+	currentRole: vi.fn()
+}));
 
 const SINCE = new Date(0);
 let seasonId: number;
@@ -196,6 +204,75 @@ describe('who sees replays', () => {
 
 	it('only a player of the match can publish', () => {
 		expect(() => setPublish(match(), 'p3', true)).toThrow(/not in match/);
+	});
+});
+
+describe('the match page', () => {
+	// A fake RequestEvent: just what the load and the actions read.
+	const event = (id: string | null, isOrganizer = false, form: Record<string, string> = {}) => {
+		const url = new URL('http://localhost/seasons/s1');
+		const body = new FormData();
+		for (const [k, v] of Object.entries(form)) body.set(k, v);
+		return {
+			params: { slug: 's1', id: String(matchId) },
+			url,
+			locals: {
+				user: id && { id, displayName: id, avatar: null, isOrganizer },
+				session: id && { id: 'sess', accessToken: 'tok' }
+			},
+			request: new Request(url, { method: 'POST', body })
+		} as never;
+	};
+	type Data = { match: object; replays: { published: boolean[] | null } | null };
+	const loaded = async (...who: [string | null, boolean?]) => (await load(event(...who))) as Data;
+	const message = async (
+		action: 'publishReplays' | 'deleteReplay',
+		...args: Parameters<typeof event>
+	) => ((await actions[action](event(...args))) as { message: string }).message;
+
+	beforeEach(() => {
+		vi.mocked(currentRole).mockResolvedValue(true);
+		saveReplay(match(), SINCE, 'p1', replayFile());
+		setPublish(match(), 'p2', true);
+	});
+
+	it('tells who pressed Publish to the players and a re-checked organizer only', async () => {
+		expect((await loaded('p1')).replays?.published).toEqual([false, true]);
+		expect((await loaded('p2')).replays?.published).toEqual([true, false]);
+		expect((await loaded('p4', true)).replays?.published).toEqual([false, true]);
+		// Private: nobody else gets the panel at all.
+		expect((await loaded('p3')).replays).toBeNull();
+		expect((await loaded(null)).replays).toBeNull();
+		// The session says organizer, Discord no longer does.
+		vi.mocked(currentRole).mockResolvedValue(false);
+		expect((await loaded('p4', true)).replays).toBeNull();
+
+		// Public: they watch, without the flags.
+		setPublish(match(), 'p1', true);
+		for (const who of [['p3'], [null], ['p4', true]] as [string | null, boolean?][]) {
+			const data = await loaded(...who);
+			expect(data.replays).toMatchObject({ public: true, published: null });
+			expect(JSON.stringify(data.match)).not.toMatch(/PublishReplay/);
+		}
+		expect(JSON.stringify((await loaded('p1')).match)).not.toMatch(/PublishReplay/);
+	});
+
+	it('says where publishing stands after each press', async () => {
+		expect(await message('publishReplays', 'p2', false, { on: '0' })).toBe('Replays are private.');
+		expect(await message('publishReplays', 'p1', false, { on: '1' })).toBe(
+			'You pressed Publish. The replays go public when Player 2 does too.'
+		);
+		expect(await message('publishReplays', 'p2', false, { on: '1' })).toBe('Replays are public.');
+		expect(published(match())).toEqual([true, true]);
+	});
+
+	it('says when deleting a replay took a Publish back', async () => {
+		saveReplay(match(), SINCE, 'p1', replayFile({ game: 2, replayId: 'g2' }));
+		setPublish(match(), 'p2', true);
+		expect(await message('deleteReplay', 'p1', false, { game: '1' })).toBe(
+			'Game 1 replay deleted. Replays are private again.'
+		);
+		expect(await message('deleteReplay', 'p4', true, { game: '2' })).toBe('Game 2 replay deleted.');
 	});
 });
 

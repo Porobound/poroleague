@@ -91,7 +91,7 @@ export const load: PageServerLoad = async (event) => {
 	});
 	return {
 		season,
-		// Without who has agreed to publish replays: that is between the two players.
+		// Without who has pressed Publish on the replays: `replays.published` says it to who may know.
 		match: { ...match, p1PublishReplay: undefined, p2PublishReplay: undefined },
 		// Same status rule as every match card.
 		status: card.status,
@@ -127,12 +127,14 @@ export const load: PageServerLoad = async (event) => {
 						public: match.p1PublishReplay && match.p2PublishReplay,
 						// A match with an erased player keeps no replays.
 						canUpload: playing && !p1.former && !p2.former,
-						// Who has said yes to showing them to everyone; the viewer's own side first.
-						published: playing
-							? viewer === p1.id
-								? ([match.p1PublishReplay, match.p2PublishReplay] as const)
-								: ([match.p2PublishReplay, match.p1PublishReplay] as const)
-							: null
+						// Who has pressed Publish, the viewer's own side first: for the two players, and for
+						// an organizer whose role was just re-checked. Nobody else learns it.
+						published:
+							playing || organizer
+								? viewer === p2.id
+									? ([match.p2PublishReplay, match.p1PublishReplay] as const)
+									: ([match.p1PublishReplay, match.p2PublishReplay] as const)
+								: null
 					}
 				: null,
 		// Only the form needs it; anyone else gets no hint of a player's last legend.
@@ -226,12 +228,12 @@ export const actions: Actions = {
 			return fail(403, { error: true, message: 'Only the two players can publish replays.' });
 		if (!setPublish(match, user.id, on))
 			return fail(409, { error: true, message: 'Add a replay first.' });
-		if (!on) return { message: `Unpublished. Only you and ${them.displayName} see the replays.` };
+		if (!on) return { message: 'Replays are private.' };
 		const theirs = them.id === match.p1Id ? match.p1PublishReplay : match.p2PublishReplay;
 		return {
 			message: theirs
-				? 'Published. Anyone can watch the replays now.'
-				: `You said yes. The replays go public once ${them.displayName} publishes too.`
+				? 'Replays are public.'
+				: `You pressed Publish. The replays go public when ${them.displayName} does too.`
 		};
 	},
 
@@ -244,6 +246,10 @@ export const actions: Actions = {
 			return fail(403, { error: true, message: "This replay isn't yours to delete." });
 		if (!deleteReplay(match, user.id, game))
 			return fail(404, { error: true, message: 'That replay is already gone.' });
-		return { message: `Game ${game} replay deleted.` };
+		// Deleting cleared whatever the players had pressed.
+		const pressed = match.p1PublishReplay || match.p2PublishReplay;
+		return {
+			message: `Game ${game} replay deleted.${pressed ? ' Replays are private again.' : ''}`
+		};
 	}
 };
