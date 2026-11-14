@@ -20,6 +20,7 @@
 				files: Replay[];
 			}[];
 			role: 'player' | 'organizer' | 'visitor';
+			// Both pressed Publish and the match's week is published.
 			public: boolean;
 			// The viewer's side when playing: their own files.
 			side: 1 | 2 | null;
@@ -354,6 +355,16 @@
 								</label>
 							{/each}
 						</fieldset>
+					{/if}
+					{#if r.public}
+						<p class="pb-replays-warn" role="note">
+							{@render ico('ext')}<span
+								>This match's replays are public. A file you add is public at once, and it shows
+								your deck and hand.</span
+							>
+						</p>
+					{:else}
+						<p class="pb-replays-quiet">It stays private until you both publish.</p>
 					{/if}
 					<div class="pb-replays-form-actions">
 						<button class="pb-btn pb-btn-primary" disabled={which && !!picked && !pick}

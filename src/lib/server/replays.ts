@@ -9,17 +9,19 @@ import type { Match, Tx } from '#lib/server/matches.ts';
 
 export const inMatch = (m: Match, playerId: string) => playerId === m.p1Id || playerId === m.p2Id;
 
+// Everyone can watch: both players have published. `hidden`: an early match nobody else knows was
+// played, whose replays stay private until its week is published.
+export const replaysPublic = (m: Match, hidden = false) =>
+	!hidden && m.p1PublishReplay && m.p2PublishReplay;
+
 // A replay shows its uploader's deck and hand: the two players and organizers see it, everyone
-// else only once both players have published. `hidden`: an early match nobody else knows was played.
+// else only once it is public.
 export const canSeeReplays = (
 	m: Match,
 	viewerId: string | null,
 	organizer = false,
 	hidden = false
-) =>
-	(!hidden && m.p1PublishReplay && m.p2PublishReplay) ||
-	organizer ||
-	(!!viewerId && inMatch(m, viewerId));
+) => replaysPublic(m, hidden) || organizer || (!!viewerId && inMatch(m, viewerId));
 
 // The match's replay files, without their contents.
 export const matchReplays = (matchId: number) =>

@@ -12,6 +12,7 @@ import {
 	replayFileName,
 	replayGzip as stored,
 	replaySlots,
+	replaysPublic,
 	saveReplay,
 	setPublish
 } from '#lib/server/replays.ts';
@@ -304,6 +305,7 @@ describe('who sees replays', () => {
 		// An early match stays between its players until its week is published.
 		expect(canSeeReplays(match(), 'p3', false, true)).toBe(false);
 		expect(canSeeReplays(match(), 'p2', false, true)).toBe(true);
+		expect([replaysPublic(match()), replaysPublic(match(), true)]).toEqual([true, false]);
 		setPublish(match(), 'p1', false);
 		expect(sees()).toEqual([true, false, false, true]);
 	});
