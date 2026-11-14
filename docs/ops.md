@@ -54,6 +54,8 @@ The public API (`/api/v1`, documented in `src/lib/server/openapi.json`) is rate-
 
 Check after changing it: 40 quick requests to `/api/v1/seasons` should give 30 × `200`, then `429`, and pages should still load.
 
+## Backups
+
 `scripts/backup.sh` runs nightly from root's crontab. It writes `backups/poroleague-<date>.db` (root-only, 14 kept), uploads it with rclone to an encrypted R2 bucket, then pings healthchecks.io. If any step fails, including a missing `data/poroleague.db`, it skips the ping so healthchecks alerts. Decisions: [#32](https://github.com/Porobound/poroleague/issues/32).
 
 Set this up after the first `docker compose up -d` has created the database.

@@ -4,7 +4,7 @@ Community Riftbound TCG league site. Spec: `docs/spec.md`.
 
 ## Stack
 
-SvelteKit (adapter-node) · TypeScript · SQLite via Drizzle (better-sqlite3) · Vitest
+SvelteKit (adapter-node) · TypeScript · SQLite via Drizzle (better-sqlite3) · Vitest · Playwright
 
 ## Layout
 
@@ -47,7 +47,7 @@ Enforced on PRs by `.github/workflows/pr.yml`. PRs squash-merge, so the PR title
 ## Rules
 
 - Dependencies are pinned to exact versions (no `^`/`~`). `.npmrc` sets `save-exact=true`; keep it that way when adding or upgrading.
-- League rules stay pure in `src/lib/league/`; routes and the future bot API call them, never reimplement.
+- League rules stay pure in `src/lib/league/`; routes and the public API call them, never reimplement.
 - Every result change writes an `audit` row.
 - Every change ships with tests in the same PR: unit (vitest) for logic and server code, e2e (`e2e/`, Playwright) for pages and flows. Bugfixes get a regression test; commit the fix, then break it once to see the test fail and `git checkout` the file back.
 - e2e: select by role, label and text, never CSS classes. Each spec seeds its own season and players in `beforeAll` and soft-deletes the season in `afterAll` (`e2e/db.ts`); only one season can be running, and the startup seed adds only the organizer `org`. Log in with `test.use(as(id))` or `browser.newPage(as(id))`. Env comes from `playwright.config.ts`, not `.env`; webhooks post to a listener on :4318, read them with `posts(channel)` (`e2e/fixtures.ts`). `e2e/mobile.spec.ts` fails any page that scrolls sideways at 390 × 844.
