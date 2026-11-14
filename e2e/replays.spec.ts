@@ -75,6 +75,11 @@ test('upload, watch, and who can see a replay', async ({ browser }) => {
 
 	// A file of other legends isn't this match: the form stays open, the field marked.
 	await upload(uploader, file());
+	// Nobody has published: the form says so quietly, without the public warning.
+	await expect(
+		replays(uploader).getByText('It stays private until you both publish.', { exact: true })
+	).toBeVisible();
+	await expect(replays(uploader).getByRole('note')).toHaveCount(0);
 	await expect(uploader.getByRole('status')).toHaveText(
 		'This replay is Azir vs Evelynn, but the match was reported as Ahri vs Annie.'
 	);
@@ -341,9 +346,18 @@ test('replays go public once both players publish', async ({ browser }) => {
 
 	// The other player adds their own file of game 1: it goes next to the first, public at once.
 	// Their file isn't the same RiftAtlas game as the seeded one, so they say which game it is.
+	// The form warns before they send it.
 	const theirs = file(['Ahri, Nine-Tailed Fox', 'Annie, Dark Child']);
+	await opener(two).click();
+	await expect(replays(two).getByRole('note')).toHaveText(
+		"This match's replays are public. A file you add is public at once, and it shows your deck and hand."
+	);
+	await expect(replays(two).getByText('It stays private until you both publish.')).toHaveCount(0);
 	await upload(two, theirs, 'Game 1');
 	await expect(two.getByRole('status')).toHaveText('Replay added for game 1. It is public.');
+	// No new Publish: a visitor watches it straight away.
+	await visitor.goto(url());
+	await expect(files(visitor)).toHaveCount(2);
 	await one.reload();
 	for (const page of [one, two])
 		await expect(rows(page)).toHaveText([
