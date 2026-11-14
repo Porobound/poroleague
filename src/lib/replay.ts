@@ -32,16 +32,23 @@ export function readReplay(text: string): { ok: true; info: ReplayInfo } | Retur
 		return bad(
 			"This replay uses a RiftAtlas file version the league doesn't know yet. Tell an organizer."
 		);
-	// Follows one reference; anything off in the file throws below and reads as damaged.
+	// Follows one reference; anything off in the file throws below and reads as damaged. Each node
+	// is built once: a file can reference one large node many times.
+	const built = new Map<unknown, any>();
 	const get = (ref: any): any => {
+		if (built.has(ref.r)) return built.get(ref.r);
 		const [kind, body] = file.nodes[ref.r];
-		return kind === 'o' ? Object.fromEntries(body) : body;
+		const node = kind === 'o' ? Object.fromEntries(body) : body;
+		built.set(ref.r, node);
+		return node;
 	};
 	try {
 		const root = get(file.root);
 		const state = get(get(get(root.frames).at(-1)).state);
-		const players: any[] = get(state.players).map(get);
-		if (players.length !== 2) return bad('A league replay has exactly two players.');
+		const refs = get(state.players);
+		if (!Array.isArray(refs)) return bad(DAMAGED);
+		if (refs.length !== 2) return bad('A league replay has exactly two players.');
+		const players = refs.map(get);
 		const legends = players.map((p) => {
 			const zone: any[] = get(get(p.board).legend).map(get);
 			return (zone.find((c) => c.type === 'legend') ?? zone[0]).name.split(',')[0];

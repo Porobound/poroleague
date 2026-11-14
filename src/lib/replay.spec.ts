@@ -53,6 +53,44 @@ describe('readReplay', () => {
 		expect(error(JSON.stringify({ ...file, root: { r: 9999 } }))).toMatch(/damaged/);
 		expect(error(JSON.stringify({ ...file, nodes: file.nodes.slice(3) }))).toMatch(/damaged/);
 	});
+
+	it('rejects a file referencing one large node many times, quickly', () => {
+		const n = 20_000;
+		const hostile = (players: number) =>
+			JSON.stringify({
+				format: 'riftatlas-replay',
+				version: 2,
+				root: { r: 5 },
+				nodes: [
+					['o', Array.from({ length: n }, (_, i) => [`k${i}`, i])],
+					['a', Array.from({ length: n }, () => ({ r: 0 }))],
+					[
+						'o',
+						[
+							['gameNumber', 1],
+							['players', { r: players }]
+						]
+					],
+					['a', [{ r: 4 }]],
+					['o', [['state', { r: 2 }]]],
+					[
+						'o',
+						[
+							['replayId', 'R:1'],
+							['completedAt', 1],
+							['frames', { r: 3 }]
+						]
+					],
+					['a', [{ r: 7 }, { r: 7 }]],
+					['o', [['board', { r: 8 }]]],
+					['o', [['legend', { r: 1 }]]]
+				]
+			});
+		const start = performance.now();
+		expect(error(hostile(1))).toMatch(/two players/);
+		expect(error(hostile(6))).toMatch(/damaged/);
+		expect(performance.now() - start).toBeLessThan(2000);
+	});
 });
 
 describe('checkReplay', () => {
