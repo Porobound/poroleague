@@ -149,6 +149,26 @@ describe('saveReplay', () => {
 		expect(files()).toEqual(['1:p1']);
 	});
 
+	it("never replaces the uploader's file of another RiftAtlas game unasked", () => {
+		const mineB = replayFile({ replayId: 'B' });
+		saveReplay(match(), SINCE, 'p1', mineB);
+		// The opponent's view of game A: asked which game, they choose game 1.
+		const theirsA = replayFile({ replayId: 'A' });
+		expect(saveReplay(match(), SINCE, 'p2', theirsA)).toMatchObject({ held: 'theirs' });
+		expect(saveReplay(match(), SINCE, 'p2', theirsA, 1)).toMatchObject({ game: 1, saved: true });
+		const mineA = replayFile({ replayId: 'A', completedAt: 5 });
+		expect(saveReplay(match(), SINCE, 'p1', mineA)).toEqual({ game: 1, saved: false, held: 'own' });
+		expect(files()).toEqual(['1:p1', '1:p2']);
+		expect(text(1, 'p1')).toBe(mineB);
+		// Choosing the game does replace it.
+		expect(saveReplay(match(), SINCE, 'p1', mineA, 1)).toEqual({
+			game: 1,
+			saved: true,
+			replaced: true
+		});
+		expect(text(1, 'p1')).toBe(mineA);
+	});
+
 	it('a chosen game wins, and replaces only the uploader’s own file', () => {
 		saveReplay(match(), SINCE, 'p1', replayFile({ replayId: 'room1:1' }));
 		publishBoth();

@@ -158,8 +158,9 @@ export function saveReplay(
 		if (own?.replayId === replayId && own.data.equals(data))
 			return { game, saved: true, replaced: true };
 		// A series finished in a second RiftAtlas room has two files that say "game 1": the file's
-		// own number never puts it in a game holding another one's file, only a chosen game does.
-		if (asGame === undefined && !known.length && here.length)
+		// own number never puts it in a game holding another one's file, only a chosen game does. Nor
+		// does the opponent's file of this RiftAtlas game replace the uploader's file of another.
+		if (asGame === undefined && (own ? own.replayId !== replayId : !known.length && here.length))
 			return { game, saved: false, held: own ? 'own' : 'theirs' };
 		// The uploader's file of this RiftAtlas game moves along when they choose another game.
 		tx.delete(replays)
