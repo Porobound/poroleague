@@ -162,6 +162,22 @@ test('upload, watch, and who can see a replay', async ({ browser }) => {
 	expect(await (await opponent.request.get(fileOf(1))).text()).toBe(game1);
 	expect(await (await opponent.request.get(fileOf(2))).text()).toBe(room2);
 
+	// The opponent's file of yet another game also says "game 1": the notice says the file in the
+	// way is someone else's, and each game says what both players have added there.
+	await opponent.goto(url());
+	await upload(opponent, file(['Ahri, Nine-Tailed Fox', 'Annie, Dark Child'], 'ROOM3:1'));
+	await expect(opponent.getByRole('status')).toHaveText(
+		`Game 1 has ${p1}'s replay of another game. Choose which game this file is.`
+	);
+	for (const name of [
+		`Game 1 You haven't added one. ${p1} has added theirs.`,
+		`Game 2 You haven't added one. ${p1} has added theirs.`,
+		'Game 3 No replays yet.'
+	])
+		await expect(which(opponent).getByRole('radio', { name })).toBeVisible();
+	await opponent.getByRole('link', { name: 'Cancel' }).click();
+	await expect(which(opponent)).toHaveCount(0);
+
 	// The public log says nothing of replays; the organizer's does.
 	await opponent.goto(`/seasons/${slug}/audit`);
 	await expect(opponent.getByText(p1).first()).toBeVisible();
