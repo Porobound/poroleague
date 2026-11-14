@@ -22,6 +22,19 @@ export function weeksAhead(publishedRound: number, roundsPerWeek: number, week: 
 export const isPublished = (m: { stage?: string | null; round: number }, publishedRound: number) =>
 	m.stage === 'playoff' || m.round <= publishedRound;
 
+// The one rule for whether everyone can watch a match's replays (row marker, match page, API):
+// both players pressed Publish and the match is published. An early match's stay private until
+// its week is.
+export const replaysPublic = (
+	m: {
+		stage?: string | null;
+		round: number;
+		p1PublishReplay?: boolean | null;
+		p2PublishReplay?: boolean | null;
+	},
+	publishedRound: number
+) => isPublished(m, publishedRound) && !!m.p1PublishReplay && !!m.p2PublishReplay;
+
 const UNREPORTED = {
 	p1Games: null,
 	p2Games: null,

@@ -11,6 +11,8 @@ import { cutState, publishCut } from '#lib/server/topCut.ts';
 import { db } from '#lib/server/db/index.ts';
 import { matches, players, seasons } from '#lib/server/db/schema.ts';
 import { erasePlayer } from '#lib/server/players.ts';
+import { saveReplay, setPublish } from '#lib/server/replays.ts';
+import { replayFile } from '#lib/server/test/replayFile.ts';
 import { deleteSeason, dropPlayer } from '#lib/server/seasons.ts';
 import { seedEntries, seedMatch, seedPlayers, seedSeason } from '#lib/server/test/seed.ts';
 
@@ -240,6 +242,54 @@ describe('GET /api/v1/seasons/:slug/matches', () => {
 		expect(await find('open')).toMatchObject({ overdue: false, void: true });
 	});
 
+	describe('replays', () => {
+		const m = (key: string) => db.select().from(matches).where(eq(matches.id, ids[key])).get()!;
+		const legends = ['Jinx', 'Ahri'];
+		const upload = (key: string, by: string, file: Parameters<typeof replayFile>[0] = {}) =>
+			expect(saveReplay(m(key), new Date(0), by, replayFile({ legends, ...file }))).toMatchObject({
+				saved: true
+			});
+		const publish = (key: string, ...by: string[]) =>
+			by.forEach((p) => expect(setPublish(m(key), p, true)).toBe(true));
+		const ref = (n: number) => ({ id: `p${n}`, name: `Player ${n}`, former: false });
+
+		it('lists every file once both players publish, by game then player order', async () => {
+			upload('reported', 'p2', { game: 2 });
+			upload('reported', 'p2', { hidden: 0 });
+			upload('reported', 'p1', { hidden: 1 });
+			publish('reported', 'p1');
+			expect((await find('reported')).replays).toEqual([]);
+			publish('reported', 'p2');
+			const list = (await find('reported')).replays as { uploadedAt: string }[];
+			expect(list).toMatchObject([
+				{ game: 1, uploadedBy: ref(1), view: 'uploader' },
+				{ game: 1, uploadedBy: ref(2), view: 'uploader' },
+				{ game: 2, uploadedBy: ref(2), view: 'both' }
+			]);
+			for (const r of list) expect(new Date(r.uploadedAt).toISOString()).toBe(r.uploadedAt);
+			expect((await find('resolved')).replays).toEqual([]);
+		});
+
+		// The owner's rule: an early-reported match's replays never leak, even with both published.
+		it('leaves out an early match with public replays until its week is published', async () => {
+			saveReport(m('hidden'), 'p1', {
+				games: null,
+				p1Games: 2,
+				p2Games: 0,
+				p1Legend: 'Jinx',
+				p2Legend: 'Ahri',
+				diceWinnerId: 'p1'
+			});
+			upload('hidden', 'p4');
+			publish('hidden', 'p1', 'p4');
+			expect((await matchesOf()).some((x) => x.id === ids.hidden)).toBe(false);
+			db.update(seasons).set({ publishedRound: 3 }).run();
+			expect((await find('hidden')).replays).toMatchObject([
+				{ game: 1, uploadedBy: ref(4), view: 'both' }
+			]);
+		});
+	});
+
 	it('404s a draft or unknown season on every season sub-route', async () => {
 		db.update(seasons).set({ status: 'draft' }).run();
 		for (const get of [matchesGet, legendsGet, topCutGet])
@@ -322,6 +372,22 @@ describe('top cut', () => {
 		expect(playoffs).toHaveLength(3);
 		expect(playoffs.every((x) => x.week === null)).toBe(true);
 	});
+
+	// A bracket match exists only once the bracket is published, so it is never early.
+	it("lists a playoff match's public replays whatever the published round", async () => {
+		publishCut(season(), null, 'p1');
+		won('p1', slot(1, 0));
+		const m = slot(1, 0);
+		const played = db.select().from(matches).where(eq(matches.id, m.id)).get()!;
+		const file = replayFile({ legends: ['Jinx', 'Viktor'] });
+		expect(saveReplay(played, new Date(0), played.p1Id, file)).toMatchObject({ saved: true });
+		setPublish(played, played.p1Id, true);
+		setPublish(played, played.p2Id, true);
+		expect(season().publishedRound).toBe(0);
+		const x = (await matchesOf()).find((x) => x.id === m.id)!;
+		expect(x.replays).toMatchObject([{ game: 1, uploadedBy: { id: played.p1Id }, view: 'both' }]);
+	});
+
 	it('shows byes and undecided slots in an uneven bracket', async () => {
 		// A third group: 6 qualifiers in a bracket of 8, so the top two seeds get a bye.
 		db.insert(players)

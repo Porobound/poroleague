@@ -1,7 +1,7 @@
 import { matchMode } from '#lib/league/report.ts';
 import { droppedIds, isOverdue, isVoid } from '#lib/league/status.ts';
 import type { WeekMap } from '#lib/league/holiday.ts';
-import { isPublished } from '#lib/league/publish.ts';
+import { isPublished, replaysPublic } from '#lib/league/publish.ts';
 import { currentWeek, reportingClosed, weekOf } from '#lib/league/time.ts';
 import { matchName, shortMatchName } from '#lib/league/bracket.ts';
 import { groupName } from '#lib/season.ts';
@@ -144,7 +144,7 @@ export function matchCard(m: CardMatch, c: CardContext) {
 		early,
 		walkover,
 		// Both players published, which they can only do once the match has a replay.
-		replay: !early && !!m.p1PublishReplay && !!m.p2PublishReplay,
+		replay: replaysPublic(m, c.season.publishedRound),
 		props: {
 			head:
 				m.stage === 'playoff'

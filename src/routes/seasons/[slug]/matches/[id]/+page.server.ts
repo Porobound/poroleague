@@ -2,7 +2,7 @@ import { error, fail } from '@sveltejs/kit';
 import { LEGENDS } from '#lib/legends.ts';
 import { flagEmbed, resultEmbed } from '#lib/discord.ts';
 import { isUnlocked, visibleTo } from '#lib/league/holiday.ts';
-import { isPublished } from '#lib/league/publish.ts';
+import { isPublished, replaysPublic } from '#lib/league/publish.ts';
 import { matchMode, parseReport } from '#lib/league/report.ts';
 import { weekOf } from '#lib/league/time.ts';
 import { currentRole, playerAction } from '#lib/server/auth.ts';
@@ -24,7 +24,6 @@ import {
 	deleteReplay,
 	inMatch,
 	replaySlots,
-	replaysPublic,
 	saveReplay,
 	setPublish,
 	sideOf
@@ -117,7 +116,7 @@ export const load: PageServerLoad = async (event) => {
 		legends: LEGENDS,
 		// Null: no result to have replays of, or not this viewer's to see.
 		replays:
-			match.p1Games !== null && canSeeReplays(match, viewer, organizer, found.hidden)
+			match.p1Games !== null && canSeeReplays(match, season.publishedRound, viewer, organizer)
 				? {
 						games: replaySlots(match, season.slug, (id) => (id === p1.id ? p1 : p2).displayName),
 						// Players and organizers can delete; a visitor is here because they are public.
@@ -126,7 +125,7 @@ export const load: PageServerLoad = async (event) => {
 							: organizer
 								? ('organizer' as const)
 								: ('visitor' as const),
-						public: replaysPublic(match, found.hidden),
+						public: replaysPublic(match, season.publishedRound),
 						// The viewer playing as the match's player 1 or 2: the files they added are theirs.
 						side: viewer === p1.id ? (1 as const) : viewer === p2.id ? (2 as const) : null,
 						// A match with an erased player keeps no replays.
@@ -209,8 +208,7 @@ export const actions: Actions = {
 		const text = await file.text();
 		// Empty: the game the file says it is.
 		const game = Number(form.get('game'));
-		const found = find(event);
-		const { season, match } = context(event, false, found);
+		const { season, match } = context(event);
 		if (!inMatch(match, user.id)) return refused(403, 'Only the two players can add a replay.');
 		const result = saveReplay(
 			match,
@@ -234,7 +232,7 @@ export const actions: Actions = {
 		}
 		return {
 			message: `Replay ${result.replaced ? 'replaced' : 'added'} for game ${result.game}. ${
-				replaysPublic(match, found.hidden)
+				replaysPublic(match, season.publishedRound)
 					? 'It is public.'
 					: 'It stays private until you both publish.'
 			}`

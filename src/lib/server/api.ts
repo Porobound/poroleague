@@ -3,7 +3,7 @@
 import { json } from '@sveltejs/kit';
 import { roundName } from '#lib/league/bracket.ts';
 import { gameWinPct, legendMatches, legendStats, matchWinPct } from '#lib/league/legendStats.ts';
-import { published } from '#lib/league/publish.ts';
+import { published, replaysPublic } from '#lib/league/publish.ts';
 import { droppedIds, isOverdue, isVoid } from '#lib/league/status.ts';
 import { currentWeek, weekOf } from '#lib/league/time.ts';
 import { liveState } from '#lib/matchCard.ts';
@@ -16,6 +16,7 @@ import {
 	seasonEntries,
 	type Season
 } from '#lib/server/seasons.ts';
+import { seasonReplays } from '#lib/server/replays.ts';
 import { cutState } from '#lib/server/topCut.ts';
 
 export const notFound = (error: string) => json({ error }, { status: 404 });
@@ -99,6 +100,21 @@ export function seasonMatchList(s: Season) {
 	const dropped = droppedIds(list);
 	const now = new Date();
 	const week = currentWeek(s.startDate, now);
+	const files = Map.groupBy(seasonReplays(s.id), (r) => r.matchId);
+	// The match's files once they are public, by game, then player 1's before player 2's.
+	const replayList = (m: Match) =>
+		replaysPublic(m, s.publishedRound)
+			? (files.get(m.id) ?? [])
+					.sort(
+						(a, b) => a.game - b.game || +(a.uploadedBy === m.p2Id) - +(b.uploadedBy === m.p2Id)
+					)
+					.map((r) => ({
+						game: r.game,
+						uploadedBy: ref(r.uploadedBy),
+						view: r.bothSides ? ('both' as const) : ('uploader' as const),
+						uploadedAt: r.createdAt.toISOString()
+					}))
+			: [];
 	const dto = (m: Match) => {
 		const { inPlay, closed } = liveState(m, s, now);
 		const voided = isVoid(m, dropped);
@@ -132,7 +148,8 @@ export function seasonMatchList(s: Season) {
 				closed,
 				voided
 			}),
-			flag: m.flaggedBy ? (m.flagResolvedAt ? 'resolved' : 'open') : null
+			flag: m.flaggedBy ? (m.flagResolvedAt ? 'resolved' : 'open') : null,
+			replays: replayList(m)
 		};
 	};
 	// Playoff rows only exist once the bracket is published (syncBracket writes them).

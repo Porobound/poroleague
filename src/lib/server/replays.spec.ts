@@ -12,7 +12,6 @@ import {
 	replayFileName,
 	replayGzip as stored,
 	replaySlots,
-	replaysPublic,
 	saveReplay,
 	setPublish
 } from '#lib/server/replays.ts';
@@ -291,10 +290,10 @@ describe('replaySlots', () => {
 describe('who sees replays', () => {
 	it('is the two players and organizers until both players publish', () => {
 		const sees = () => [
-			canSeeReplays(match(), 'p1'),
-			canSeeReplays(match(), 'p3'),
-			canSeeReplays(match(), null),
-			canSeeReplays(match(), 'p3', true)
+			canSeeReplays(match(), 1, 'p1'),
+			canSeeReplays(match(), 1, 'p3'),
+			canSeeReplays(match(), 1, null),
+			canSeeReplays(match(), 1, 'p3', true)
 		];
 		saveReplay(match(), SINCE, 'p1', replayFile());
 		expect(sees()).toEqual([true, false, false, true]);
@@ -303,9 +302,8 @@ describe('who sees replays', () => {
 		setPublish(match(), 'p2', true);
 		expect(sees()).toEqual([true, true, true, true]);
 		// An early match stays between its players until its week is published.
-		expect(canSeeReplays(match(), 'p3', false, true)).toBe(false);
-		expect(canSeeReplays(match(), 'p2', false, true)).toBe(true);
-		expect([replaysPublic(match()), replaysPublic(match(), true)]).toEqual([true, false]);
+		expect(canSeeReplays(match(), 0, 'p3')).toBe(false);
+		expect(canSeeReplays(match(), 0, 'p2')).toBe(true);
 		setPublish(match(), 'p1', false);
 		expect(sees()).toEqual([true, false, false, true]);
 	});

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isPublished, masked, nextPublish, published, weeksAhead } from './publish';
+import { isPublished, masked, nextPublish, published, replaysPublic, weeksAhead } from './publish';
 
 describe('nextPublish', () => {
 	it('starts with week 1', () => {
@@ -47,6 +47,22 @@ describe('isPublished', () => {
 		expect(isPublished({ round: 3 }, 2)).toBe(false);
 		expect(isPublished({ stage: 'group', round: 3 }, 2)).toBe(false);
 		expect(isPublished({ stage: 'playoff', round: 3 }, 0)).toBe(true);
+	});
+});
+
+describe('replaysPublic', () => {
+	const both = { stage: 'group', round: 3, p1PublishReplay: true, p2PublishReplay: true };
+	it('takes both players pressing Publish', () => {
+		expect(replaysPublic(both, 3)).toBe(true);
+		expect(replaysPublic({ ...both, p2PublishReplay: false }, 3)).toBe(false);
+		expect(replaysPublic({ round: 3 }, 3)).toBe(false);
+	});
+	it('keeps an early match private even with both, until its week is published', () => {
+		expect(replaysPublic(both, 2)).toBe(false);
+		expect(replaysPublic(both, 4)).toBe(true);
+	});
+	it('counts a top-cut match as published', () => {
+		expect(replaysPublic({ ...both, stage: 'playoff' }, 0)).toBe(true);
 	});
 });
 

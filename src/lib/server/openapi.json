@@ -325,7 +325,8 @@
 					"walkover",
 					"void",
 					"overdue",
-					"flag"
+					"flag",
+					"replays"
 				],
 				"properties": {
 					"id": { "type": "integer", "examples": [41] },
@@ -363,6 +364,36 @@
 						"type": ["string", "null"],
 						"enum": ["open", "resolved", null],
 						"description": "`open` while a player disputes the result, `resolved` once an organizer has settled it, else `null`."
+					},
+					"replays": {
+						"type": "array",
+						"items": { "$ref": "#/components/schemas/Replay" },
+						"description": "The match's RiftAtlas replay files, by game, then player 1's before player 2's. Empty unless both players have published them; a game can have one file from each player. The files themselves are not in the API: watch them on the match page."
+					}
+				}
+			},
+			"Replay": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": ["game", "uploadedBy", "view", "uploadedAt"],
+				"properties": {
+					"game": {
+						"type": "integer",
+						"minimum": 1,
+						"description": "The game of the match.",
+						"examples": [1]
+					},
+					"uploadedBy": { "$ref": "#/components/schemas/PlayerRef" },
+					"view": {
+						"type": "string",
+						"enum": ["uploader", "both"],
+						"description": "`both` when the file shows both players' decks and hands, `uploader` when only the uploader's."
+					},
+					"uploadedAt": {
+						"type": "string",
+						"format": "date-time",
+						"description": "ISO 8601, UTC.",
+						"examples": ["2026-11-13T18:04:00.000Z"]
 					}
 				}
 			},

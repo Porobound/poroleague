@@ -15,7 +15,9 @@ import { cutState, publishCut, walkover } from '#lib/server/topCut.ts';
 import { db } from '#lib/server/db/index.ts';
 import { matches, players, seasons } from '#lib/server/db/schema.ts';
 import { erasePlayer } from '#lib/server/players.ts';
+import { saveReplay, setPublish } from '#lib/server/replays.ts';
 import { dropPlayer } from '#lib/server/seasons.ts';
+import { replayFile } from '#lib/server/test/replayFile.ts';
 import { seedEntries, seedMatch, seedPlayers, seedSeason } from '#lib/server/test/seed.ts';
 import spec from './openapi.json';
 // OpenAPI 3.1 meta-schema, https://spec.openapis.org/oas/3.1/schema/2022-10-07
@@ -87,8 +89,9 @@ describe('responses match the spec', () => {
 	};
 
 	// One season in the top cut with every shape the API can send: reported, score-only, flagged,
-	// resolved, unreported and void matches, a dropped and an erased player, a bracket with byes
-	// and a reported playoff. A second season still in signup has the nulls and empty groups.
+	// resolved, unreported and void matches, public replays of both views, a dropped and an erased
+	// player, a bracket with byes and a reported playoff. A second season still in signup has the
+	// nulls and empty groups.
 	beforeEach(() => {
 		seedPlayers(10);
 		db.insert(players).values({ id: 'org', displayName: 'Org' }).run();
@@ -126,6 +129,12 @@ describe('responses match the spec', () => {
 		flagMatch(ms[0], ms[0].p2Id, 'Wrong score.');
 		flagMatch(ms[1], ms[1].p2Id, 'Typo.');
 		keepResult(ms[1], 'org');
+		const watched = db.select().from(matches).where(eq(matches.id, ms[2].id)).get()!;
+		const legends = ['Jinx', 'Ahri'];
+		saveReplay(watched, new Date(0), watched.p1Id, replayFile({ legends }));
+		saveReplay(watched, new Date(0), watched.p2Id, replayFile({ legends, hidden: 0 }));
+		setPublish(watched, watched.p1Id, true);
+		setPublish(watched, watched.p2Id, true);
 		seedMatch({ seasonId: id, group: 1, round: 2, p1Id: 'p1', p2Id: 'p10' });
 		dropPlayer(id, 'p10', 'org');
 
@@ -156,6 +165,8 @@ describe('responses match the spec', () => {
 		expect(body.some((m: Json) => m.stage === 'playoff' && m.result)).toBe(true);
 		expect(body.some((m: Json) => m.walkover && m.void === false)).toBe(true);
 		expect(body.some((m: Json) => m.void && m.flag === null)).toBe(true);
+		const views = body.flatMap((m: Json) => (m.replays as Json[]).map((r) => r.view));
+		expect(views).toEqual(['both', 'uploader']);
 		await check('/seasons/{slug}/matches', matchesGet, { slug: 'early' });
 		await check('/seasons/{slug}/matches', matchesGet, { slug: 'nope' });
 	});
