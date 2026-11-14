@@ -190,9 +190,9 @@
 				<div class="pb-callout-body">
 					<strong class="pb-callout-title">Replays are optional</strong>
 					<span>
-						Want to keep them? RiftAtlas deletes replays after 6 hours, so download each game's
-						replay there before then. You can add them to this match any time after the result is
-						saved.
+						If you'd like to share this match, download your replays from RiftAtlas soon: a free
+						account keeps them for 6 hours, a subscription for longer. You can add them once this
+						result is saved.
 					</span>
 				</div>
 			</div>
