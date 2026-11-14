@@ -25,7 +25,8 @@ import {
 	inMatch,
 	replaySlots,
 	saveReplay,
-	setPublish
+	setPublish,
+	sideOf
 } from '#lib/server/replays.ts';
 import { getSeason, seasonEntries } from '#lib/server/seasons.ts';
 import { cutRounds, waitingOnFlag } from '#lib/server/topCut.ts';
@@ -125,6 +126,8 @@ export const load: PageServerLoad = async (event) => {
 								? ('organizer' as const)
 								: ('visitor' as const),
 						public: match.p1PublishReplay && match.p2PublishReplay,
+						// The viewer playing as the match's player 1 or 2: the files they added are theirs.
+						side: viewer === p1.id ? (1 as const) : viewer === p2.id ? (2 as const) : null,
 						// A match with an erased player keeps no replays.
 						canUpload: playing && !p1.former && !p2.former,
 						// Who has pressed Publish, the viewer's own side first: for the two players, and for
@@ -205,7 +208,8 @@ export const actions: Actions = {
 		const text = await file.text();
 		// Empty: the game the file says it is.
 		const game = Number(form.get('game'));
-		const { season, match } = context(event);
+		const found = find(event);
+		const { season, match } = context(event, false, found);
 		if (!inMatch(match, user.id)) return refused(403, 'Only the two players can add a replay.');
 		const result = saveReplay(
 			match,
@@ -215,17 +219,22 @@ export const actions: Actions = {
 			Number.isInteger(game) && game > 0 ? game : undefined
 		);
 		if (typeof result === 'string') return refused(400, result);
-		if (!result.saved)
+		if (!result.saved) {
+			const them = matchPlayers(match).find((p) => p.id !== user.id)!.displayName;
 			return fail(409, {
 				error: true,
-				message: `Game ${result.game} already has another replay. Choose which game this file is.`,
+				message: `${
+					result.held === 'own'
+						? `You already have a replay for game ${result.game}.`
+						: `Game ${result.game} has ${them}'s replay of another game.`
+				} Choose which game this file is.`,
 				upload: 'which' as const
 			});
+		}
+		const pub = !found.hidden && match.p1PublishReplay && match.p2PublishReplay;
 		return {
-			message: `Replay added for game ${result.game}. ${
-				result.unpublished
-					? 'Replays are private again until you both publish.'
-					: 'Replays stay private until you both publish.'
+			message: `Replay ${result.replaced ? 'replaced' : 'added'} for game ${result.game}. ${
+				pub ? 'It is public.' : 'It stays private until you both publish.'
 			}`
 		};
 	},
@@ -252,16 +261,17 @@ export const actions: Actions = {
 	deleteReplay: async (event) => {
 		const user = playerAction(event);
 		const organizer = user.isOrganizer && (await currentRole(event));
-		const game = Number((await event.request.formData()).get('game'));
+		const form = await event.request.formData();
+		const game = Number(form.get('game'));
+		// Whose file: the match's player 1 or 2.
+		const side = form.get('side');
 		const { match } = context(event, organizer);
-		if (!organizer && !inMatch(match, user.id))
+		const uploader = side === '1' || side === '2' ? sideOf(match, Number(side) as 1 | 2) : null;
+		// A player deletes only their own file; an organizer any.
+		if (!organizer && uploader !== user.id)
 			return fail(403, { error: true, message: "This replay isn't yours to delete." });
-		if (!deleteReplay(match, user.id, game))
+		if (!uploader || !deleteReplay(match, user.id, game, uploader))
 			return fail(404, { error: true, message: 'That replay is already gone.' });
-		// Deleting cleared whatever the players had pressed.
-		const pressed = match.p1PublishReplay || match.p2PublishReplay;
-		return {
-			message: `Game ${game} replay deleted.${pressed ? ' Replays are private again.' : ''}`
-		};
+		return { message: `Game ${game} replay deleted.` };
 	}
 };
