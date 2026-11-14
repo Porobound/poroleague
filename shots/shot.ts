@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { expect, type Browser } from '@playwright/test';
+import { expect, type Browser, type Page } from '@playwright/test';
 import { as } from '../e2e/fixtures.ts';
 import { NOW } from './now.ts';
 
@@ -9,7 +9,14 @@ const REAL_YEAR = String(new Date().getFullYear());
 
 // Saves .shots/<view>/<name>.png at both widths, logged in as `who` if given. Fails rather
 // than saving an error page, a fallback font or a real date, which would all read as page changes.
-export async function shot(browser: Browser, name: string, path: string, who?: string) {
+// `before` puts the loaded page in the state to show.
+export async function shot(
+	browser: Browser,
+	name: string,
+	path: string,
+	who?: string,
+	before?: (page: Page) => Promise<void>
+) {
 	for (const [view, viewport] of Object.entries(VIEWS)) {
 		const ctx = await browser.newContext({
 			...(who ? as(who) : {}),
@@ -37,6 +44,7 @@ export async function shot(browser: Browser, name: string, path: string, who?: s
 		await page.clock.setFixedTime(NOW);
 		const res = await page.goto(path, { waitUntil: 'networkidle' });
 		expect(res?.ok(), `${path} returned ${res?.status()}`).toBe(true);
+		await before?.(page);
 		const { failed, loaded, text } = await page.evaluate(async () => {
 			await document.fonts.ready;
 			const fonts = [...document.fonts];
