@@ -276,6 +276,7 @@
 				replays={data.replays}
 				names={[player(order[0]).displayName, opponent]}
 				base="/seasons/{data.season.slug}/matches/{m.id}"
+				upload={form && 'upload' in form ? form.upload : null}
 			/>
 		{/if}
 

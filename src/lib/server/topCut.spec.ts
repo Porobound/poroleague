@@ -132,7 +132,7 @@ describe('advancing', () => {
 		expect(cutState(season()).champion).toBe('p1');
 		const played = slot(2, 0).match!;
 		const file = replayFile({ legends: ['Jinx, Loose Cannon', 'Viktor, Herald'] });
-		expect(saveReplay(played, new Date(0), 'p1', file)).toBeNull();
+		expect(saveReplay(played, new Date(0), 'p1', file)).toMatchObject({ saved: true });
 		setPublish(played, 'p1', true);
 
 		// The loser can still flag the semi, and the organizer's fix moves the final on.

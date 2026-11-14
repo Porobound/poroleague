@@ -12,16 +12,26 @@ const [p1, p2] = [playerName('replays', 1), playerName('replays', 2)];
 // Dated now, after the season was seeded: an older game can't be this season's.
 const file = (legends?: string[], replayId?: string) =>
 	replayFile({ legends, replayId, completedAt: Date.now() });
-const upload = async (page: Page, text: string, game?: string) => {
-	await page.getByLabel('Replay file from RiftAtlas').setInputFiles({
+const replays = (page: Page) => page.getByRole('region', { name: 'Replays' });
+// The button that opens the upload form: "Add a replay" until the match has one.
+const opener = (page: Page) => replays(page).getByText(/^Add( or replace)? a replay$/);
+const field = (page: Page) => page.getByLabel('Replay file');
+const choose = (page: Page, text: string) =>
+	field(page).setInputFiles({
 		name: 'replay.json',
 		mimeType: 'application/json',
 		buffer: Buffer.from(text)
 	});
-	if (game) await page.getByLabel('Which game is it?').selectOption(game);
-	await page.getByRole('button', { name: 'Add replay' }).click();
+const which = (page: Page) => page.getByRole('group', { name: 'Which game is this file?' });
+// Opens the form if it is closed and sends the file; `game` answers the which-game step.
+const upload = async (page: Page, text: string, game?: string) => {
+	if (!(await field(page).isVisible())) await opener(page).click();
+	await choose(page, text);
+	await page.getByRole('button', { name: 'Upload' }).click();
+	if (!game) return;
+	await which(page).getByRole('radio', { name: game }).check();
+	await page.getByRole('button', { name: 'Save replay' }).click();
 };
-const replays = (page: Page) => page.getByRole('region', { name: 'Replays' });
 // One row per played game; a pressed Watch adds its own list of steps.
 const rows = (page: Page) =>
 	replays(page)
@@ -46,19 +56,28 @@ test('upload, watch, and who can see a replay', async ({ browser }) => {
 		replays(uploader).getByText('RiftAtlas deletes replays after 6 hours')
 	).toBeVisible();
 	await expect(badge(uploader, 'Private')).toHaveCount(0);
+	// The form opens on demand.
+	await expect(opener(uploader)).toHaveText('Add a replay');
+	await expect(field(uploader)).toBeHidden();
 
-	// A file of other legends isn't this match.
+	// A file of other legends isn't this match: the form stays open, the field marked.
 	await upload(uploader, file());
 	await expect(uploader.getByRole('status')).toHaveText(
 		'This replay is Azir vs Evelynn, but the match was reported as Ahri vs Annie.'
 	);
+	await expect(field(uploader)).toBeVisible();
+	await expect(field(uploader)).toHaveAttribute('aria-invalid', 'true');
+	await expect(rows(uploader)).toHaveCount(0);
 	await upload(uploader, 'hello');
 	await expect(uploader.getByRole('status')).toContainText("isn't a RiftAtlas replay file");
 
+	// An empty slot takes the file straight away, and the form closes.
 	await upload(uploader, game1);
 	await expect(uploader.getByRole('status')).toHaveText(
-		`Replay saved. Only you and ${p2} can see it.`
+		'Replay added for game 1. Replays stay private until you both publish.'
 	);
+	await expect(field(uploader)).toBeHidden();
+	await expect(opener(uploader)).toHaveText('Add or replace a replay');
 	// Every played game has a row; the ones without a replay have nothing to press.
 	await expect(rows(uploader)).toHaveText([
 		new RegExp(`^Game 1\\s*Added by ${p1} · \\w{3} \\d+ \\w{3}`),
@@ -107,13 +126,27 @@ test('upload, watch, and who can see a replay', async ({ browser }) => {
 	// until the player says which game it is.
 	const room2 = file(['Ahri, Nine-Tailed Fox', 'Annie, Dark Child'], 'ROOM2:1');
 	await upload(uploader, room2);
-	await expect(uploader.getByRole('status')).toContainText('Game 1 already has another replay.');
-	await upload(uploader, room2, 'Game 2');
+	await expect(uploader.getByRole('status')).toHaveText(
+		'Game 1 already has another replay. Choose which game this file is.'
+	);
+	// The file is kept; the form now asks only for the game.
+	await expect(field(uploader)).toBeHidden();
+	await expect(which(uploader).getByText('replay.json')).toBeVisible();
+	await expect(which(uploader).getByRole('radio')).toHaveCount(3);
+	await expect(
+		which(uploader).getByRole('radio', { name: `Game 1 Replaces the replay added by ${p1}` })
+	).toBeVisible();
+	const save = uploader.getByRole('button', { name: 'Save replay' });
+	await expect(save).toBeDisabled();
+	await expect(rows(uploader).filter({ hasText: 'Added by' })).toHaveCount(1);
+	await which(uploader).getByRole('radio', { name: 'Game 2 No replay yet' }).check();
+	await save.click();
+	await expect(uploader.getByRole('status')).toHaveText(
+		'Replay added for game 2. Replays stay private until you both publish.'
+	);
 	await expect(rows(uploader).filter({ hasText: 'Added by' })).toHaveCount(2);
 	expect(await (await opponent.request.get(`${url()}/replay/1`)).text()).toBe(game1);
-	// The same form sent again changes nothing.
-	await uploader.reload();
-	await expect(rows(uploader).filter({ hasText: 'Added by' })).toHaveCount(2);
+	expect(await (await opponent.request.get(`${url()}/replay/2`)).text()).toBe(room2);
 
 	// The public log says nothing of replays; the organizer's does.
 	await opponent.goto(`/seasons/${slug}/audit`);
@@ -143,7 +176,8 @@ test('upload, watch, and who can see a replay', async ({ browser }) => {
 	// An organizer sees it and can delete it straight from the row, but adds none.
 	const org = await browser.newPage(as(ORGANIZER));
 	await org.goto(url());
-	await expect(org.getByLabel('Replay file from RiftAtlas')).toHaveCount(0);
+	await expect(opener(org)).toHaveCount(0);
+	await expect(field(org)).toHaveCount(0);
 	await expect(badge(org, 'Private')).toBeVisible();
 	await expect(org.getByLabel('More for game 1')).toHaveCount(0);
 	await replays(org).getByRole('button', { name: 'Delete game 1 replay' }).click();
@@ -248,8 +282,12 @@ test('replays go public once both players publish', async ({ browser }) => {
 	await expect(badge(visitor, 'Public')).toHaveCount(0);
 	await expect(replays(visitor).getByText(/publish/i)).toHaveCount(0);
 
-	// A new file is not what the two agreed to publish.
+	// A new file is not what the two agreed to publish: replacing game 1 takes it back.
 	await upload(two, file(['Ahri, Nine-Tailed Fox', 'Annie, Dark Child']), 'Game 1');
+	await expect(two.getByRole('status')).toHaveText(
+		'Replay added for game 1. Replays are private again until you both publish.'
+	);
+	await expect(rows(two).first()).toContainText(`Added by ${p2}`);
 	for (const line of PRIVATE(p1)) await expect(replays(two).getByText(line)).toBeVisible();
 	await isPublic(false);
 
@@ -279,6 +317,38 @@ test('replays go public once both players publish', async ({ browser }) => {
 	await expect(one.getByRole('status')).toHaveText(
 		'Game 1 replay deleted. Replays are private again.'
 	);
+});
+
+test('Cancel, and the which-game step without JavaScript', async ({ browser }) => {
+	seedReplay(match, 1);
+	const other = file(['Ahri, Nine-Tailed Fox', 'Annie, Dark Child']);
+	const page = await browser.newPage(as(player('replays', 1)));
+	await page.goto(url());
+	await opener(page).click();
+	await page.getByRole('link', { name: 'Cancel' }).click();
+	await expect(field(page)).toBeHidden();
+	// Cancel on the which-game step drops the file and the notice, and saves nothing.
+	await upload(page, other);
+	await expect(which(page)).toBeVisible();
+	await page.getByRole('link', { name: 'Cancel' }).click();
+	await expect(page.getByRole('status')).toHaveCount(0);
+	await expect(field(page)).toBeHidden();
+	await opener(page).click();
+	await expect(field(page)).toHaveValue('');
+	await expect(which(page)).toHaveCount(0);
+	await expect(rows(page).filter({ hasText: 'Added by' })).toHaveCount(1);
+
+	// Without JavaScript the page comes back with an empty file field: it asks for both.
+	const plain = await browser.newPage({ ...as(player('replays', 1)), javaScriptEnabled: false });
+	await plain.goto(url());
+	await upload(plain, other);
+	await expect(plain.getByRole('status')).toContainText('Game 1 already has another replay.');
+	await expect(field(plain)).toHaveValue('');
+	await choose(plain, other);
+	await which(plain).getByRole('radio', { name: 'Game 3' }).check();
+	await plain.getByRole('button', { name: 'Save replay' }).click();
+	await expect(plain.getByRole('status')).toContainText('Replay added for game 3.');
+	await expect(rows(plain).filter({ hasText: 'Added by' })).toHaveCount(2);
 });
 
 test('the report form reminds players to save the replay', async ({ browser }) => {

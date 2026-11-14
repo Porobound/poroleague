@@ -1,11 +1,13 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
 	import ConfirmButton from '#lib/components/ConfirmButton.svelte';
 	import { MAX_REPLAY_BYTES, TOO_BIG } from '#lib/replay.ts';
 
 	let {
 		replays: r,
 		names,
-		base
+		base,
+		upload = null
 	}: {
 		replays: {
 			games: { game: number; replay: { by: string; when: string; file: string } | null }[];
@@ -19,12 +21,16 @@
 		names: readonly [string, string];
 		// The match page's path; a game's file is at `<base>/replay/<game>`.
 		base: string;
+		// Why the last upload wasn't saved: the file was refused, or its game has another replay.
+		upload?: 'refused' | 'which' | null;
 	} = $props();
 
 	const RIFTATLAS = 'https://play.riftatlas.com/?replayFile=1';
 	const ICONS = {
 		down: 'M12 4v11m0 0l-4-4m4 4l4-4M5 20h14',
-		ext: 'M14 5h5v5M19 5l-8 8M11 7H6v11h11v-5'
+		ext: 'M14 5h5v5M19 5l-8 8M11 7H6v11h11v-5',
+		up: 'M12 20V9m0 0l-4 4m4-4l4 4M5 4h14',
+		file: 'M7 3h7l4 4v14H7zM14 3v4h4'
 	};
 	const has = $derived(r.games.some((g) => g.replay));
 	const opponent = $derived(names[1]);
@@ -76,11 +82,24 @@
 		Object.assign(document.createElement('a'), { href: fileUrl(game), download: file }).click();
 		watched = game;
 	};
-	// The server refuses bigger request bodies outright; say so before the upload.
-	const tooBig = (e: Event & { currentTarget: HTMLInputElement }) =>
-		e.currentTarget.setCustomValidity(
-			(e.currentTarget.files?.[0]?.size ?? 0) > MAX_REPLAY_BYTES ? TOO_BIG : ''
-		);
+	const which = $derived(upload === 'which');
+	let add = $state<HTMLDetailsElement>();
+	// The chosen file's name. Empty after a page load, so always without JavaScript: the input is
+	// empty then too, and the which-game step has to show it again.
+	let picked = $state('');
+	let pick = $state<number | null>(null);
+	const chosen = (e: Event & { currentTarget: HTMLInputElement }) => {
+		const file = e.currentTarget.files?.[0];
+		picked = file?.name ?? '';
+		// The server refuses bigger request bodies outright; say so before the upload.
+		e.currentTarget.setCustomValidity((file?.size ?? 0) > MAX_REPLAY_BYTES ? TOO_BIG : '');
+	};
+	const close = () => {
+		add!.open = false;
+		add!.querySelector('form')!.reset();
+		picked = '';
+		pick = null;
+	};
 </script>
 
 {#snippet ico(name: keyof typeof ICONS, size = 16)}
@@ -215,35 +234,71 @@
 			</p>
 		{/if}
 		{#if r.canUpload}
-			<form method="POST" action="?/replay" enctype="multipart/form-data" class="upload">
-				<label class="pb-field">
-					Replay file from RiftAtlas
-					<input
-						class="pb-input"
-						type="file"
-						name="file"
-						accept=".json,application/json"
-						required
-						onchange={tooBig}
-					/>
-					<span class="pb-hint">
-						One JSON file per game. Only you and {opponent} can see it until you both publish.
-					</span>
-				</label>
-				<label class="pb-field">
-					Which game is it?
-					<select class="pb-input pb-select" name="game">
-						<option value="">The game the file says</option>
-						{#each r.games as { game } (game)}
-							<option value={game}>Game {game}</option>
-						{/each}
-					</select>
-					<span class="pb-hint">
-						Choose a game if the series moved to a new RiftAtlas room, where the count starts over.
-					</span>
-				</label>
-				<button class="pb-btn pb-btn-secondary">Add replay</button>
-			</form>
+			<details class="pb-replays-add" open={!!upload} bind:this={add}>
+				<summary class={['pb-btn', has ? 'pb-btn-ghost' : 'pb-btn-primary']}
+					>{@render ico('up')}{has ? 'Add or replace a replay' : 'Add a replay'}</summary
+				>
+				<!-- Without a reload a refused file stays in the input, for the which-game step to send again. -->
+				<form
+					class="pb-replays-form"
+					method="POST"
+					action="?/replay"
+					enctype="multipart/form-data"
+					use:enhance={() =>
+						async ({ result, update }) => {
+							await update();
+							if (result.type === 'success') close();
+						}}
+				>
+					<div hidden={which && !!picked}>
+						<label class="pb-field">
+							Replay file
+							<input
+								class="pb-input pb-file"
+								type="file"
+								name="file"
+								accept=".json,application/json"
+								required
+								aria-invalid={upload === 'refused' || undefined}
+								onchange={chosen}
+							/>
+							<span class="pb-hint">One JSON file per game, downloaded from RiftAtlas.</span>
+						</label>
+					</div>
+					{#if which}
+						<fieldset class="pb-replays-which">
+							<legend>Which game is this file?</legend>
+							{#if picked}
+								<span class="pb-replays-file">{@render ico('file')}{picked}</span>
+							{/if}
+							{#each r.games as { game, replay } (game)}
+								<label class="pb-choice">
+									<input type="radio" name="game" value={game} required bind:group={pick} />
+									<span>
+										<strong>Game {game}</strong>
+										<span class="pb-choice-sub">
+											{replay ? `Replaces the replay added by ${replay.by}` : 'No replay yet'}
+										</span>
+									</span>
+								</label>
+							{/each}
+						</fieldset>
+					{/if}
+					<div class="pb-replays-form-actions">
+						<button class="pb-btn pb-btn-primary" disabled={which && !!picked && !pick}
+							>{which ? 'Save replay' : 'Upload'}</button
+						>
+						<!-- A link: going to the page again also drops the notice, with or without JavaScript. -->
+						<a
+							class="pb-btn pb-btn-ghost"
+							href={base}
+							data-sveltekit-noscroll
+							data-sveltekit-replacestate
+							onclick={close}>Cancel</a
+						>
+					</div>
+				</form>
+			</details>
 		{/if}
 		{#if has && r.published && r.role === 'player'}
 			<div class={['pb-replays-publish', r.public && 'is-public']}>
@@ -281,11 +336,5 @@
 <style>
 	.pb-replays :global(.pb-dialog-body p) {
 		margin: 0;
-	}
-	.upload {
-		display: flex;
-		flex-direction: column;
-		align-items: flex-start;
-		gap: 16px;
 	}
 </style>

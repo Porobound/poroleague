@@ -192,30 +192,42 @@ export const actions: Actions = {
 		return { message: 'Flagged. An organizer will check it.' };
 	},
 
-	// Either player adds or replaces a game's replay, at any time once the result is in.
+	// Either player adds or replaces a game's replay, at any time once the result is in. `upload`
+	// tells the page why the form stays open.
 	replay: async (event) => {
 		const user = playerAction(event);
 		const form = await event.request.formData();
+		const refused = (status: number, message: string) =>
+			fail(status, { error: true, message, upload: 'refused' as const });
 		const file = form.get('file');
-		if (!(file instanceof File) || !file.size)
-			return fail(400, { error: true, message: 'Choose a replay file first.' });
-		if (file.size > MAX_REPLAY_BYTES) return fail(400, { error: true, message: TOO_BIG });
+		if (!(file instanceof File) || !file.size) return refused(400, 'Choose a replay file first.');
+		if (file.size > MAX_REPLAY_BYTES) return refused(400, TOO_BIG);
 		const text = await file.text();
 		// Empty: the game the file says it is.
 		const game = Number(form.get('game'));
 		const { season, match } = context(event);
-		if (!inMatch(match, user.id))
-			return fail(403, { error: true, message: 'Only the two players can add a replay.' });
-		const error = saveReplay(
+		if (!inMatch(match, user.id)) return refused(403, 'Only the two players can add a replay.');
+		const result = saveReplay(
 			match,
 			season.createdAt,
 			user.id,
 			text,
 			Number.isInteger(game) && game > 0 ? game : undefined
 		);
-		if (error) return fail(400, { error: true, message: error });
-		const opponent = matchPlayers(match).find((p) => p.id !== user.id)!.displayName;
-		return { message: `Replay saved. Only you and ${opponent} can see it.` };
+		if (typeof result === 'string') return refused(400, result);
+		if (!result.saved)
+			return fail(409, {
+				error: true,
+				message: `Game ${result.game} already has another replay. Choose which game this file is.`,
+				upload: 'which' as const
+			});
+		return {
+			message: `Replay added for game ${result.game}. ${
+				result.unpublished
+					? 'Replays are private again until you both publish.'
+					: 'Replays stay private until you both publish.'
+			}`
+		};
 	},
 
 	// A player's yes or no to showing the replays to everyone; it takes both.

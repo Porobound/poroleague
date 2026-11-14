@@ -52,7 +52,11 @@ beforeEach(() => {
 describe('saveReplay', () => {
 	it('stores the file in the slot of its game and gives it back unchanged', () => {
 		const file = replayFile({ game: 2 });
-		expect(saveReplay(match(), SINCE, 'p2', file)).toBeNull();
+		expect(saveReplay(match(), SINCE, 'p2', file)).toEqual({
+			game: 2,
+			saved: true,
+			unpublished: false
+		});
 		expect(matchReplays(matchId)).toMatchObject([{ game: 2, uploadedBy: 'p2' }]);
 		expect(gunzipSync(stored(matchId, 2)!).toString()).toBe(file);
 		expect(stored(matchId, 1)).toBeUndefined();
@@ -76,7 +80,12 @@ describe('saveReplay', () => {
 	it('replaces a game with the other view of it, and both decide on publishing again', () => {
 		saveReplay(match(), SINCE, 'p1', replayFile({ completedAt: 1 }));
 		publishBoth();
-		expect(saveReplay(match(), SINCE, 'p2', replayFile({ completedAt: 2 }))).toBeNull();
+		// The same `replayId`: no need to ask which game.
+		expect(saveReplay(match(), SINCE, 'p2', replayFile({ completedAt: 2 }))).toEqual({
+			game: 1,
+			saved: true,
+			unpublished: true
+		});
 		expect(matchReplays(matchId)).toMatchObject([{ game: 1, uploadedBy: 'p2' }]);
 		expect(published(match())).toEqual([false, false]);
 	});
@@ -85,7 +94,7 @@ describe('saveReplay', () => {
 		const file = replayFile();
 		saveReplay(match(), SINCE, 'p1', file);
 		publishBoth();
-		expect(saveReplay(match(), SINCE, 'p2', file)).toBeNull();
+		expect(saveReplay(match(), SINCE, 'p2', file)).toEqual({ game: 1, saved: true });
 		expect(matchReplays(matchId)).toMatchObject([{ game: 1, uploadedBy: 'p1' }]);
 		expect(published(match())).toEqual([true, true]);
 		expect(
@@ -96,16 +105,19 @@ describe('saveReplay', () => {
 	it('a file from another room never replaces a game on its own number', () => {
 		// The series moved to a second room: its first game also says "game 1".
 		saveReplay(match(), SINCE, 'p1', replayFile({ replayId: 'room1:1' }));
+		setPublish(match(), 'p2', true);
 		const second = replayFile({ replayId: 'room2:1' });
-		expect(saveReplay(match(), SINCE, 'p1', second)).toBe(
-			'Game 1 already has another replay. Choose which game this file is, or choose game 1 to replace that one.'
-		);
-		expect(saveReplay(match(), SINCE, 'p1', second, 2)).toBeNull();
+		// Nothing is stored or taken back until the player says which game it is.
+		expect(saveReplay(match(), SINCE, 'p1', second)).toEqual({ game: 1, saved: false });
+		expect(matchReplays(matchId).map((r) => r.game)).toEqual([1]);
+		expect(published(match())).toEqual([false, true]);
+		expect(saveReplay(match(), SINCE, 'p1', second, 2)).toMatchObject({ game: 2, saved: true });
 		expect(matchReplays(matchId).map((r) => r.game)).toEqual([1, 2]);
+		expect(published(match())).toEqual([false, false]);
 		// Chosen wrongly: choosing again moves it, and a chosen game does replace.
-		expect(saveReplay(match(), SINCE, 'p1', second, 3)).toBeNull();
+		expect(saveReplay(match(), SINCE, 'p1', second, 3)).toMatchObject({ game: 3 });
 		expect(matchReplays(matchId).map((r) => r.game)).toEqual([1, 3]);
-		expect(saveReplay(match(), SINCE, 'p1', second, 1)).toBeNull();
+		expect(saveReplay(match(), SINCE, 'p1', second, 1)).toMatchObject({ game: 1, saved: true });
 		expect(matchReplays(matchId).map((r) => r.game)).toEqual([1]);
 		expect(saveReplay(match(), SINCE, 'p1', second, 4)).toMatch(/game 4/);
 	});
@@ -212,7 +224,8 @@ describe('the match page', () => {
 	const event = (id: string | null, isOrganizer = false, form: Record<string, string> = {}) => {
 		const url = new URL('http://localhost/seasons/s1');
 		const body = new FormData();
-		for (const [k, v] of Object.entries(form)) body.set(k, v);
+		for (const [k, v] of Object.entries(form))
+			body.set(k, k === 'file' ? new File([v], 'replay.json') : v);
 		return {
 			params: { slug: 's1', id: String(matchId) },
 			url,
@@ -225,10 +238,8 @@ describe('the match page', () => {
 	};
 	type Data = { match: object; replays: { published: boolean[] | null } | null };
 	const loaded = async (...who: [string | null, boolean?]) => (await load(event(...who))) as Data;
-	const message = async (
-		action: 'publishReplays' | 'deleteReplay',
-		...args: Parameters<typeof event>
-	) => ((await actions[action](event(...args))) as { message: string }).message;
+	const message = async (action: keyof typeof actions, ...args: Parameters<typeof event>) =>
+		((await actions[action](event(...args))) as { message: string }).message;
 
 	beforeEach(() => {
 		vi.mocked(currentRole).mockResolvedValue(true);
@@ -264,6 +275,28 @@ describe('the match page', () => {
 		);
 		expect(await message('publishReplays', 'p2', false, { on: '1' })).toBe('Replays are public.');
 		expect(published(match())).toEqual([true, true]);
+	});
+
+	it('adds a replay, or asks which game when the slot has another one', async () => {
+		const add = (form: Record<string, string>) => actions.replay(event('p1', false, form));
+		// The action checks against the real season, made a moment ago.
+		const completedAt = Date.now() + 1000;
+		expect(await add({ file: replayFile({ game: 2, replayId: 'g2', completedAt }) })).toEqual({
+			message: 'Replay added for game 2. Replays are private again until you both publish.'
+		});
+		const file = replayFile({ replayId: 'room2:1', completedAt });
+		expect(await add({ file })).toMatchObject({
+			status: 409,
+			data: {
+				message: 'Game 1 already has another replay. Choose which game this file is.',
+				upload: 'which'
+			}
+		});
+		expect(await add({ file, game: '3' })).toEqual({
+			message: 'Replay added for game 3. Replays stay private until you both publish.'
+		});
+		expect(await add({ file: 'nope' })).toMatchObject({ status: 400, data: { upload: 'refused' } });
+		expect(matchReplays(matchId).map((r) => r.game)).toEqual([1, 2, 3]);
 	});
 
 	it('says when deleting a replay took a Publish back', async () => {
