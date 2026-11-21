@@ -37,11 +37,10 @@ Enforced on PRs by `.github/workflows/pr.yml`. PRs squash-merge, so the PR title
 
 - Types: `feat fix docs test refactor chore ci`.
 - PR title: `type(scope): summary` — scope optional, lowercase area (`discord`, `leaderboard`); ≤72 chars, no trailing period, no plan numbers.
-- Branch: `type/<issue>-slug`, e.g. `fix/112-pairings-names`. Every PR has an issue.
-- PR body contains `Closes #<issue>` for the branch's issue.
+- Branch: `type/<ticket>-slug` with the Linear key in lowercase, e.g. `fix/pro-12-pairings-names`, or `agent/<ticket>-slug` for the issue agent; a GitHub number (`fix/112-slug`) still passes for work begun before Linear. Every PR has a ticket.
+- PR body contains `Closes PRO-12` (or `Closes #112`) for the branch's ticket.
 - Branch commits: same format as the title.
-- Issues: plain sentence title, no prefix; type via label (`bug`, `enhancement`, `chore`), set by the issue forms.
-- Board (Porobound project 1) holds issues only: add new issues with `gh project item-add 1 --owner Porobound --url <issue>`; never add PRs.
+- Tickets: new ones in Linear, team `PRO`, plain sentence title. The remaining GitHub issues keep their labels (`bug`, `enhancement`, `chore`) and sit on the Porobound board (project 1), which holds issues only, never PRs.
 - No IP addresses (LAN included) in issues, PRs, comments or commits: say "the dev server" / "the prod host".
 
 ## Rules
