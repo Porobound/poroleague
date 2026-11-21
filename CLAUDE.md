@@ -21,6 +21,8 @@ Before pushing: `npm run lint` (CI runs `prettier --check`), `npm run check`, `n
 
 Plan in the issue: the plan's tasks are its checklist → branch → one commit per task, ticking its box → PR. The owner merges. Plans are not committed: a decision that outlives the work goes in `docs/spec.md`, in the PR that makes it true.
 
+The issue agent's review step runs `.claude/agents/review-poroleague.md` (auth, input, audit, migrations, accessibility, league rules) next to the generic reviewers; `.github/automerge-exclude` lists the paths a pull request may not touch if it is to merge without a person.
+
 ## Worktrees
 
 Do branch work in a `git worktree` outside the repo, never by switching branches in the main checkout: other sessions and the owner work there. Changes in `git status` you didn't make aren't yours; leave them.
