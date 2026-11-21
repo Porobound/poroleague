@@ -57,9 +57,8 @@ html {
 	top: 0;
 	z-index: 30;
 	border-bottom: 1px solid var(--line);
-	background: color-mix(in srgb, var(--surface) 78%, transparent);
-	-webkit-backdrop-filter: blur(14px) saturate(1.5);
-	backdrop-filter: blur(14px) saturate(1.5);
+	/* Opaque on purpose: a backdrop blur here made screenshots differ by a few pixels run to run. */
+	background: var(--surface);
 }
 .site-nav {
 	display: flex;
