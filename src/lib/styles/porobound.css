@@ -14,6 +14,11 @@
 	--tier-bronze: #c98d5e;
 	--tier-silver: #b6c0cb;
 	--tier-gold: #e9c25b;
+	--panel-end: color-mix(in srgb, var(--surface-raised) 86%, var(--surface));
+	--shadow-panel:
+		inset 0 1px 0 color-mix(in srgb, var(--ink) 6%, transparent), 0 1px 2px rgb(3 6 10 / 0.35),
+		0 16px 32px -20px rgb(3 6 10 / 0.7);
+	--shadow-pop: 0 1px 2px rgb(3 6 10 / 0.4), 0 20px 40px -16px rgb(3 6 10 / 0.75);
 }
 [data-theme='light'] {
 	--surface: #f6f4ef;
@@ -29,6 +34,10 @@
 	--tier-bronze: #93552a;
 	--tier-silver: #5f6b78;
 	--tier-gold: #7f5c00;
+	--panel-end: var(--surface-raised);
+	--shadow-panel:
+		inset 0 1px 0 #fff, 0 1px 2px rgb(74 60 30 / 0.07), 0 14px 28px -20px rgb(74 60 30 / 0.3);
+	--shadow-pop: 0 1px 2px rgb(74 60 30 / 0.1), 0 20px 40px -18px rgb(74 60 30 / 0.35);
 }
 :root {
 	--space-1: 4px;
@@ -37,7 +46,9 @@
 	--space-8: 32px;
 	--radius-sm: 4px;
 	--radius-md: 10px;
+	--radius-lg: 14px;
 	--radius-pill: 999px;
+	--ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 	--font-display: 'Bricolage Grotesque', system-ui, sans-serif;
 	--font-sans: 'Archivo', system-ui, sans-serif;
 	--font-mono: 'JetBrains Mono', ui-monospace, monospace;
@@ -52,32 +63,63 @@
 	display: inline-flex;
 	gap: var(--space-2);
 	align-items: center;
+	text-decoration: none;
 	transition:
-		background 0.12s,
-		border-color 0.12s;
+		background 0.15s,
+		border-color 0.15s,
+		box-shadow 0.2s,
+		filter 0.15s,
+		transform 0.2s var(--ease-out);
 }
 .pb-btn:focus-visible {
 	outline: 2px solid var(--accent);
 	outline-offset: 2px;
+}
+/* A small lift where there is a pointer that hovers; a press everywhere. */
+@media (hover: hover) {
+	.pb-btn:hover:not(:disabled) {
+		transform: translateY(-1px);
+	}
+}
+.pb-btn:active:not(:disabled) {
+	transform: scale(0.98);
+	transition-duration: 0.05s;
+}
+@media (prefers-reduced-motion: reduce) {
+	.pb-btn {
+		transition: none;
+	}
+	.pb-btn:hover:not(:disabled),
+	.pb-btn:active:not(:disabled) {
+		transform: none;
+	}
 }
 .pb-btn:disabled {
 	opacity: 0.45;
 	cursor: not-allowed;
 }
 .pb-btn-primary {
-	background: var(--brand);
+	background: linear-gradient(180deg, color-mix(in srgb, var(--brand) 88%, #fff), var(--brand));
 	color: var(--on-brand);
+	box-shadow:
+		inset 0 1px 0 rgb(255 255 255 / 0.22),
+		0 8px 18px -8px color-mix(in srgb, var(--brand) 75%, transparent);
 }
+/* The colours are repeated on hover so a link-button keeps them (links turn ink on hover). */
 .pb-btn-primary:hover:not(:disabled) {
 	filter: brightness(1.08);
+	color: var(--on-brand);
 }
 .pb-btn-secondary {
 	background: var(--surface-raised);
 	color: var(--ink);
 	border-color: var(--line);
+	box-shadow: inset 0 1px 0 color-mix(in srgb, var(--ink) 6%, transparent);
 }
 .pb-btn-secondary:hover:not(:disabled) {
 	background: var(--frost);
+	color: var(--ink);
+	border-color: color-mix(in srgb, var(--ink-muted) 55%, var(--line));
 }
 .pb-btn-ghost {
 	background: transparent;
@@ -85,6 +127,7 @@
 }
 .pb-btn-ghost:hover:not(:disabled) {
 	background: var(--frost);
+	color: var(--ink);
 }
 .pb-btn-sm {
 	font-size: 13px;
@@ -126,9 +169,10 @@
 }
 /* Card */
 .pb-card {
-	background: var(--surface-raised);
+	background: linear-gradient(180deg, var(--surface-raised), var(--panel-end));
 	border: 1px solid var(--line);
-	border-radius: var(--radius-md);
+	border-radius: var(--radius-lg);
+	box-shadow: var(--shadow-panel);
 	padding: var(--space-4);
 }
 .pb-card-title {
@@ -147,9 +191,10 @@
 }
 /* Match card */
 .pb-match {
-	background: var(--surface-raised);
+	background: linear-gradient(180deg, var(--surface-raised), var(--panel-end));
 	border: 1px solid var(--line);
-	border-radius: var(--radius-md);
+	border-radius: var(--radius-lg);
+	box-shadow: var(--shadow-panel);
 	overflow: hidden;
 	min-width: 280px;
 }
@@ -219,6 +264,17 @@
 	padding: 10px 12px;
 	border-bottom: 1px solid var(--line);
 }
+.pb-table tbody tr:last-child > * {
+	border-bottom-color: transparent;
+}
+.pb-table tbody tr > * {
+	transition: background 0.12s;
+}
+@media (hover: hover) {
+	.pb-table tbody tr:not(.is-me):hover > * {
+		background: color-mix(in srgb, var(--frost) 55%, transparent);
+	}
+}
 .pb-num {
 	font-family: var(--font-mono);
 	font-variant-numeric: tabular-nums;
@@ -237,6 +293,17 @@
 	align-items: center;
 	gap: 10px;
 	font-weight: 500;
+}
+/* In a table the row already says "player": the name is a quiet link until hovered or focused. */
+.pb-table a.pb-player {
+	color: var(--ink);
+	text-decoration: none;
+}
+.pb-table a.pb-player:hover .pb-player-name,
+.pb-table a.pb-player:focus-visible .pb-player-name {
+	color: var(--accent);
+	text-decoration: underline;
+	text-underline-offset: 3px;
 }
 .pb-delta-up {
 	color: var(--accent);
@@ -405,7 +472,8 @@
 	box-sizing: border-box;
 	background: var(--surface-raised);
 	border: 1px solid var(--line);
-	border-radius: var(--radius-md);
+	border-radius: var(--radius-lg);
+	box-shadow: var(--shadow-pop);
 	padding: 24px;
 	display: flex;
 	flex-direction: column;
