@@ -1,6 +1,7 @@
 <script lang="ts">
 	import '../app.css';
 	import favicon from '#lib/assets/favicon.png';
+	import logo from '#lib/assets/logo.png';
 	import { afterNavigate, onNavigate } from '$app/navigation';
 	import { page } from '$app/state';
 	import Avatar from '#lib/components/Avatar.svelte';
@@ -105,19 +106,7 @@
 <header class="site-header">
 	<nav aria-label="Main" class="container site-nav">
 		<a href="/" class="brand">
-			<svg class="brand-mark" width="30" height="30" viewBox="0 0 30 30" aria-hidden="true">
-				<rect width="30" height="30" rx="9" fill="var(--brand)" />
-				<g fill="var(--on-brand)">
-					<path d="M10 12c-2-1-3.2-3.1-3-5.4 1.8.4 3.5 1.7 4.6 3.7z" />
-					<path d="M20 12c2-1 3.2-3.1 3-5.4-1.8.4-3.5 1.7-4.6 3.7z" />
-					<circle cx="15" cy="17.5" r="7.5" />
-				</g>
-				<g fill="var(--brand)">
-					<circle cx="12.3" cy="16.5" r="1.15" />
-					<circle cx="17.7" cy="16.5" r="1.15" />
-					<path d="M13.5 19.6h3v1.3a1.5 1.5 0 0 1-3 0z" />
-				</g>
-			</svg>
+			<img class="brand-mark" src={logo} alt="" width="34" height="34" />
 			Poroleague
 		</a>
 		<span class="desk">
