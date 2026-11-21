@@ -111,6 +111,7 @@ docs/                rules, spec, runbooks
 
 ## Contributing
 
+- Not on the team? Start with [`CONTRIBUTING.md`](CONTRIBUTING.md): every pull request has an issue, and small ones get reviewed fastest.
 - `main` is protected: open a PR, get one approval, squash merge. The PR title becomes the commit, so its format, the branch name and `Closes <issue>` are checked (`naming`).
 - CI runs lint, check and unit tests on every PR, plus e2e and a Docker build as their own jobs. Run `npm run format` before pushing.
 - Code and test conventions live in [`CLAUDE.md`](CLAUDE.md).
