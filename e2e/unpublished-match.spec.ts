@@ -62,7 +62,7 @@ test('missing season links to all seasons', async ({ page }) => {
 test('an early result counts nowhere public until its week is published', async ({ page }) => {
 	await page.goto(`/seasons/${slug}`);
 	const row = page.getByRole('row').filter({ hasText: playerName('visibility', 1) });
-	await expect(row.getByRole('cell').nth(2)).toHaveText('0');
+	await expect(row.getByRole('cell').nth(5)).toHaveText('0');
 
 	await page.goto(`/seasons/${slug}/legends`);
 	await expect(page.getByRole('rowheader', { name: 'Jinx' })).toHaveCount(0);

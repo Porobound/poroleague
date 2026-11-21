@@ -25,10 +25,10 @@
 		<tr>
 			<th class="pb-num">#</th>
 			<th>Player</th>
-			<th class="pb-num"><abbr title="Matches played">M</abbr></th>
 			<th class="pb-num pb-opt"><abbr title="Wins">W</abbr></th>
 			<th class="pb-num pb-opt"><abbr title="Draws">D</abbr></th>
 			<th class="pb-num pb-opt"><abbr title="Losses">L</abbr></th>
+			<th class="pb-num"><abbr title="Matches played">M</abbr></th>
 			<th class="pb-num"><abbr title="Game-win %">GW%</abbr></th>
 			<th class="pb-num"><abbr title="Points">Pts</abbr></th>
 		</tr>
@@ -55,10 +55,10 @@
 							>{/if}
 					</PlayerName>
 				</td>
+				<td class={['pb-num pb-opt', !r.wins && 'pb-muted']}>{r.wins}</td>
+				<td class={['pb-num pb-opt', !r.draws && 'pb-muted']}>{r.draws}</td>
+				<td class={['pb-num pb-opt', !r.losses && 'pb-muted']}>{r.losses}</td>
 				<td class="pb-num">{r.played}</td>
-				<td class="pb-num pb-opt">{r.wins}</td>
-				<td class="pb-num pb-opt">{r.draws}</td>
-				<td class="pb-num pb-opt">{r.losses}</td>
 				<td class="pb-num">{r.played ? pct(r.gwp) : '—'}</td>
 				<td class="pb-num pb-pts">{r.points}</td>
 			</tr>
