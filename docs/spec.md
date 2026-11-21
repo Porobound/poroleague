@@ -156,13 +156,13 @@ Read-only JSON at `/api/v1` for third parties. The OpenAPI 3.1 spec `src/lib/ser
 - SvelteKit + `adapter-node`, TypeScript
 - SQLite via Drizzle (`better-sqlite3`), migrations via drizzle-kit
 - Vitest — unit tests for the pure league logic and for server code against an in-memory database; Playwright — e2e for pages and flows, and the page screenshots in `.shots/`
-- Styling: the Porobound design-system snapshot (`src/lib/styles/porobound.css`) plus app styles in `src/app.css` (see below)
+- Styling: shared styles in `src/lib/styles/porobound.css` (tokens, `pb-` classes) plus page styles in `src/app.css` (see below)
 
 ## Visual design
 
-Designs come from Claude Design as HTML. Integration rule: **extract, don't paste.**
+The CSS in the repo is the source of the look; there is no outside design system. A design made in Claude Design is a sketch. Integration rule: **extract, don't paste.**
 
-- Colors, type, spacing → CSS custom properties in `src/app.css`.
+- Colors, type, spacing → CSS custom properties in `src/lib/styles/porobound.css`.
 - Page chrome → `src/routes/+layout.svelte`; repeated pieces (standings table, match card, report form) → Svelte components.
 - Theme: dark by default, light by toggle; the system setting is not followed. The choice is a `theme` cookie, not `localStorage`, so the server renders the right theme with no flash.
 

@@ -749,7 +749,7 @@ a:hover {
 		margin-bottom: calc(140px + env(safe-area-inset-bottom));
 	}
 
-	/* The design system's pb-phase-vertical and pb-table-compact, applied on phones. */
+	/* pb-phase-vertical and pb-table-compact from porobound.css, applied on phones. */
 	.pb-phase {
 		grid-auto-flow: row;
 		grid-auto-columns: auto;
@@ -837,7 +837,7 @@ a:hover {
 }
 
 /* Narrow replay panel: Watch keeps one width down the list when only some files have a menu or
-   Delete (the snapshot lines them up from 720px only). */
+   Delete (porobound.css lines them up from 720px only). */
 @media (max-width: 719.98px) {
 	.pb-replays-list:has(.pb-replay-more, .pb-replay-del) .pb-replay-actions {
 		display: grid;

@@ -1,4 +1,4 @@
-/* Porobound design system (Claude Design, version 1794651171-7331). Snapshot: tokens.css + components/bundle.css (minus font @import, body and demo helpers). Re-sync by replacing this file; keep app overrides in app.css. */
+/* Shared styles: tokens and every pb- class. This file is the source: edit a rule here, where it is defined. It began as an export from Claude Design and is no longer synced with it. */
 :root,
 [data-theme='dark'] {
 	--surface: #10141a;
