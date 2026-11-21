@@ -1,15 +1,16 @@
 # Contributing
 
-Thanks for wanting to help. This page is for people outside the team. The short version: **open an
-issue before you write code, and keep each pull request small.**
+Thanks for wanting to help. This page is for people outside the team. The short version: **open a
+pull request, give it an issue, and keep it small.** The maintainer approves it or says what is in
+the way.
 
-## Before you start
+## The issue
 
-- Open a [GitHub issue](https://github.com/Porobound/poroleague/issues/new/choose) and say what you
-  want to change and roughly how. The team plans in a private tracker, so the GitHub issue is how we
-  see your idea.
-- Wait for a yes on anything visual, or anything over about 100 lines. A redesign nobody asked for is
-  the most likely work to be turned down.
+- Every pull request closes an issue, and the `naming` check looks for it. Open a
+  [GitHub issue](https://github.com/Porobound/poroleague/issues/new/choose) that says what you
+  change. The team plans in a private tracker, so the GitHub issue is where your change is recorded.
+- You don't need an answer on the issue before you open the pull request.
+- For a large or visual change, a line in the issue about how you plan to split it helps the review.
 
 ## Branch, title, body
 
