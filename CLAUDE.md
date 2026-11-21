@@ -40,7 +40,7 @@ Enforced on PRs by `.github/workflows/pr.yml`. PRs squash-merge, so the PR title
 - Branch: `type/<ticket>-slug` with the Linear key in lowercase, e.g. `fix/pro-12-pairings-names`, or `agent/<ticket>-slug` for the issue agent; a GitHub number (`fix/112-slug`) still passes for work begun before Linear. Every PR has a ticket.
 - PR body contains `Closes PRO-12` (or `Closes #112`) for the branch's ticket.
 - Branch commits: same format as the title.
-- Tickets: new ones in Linear, team `PRO`, plain sentence title. The remaining GitHub issues keep their labels (`bug`, `enhancement`, `chore`) and sit on the Porobound board (project 1), which holds issues only, never PRs.
+- Tickets: new ones in Linear, team `PRO`, plain sentence title, no prefix. The remaining GitHub issues keep their labels (`bug`, `enhancement`, `chore`) and sit on the Porobound board (project 1), which holds issues only, never PRs.
 - No IP addresses (LAN included) in issues, PRs, comments or commits: say "the dev server" / "the prod host".
 
 ## Rules

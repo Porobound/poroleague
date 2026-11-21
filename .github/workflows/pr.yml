@@ -20,7 +20,7 @@ jobs:
           ok=1
           [[ $TITLE =~ ^($types)(\([a-z0-9-]+\))?!?:\ [^\ ].*[^.]$ && ${#TITLE} -le 72 ]] ||
             { echo "::error::Title must be 'type(scope): summary', ≤72 chars, no trailing period. Types: $types"; ok=0; }
-          # <issue> is a Linear id (pro-12) or, for work begun before Linear, a GitHub number; agent/ is the issue agent's
+          # <ticket> is a Linear id (pro-12) or, for work begun before Linear, a GitHub number; agent/ is for the issue agent's branches
           if [[ $BRANCH =~ ^($types|agent)/([0-9]+|[a-z][a-z0-9]*-[0-9]+)-[a-z0-9-]+$ ]]; then
             n=${BASH_REMATCH[2]}
             if [[ $n =~ ^[0-9]+$ ]]; then n="#$n"; else n=${n^^}; fi
