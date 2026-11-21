@@ -39,15 +39,15 @@ npm run test:e2e     # when a page changes
 
 - Every change comes with tests in the same pull request: unit tests for logic and server code, an
   e2e spec for pages.
-- CI runs all of it, so a red check tells you what is left. You don't need a full local setup to
-  open a pull request.
+- CI runs all of it too, so a red check tells you what is left.
 - On Windows, the backup script tests are skipped. Everything else should pass.
 
 ## Screenshots
 
-A pull request that changes how a page looks needs new images in `.shots/`. `npm run shots` makes
-them and needs Docker. If you don't have Docker, say so in the pull request: a maintainer runs it
-on your branch.
+A pull request that changes how a page looks commits new images in `.shots/`. Run `npm run check`,
+then `npm run shots`, look at every changed image, and list them in the pull request with why.
+`npm run shots` renders in Playwright's Docker image, so every machine makes the same pixels: you
+need Docker for it.
 
 ## How things look
 
