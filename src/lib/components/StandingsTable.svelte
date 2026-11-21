@@ -18,12 +18,14 @@
 	} = $props();
 	// Nobody has played: rows are still in name order, so show no ranks or cut line yet.
 	const fresh = $derived(rows.every((r) => !r.played));
+	// The cut only means something when it leaves someone out.
+	const line = $derived(!fresh && cut > 0 && cut < rows.length ? cut : 0);
 </script>
 
-<table class="pb-table">
+<table class="pb-table standings-table">
 	<thead>
 		<tr>
-			<th class="pb-num">#</th>
+			<th class="pb-rank">#</th>
 			<th>Player</th>
 			<th class="pb-num pb-opt"><abbr title="Wins">W</abbr></th>
 			<th class="pb-num pb-opt"><abbr title="Draws">D</abbr></th>
@@ -35,13 +37,10 @@
 	</thead>
 	<tbody>
 		{#each rows as r, i (r.playerId)}
-			<tr
-				class={[
-					r.playerId === me && 'is-me',
-					!fresh && i + 1 === cut && i + 1 < rows.length && 'is-cut'
-				]}
-			>
-				<td class={['pb-rank', i === 0 && r.played > 0 && 'is-podium']}>{fresh ? '–' : i + 1}</td>
+			<tr class={[r.playerId === me && 'is-me', i < line && 'is-in', i + 1 === line && 'is-cut']}>
+				<td class={['pb-rank', i === 0 && r.played > 0 && 'is-podium']}
+					><span class="rank-chip">{fresh ? '–' : i + 1}</span></td
+				>
 				<td class="pb-player-cell">
 					<PlayerName
 						cell
@@ -60,7 +59,9 @@
 				<td class={['pb-num pb-opt', !r.losses && 'pb-muted']}>{r.losses}</td>
 				<td class="pb-num">{r.played}</td>
 				<td class="pb-num">{r.played ? pct(r.gwp) : '—'}</td>
-				<td class="pb-num pb-pts">{r.points}</td>
+				<td class="pb-num pb-pts" data-cut={i + 1 === line ? `Top ${line} advance` : undefined}
+					>{r.points}</td
+				>
 			</tr>
 		{/each}
 	</tbody>

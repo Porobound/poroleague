@@ -844,3 +844,966 @@ a:hover {
 		grid-template-columns: minmax(0, 1fr) auto minmax(44px, auto);
 	}
 }
+
+/* ───────────────────────── Polish layer ─────────────────────────
+   Depth, motion and states on top of the design-system snapshot. Tokens first, then by component. */
+:root {
+	--radius-lg: 14px;
+	--ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+	--glow-brand: color-mix(in srgb, var(--brand) 16%, transparent);
+	--glow-accent: color-mix(in srgb, var(--accent) 11%, transparent);
+	--panel-top: var(--surface-raised);
+	--panel-bottom: color-mix(in srgb, var(--surface-raised) 86%, var(--surface));
+	--shadow-panel:
+		inset 0 1px 0 color-mix(in srgb, var(--ink) 6%, transparent), 0 1px 2px rgb(3 6 10 / 0.35),
+		0 16px 32px -20px rgb(3 6 10 / 0.7);
+	--shadow-pop: 0 1px 2px rgb(3 6 10 / 0.4), 0 20px 40px -16px rgb(3 6 10 / 0.75);
+	--header-bg: color-mix(in srgb, var(--surface) 76%, transparent);
+}
+[data-theme='light'] {
+	--glow-brand: color-mix(in srgb, var(--brand) 9%, transparent);
+	--glow-accent: color-mix(in srgb, var(--accent) 8%, transparent);
+	--panel-bottom: var(--surface-raised);
+	--shadow-panel:
+		inset 0 1px 0 #fff, 0 1px 2px rgb(74 60 30 / 0.07), 0 14px 28px -20px rgb(74 60 30 / 0.3);
+	--shadow-pop: 0 1px 2px rgb(74 60 30 / 0.1), 0 20px 40px -18px rgb(74 60 30 / 0.35);
+}
+
+/* Page: two soft lights behind the header, a little grain so flat areas don't band. */
+html {
+	scroll-behavior: smooth;
+	scroll-padding-top: 88px;
+}
+body {
+	min-height: 100dvh;
+	display: flex;
+	flex-direction: column;
+	background:
+		radial-gradient(880px 460px at 10% -140px, var(--glow-brand), transparent 70%),
+		radial-gradient(760px 420px at 94% -160px, var(--glow-accent), transparent 70%), var(--surface);
+	background-repeat: no-repeat;
+	-webkit-font-smoothing: antialiased;
+	text-rendering: optimizeLegibility;
+}
+body::before {
+	content: '';
+	position: fixed;
+	inset: 0;
+	z-index: -1;
+	pointer-events: none;
+	opacity: 0.05;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 .9 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+main.container {
+	flex: 1;
+	width: 100%;
+	box-sizing: border-box;
+}
+::selection {
+	background: color-mix(in srgb, var(--brand) 38%, transparent);
+	color: var(--ink);
+}
+a {
+	text-underline-offset: 3px;
+	text-decoration-thickness: 1px;
+	text-decoration-color: color-mix(in srgb, currentColor 45%, transparent);
+	transition:
+		color 0.15s,
+		text-decoration-color 0.15s;
+}
+a:hover {
+	text-decoration-color: currentColor;
+}
+a:focus-visible,
+summary:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+	border-radius: var(--radius-sm);
+}
+.skip-link {
+	position: absolute;
+	left: 16px;
+	top: -64px;
+	z-index: 100;
+	padding: 10px 16px;
+	border-radius: var(--radius-md);
+	background: var(--ink);
+	color: var(--surface);
+	font-weight: 600;
+	text-decoration: none;
+	transition: top 0.15s;
+}
+.skip-link:focus {
+	top: 12px;
+	color: var(--surface);
+}
+
+/* Header: stays put, frosted. */
+.site-header {
+	position: sticky;
+	top: 0;
+	z-index: 30;
+	background: var(--header-bg);
+	-webkit-backdrop-filter: blur(14px) saturate(1.5);
+	backdrop-filter: blur(14px) saturate(1.5);
+	border-bottom-color: color-mix(in srgb, var(--line) 70%, transparent);
+}
+.site-nav {
+	gap: 6px;
+	padding-block: 12px;
+}
+.brand {
+	display: inline-flex;
+	align-items: center;
+	gap: 10px;
+	font-size: 22px;
+	letter-spacing: -0.02em;
+}
+.brand:hover {
+	color: var(--ink);
+}
+.brand-mark {
+	flex: none;
+	border-radius: 9px;
+	box-shadow:
+		inset 0 1px 0 rgb(255 255 255 / 0.25),
+		0 6px 14px -6px color-mix(in srgb, var(--brand) 70%, transparent);
+	transition: transform 0.4s var(--ease-out);
+}
+.brand:hover .brand-mark {
+	transform: rotate(-8deg) scale(1.06);
+}
+.nav-link {
+	padding: 8px 12px;
+	border-radius: 8px;
+	line-height: 20px;
+	transition:
+		color 0.15s,
+		background 0.15s;
+}
+.nav-link:hover {
+	background: color-mix(in srgb, var(--frost) 55%, transparent);
+}
+.nav-link[aria-current='page'] {
+	background: var(--frost);
+	box-shadow: inset 0 1px 0 color-mix(in srgb, var(--ink) 8%, transparent);
+}
+.site-nav .theme-btn {
+	margin-inline: 6px;
+	border-color: transparent;
+	color: var(--ink-muted);
+	transition:
+		color 0.15s,
+		background 0.15s,
+		transform 0.4s var(--ease-out);
+}
+.site-nav .theme-btn:hover {
+	color: var(--ink);
+	transform: rotate(18deg);
+}
+.me {
+	padding: 4px 10px 4px 4px;
+	border-radius: var(--radius-pill);
+	transition: background 0.15s;
+}
+a.me:hover,
+a.me[aria-current='page'] {
+	background: var(--frost);
+	color: var(--ink);
+}
+
+/* Type */
+.page h1,
+.message-card h1 {
+	font-size: 40px;
+	line-height: 1.08;
+	letter-spacing: -0.025em;
+	text-wrap: balance;
+}
+.page h2 {
+	letter-spacing: -0.012em;
+	text-wrap: balance;
+}
+.page p {
+	text-wrap: pretty;
+}
+.eyebrow {
+	letter-spacing: 0.09em;
+}
+.pb-num,
+.pb-rank,
+.stats strong {
+	font-variant-numeric: tabular-nums;
+}
+
+/* Surfaces: one light from above. */
+.panel,
+.pb-card,
+.pb-match,
+.message-card,
+.pb-dialog {
+	background: linear-gradient(180deg, var(--panel-top), var(--panel-bottom));
+	border-radius: var(--radius-lg);
+	box-shadow: var(--shadow-panel);
+}
+.panel .panel,
+.panel .pb-match,
+.panel .pb-card {
+	box-shadow: none;
+	border-radius: var(--radius-md);
+}
+.panel .pb-match {
+	background: var(--surface);
+}
+.pb-dialog,
+.pb-toast,
+.me-items {
+	box-shadow: var(--shadow-pop);
+}
+.pb-overlay {
+	-webkit-backdrop-filter: blur(6px);
+	backdrop-filter: blur(6px);
+}
+.message-card {
+	position: relative;
+	overflow: hidden;
+}
+.message-card::before {
+	content: '';
+	position: absolute;
+	inset: 0 0 auto;
+	height: 3px;
+	background: linear-gradient(90deg, var(--brand), var(--signal), var(--accent));
+}
+.empty {
+	border-radius: var(--radius-lg);
+	background: color-mix(in srgb, var(--surface-raised) 45%, transparent);
+}
+.pb-notice {
+	background: color-mix(in srgb, var(--accent) 7%, var(--surface-raised));
+	border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
+	border-left: 3px solid var(--accent);
+	border-radius: var(--radius-md);
+}
+.pb-notice-error {
+	background: color-mix(in srgb, var(--brand) 8%, var(--surface-raised));
+	border-color: color-mix(in srgb, var(--brand) 45%, var(--line));
+	border-left-color: var(--brand);
+}
+
+/* Buttons: lift on hover, settle on press. */
+.pb-btn {
+	text-decoration: none;
+	transition:
+		background 0.15s,
+		border-color 0.15s,
+		box-shadow 0.2s,
+		filter 0.15s,
+		transform 0.2s var(--ease-out);
+}
+.pb-btn:hover:not(:disabled) {
+	transform: translateY(-1px);
+}
+.pb-btn:active:not(:disabled) {
+	transform: translateY(0) scale(0.98);
+	transition-duration: 0.05s;
+}
+.pb-btn-primary {
+	background: linear-gradient(180deg, color-mix(in srgb, var(--brand) 88%, #fff), var(--brand));
+	box-shadow:
+		inset 0 1px 0 rgb(255 255 255 / 0.22),
+		0 8px 18px -8px color-mix(in srgb, var(--brand) 75%, transparent);
+}
+.pb-btn-primary:hover:not(:disabled) {
+	color: var(--on-brand);
+	box-shadow:
+		inset 0 1px 0 rgb(255 255 255 / 0.22),
+		0 12px 22px -8px color-mix(in srgb, var(--brand) 85%, transparent);
+}
+.pb-btn-secondary {
+	box-shadow: inset 0 1px 0 color-mix(in srgb, var(--ink) 6%, transparent);
+}
+.pb-btn-secondary:hover:not(:disabled) {
+	color: var(--ink);
+	border-color: color-mix(in srgb, var(--ink-muted) 55%, var(--line));
+}
+.pb-btn-ghost:hover:not(:disabled) {
+	color: var(--ink);
+}
+.pb-badge-live::before {
+	animation: live-dot 1.8s ease-in-out infinite;
+}
+@keyframes live-dot {
+	50% {
+		opacity: 0.35;
+		transform: scale(0.75);
+	}
+}
+.pb-input,
+.pb-textarea {
+	transition:
+		border-color 0.15s,
+		box-shadow 0.15s;
+}
+.pb-input:hover:not(:focus),
+.pb-textarea:hover:not(:focus) {
+	border-color: color-mix(in srgb, var(--ink-muted) 50%, var(--line));
+}
+.opt {
+	transition:
+		background 0.15s,
+		border-color 0.15s,
+		transform 0.2s var(--ease-out);
+}
+.opt:hover {
+	border-color: color-mix(in srgb, var(--ink-muted) 55%, var(--line));
+}
+.opt:active {
+	transform: scale(0.97);
+}
+
+/* Season progress: the step we're in glows. */
+.pb-phase {
+	gap: 6px;
+}
+.pb-phase-bar {
+	height: 6px;
+}
+.pb-phase-step.is-done .pb-phase-bar {
+	background: linear-gradient(
+		90deg,
+		color-mix(in srgb, var(--accent) 70%, var(--line)),
+		var(--accent)
+	);
+}
+.pb-phase-step.is-current .pb-phase-bar {
+	background: linear-gradient(
+		90deg,
+		var(--brand) 0 40%,
+		color-mix(in srgb, var(--brand) 60%, #fff) 50%,
+		var(--brand) 60% 100%
+	);
+	background-size: 250% 100%;
+	box-shadow: 0 0 14px -1px color-mix(in srgb, var(--brand) 70%, transparent);
+	animation: phase-sheen 2.6s linear infinite;
+}
+@keyframes phase-sheen {
+	from {
+		background-position: 100% 0;
+	}
+	to {
+		background-position: -66% 0;
+	}
+}
+.pb-phase-step.is-current .pb-phase-label {
+	font-weight: 700;
+}
+
+/* Tables: quieter links, rows that respond, a marker on the leader and on you. */
+.pb-table a.pb-player {
+	color: var(--ink);
+	text-decoration: none;
+}
+.pb-table a.pb-player:hover .pb-player-name {
+	color: var(--accent);
+	text-decoration: underline;
+	text-underline-offset: 3px;
+}
+.pb-table th {
+	letter-spacing: 0.08em;
+}
+.pb-table tbody tr > * {
+	transition: background 0.12s;
+}
+.pb-table tbody tr:not(.is-me):hover > * {
+	background: color-mix(in srgb, var(--frost) 38%, transparent);
+}
+.pb-table tbody tr:last-child > * {
+	border-bottom-color: transparent;
+}
+.pb-rank.is-podium {
+	font-weight: 700;
+	color: var(--tier-gold);
+}
+.pb-table tr.is-me > :first-child {
+	box-shadow: inset 3px 0 0 var(--accent);
+}
+.pb-table tr.is-cut td {
+	border-bottom: 1px dashed color-mix(in srgb, var(--signal) 80%, transparent);
+}
+.pb-pts {
+	font-weight: 700;
+}
+.standings > h2 {
+	display: inline-block;
+	margin-right: 10px;
+}
+.standings > .pb-table {
+	margin-top: 12px;
+}
+
+/* Match rows */
+.pb-mrow {
+	transition: background 0.12s;
+}
+.pb-mrow-go {
+	display: inline-flex;
+	align-items: center;
+	padding: 3px 12px;
+	border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
+	border-radius: var(--radius-pill);
+	font-size: 13px;
+	transition:
+		background 0.15s,
+		color 0.15s,
+		border-color 0.15s;
+}
+a.pb-mrow:hover .pb-mrow-go {
+	background: var(--accent);
+	border-color: var(--accent);
+	color: var(--surface);
+}
+.rows-head {
+	background: color-mix(in srgb, var(--frost) 30%, transparent);
+}
+
+/* Segmented controls and side nav */
+.seg {
+	border-radius: 12px;
+	box-shadow: inset 0 1px 0 color-mix(in srgb, var(--ink) 4%, transparent);
+}
+.seg a {
+	border-radius: 8px;
+	transition:
+		background 0.15s,
+		color 0.15s;
+}
+.seg a:hover:not([aria-current]) {
+	color: var(--ink);
+	background: color-mix(in srgb, var(--frost) 45%, transparent);
+}
+.seg a[aria-current] {
+	box-shadow:
+		inset 0 1px 0 color-mix(in srgb, var(--ink) 8%, transparent),
+		0 1px 2px rgb(3 6 10 / 0.25);
+}
+.admin-nav a {
+	transition:
+		background 0.15s,
+		color 0.15s;
+}
+.admin-nav a:hover:not([aria-current='page']) {
+	color: var(--ink);
+	background: color-mix(in srgb, var(--frost) 45%, transparent);
+}
+@media (min-width: 641px) {
+	.admin-nav {
+		position: sticky;
+		top: 88px;
+	}
+	.admin-nav a[aria-current='page'] {
+		box-shadow: inset 3px 0 0 var(--brand);
+	}
+}
+
+/* Stat tiles */
+.stats .panel {
+	position: relative;
+	overflow: hidden;
+}
+.stats .panel::before {
+	content: '';
+	position: absolute;
+	inset: 0 0 auto;
+	height: 2px;
+	background: linear-gradient(90deg, var(--accent), transparent 70%);
+	opacity: 0.7;
+}
+.stats strong {
+	font-size: 32px;
+	line-height: 38px;
+	letter-spacing: -0.02em;
+}
+
+/* Prose pages */
+.doc {
+	max-width: 72ch;
+}
+.doc h2 {
+	padding-top: 24px;
+	border-top: 1px solid var(--line);
+}
+.doc li::marker {
+	color: var(--ink-muted);
+}
+.doc :not(pre) > code {
+	padding: 1px 6px;
+	border-radius: var(--radius-sm);
+	background: var(--frost);
+}
+
+/* Footer */
+.pb-footer {
+	margin-top: var(--space-8);
+	background: color-mix(in srgb, var(--surface-raised) 35%, transparent);
+	border-top-color: color-mix(in srgb, var(--line) 70%, transparent);
+}
+.pb-footer-links a {
+	transition: color 0.15s;
+}
+
+@media (max-width: 640px) {
+	.page h1,
+	.message-card h1 {
+		font-size: 30px;
+	}
+	.tab-bar,
+	.action-bar {
+		background: color-mix(in srgb, var(--surface-raised) 86%, transparent);
+		-webkit-backdrop-filter: blur(14px) saturate(1.5);
+		backdrop-filter: blur(14px) saturate(1.5);
+	}
+	.tab-bar a {
+		position: relative;
+		transition: color 0.15s;
+	}
+	.tab-bar a[aria-current='page']::before {
+		content: '';
+		position: absolute;
+		top: -1px;
+		left: 50%;
+		width: 28px;
+		height: 2px;
+		margin-left: -14px;
+		border-radius: 2px;
+		background: var(--brand);
+	}
+	.stats strong {
+		font-size: 26px;
+		line-height: 32px;
+	}
+}
+
+/* Motion: sections rise in once per page, pages cross-fade. Off for reduced motion (and screenshots). */
+@keyframes rise {
+	from {
+		opacity: 0;
+		transform: translateY(10px);
+	}
+}
+@keyframes vt-out {
+	to {
+		opacity: 0;
+	}
+}
+@keyframes vt-in {
+	from {
+		opacity: 0;
+	}
+}
+@media (prefers-reduced-motion: no-preference) {
+	/* backwards only: a lasting transform would trap the fixed action bar inside its section. */
+	.page > *:not(:has(.action-bar)) {
+		animation: rise 0.5s var(--ease-out) backwards;
+	}
+	.page > :nth-child(2) {
+		animation-delay: 50ms;
+	}
+	.page > :nth-child(3) {
+		animation-delay: 100ms;
+	}
+	.page > :nth-child(4) {
+		animation-delay: 150ms;
+	}
+	.page > :nth-child(n + 5) {
+		animation-delay: 200ms;
+	}
+	::view-transition-old(root) {
+		animation: 0.12s ease-out both vt-out;
+	}
+	::view-transition-new(root) {
+		animation: 0.22s var(--ease-out) both vt-in;
+	}
+	.site-header {
+		view-transition-name: site-header;
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	html {
+		scroll-behavior: auto;
+	}
+	.pb-badge-live::before,
+	.pb-phase-step.is-current .pb-phase-bar {
+		animation: none;
+	}
+	.pb-btn,
+	.brand-mark,
+	.site-nav .theme-btn {
+		transition: none;
+	}
+}
+
+/* Standings: plain numerals, places inside the top cut marked, the line labelled. */
+.pb-table .pb-num,
+.pb-table .pb-rank {
+	font-family: var(--font-sans);
+	font-variant-numeric: tabular-nums;
+}
+.pb-table abbr[title],
+th abbr[title] {
+	border-bottom: 0;
+}
+.standings-table th.pb-rank,
+.standings-table td.pb-rank {
+	width: 40px;
+	padding-right: 4px;
+	text-align: center;
+}
+.standings-table td {
+	padding-block: 9px;
+}
+.standings-table th,
+.standings-table td {
+	padding-inline: 8px;
+}
+.standings-table th {
+	font-size: 11px;
+	letter-spacing: 0.05em;
+	white-space: nowrap;
+}
+.standings-table tbody tr:nth-child(even):not(.is-me) > * {
+	background: transparent;
+}
+.standings-table tbody tr:not(.is-me):hover > * {
+	background: color-mix(in srgb, var(--frost) 38%, transparent);
+}
+.rank-chip {
+	display: inline-grid;
+	place-items: center;
+	min-width: 26px;
+	height: 26px;
+	border-radius: 8px;
+	font: 600 13px/1 var(--font-sans);
+	color: var(--ink-muted);
+}
+.standings-table tr.is-in .rank-chip {
+	background: color-mix(in srgb, var(--accent) 14%, transparent);
+	color: var(--accent);
+}
+.standings-table .is-podium .rank-chip {
+	background: color-mix(in srgb, var(--tier-gold) 20%, transparent);
+	color: var(--tier-gold);
+}
+.standings-table td.pb-pts {
+	position: relative;
+	font-size: 16px;
+}
+.standings-table tr.is-cut > td {
+	border-bottom: 1px dashed color-mix(in srgb, var(--signal) 75%, transparent);
+}
+.standings-table td[data-cut]::after {
+	content: '▲ ' attr(data-cut);
+	position: absolute;
+	right: 8px;
+	bottom: -8px;
+	z-index: 1;
+	padding: 0 6px;
+	border-radius: var(--radius-sm);
+	background: var(--panel-bottom);
+	color: var(--signal);
+	font: 600 10px/15px var(--font-sans);
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	white-space: nowrap;
+}
+.standings-table tr.is-cut + tr > td {
+	padding-top: 13px;
+}
+/* Schedule: every row the same height around a fixed score box, round panels level with each other. */
+.rounds {
+	align-items: stretch;
+}
+.rounds .pb-mrow-vs {
+	grid-template-columns: minmax(0, 1fr) 72px minmax(0, 1fr);
+	min-height: 60px;
+}
+.rounds .pb-mrow-sc,
+.rounds .pb-mrow-mid > .pb-mrow-mut {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 5px;
+	min-width: 58px;
+	height: 28px;
+	box-sizing: border-box;
+	border: 1px solid var(--line);
+	border-radius: 8px;
+	background: var(--surface);
+	font: 600 15px/1 var(--font-sans);
+	font-variant-numeric: tabular-nums;
+}
+.rounds .pb-mrow-mid > .pb-mrow-mut {
+	border-style: dashed;
+	background: transparent;
+	font: 500 12px/1 var(--font-sans);
+	color: var(--ink-muted);
+}
+.rounds .pb-mrow-sc .is-win {
+	color: var(--ink);
+}
+.rounds .pb-mrow-sc > span:not(.is-win):not(.pb-sr) {
+	color: var(--ink-muted);
+}
+.rounds .pb-mrow-side.is-winner .pb-avatar {
+	box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 70%, transparent);
+}
+.rounds .pb-mrow-side.is-loser .pb-avatar {
+	opacity: 0.6;
+}
+.rounds .pb-die {
+	width: 12px;
+	height: 12px;
+	opacity: 0.85;
+}
+.rounds .pb-mrow.is-void {
+	opacity: 0.5;
+}
+.rounds .pb-mrow-meta {
+	margin-top: -4px;
+}
+.rows-head h2 {
+	letter-spacing: -0.01em;
+}
+.toolbar {
+	gap: 10px 16px;
+}
+
+/* Schedule rows read edge to edge: each player sits at their own side of the panel, avatars in a
+   column down each edge and the score down the middle, so nothing floats in the centre. */
+.rounds .pb-mrow-vs {
+	padding-inline: 16px;
+}
+.rounds .pb-mrow-side.is-a {
+	flex-direction: row;
+}
+.rounds .pb-mrow-side.is-a .pb-mrow-tx {
+	align-items: flex-start;
+	text-align: left;
+}
+.rounds .pb-mrow-side.is-a .pb-mrow-who,
+.rounds .pb-mrow-side.is-a .pb-mrow-sub {
+	flex-direction: row;
+}
+.rounds .pb-mrow-side.is-b {
+	flex-direction: row-reverse;
+}
+.rounds .pb-mrow-side.is-b .pb-mrow-tx {
+	align-items: flex-end;
+	text-align: right;
+}
+.rounds .pb-mrow-side.is-b .pb-mrow-who,
+.rounds .pb-mrow-side.is-b .pb-mrow-sub {
+	flex-direction: row-reverse;
+}
+/* Overdue matches span the page; with room, they run in two columns. */
+.rounds:has(> .overdue) {
+	grid-template-columns: minmax(0, 1fr);
+}
+@container (min-width: 880px) {
+	.overdue .pb-mrows ul {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+	.overdue .pb-mrows li:nth-child(-n + 2) {
+		border-top: 0;
+	}
+	.overdue .pb-mrows li:nth-child(odd) {
+		border-right: 1px solid var(--line);
+	}
+	.overdue .pb-mrows li:nth-child(odd):last-child {
+		grid-column: 1;
+	}
+}
+/* Weeks are the page's main switch: one strip across the page. Filters sit under it, smaller. */
+.toolbar {
+	flex-direction: column;
+	align-items: stretch;
+}
+.seg.weeks {
+	display: flex;
+	flex-wrap: wrap;
+	scrollbar-width: none;
+}
+.seg.weeks a {
+	flex: 1 0 auto;
+	text-align: center;
+}
+.seg.filters {
+	align-self: flex-start;
+	padding: 3px;
+	background: transparent;
+	box-shadow: none;
+}
+.seg.filters a {
+	padding: 5px 12px;
+	font-size: 13px;
+}
+
+/* Every device: hover styling only where there is a pointer that hovers, so taps don't stick. */
+html {
+	-webkit-text-size-adjust: 100%;
+	text-size-adjust: 100%;
+	-webkit-tap-highlight-color: transparent;
+}
+a,
+button,
+label,
+summary {
+	touch-action: manipulation;
+}
+@media (hover: none) {
+	.pb-btn:hover:not(:disabled) {
+		transform: none;
+	}
+	.pb-table tbody tr:not(.is-me):hover > *,
+	.standings-table tbody tr:not(.is-me):hover > *,
+	.nav-link:hover:not([aria-current='page']) {
+		background: transparent;
+	}
+	a.pb-mrow:hover .pb-mrow-go {
+		background: transparent;
+		border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+		color: var(--accent);
+	}
+	/* Pressed feedback instead. */
+	a.pb-mrow:active,
+	.pb-table tbody tr:active > * {
+		background: color-mix(in srgb, var(--frost) 60%, transparent);
+	}
+}
+
+/* Desktop: a steady scrollbar gutter so pages don't shift sideways, a wider page on big screens. */
+@media (min-width: 641px) {
+	html {
+		scrollbar-gutter: stable;
+	}
+}
+@media (min-width: 1440px) {
+	.container,
+	.pb-footer-in,
+	.footer-legal {
+		max-width: 1320px;
+	}
+}
+
+/* Tablets and small laptops: the header keeps its links but gives up some spacing. */
+@media (min-width: 641px) and (max-width: 920px) {
+	.container {
+		padding-inline: 20px;
+	}
+	.site-nav {
+		gap: 2px;
+	}
+	.nav-link {
+		padding: 8px;
+		font-size: 14px;
+	}
+	.site-nav .theme-btn {
+		margin-inline: 2px;
+	}
+	.brand {
+		font-size: 20px;
+	}
+	.me {
+		max-width: 132px;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+}
+
+/* Phones: notch-safe edges, 44px targets, tighter type. */
+@media (max-width: 640px) {
+	.site-header {
+		padding-top: env(safe-area-inset-top);
+	}
+	.container {
+		padding-left: max(var(--space-4), env(safe-area-inset-left));
+		padding-right: max(var(--space-4), env(safe-area-inset-right));
+	}
+	.brand {
+		font-size: 20px;
+		gap: 8px;
+	}
+	.brand-mark {
+		width: 28px;
+		height: 28px;
+	}
+	.me {
+		max-width: 150px;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.pb-mrow-go {
+		min-height: 36px;
+		padding-inline: 14px;
+	}
+	.rounds .pb-mrow-vs {
+		grid-template-columns: minmax(0, 1fr) 62px minmax(0, 1fr);
+		padding-inline: 12px;
+	}
+	.rounds .pb-mrow-sc,
+	.rounds .pb-mrow-mid > .pb-mrow-mut {
+		min-width: 52px;
+	}
+	.seg.filters {
+		align-self: stretch;
+		padding: 4px;
+		background: var(--surface-raised);
+	}
+	.seg.filters a {
+		font-size: 14px;
+	}
+	.pb-footer {
+		margin-top: var(--space-4);
+	}
+	.doc h2 {
+		padding-top: 20px;
+	}
+	.pb-table a.pb-player {
+		min-height: 32px;
+	}
+}
+
+/* Standings sit side by side only when each table has room for names; otherwise they stack. */
+.groups .grid-2 {
+	grid-template-columns: repeat(auto-fit, minmax(max(440px, calc((100% - 24px) / 2)), 1fr));
+}
+@media (max-width: 640px) {
+	.groups .grid-2 {
+		grid-template-columns: minmax(0, 1fr);
+	}
+	.seg.weeks {
+		flex-wrap: nowrap;
+	}
+	/* Lone links get a thumb-sized target without moving the text. */
+	.brand {
+		min-height: 44px;
+	}
+	.pb-footer-links a {
+		min-height: 44px;
+	}
+	.pb-table a.pb-player {
+		min-height: 40px;
+	}
+	.section-head > a,
+	.name-row > a,
+	.page > a,
+	.page > p > a:only-child {
+		display: inline-flex;
+		align-items: center;
+		min-height: 44px;
+		margin-block: -10px;
+	}
+}

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import '../app.css';
 	import favicon from '#lib/assets/favicon.png';
-	import { afterNavigate } from '$app/navigation';
+	import { afterNavigate, onNavigate } from '$app/navigation';
 	import { page } from '$app/state';
 	import Avatar from '#lib/components/Avatar.svelte';
 	import { RIOT_DISCLAIMER } from '#lib/legal.ts';
@@ -78,15 +78,48 @@
 
 	let menuOpen = $state(false);
 	afterNavigate(() => (menuOpen = false));
+
+	// Pages cross-fade where the browser can (see the view-transition rules in app.css).
+	onNavigate((navigation) => {
+		if (
+			!document.startViewTransition ||
+			navigation.from?.url.pathname === navigation.to?.url.pathname ||
+			matchMedia('(prefers-reduced-motion: reduce)').matches
+		)
+			return;
+		return new Promise((resolve) => {
+			document.startViewTransition(async () => {
+				resolve();
+				await navigation.complete;
+			});
+		});
+	});
 </script>
 
 <svelte:head>
 	<link rel="icon" href={favicon} />
+	<meta name="theme-color" content={theme === 'light' ? '#f6f4ef' : '#10141a'} />
 </svelte:head>
 
+<a class="skip-link" href="#main">Skip to content</a>
 <header class="site-header">
 	<nav aria-label="Main" class="container site-nav">
-		<a href="/" class="brand">Poroleague</a>
+		<a href="/" class="brand">
+			<svg class="brand-mark" width="30" height="30" viewBox="0 0 30 30" aria-hidden="true">
+				<rect width="30" height="30" rx="9" fill="var(--brand)" />
+				<g fill="var(--on-brand)">
+					<path d="M10 12c-2-1-3.2-3.1-3-5.4 1.8.4 3.5 1.7 4.6 3.7z" />
+					<path d="M20 12c2-1 3.2-3.1 3-5.4-1.8.4-3.5 1.7-4.6 3.7z" />
+					<circle cx="15" cy="17.5" r="7.5" />
+				</g>
+				<g fill="var(--brand)">
+					<circle cx="12.3" cy="16.5" r="1.15" />
+					<circle cx="17.7" cy="16.5" r="1.15" />
+					<path d="M13.5 19.6h3v1.3a1.5 1.5 0 0 1-3 0z" />
+				</g>
+			</svg>
+			Poroleague
+		</a>
 		<span class="desk">
 			{#if slug}
 				{#each [['', 'Season'], ...(data.navCut ? [['/top-cut', 'Top cut']] : []), ['/schedule', 'Schedule'], ['/legends', 'Legends']] as [path, label] (path)}
@@ -160,7 +193,7 @@
 	</nav>
 </header>
 
-<main class="container">
+<main id="main" class="container">
 	{@render children()}
 </main>
 

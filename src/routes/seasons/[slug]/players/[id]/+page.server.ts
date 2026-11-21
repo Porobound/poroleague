@@ -2,7 +2,9 @@ import { error, fail, redirect } from '@sveltejs/kit';
 import { dateSpan } from '#lib/format.ts';
 import { coversLabel, holidayWeeks, requestError, visibleTo } from '#lib/league/holiday.ts';
 import { legendMatches, playerLegends } from '#lib/league/legendStats.ts';
+import { playerStats, rankByRound } from '#lib/league/playerStats.ts';
 import { isPublished, published } from '#lib/league/publish.ts';
+import { isVoid } from '#lib/league/status.ts';
 import { leagueDate } from '#lib/league/time.ts';
 import { cardContext, matchCard } from '#lib/matchCard.ts';
 import { organizerAction, playerAction } from '#lib/server/auth.ts';
@@ -12,7 +14,7 @@ import {
 	seasonHolidays,
 	seasonUnlocks
 } from '#lib/server/holidays.ts';
-import { playerMatches, seasonMatches } from '#lib/server/matches.ts';
+import { playerMatches, publicMatches, seasonMatches } from '#lib/server/matches.ts';
 import { erasePlayer } from '#lib/server/players.ts';
 import { postToOrganizers } from '#lib/server/webhooks.ts';
 import { cutEraseEmbed, dropEmbed, holidayEmbed } from '#lib/discord.ts';
@@ -54,6 +56,15 @@ export const load: PageServerLoad = ({ params, locals }) => {
 	const standing = groupStandings(season, list).find((g) => g.group === player.group);
 	const rank = standing?.rows.findIndex((r) => r.playerId === player.playerId) ?? -1;
 	const isMe = locals.user?.id === player.playerId;
+	// Where they stand against the top cut line, while the group stage can still change it.
+	const cut = season.topCutSize ?? 0;
+	const rows = standing?.rows ?? [];
+	const line =
+		rank >= 0 && cut > 0 && cut < rows.length && rows.some((r) => r.played)
+			? rank < cut
+				? { inside: true, points: rows[rank].points - rows[cut].points }
+				: { inside: false, points: rows[cut - 1].points - rows[rank].points }
+			: null;
 	const mine = hs.filter((h) => h.playerId === player.playerId);
 	const cal = isMe && season.status === 'play' ? calendar(season) : null;
 	const canRequest = !!cal && !player.dropped;
@@ -68,6 +79,30 @@ export const load: PageServerLoad = ({ params, locals }) => {
 		player,
 		row: rank >= 0 ? standing!.rows[rank] : null,
 		rank: rank + 1,
+		groupSize: rows.length,
+		cut: cut > 0 && cut < rows.length ? cut : 0,
+		line,
+		stats: playerStats(
+			ms.filter(
+				(m): m is typeof m & { p1Games: number; p2Games: number } =>
+					m.p1Games !== null && m.p2Games !== null && !isVoid(m, ctx.dropped)
+			),
+			player.playerId
+		),
+		// Place in the group after each round, for the position chart.
+		progress: rankByRound(
+			list.filter((e) => e.group === player.group),
+			publicMatches(season)
+				.filter((m) => m.group === player.group)
+				.map((m) => ({
+					round: m.round,
+					p1: m.p1Id,
+					p2: m.p2Id,
+					p1Games: m.p1Games,
+					p2Games: m.p2Games
+				})),
+			player.playerId
+		),
 		dice: {
 			won: counted.filter((m) => m.diceWinnerId === player.playerId).length,
 			of: counted.length

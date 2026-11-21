@@ -3,6 +3,7 @@
 	import ConfirmButton from '#lib/components/ConfirmButton.svelte';
 	import MatchRows from '#lib/components/MatchRows.svelte';
 	import PlayerLegends from '#lib/components/PlayerLegends.svelte';
+	import RankChart from '#lib/components/RankChart.svelte';
 	import SeasonHistory from '#lib/components/SeasonHistory.svelte';
 	import { pct } from '#lib/format.ts';
 	import { coversLabel, holidayWeeks, requestError } from '#lib/league/holiday.ts';
@@ -24,6 +25,10 @@
 			? coversLabel(holidayWeeks({ from, to }, cal), cal.roundsPerWeek, cal.maxRound)
 			: ''
 	);
+	const stats = $derived(data.stats);
+	const RESULT = { W: 'Won', D: 'Drew', L: 'Lost' } as const;
+	const RUN = { W: 'wins', D: 'draws', L: 'losses' } as const;
+	const share = (wins: number, played: number) => (played ? pct(wins / played) : '—');
 	const HOLIDAY = {
 		pending: { h: 'Holiday requested', badge: 'Pending', tone: '' },
 		approved: { h: 'Holiday approved', badge: 'Approved', tone: 'pb-badge-win' },
@@ -45,70 +50,143 @@
 		<p class="pb-notice" role="alert">{form.holidayError}</p>
 	{/if}
 
-	<section class="player-head">
-		<Avatar name={player.displayName} src={player.avatar} size={72} former={player.former} />
-		<div class="head-text">
-			<div class="name-row">
-				<h1 class={[player.former && 'pb-former']}>{player.displayName}</h1>
-				<a href="/players/{player.playerId}">Career</a>
-				{#if data.canRequest && cal}
-					<ConfirmButton
-						action="?/requestHoliday"
-						variant="ghost"
-						small
-						label="Going away?"
-						title="Going away?"
-						confirmLabel="Request holiday"
-						confirmDisabled={!from || !to || !!problem}
-					>
-						<p>
-							Once an organizer approves it, your matches in those weeks unlock so you can play them
-							before you go.
-						</p>
-						<label class="pb-field">
-							First day away
-							<input
-								class="pb-input"
-								type="date"
-								name="from"
-								min={cal.today}
-								max={cal.deadline}
-								bind:value={from}
-							/>
-						</label>
-						<label class="pb-field">
-							Last day away
-							<input
-								class="pb-input"
-								type="date"
-								name="to"
-								min={from || cal.today}
-								max={cal.deadline}
-								bind:value={to}
-							/>
-						</label>
-						{#if problem}
-							<p role="alert" class="small">{problem}</p>
-						{:else if covers}
-							<p aria-live="polite" class="muted small">Covers {covers}.</p>
-						{/if}
-					</ConfirmButton>
-				{/if}
+	<section class="profile">
+		<div class="player-head">
+			<span class="ring">
+				<Avatar name={player.displayName} src={player.avatar} size={96} former={player.former} />
+			</span>
+			<div class="head-text">
+				<div class="name-row">
+					<h1 class={[player.former && 'pb-former']}>{player.displayName}</h1>
+					<a href="/players/{player.playerId}">Career</a>
+					{#if data.canRequest && cal}
+						<ConfirmButton
+							action="?/requestHoliday"
+							variant="ghost"
+							small
+							label="Going away?"
+							title="Going away?"
+							confirmLabel="Request holiday"
+							confirmDisabled={!from || !to || !!problem}
+						>
+							<p>
+								Once an organizer approves it, your matches in those weeks unlock so you can play
+								them before you go.
+							</p>
+							<label class="pb-field">
+								First day away
+								<input
+									class="pb-input"
+									type="date"
+									name="from"
+									min={cal.today}
+									max={cal.deadline}
+									bind:value={from}
+								/>
+							</label>
+							<label class="pb-field">
+								Last day away
+								<input
+									class="pb-input"
+									type="date"
+									name="to"
+									min={from || cal.today}
+									max={cal.deadline}
+									bind:value={to}
+								/>
+							</label>
+							{#if problem}
+								<p role="alert" class="small">{problem}</p>
+							{:else if covers}
+								<p aria-live="polite" class="muted small">Covers {covers}.</p>
+							{/if}
+						</ConfirmButton>
+					{/if}
+				</div>
+				<div class="badges">
+					{#if player.group}<span class="pb-badge">{groupName(player.group)}</span>{/if}
+					{#if player.dropped}
+						<span class="pb-badge pb-badge-loss">Dropped</span>
+					{:else if row}
+						<span class="pb-badge pb-badge-rank">#{data.rank} in group</span>
+					{/if}
+					{#if data.away}
+						<span class="pb-badge">On holiday · {data.away}</span>
+					{/if}
+					<span class="muted small">{season.name}</span>
+					{#if player.former}<span class="muted small">· Account erased.</span>{/if}
+				</div>
 			</div>
-			<div class="badges">
-				{#if player.group}<span class="pb-badge">{groupName(player.group)}</span>{/if}
-				{#if player.dropped}
-					<span class="pb-badge pb-badge-loss">Dropped</span>
-				{:else if row}
-					<span class="pb-badge pb-badge-rank">#{data.rank} in group</span>
-				{/if}
-				{#if data.away}
-					<span class="pb-badge">On holiday · {data.away}</span>
-				{/if}
-				<span class="muted small">{season.name}</span>
-				{#if player.former}<span class="muted small">· Account erased.</span>{/if}
-			</div>
+			{#if row}
+				<div class="place">
+					<span class="eyebrow">Group position</span>
+					<strong>#{data.rank}<span> of {data.groupSize}</span></strong>
+					{#if data.line && season.status === 'play'}
+						<span class={['line-note', data.line.inside && 'is-in']}>
+							{#if data.line.inside}
+								In the top {data.cut}{data.line.points > 0
+									? ` · ${data.line.points} pts clear`
+									: ' · level on points'}
+							{:else}
+								{data.line.points > 0
+									? `${data.line.points} pts off the top ${data.cut}`
+									: `Level on points with the top ${data.cut}`}
+							{/if}
+						</span>
+					{/if}
+				</div>
+			{/if}
 		</div>
+
+		{#if row}
+			<div class="stats" role="group" aria-label="Season stats">
+				<div class="stat is-lead">
+					<span class="eyebrow">Points</span><strong>{row.points}</strong>
+				</div>
+				<div class="stat">
+					<span class="eyebrow">W–D–L</span><strong>{row.wins}–{row.draws}–{row.losses}</strong>
+				</div>
+				<div class="stat">
+					<span class="eyebrow">Win rate</span><strong>{pct(stats.winRate)}</strong>
+				</div>
+				<div class="stat">
+					<span class="eyebrow">Game-win %</span><strong>{row.played ? pct(row.gwp) : '—'}</strong>
+				</div>
+				<div class="stat">
+					<span class="eyebrow">Games</span><strong>{stats.games.won}–{stats.games.lost}</strong>
+				</div>
+				<div class="stat">
+					<span class="eyebrow">Dice rolls won</span><strong
+						>{data.dice.won} / {data.dice.of}</strong
+					>
+				</div>
+			</div>
+		{/if}
+
+		{#if stats.played}
+			<div class="form">
+				<span class="eyebrow">Form</span>
+				<ol aria-label="Results, oldest first">
+					{#each stats.form as f (f.round)}
+						<li
+							class="is-{f.letter.toLowerCase()}"
+							title="Round {f.round}: {RESULT[f.letter].toLowerCase()} {f.won}–{f.lost}"
+						>
+							<span aria-hidden="true">{f.letter}</span><span class="pb-sr"
+								>Round {f.round}: {RESULT[f.letter]} {f.won}–{f.lost}</span
+							>
+						</li>
+					{/each}
+				</ol>
+				<span class="muted small">latest →</span>
+				{#if stats.streak && stats.streak.length > 1}
+					<span class={['run', `is-${stats.streak.letter.toLowerCase()}`]}>
+						{stats.streak.length}
+						{RUN[stats.streak.letter]} in a row
+					</span>
+				{/if}
+			</div>
+		{/if}
 	</section>
 
 	{#each data.holidays as h (h.id)}
@@ -151,19 +229,60 @@
 		</section>
 	{/each}
 
-	{#if row}
-		<section class="stats" aria-label="Season stats">
-			<div class="panel"><span class="eyebrow">Points</span><strong>{row.points}</strong></div>
-			<div class="panel">
-				<span class="eyebrow">W–D–L</span><strong>{row.wins}–{row.draws}–{row.losses}</strong>
-			</div>
-			<div class="panel">
-				<span class="eyebrow">Game-win %</span><strong>{row.played ? pct(row.gwp) : '—'}</strong>
-			</div>
-			<div class="panel">
-				<span class="eyebrow">Dice rolls won</span><strong>{data.dice.won} / {data.dice.of}</strong>
-			</div>
-		</section>
+	{#if stats.played}
+		<div class="insights">
+			{#if data.progress.length > 1}
+				<section class="panel" aria-labelledby="position-h">
+					<div class="panel-h">
+						<h2 id="position-h">Group position</h2>
+						<span class="muted small">after each round</span>
+					</div>
+					<RankChart points={data.progress} size={data.groupSize} cut={data.cut} />
+				</section>
+			{/if}
+			<section class="panel" aria-labelledby="shape-h">
+				<div class="panel-h">
+					<h2 id="shape-h">How matches went</h2>
+					<span class="muted small">{stats.played} played</span>
+				</div>
+				<div class="shape-bar" aria-hidden="true">
+					{#each stats.shapes.filter((x) => x.count) as x (x.key)}
+						<span class="is-{x.key}" style:flex-grow={x.count}></span>
+					{/each}
+				</div>
+				<ul class="shape-key">
+					{#each stats.shapes as x (x.key)}
+						<li class={[!x.count && 'is-none']}>
+							<i class="is-{x.key}"></i>
+							<span>{x.label}</span>
+							<strong>{x.count}</strong>
+						</li>
+					{/each}
+				</ul>
+				<dl class="facts">
+					<div>
+						<dt>Best win streak</dt>
+						<dd>{stats.bestWins || '—'}</dd>
+					</div>
+					<div>
+						<dt>Went to game 3</dt>
+						<dd>
+							{stats.deciders.played
+								? `${stats.deciders.wins} of ${stats.deciders.played} won`
+								: '—'}
+						</dd>
+					</div>
+					<div>
+						<dt>Won with the dice roll</dt>
+						<dd>{share(stats.dice.with.wins, stats.dice.with.played)}</dd>
+					</div>
+					<div>
+						<dt>Won without it</dt>
+						<dd>{share(stats.dice.without.wins, stats.dice.without.played)}</dd>
+					</div>
+				</dl>
+			</section>
+		</div>
 	{/if}
 
 	<section class="matches" aria-labelledby="matches-h">
@@ -351,11 +470,254 @@
 		margin: 0;
 		font-weight: 600;
 	}
+	.profile {
+		position: relative;
+		overflow: hidden;
+		display: flex;
+		flex-direction: column;
+		border: 1px solid var(--line);
+		border-radius: var(--radius-lg);
+		background:
+			radial-gradient(
+				560px 240px at 0% 0%,
+				color-mix(in srgb, var(--brand) 14%, transparent),
+				transparent 70%
+			),
+			radial-gradient(
+				480px 220px at 100% 0%,
+				color-mix(in srgb, var(--accent) 9%, transparent),
+				transparent 70%
+			),
+			linear-gradient(180deg, var(--panel-top), var(--panel-bottom));
+		box-shadow: var(--shadow-panel);
+	}
 	.player-head {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 24px;
+		gap: 20px 28px;
 		align-items: center;
+		padding: 28px;
+	}
+	.ring {
+		display: inline-grid;
+		padding: 3px;
+		border-radius: var(--radius-pill);
+		background: conic-gradient(
+			from 210deg,
+			var(--brand),
+			var(--signal),
+			var(--accent),
+			var(--brand)
+		);
+		box-shadow: 0 12px 28px -14px color-mix(in srgb, var(--brand) 80%, transparent);
+	}
+	.ring :global(.pb-avatar) {
+		border: 4px solid var(--surface-raised);
+		box-sizing: content-box;
+		font-size: 30px;
+		font-family: var(--font-display);
+	}
+	.name-row h1 {
+		font-size: clamp(36px, 5vw, 56px);
+		line-height: 1;
+		letter-spacing: -0.035em;
+	}
+	.place {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-end;
+		gap: 2px;
+		text-align: right;
+	}
+	.place strong {
+		font: 700 56px/1 var(--font-display);
+		letter-spacing: -0.04em;
+	}
+	.place strong span {
+		margin-left: 6px;
+		font: 500 16px/1 var(--font-sans);
+		letter-spacing: 0;
+		color: var(--ink-muted);
+	}
+	.line-note {
+		font: 600 13px/18px var(--font-sans);
+		color: var(--signal);
+	}
+	.line-note.is-in {
+		color: var(--accent);
+	}
+	.stats {
+		display: grid;
+		grid-template-columns: repeat(6, minmax(0, 1fr));
+		gap: 0;
+		border-top: 1px solid var(--line);
+	}
+	.stat {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		padding: 16px 20px;
+		min-width: 0;
+	}
+	.stat + .stat {
+		border-left: 1px solid var(--line);
+	}
+	.stat strong {
+		font: 600 26px/30px var(--font-display);
+		letter-spacing: -0.02em;
+		font-variant-numeric: tabular-nums;
+		white-space: nowrap;
+	}
+	.stat.is-lead strong {
+		color: var(--signal);
+	}
+	.form {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 8px 12px;
+		padding: 14px 20px;
+		border-top: 1px solid var(--line);
+		background: color-mix(in srgb, var(--surface) 35%, transparent);
+	}
+	.form ol {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 4px;
+		list-style: none;
+		margin: 0;
+		padding: 0;
+	}
+	.form li {
+		display: grid;
+		place-items: center;
+		width: 26px;
+		height: 26px;
+		border-radius: 7px;
+		font: 700 12px/1 var(--font-sans);
+		border: 1px solid var(--line);
+		color: var(--ink-muted);
+	}
+	.form li.is-w {
+		background: color-mix(in srgb, var(--accent) 16%, transparent);
+		border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+		color: var(--accent);
+	}
+	.form li.is-l {
+		background: color-mix(in srgb, var(--brand) 14%, transparent);
+		border-color: color-mix(in srgb, var(--brand) 50%, transparent);
+		color: var(--brand);
+	}
+	.run {
+		margin-left: auto;
+		font: 600 13px/18px var(--font-sans);
+		color: var(--ink-muted);
+	}
+	.run.is-w {
+		color: var(--accent);
+	}
+	.run.is-l {
+		color: var(--brand);
+	}
+	.insights {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr));
+		gap: 24px;
+	}
+	.insights .panel {
+		display: flex;
+		flex-direction: column;
+		gap: 16px;
+		min-width: 0;
+	}
+	.panel-h {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 4px 12px;
+	}
+	.shape-bar {
+		display: flex;
+		gap: 2px;
+		height: 14px;
+	}
+	.shape-bar span {
+		flex-basis: 0;
+		border-radius: 4px;
+	}
+	.is-sweep {
+		background: var(--accent);
+	}
+	.is-close-win {
+		background: color-mix(in srgb, var(--accent) 50%, var(--surface-raised));
+	}
+	.is-draw {
+		background: var(--ink-muted);
+	}
+	.is-close-loss {
+		background: color-mix(in srgb, var(--brand) 50%, var(--surface-raised));
+	}
+	.is-swept {
+		background: var(--brand);
+	}
+	.shape-key {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+		gap: 6px 20px;
+		font-size: 14px;
+	}
+	.shape-key li {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+	}
+	.shape-key li.is-none {
+		color: var(--ink-muted);
+	}
+	.shape-key i {
+		flex: none;
+		width: 10px;
+		height: 10px;
+		border-radius: 3px;
+	}
+	.shape-key span {
+		flex: 1;
+	}
+	.shape-key strong {
+		font-variant-numeric: tabular-nums;
+	}
+	.facts {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 0;
+		margin: auto 0 0;
+		border-top: 1px solid var(--line);
+	}
+	.facts div {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		padding: 12px 0;
+	}
+	.facts div:nth-child(n + 3) {
+		border-top: 1px solid var(--line);
+	}
+	.facts div:nth-last-child(-n + 2) {
+		padding-bottom: 0;
+	}
+	.facts dt {
+		font-size: 13px;
+		line-height: 18px;
+		color: var(--ink-muted);
+	}
+	.facts dd {
+		margin: 0;
+		font: 600 18px/24px var(--font-display);
+		font-variant-numeric: tabular-nums;
 	}
 	.name-row {
 		display: flex;
@@ -377,9 +739,50 @@
 		flex: 1 1 200px;
 		min-width: 0;
 	}
+	@media (max-width: 900px) {
+		.stats {
+			grid-template-columns: repeat(3, minmax(0, 1fr));
+		}
+		.stat:nth-child(4) {
+			border-left: 0;
+		}
+		.stat:nth-child(n + 4) {
+			border-top: 1px solid var(--line);
+		}
+	}
 	@media (max-width: 640px) {
 		.player-head {
 			gap: 14px;
+			padding: 20px 16px;
+		}
+		.ring :global(.pb-avatar) {
+			width: 64px !important;
+			height: 64px !important;
+			font-size: 22px;
+		}
+		.place {
+			flex: 1 1 100%;
+			flex-direction: row;
+			flex-wrap: wrap;
+			align-items: baseline;
+			gap: 4px 10px;
+			text-align: left;
+		}
+		.place strong {
+			font-size: 32px;
+		}
+		.stat {
+			padding: 12px 14px;
+		}
+		.stat strong {
+			font-size: 20px;
+			line-height: 26px;
+		}
+		.form {
+			padding: 12px 14px;
+		}
+		.run {
+			margin-left: 0;
 		}
 	}
 </style>

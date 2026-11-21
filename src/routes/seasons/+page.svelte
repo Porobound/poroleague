@@ -60,13 +60,30 @@
 		flex-wrap: wrap;
 		gap: 16px 32px;
 		align-items: center;
+		transition:
+			border-color 0.15s,
+			transform 0.25s var(--ease-out);
+	}
+	.archive li:hover {
+		border-color: color-mix(in srgb, var(--ink-muted) 45%, var(--line));
+		transform: translateY(-2px);
 	}
 	.archive h2 {
 		margin: 0 0 4px;
 	}
+	.archive li {
+		position: relative;
+	}
 	.archive h2 a {
 		color: var(--ink);
 		text-decoration: none;
+	}
+	/* The whole card opens the season. */
+	.archive h2 a::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+		border-radius: inherit;
 	}
 	.archive .grow {
 		flex: 1 1 260px;

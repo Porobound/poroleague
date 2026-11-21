@@ -411,7 +411,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 4px;
-		border-top: 2px solid var(--line);
+		border-top: 2px solid var(--accent);
 		padding-top: 12px;
 	}
 	.tiles span {
@@ -425,6 +425,7 @@
 		gap: 24px;
 		align-items: flex-end;
 		justify-content: space-between;
+		padding-top: 16px;
 	}
 	.hero-text {
 		display: flex;
@@ -436,8 +437,9 @@
 	}
 	.hero h1 {
 		margin: 0;
-		font: 700 56px/60px var(--font-display);
-		letter-spacing: -0.02em;
+		font: 700 clamp(44px, 5.6vw, 72px) / 1 var(--font-display);
+		letter-spacing: -0.035em;
+		text-wrap: balance;
 	}
 	.hero p {
 		margin: 0;
@@ -447,18 +449,27 @@
 		flex-direction: column;
 		gap: 2px;
 		padding: 20px 24px;
-		border: 1px solid var(--signal);
-		border-radius: var(--radius-md);
-		background: var(--surface-raised);
+		border: 1px solid color-mix(in srgb, var(--tier-gold) 60%, var(--line));
+		border-radius: var(--radius-lg);
+		background:
+			radial-gradient(
+				420px 160px at 0% 0%,
+				color-mix(in srgb, var(--tier-gold) 16%, transparent),
+				transparent 70%
+			),
+			var(--surface-raised);
+		box-shadow: var(--shadow-panel);
 	}
 	.champ strong {
-		font: 700 24px/30px var(--font-display);
+		font: 700 36px/42px var(--font-display);
+		letter-spacing: -0.02em;
 	}
 	.signal {
 		color: var(--signal);
 	}
 	.lede {
 		max-width: 600px;
+		text-wrap: pretty;
 		font-size: 18px;
 		line-height: 28px;
 		color: var(--ink-muted);
@@ -469,9 +480,17 @@
 		gap: 4px;
 		min-width: 240px;
 		padding: 16px 20px;
+		border-color: color-mix(in srgb, var(--signal) 35%, var(--line));
+		background:
+			radial-gradient(
+				280px 120px at 100% 0%,
+				color-mix(in srgb, var(--signal) 12%, transparent),
+				transparent 70%
+			),
+			linear-gradient(180deg, var(--panel-top), var(--panel-bottom));
 	}
 	.deadline-date {
-		font: 400 20px/24px var(--font-mono);
+		font: 500 20px/24px var(--font-mono);
 		color: var(--signal);
 	}
 	.section-head {
@@ -553,9 +572,13 @@
 		.steps[open] > summary {
 			margin-bottom: 4px;
 		}
+		.hero {
+			padding-top: 0;
+		}
 		.hero h1 {
-			font-size: 28px;
-			line-height: 32px;
+			font-size: 32px;
+			line-height: 34px;
+			letter-spacing: -0.025em;
 		}
 		.lede {
 			font-size: 15px;

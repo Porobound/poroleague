@@ -25,8 +25,8 @@
 
 <style>
 	.hero {
-		max-width: 560px;
-		margin: 96px auto;
+		max-width: 640px;
+		margin: clamp(48px, 14vh, 140px) auto;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
@@ -35,8 +35,9 @@
 	}
 	h1 {
 		margin: 0;
-		font: 700 48px/52px var(--font-display);
-		letter-spacing: -0.02em;
+		font: 700 clamp(36px, 6vw, 64px) / 1.02 var(--font-display);
+		letter-spacing: -0.035em;
+		text-wrap: balance;
 	}
 	p {
 		margin: 0;
