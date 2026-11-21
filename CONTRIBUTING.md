@@ -50,13 +50,12 @@ on your branch.
 
 ## How things look
 
-- The shared look (buttons, cards, tables, colours, every class that starts with `pb-`) comes from
-  the Porobound design system. `src/lib/styles/porobound.css` is a copy of it and is replaced
-  whole when the design system changes.
-- Don't edit that file, and don't restyle `pb-` classes from `src/app.css`. If you think a button
-  or a card should look different everywhere, open an issue with a screenshot or a sketch. The
-  change is made in the design system.
-- `src/app.css` is for what only this site has: page layout and its own components.
+- Shared styles (buttons, cards, tables, colours, every class that starts with `pb-`) are in
+  `src/lib/styles/porobound.css`. Page layout and one-off components are in `src/app.css`.
+- To change how a shared thing looks, edit its rule where it is defined. Don't add a second rule
+  elsewhere that overrides it.
+- A visual change is judged on its screenshots, so keep each pull request to one kind of change:
+  buttons in one, tables in another.
 
 ## Images, fonts and other assets
 
