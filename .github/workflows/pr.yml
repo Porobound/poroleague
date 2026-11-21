@@ -27,6 +27,6 @@ jobs:
             grep -qiE "\b(closes|fixes|resolves) $n\b" <<<"$BODY" ||
               { echo "::error::Body must contain 'Closes $n' (the branch's issue)"; ok=0; }
           else
-            echo "::error::Branch must be 'type/<issue>-slug', e.g. fix/pro-12-pairings-names"; ok=0
+            echo "::error::Branch must be 'type/<ticket>-slug' or 'agent/<ticket>-slug', e.g. fix/pro-12-pairings-names"; ok=0
           fi
           ((ok))
