@@ -16,6 +16,8 @@ import { afterEach, beforeEach, expect, it } from 'vitest';
 
 // scripts/backup.sh runs from the host's cron. sqlite3, rclone and curl are stubs that log their args.
 let dir: string;
+// /bin/sh and symlinks: on Windows these fail before they test anything. CI (Linux) runs them.
+const posix = it.skipIf(process.platform === 'win32');
 
 function stub(name: string, body = '') {
 	const file = join(dir, 'bin', name);
@@ -54,7 +56,7 @@ beforeEach(() => {
 
 afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
-it('backs up, uploads to r2crypt with copy, then pings', () => {
+posix('backs up, uploads to r2crypt with copy, then pings', () => {
 	stub('rclone', '[ "$1" = listremotes ] && echo r2: && echo r2crypt:; true');
 	const { status, calls } = run();
 	expect(status).toBe(0);
@@ -70,7 +72,7 @@ it('backs up, uploads to r2crypt with copy, then pings', () => {
 	expect(statSync(join(dir, 'backups', backup)).mode & 0o777).toBe(0o600);
 });
 
-it('skips the upload without an r2crypt remote', () => {
+posix('skips the upload without an r2crypt remote', () => {
 	stub('rclone', '[ "$1" = listremotes ] && echo r2-dev-crypt:; true');
 	const { status, calls } = run();
 	expect(status).toBe(0);
@@ -78,20 +80,20 @@ it('skips the upload without an r2crypt remote', () => {
 	expect(calls.at(-1)).toMatch(/^curl /);
 });
 
-it('works without rclone installed', () => {
+posix('works without rclone installed', () => {
 	const { status, calls } = run();
 	expect(status).toBe(0);
 	expect(calls.at(-1)).toMatch(/^curl /);
 });
 
-it('does not ping when the upload fails', () => {
+posix('does not ping when the upload fails', () => {
 	stub('rclone', '[ "$1" = listremotes ] && echo r2crypt: && exit 0; exit 1');
 	const { status, calls } = run();
 	expect(status).not.toBe(0);
 	expect(calls.at(-1)).toBe('rclone copy --max-age 3d backups r2crypt:');
 });
 
-it('does not ping without a ping URL', () => {
+posix('does not ping without a ping URL', () => {
 	rmSync(join(dir, '.poroleague-hc-url'));
 	stub('rclone', '[ "$1" = listremotes ] && echo r2crypt:; true');
 	const { status, calls } = run();
@@ -99,7 +101,7 @@ it('does not ping without a ping URL', () => {
 	expect(calls.some((c) => c.startsWith('curl'))).toBe(false);
 });
 
-it('fails without touching anything when the database is missing', () => {
+posix('fails without touching anything when the database is missing', () => {
 	rmSync(join(dir, 'data/poroleague.db'));
 	stub('rclone', '[ "$1" = listremotes ] && echo r2crypt:; true');
 	const { status, calls } = run();
