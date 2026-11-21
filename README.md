@@ -99,7 +99,7 @@ Or `npm run db:reseed-dev -- <your-discord-id>` applies pending migrations, back
 src/lib/league/      pure league rules, unit-tested
 src/lib/server/      DB, sessions, Discord calls, webhooks (server-only)
 src/lib/components/  Svelte components
-src/lib/styles/      design-system CSS snapshot (pb- classes)
+src/lib/styles/      shared styles: tokens and pb- classes
 src/routes/          pages and endpoints
 drizzle/             SQL migrations (commit these)
 e2e/                 Playwright tests, seed, fixtures
