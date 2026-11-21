@@ -1,0 +1,9 @@
+# Files a pull request may not change if it is to merge without a person. One regex per line.
+# Schema, migrations, auth, session, env and scripts need a person.
+^drizzle/
+^src/lib/server/db/
+^src/lib/server/(auth|session|discord)\.ts$
+^src/hooks\.server\.ts$
+^src/routes/auth/
+^src/env\.ts$
+^scripts/
