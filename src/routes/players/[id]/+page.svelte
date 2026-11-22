@@ -20,7 +20,7 @@
 <div class="page">
 	{#if form?.message}<p class="pb-notice" role="status">{form.message}</p>{/if}
 
-	<section class="profile">
+	<section class="profile" aria-labelledby="player-h">
 		<div class="profile-head">
 			<Avatar
 				name={player.displayName}
@@ -33,7 +33,9 @@
 			<div class="who">
 				<span class="eyebrow">Career</span>
 				<div class="name-row">
-					<h1 class={['profile-name', player.former && 'pb-former']}>{player.displayName}</h1>
+					<h1 id="player-h" class={['profile-name', player.former && 'pb-former']}>
+						{player.displayName}
+					</h1>
 					{#if data.cosmetics.badge}<Flair badge={data.cosmetics.badge} />{/if}
 				</div>
 				<span class="muted small">

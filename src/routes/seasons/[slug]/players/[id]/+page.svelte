@@ -113,9 +113,6 @@
 						</ConfirmButton>
 					{/if}
 				</div>
-				{#if data.cosmetics.title}
-					<p class="cos-title">{data.cosmetics.title}</p>
-				{/if}
 				<div class="badges">
 					{#if player.group}<span class="pb-badge">{groupName(player.group)}</span>{/if}
 					{#if player.dropped}
@@ -126,7 +123,10 @@
 					{#if data.away}
 						<span class="pb-badge">On holiday · {data.away}</span>
 					{/if}
-					<span class="muted small">{season.name}</span>
+					<span class="muted small"
+						>{#if data.cosmetics.title}<span class="cos-title">{data.cosmetics.title}</span
+							>{' · '}{/if}{season.name}</span
+					>
 					{#if player.former}<span class="muted small">· Account erased.</span>{/if}
 				</div>
 			</div>
@@ -568,9 +568,6 @@
 	}
 	.name-row h1 {
 		margin: 0;
-	}
-	.cos-title {
-		margin: 0 0 8px;
 	}
 	.badges {
 		display: flex;
