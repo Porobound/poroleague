@@ -238,6 +238,16 @@ export const seedHoliday = (
 export const renamePlayer = (id: string, name: string) =>
 	write((db) => db.prepare('update players set display_name = ? where id = ?').run(name, id));
 
+// Drops a player from the flow's season, as an organizer would: their matches become void.
+export const dropPlayer = (key: SeasonKey, n: number) =>
+	write((db) =>
+		db
+			.prepare(
+				'update entries set dropped = 1 where player_id = ? and season_id = (select id from seasons where slug = ?)'
+			)
+			.run(player(key, n), SEASONS[key])
+	);
+
 // Marks a player erased without dropping them, as in a season that ended before the erasure.
 export const markErased = (id: string) =>
 	write((db) => db.prepare('update players set erased_at = unixepoch() where id = ?').run(id));
