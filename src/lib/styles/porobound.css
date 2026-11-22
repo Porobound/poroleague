@@ -1390,7 +1390,8 @@ th abbr[title] {
 	.pb-table td.pb-player-cell {
 		padding-block: 0;
 	}
-	.pb-table a.pb-player {
+	.pb-table a.pb-player,
+	.pb-table .pb-player > .pb-pname-link {
 		min-height: 44px;
 	}
 }
