@@ -416,6 +416,11 @@ html {
 	color: var(--ink);
 	font-weight: 600;
 }
+/* A switcher with nothing to switch (one group, logged out) takes no room. The selector names
+   .filters so it outranks the phone rule that lays the filters out. */
+.seg.filters:not(:has(a)) {
+	display: none;
+}
 .cards {
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -428,12 +433,30 @@ html {
 .pb-mrows li:nth-child(even) > a.pb-mrow:not(.is-mine):hover {
 	background: color-mix(in srgb, var(--frost) 75%, transparent);
 }
+/* In two columns (pb-mrows-2col) every even item is in the right column, so stripe by row pair:
+   items 3 and 4, 7 and 8, and so on. */
+@container (min-width: 880px) {
+	.pb-mrows-2col li:nth-child(4n + 2) > .pb-mrow:not(.is-mine) {
+		background: none;
+	}
+	.pb-mrows-2col li:nth-child(4n + 3) > .pb-mrow:not(.is-mine) {
+		background: color-mix(in srgb, var(--frost) 40%, transparent);
+	}
+	.pb-mrows-2col li:nth-child(4n + 2) > a.pb-mrow:not(.is-mine):hover,
+	.pb-mrows-2col li:nth-child(4n + 3) > a.pb-mrow:not(.is-mine):hover {
+		background: color-mix(in srgb, var(--frost) 75%, transparent);
+	}
+}
 /* Schedule: round panels of match rows, side by side when they fit. */
 .rounds {
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(min(460px, 100%), 1fr));
 	gap: 16px;
-	align-items: start;
+	align-items: stretch;
+}
+/* Overdue matches span the page; with room, MatchRows runs them in two columns. */
+.rounds:has(> .overdue) {
+	grid-template-columns: minmax(0, 1fr);
 }
 .panel.rows {
 	min-width: 0;

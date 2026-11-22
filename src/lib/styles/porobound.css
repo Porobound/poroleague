@@ -299,6 +299,22 @@
 .pb-rank.is-podium {
 	color: var(--signal);
 }
+/* The place number sits in a chip, tinted for places inside the top cut and gold for the leader. */
+.pb-rank-chip {
+	display: inline-grid;
+	place-items: center;
+	min-width: 26px;
+	height: 26px;
+	border-radius: 8px;
+}
+.pb-table tr.is-in .pb-rank-chip {
+	background: color-mix(in srgb, var(--accent) 14%, transparent);
+	color: var(--accent);
+}
+.pb-table .pb-rank.is-podium .pb-rank-chip {
+	background: color-mix(in srgb, var(--tier-gold) 20%, transparent);
+	color: var(--tier-gold);
+}
 .pb-player {
 	display: flex;
 	align-items: center;
@@ -384,6 +400,27 @@
 }
 .pb-table tr.is-cut td {
 	border-bottom: 2px dashed var(--signal);
+}
+/* The cut line says what it is, on the line's right end. The text is in data-cut. */
+.pb-table td[data-cut] {
+	position: relative;
+}
+.pb-table td[data-cut]::after {
+	/* Decoration: the sentence under the table says it in words. The empty alt text keeps it out
+	   of the points cell's accessible text. */
+	content: '▲ ' attr(data-cut) / '';
+	position: absolute;
+	right: 8px;
+	bottom: -9px;
+	z-index: 1;
+	padding: 0 6px;
+	border-radius: var(--radius-sm);
+	background: var(--panel-end);
+	color: var(--signal);
+	font: 600 10px/16px var(--font-sans);
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	white-space: nowrap;
 }
 .pb-muted {
 	color: var(--ink-muted);
@@ -618,6 +655,9 @@ a.pb-btn {
 }
 .pb-table tr.is-me .pb-player-name {
 	font-weight: 700;
+}
+.pb-table tr.is-me > :first-child {
+	box-shadow: inset 3px 0 0 var(--accent);
 }
 .pb-player .pb-you {
 	margin-left: -2px;
@@ -1983,6 +2023,82 @@ a.pb-mrow.is-mine:hover {
 	overflow: hidden;
 	clip: rect(0 0 0 0);
 	white-space: nowrap;
+}
+/* Two columns once the list is wide enough. The second row's top border and a divider between
+   the columns; an odd last item has nothing beside it and gets no divider. */
+@container (min-width: 880px) {
+	.pb-mrows-2col ul {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+	.pb-mrows-2col li:nth-child(-n + 2) {
+		border-top: 0;
+	}
+	.pb-mrows-2col li:nth-child(odd):not(:last-child) {
+		border-right: 1px solid var(--line);
+	}
+}
+/* Spread variant, for a long list such as the schedule: each player at their own edge of the row
+   and a fixed score box between them, so avatars and scores line up down the list. */
+.pb-mrows-spread .pb-mrow-vs {
+	grid-template-columns: minmax(0, 1fr) 62px minmax(0, 1fr);
+	min-height: 60px;
+}
+.pb-mrows-spread .pb-mrow-side.is-a {
+	flex-direction: row;
+}
+.pb-mrows-spread .pb-mrow-side.is-a .pb-mrow-tx {
+	align-items: flex-start;
+	text-align: left;
+}
+.pb-mrows-spread .pb-mrow-side.is-a .pb-mrow-who,
+.pb-mrows-spread .pb-mrow-side.is-a .pb-mrow-sub {
+	flex-direction: row;
+}
+.pb-mrows-spread .pb-mrow-side.is-b {
+	flex-direction: row-reverse;
+}
+.pb-mrows-spread .pb-mrow-side.is-b .pb-mrow-tx {
+	align-items: flex-end;
+	text-align: right;
+}
+.pb-mrows-spread .pb-mrow-side.is-b .pb-mrow-who,
+.pb-mrows-spread .pb-mrow-side.is-b .pb-mrow-sub {
+	flex-direction: row-reverse;
+}
+.pb-mrows-spread .pb-mrow-sc,
+.pb-mrows-spread .pb-mrow-mid > .pb-mrow-mut {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 4px;
+	min-width: 52px;
+	height: 28px;
+	box-sizing: border-box;
+	border: 1px solid var(--line);
+	border-radius: 8px;
+	background: var(--surface);
+}
+.pb-mrows-spread .pb-mrow-mid > .pb-mrow-mut {
+	border-style: dashed;
+	background: transparent;
+	font-size: 12px;
+}
+.pb-mrows-spread .pb-mrow-side.is-winner .pb-avatar {
+	box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 70%, transparent);
+}
+.pb-mrows-spread .pb-mrow-side.is-loser .pb-avatar {
+	opacity: 0.6;
+}
+@container (min-width: 480px) {
+	.pb-mrows-spread .pb-mrow-vs {
+		grid-template-columns: minmax(0, 1fr) 72px minmax(0, 1fr);
+		padding-inline: 16px;
+	}
+	.pb-mrows-spread .pb-mrow-sc,
+	.pb-mrows-spread .pb-mrow-mid > .pb-mrow-mut {
+		min-width: 58px;
+	}
 }
 @container (min-width:480px) {
 	.pb-mrow-vs {

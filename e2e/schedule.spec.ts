@@ -52,3 +52,39 @@ test('every second row is striped, apart from your own', async ({ page }) => {
 	expect(second).not.toBe('rgba(0, 0, 0, 0)');
 	expect(second).not.toBe(mine);
 });
+
+test('each player sits at their own edge of the row, the score between them', async ({ page }) => {
+	await page.goto(`/seasons/${slug}/schedule?week=1`);
+	const list = page.getByRole('list', { name: 'Group A · Round 1' });
+	const row = list.getByRole('link').filter({ hasText: name(2) });
+	const box = async (l: Locator) => (await l.boundingBox())!;
+	const [whole, first, score, second] = await Promise.all([
+		box(row),
+		box(row.getByText(name(1), { exact: true })),
+		// The score is "2", a dash and "1", with "to" between them for screen readers.
+		box(row.getByText('to', { exact: true })),
+		box(row.getByText(name(2), { exact: true }))
+	]);
+	const right = (b: typeof whole) => b.x + b.width;
+	expect(right(first)).toBeLessThan(score.x);
+	expect(right(score)).toBeLessThan(second.x);
+	// Within an avatar and its gap of each edge, and the score in the middle.
+	expect(first.x - whole.x).toBeLessThan(64);
+	expect(right(whole) - right(second)).toBeLessThan(64);
+	expect(Math.abs(score.x - (whole.x + whole.width / 2))).toBeLessThan(40);
+});
+
+test.describe('phone, logged out', () => {
+	test.use({
+		storageState: { cookies: [], origins: [] },
+		viewport: { width: 390, height: 844 },
+		isMobile: true,
+		hasTouch: true
+	});
+
+	test('one group and nobody logged in: no empty filter box', async ({ page }) => {
+		await page.goto(`/seasons/${slug}/schedule?week=1`);
+		await expect(page.getByRole('navigation', { name: 'Weeks' })).toBeVisible();
+		await expect(page.getByRole('group', { name: 'Filter' })).toBeHidden();
+	});
+});
