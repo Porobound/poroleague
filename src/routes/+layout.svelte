@@ -84,6 +84,7 @@
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
+<a class="skip-link" href="#main">Skip to content</a>
 <header class="site-header">
 	<nav aria-label="Main" class="container site-nav">
 		<a href="/" class="brand">Poroleague</a>
@@ -160,7 +161,7 @@
 	</nav>
 </header>
 
-<main class="container">
+<main id="main" class="container">
 	{@render children()}
 </main>
 
