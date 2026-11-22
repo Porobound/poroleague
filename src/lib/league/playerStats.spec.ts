@@ -2,19 +2,28 @@ import { describe, expect, it } from 'vitest';
 import { playerStats, rankByRound } from './playerStats';
 import { standings } from './standings';
 
+const group = (ids: string, dropped = '', ranks: Record<string, number> = {}) =>
+	[...ids].map((playerId) => ({
+		playerId,
+		dropped: dropped.includes(playerId),
+		tiebreak: ranks[playerId] ?? null
+	}));
 const m = (
 	round: number,
-	p1Id: string,
-	p2Id: string,
+	p1: string,
+	p2: string,
 	p1Games: number | null,
 	p2Games: number | null,
-	diceWinnerId: string | null = null
-) => ({ round, p1Id, p2Id, p1Games, p2Games, diceWinnerId });
+	diceWinnerId: string | null = null,
+	games: string | null = null
+) => ({ round, p1, p2, p1Games, p2Games, diceWinnerId, games });
 const shapes = (s: ReturnType<typeof playerStats>) =>
 	Object.fromEntries(s.shapes.map((x) => [x.key, x.count]));
+const all = group('abcdef');
 
 describe('playerStats', () => {
 	const stats = playerStats(
+		all,
 		[
 			m(3, 'b', 'a', 2, 1, 'a'), // out of order on purpose
 			m(1, 'a', 'b', 2, 0, 'a'),
@@ -46,6 +55,7 @@ describe('playerStats', () => {
 
 	it('finds a losing run, and keeps an earlier winning run as the best', () => {
 		const s = playerStats(
+			all,
 			[m(1, 'a', 'b', 2, 0), m(2, 'a', 'c', 2, 1), m(3, 'a', 'd', 0, 2), m(4, 'e', 'a', 2, 1)],
 			'a'
 		);
@@ -65,7 +75,11 @@ describe('playerStats', () => {
 	});
 
 	it('reads matches called on time: 1–0 a close win, 0–1 a close loss, 0–0 a draw', () => {
-		const s = playerStats([m(1, 'a', 'b', 1, 0), m(2, 'a', 'c', 0, 1), m(3, 'd', 'a', 0, 0)], 'a');
+		const s = playerStats(
+			all,
+			[m(1, 'a', 'b', 1, 0), m(2, 'a', 'c', 0, 1), m(3, 'd', 'a', 0, 0)],
+			'a'
+		);
 		expect(s.form.map((f) => f.letter).join('')).toBe('WLD');
 		expect(shapes(s)).toEqual({
 			sweep: 0,
@@ -78,8 +92,23 @@ describe('playerStats', () => {
 		expect(s.deciders).toEqual({ played: 0, wins: 0 });
 	});
 
-	it('counts matches that went to a third game', () => {
+	it('counts matches that went to a third game, from the score when games are not recorded', () => {
 		expect(stats.deciders).toEqual({ played: 3, wins: 2 });
+	});
+
+	it('counts a drawn game as a game played when working out who reached game 3', () => {
+		const s = playerStats(
+			all,
+			[
+				m(1, 'a', 'b', 1, 1, null, '1D2'), // 1–1 over three games
+				m(2, 'a', 'c', 2, 0, null, 'D11'), // 2–0 after a drawn first game
+				m(3, 'd', 'a', 1, 0, null, '1DD'), // lost 0–1, two games drawn
+				m(4, 'a', 'e', 2, 0, null, '11'), // two games
+				m(5, 'a', 'f', 1, 1, null, '12') // 1–1 called on time after two
+			],
+			'a'
+		);
+		expect(s.deciders).toEqual({ played: 3, wins: 1 });
 	});
 
 	it('splits wins by who won the dice roll, leaving out unrecorded rolls', () => {
@@ -88,7 +117,7 @@ describe('playerStats', () => {
 	});
 
 	it('is empty for a player with no matches', () => {
-		const none = playerStats([], 'a');
+		const none = playerStats(all, [], 'a');
 		expect(none.played).toBe(0);
 		expect(none.winRate).toBeNull();
 		expect(none.streak).toBeNull();
@@ -96,25 +125,18 @@ describe('playerStats', () => {
 	});
 
 	describe('unplayed matches', () => {
+		const four = group('abcd');
 		const ms = [m(1, 'a', 'b', 2, 0, 'a'), m(2, 'a', 'c', null, null), m(3, 'd', 'a', null, null)];
 
 		it('are left out while they can still be played', () => {
-			const s = playerStats(ms, 'a');
+			const s = playerStats(four, ms, 'a');
 			expect(s.played).toBe(1);
 			expect([s.wins, s.draws, s.losses]).toEqual([1, 0, 0]);
 			expect(s.winRate).toBe(1);
 		});
 
-		it('are losses with no games once the deadline has passed, as in the standings', () => {
-			const s = playerStats(ms, 'a', true);
-			// The same matches through the standings give the same record.
-			const row = standings(
-				['a', 'b', 'c', 'd'].map((playerId) => ({ playerId, dropped: false, tiebreak: null })),
-				ms.map((x) => ({ p1: x.p1Id, p2: x.p2Id, p1Games: x.p1Games, p2Games: x.p2Games })),
-				true
-			).find((x) => x.playerId === 'a')!;
-			expect(s.played).toBe(row.played);
-			expect([s.wins, s.draws, s.losses]).toEqual([row.wins, row.draws, row.losses]);
+		it('are losses with no games once the deadline has passed', () => {
+			const s = playerStats(four, ms, 'a', true);
 			expect([s.wins, s.draws, s.losses]).toEqual([1, 0, 2]);
 			expect(s.winRate).toBeCloseTo(1 / 3);
 			expect(s.games).toEqual({ won: 2, lost: 0 });
@@ -124,22 +146,55 @@ describe('playerStats', () => {
 			expect(s.dice.without).toEqual({ played: 0, wins: 0 });
 		});
 	});
+
+	describe('agrees with the standings row, given the same inputs', () => {
+		// d dropped, so a's win over d is void. Round 3 is unpublished: masked as unplayed.
+		const entries = group('abcd', 'd');
+		const ms = [
+			m(1, 'a', 'b', 2, 0),
+			m(1, 'c', 'd', 2, 0),
+			m(2, 'a', 'd', 2, 0),
+			m(2, 'b', 'c', 1, 1),
+			m(3, 'a', 'c', null, null),
+			m(3, 'b', 'd', null, null)
+		];
+		for (const closed of [false, true])
+			for (const id of 'abc')
+				it(`${id}, deadline ${closed ? 'passed' : 'ahead'}`, () => {
+					const row = standings(entries, ms, closed).find((x) => x.playerId === id)!;
+					const s = playerStats(entries, ms, id, closed);
+					expect([s.played, s.wins, s.draws, s.losses]).toEqual([
+						row.played,
+						row.wins,
+						row.draws,
+						row.losses
+					]);
+					expect([s.games.won, s.games.lost]).toEqual([row.gameWins, row.gameLosses]);
+				});
+
+		it('leaves out a void match: a keeps one win, not two', () => {
+			expect(playerStats(entries, ms, 'a').wins).toBe(1);
+		});
+
+		it('counts a masked round as a loss after the deadline: 1–0–1, not 1–0–0', () => {
+			const s = playerStats(entries, ms, 'a', true);
+			expect([s.wins, s.draws, s.losses]).toEqual([1, 0, 1]);
+			expect(s.winRate).toBe(0.5);
+		});
+
+		it('is empty for a dropped player, who has no row', () => {
+			expect(playerStats(entries, ms, 'd').played).toBe(0);
+		});
+	});
 });
 
 describe('rankByRound', () => {
-	const entries = ['a', 'b', 'c'].map((playerId) => ({ playerId, dropped: false, tiebreak: null }));
-	const r = (
-		round: number,
-		p1: string,
-		p2: string,
-		p1Games: number | null,
-		p2Games: number | null
-	) => ({ round, p1, p2, p1Games, p2Games });
+	const entries = group('abc');
 	const season = [
-		r(1, 'a', 'b', 0, 2),
-		r(2, 'a', 'c', 2, 1),
-		r(3, 'b', 'c', 0, 2),
-		r(4, 'a', 'b', null, null)
+		m(1, 'a', 'b', 0, 2),
+		m(2, 'a', 'c', 2, 1),
+		m(3, 'b', 'c', 0, 2),
+		m(4, 'a', 'b', null, null)
 	];
 
 	it('replays the standings after each played round', () => {
@@ -160,29 +215,54 @@ describe('rankByRound', () => {
 		expect(ranks.at(-1)!.points).toBe(table.find((x) => x.playerId === 'a')!.points);
 	});
 
-	it('marks a place the tiebreakers have not settled, such as a tie at the cut line', () => {
-		// Four players, top two advance. b and c each beat someone else 2–0 and have not met.
-		const four = ['a', 'b', 'c', 'd'].map((playerId) => ({
-			playerId,
-			dropped: false,
-			tiebreak: null
-		}));
-		const ms = [r(1, 'b', 'a', 2, 0), r(1, 'c', 'd', 2, 0)];
-		const table = standings(four, ms);
-		for (const id of ['b', 'c']) {
-			const [after] = rankByRound(four, ms, id);
-			expect(after.tied).toBe(true);
-			expect(after.rank).toBe(table.findIndex((x) => x.playerId === id) + 1);
-			expect(after.points).toBe(3);
-		}
+	it('skips a round nobody has played yet', () => {
+		const four = group('abcd');
+		const ms = [
+			m(1, 'a', 'b', null, null),
+			m(1, 'c', 'd', null, null),
+			m(2, 'b', 'c', 2, 0),
+			m(2, 'a', 'd', 0, 2)
+		];
+		expect(rankByRound(four, ms, 'b').map((x) => x.round)).toEqual([2]);
+		// After the deadline round 1 counts, as double losses.
+		expect(rankByRound(four, ms, 'b', true).map((x) => x.round)).toEqual([1, 2]);
+	});
+
+	describe('level players', () => {
+		// a and b both win rounds 1 and 2 without meeting, then draw each other.
+		const ms = [
+			m(1, 'a', 'c', 2, 0),
+			m(1, 'b', 'd', 2, 0),
+			m(2, 'a', 'd', 2, 0),
+			m(2, 'b', 'c', 2, 0),
+			m(3, 'a', 'b', 1, 1),
+			m(3, 'c', 'd', 2, 0)
+		];
+		const open = group('abcd');
+		const ranked = group('abcd', '', { b: 1, a: 2 });
+
+		it('are not marked tied while the season is still being played', () => {
+			expect(rankByRound(open, ms, 'b').map((x) => x.tied)).toEqual([false, false, false]);
+		});
+
+		it('are marked tied on the last round after the deadline, until an organizer orders them', () => {
+			expect(rankByRound(open, ms, 'b', true).map((x) => x.tied)).toEqual([false, false, true]);
+			expect(rankByRound(ranked, ms, 'b', true).map((x) => x.tied)).toEqual([false, false, false]);
+		});
+
+		it("apply an organizer's tie ranks to the last round only", () => {
+			// Entry order puts a first while nothing separates them; the ranks put b first.
+			expect(rankByRound(open, ms, 'b', true).map((x) => x.rank)).toEqual([2, 2, 2]);
+			expect(rankByRound(ranked, ms, 'b', true).map((x) => x.rank)).toEqual([2, 2, 1]);
+			expect(rankByRound(ranked, ms, 'a', true).map((x) => x.rank)).toEqual([1, 1, 2]);
+		});
 	});
 
 	it('gives a dropped player no place', () => {
-		const dropped = entries.map((e) => ({ ...e, dropped: e.playerId === 'a' }));
-		expect(rankByRound(dropped, [r(1, 'a', 'b', 2, 0)], 'a')).toEqual([]);
+		expect(rankByRound(group('abc', 'a'), [m(1, 'a', 'b', 2, 0)], 'a')).toEqual([]);
 	});
 
 	it('is empty before anything is played', () => {
-		expect(rankByRound(entries, [r(1, 'a', 'b', null, null)], 'a')).toEqual([]);
+		expect(rankByRound(entries, [m(1, 'a', 'b', null, null)], 'a')).toEqual([]);
 	});
 });
