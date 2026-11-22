@@ -1,9 +1,11 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { dateSpan } from '#lib/format.ts';
 import { coversLabel, holidayWeeks, requestError, visibleTo } from '#lib/league/holiday.ts';
+import { cutGap } from '#lib/league/cutGap.ts';
 import { legendMatches, playerLegends } from '#lib/league/legendStats.ts';
+import { playerStats } from '#lib/league/playerStats.ts';
 import { isPublished, published } from '#lib/league/publish.ts';
-import { leagueDate } from '#lib/league/time.ts';
+import { leagueDate, reportingClosed } from '#lib/league/time.ts';
 import { cardContext, matchCard } from '#lib/matchCard.ts';
 import { organizerAction, playerAction } from '#lib/server/auth.ts';
 import {
@@ -12,7 +14,7 @@ import {
 	seasonHolidays,
 	seasonUnlocks
 } from '#lib/server/holidays.ts';
-import { playerMatches, seasonMatches } from '#lib/server/matches.ts';
+import { playerMatches, publicMatches, seasonMatches } from '#lib/server/matches.ts';
 import { erasePlayer } from '#lib/server/players.ts';
 import { postToOrganizers } from '#lib/server/webhooks.ts';
 import { cutEraseEmbed, dropEmbed, holidayEmbed } from '#lib/discord.ts';
@@ -51,9 +53,27 @@ export const load: PageServerLoad = ({ params, locals }) => {
 	const theirs = playerMatches(season.id, player.playerId);
 	const ms = published(theirs, season.publishedRound);
 	const counted = legendMatches(ms, ctx.dropped);
-	const standing = groupStandings(season, list).find((g) => g.group === player.group);
+	// Read once. The standings and the stats count the same matches: every round of the group,
+	// unpublished ones masked as unplayed.
+	const all = publicMatches(season);
+	const standing = groupStandings(season, list, all).find((g) => g.group === player.group);
+	const closed = reportingClosed(season.deadline, new Date());
+	const group = list.filter((e) => e.group === player.group);
+	const results = all
+		.filter((m) => m.group === player.group)
+		.map((m) => ({
+			round: m.round,
+			p1: m.p1Id,
+			p2: m.p2Id,
+			p1Games: m.p1Games,
+			p2Games: m.p2Games,
+			games: m.games,
+			diceWinnerId: m.diceWinnerId
+		}));
 	const rank = standing?.rows.findIndex((r) => r.playerId === player.playerId) ?? -1;
 	const isMe = locals.user?.id === player.playerId;
+	const rows = standing?.rows ?? [];
+	const cut = season.topCutSize ?? 0;
 	const mine = hs.filter((h) => h.playerId === player.playerId);
 	const cal = isMe && season.status === 'play' ? calendar(season) : null;
 	const canRequest = !!cal && !player.dropped;
@@ -68,6 +88,18 @@ export const load: PageServerLoad = ({ params, locals }) => {
 		player,
 		row: rank >= 0 ? standing!.rows[rank] : null,
 		rank: rank + 1,
+		// Everyone drawn into the group, dropped players included, as in the season history.
+		groupSize: standing?.size ?? 0,
+		cut,
+		// Against the players who can qualify: erased ones are skipped, as when the cut is drawn.
+		line: player.former
+			? null
+			: cutGap(
+					rows.filter((r) => !r.former),
+					player.playerId,
+					cut
+				),
+		stats: playerStats(group, results, player.playerId, closed),
 		dice: {
 			won: counted.filter((m) => m.diceWinnerId === player.playerId).length,
 			of: counted.length

@@ -24,6 +24,10 @@
 			? coversLabel(holidayWeeks({ from, to }, cal), cal.roundsPerWeek, cal.maxRound)
 			: ''
 	);
+	const stats = $derived(data.stats);
+	const pts = (n: number) => `${n} ${n === 1 ? 'pt' : 'pts'}`;
+	const RESULT = { W: 'Won', D: 'Drew', L: 'Lost' } as const;
+	const RUN = { W: 'wins', D: 'draws', L: 'losses' } as const;
 	const HOLIDAY = {
 		pending: { h: 'Holiday requested', badge: 'Pending', tone: '' },
 		approved: { h: 'Holiday approved', badge: 'Approved', tone: 'pb-badge-win' },
@@ -45,70 +49,141 @@
 		<p class="pb-notice" role="alert">{form.holidayError}</p>
 	{/if}
 
-	<section class="player-head">
-		<Avatar name={player.displayName} src={player.avatar} size={72} former={player.former} />
-		<div class="head-text">
-			<div class="name-row">
-				<h1 class={[player.former && 'pb-former']}>{player.displayName}</h1>
-				<a class="tap" href="/players/{player.playerId}">Career</a>
-				{#if data.canRequest && cal}
-					<ConfirmButton
-						action="?/requestHoliday"
-						variant="ghost"
-						small
-						label="Going away?"
-						title="Going away?"
-						confirmLabel="Request holiday"
-						confirmDisabled={!from || !to || !!problem}
-					>
-						<p>
-							Once an organizer approves it, your matches in those weeks unlock so you can play them
-							before you go.
-						</p>
-						<label class="pb-field">
-							First day away
-							<input
-								class="pb-input"
-								type="date"
-								name="from"
-								min={cal.today}
-								max={cal.deadline}
-								bind:value={from}
-							/>
-						</label>
-						<label class="pb-field">
-							Last day away
-							<input
-								class="pb-input"
-								type="date"
-								name="to"
-								min={from || cal.today}
-								max={cal.deadline}
-								bind:value={to}
-							/>
-						</label>
-						{#if problem}
-							<p role="alert" class="small">{problem}</p>
-						{:else if covers}
-							<p aria-live="polite" class="muted small">Covers {covers}.</p>
-						{/if}
-					</ConfirmButton>
-				{/if}
+	<section class="profile">
+		<div class="profile-head">
+			<Avatar name={player.displayName} src={player.avatar} size={96} former={player.former} ring />
+			<div class="head-text">
+				<div class="name-row">
+					<h1 class={['profile-name', player.former && 'pb-former']}>{player.displayName}</h1>
+					<a class="tap" href="/players/{player.playerId}">Career</a>
+					{#if data.canRequest && cal}
+						<ConfirmButton
+							action="?/requestHoliday"
+							variant="ghost"
+							small
+							label="Going away?"
+							title="Going away?"
+							confirmLabel="Request holiday"
+							confirmDisabled={!from || !to || !!problem}
+						>
+							<p>
+								Once an organizer approves it, your matches in those weeks unlock so you can play
+								them before you go.
+							</p>
+							<label class="pb-field">
+								First day away
+								<input
+									class="pb-input"
+									type="date"
+									name="from"
+									min={cal.today}
+									max={cal.deadline}
+									bind:value={from}
+								/>
+							</label>
+							<label class="pb-field">
+								Last day away
+								<input
+									class="pb-input"
+									type="date"
+									name="to"
+									min={from || cal.today}
+									max={cal.deadline}
+									bind:value={to}
+								/>
+							</label>
+							{#if problem}
+								<p role="alert" class="small">{problem}</p>
+							{:else if covers}
+								<p aria-live="polite" class="muted small">Covers {covers}.</p>
+							{/if}
+						</ConfirmButton>
+					{/if}
+				</div>
+				<div class="badges">
+					{#if player.group}<span class="pb-badge">{groupName(player.group)}</span>{/if}
+					{#if player.dropped}
+						<span class="pb-badge pb-badge-loss">Dropped</span>
+					{:else if row?.played}
+						<span class="pb-badge pb-badge-rank">#{data.rank} in group</span>
+					{/if}
+					{#if data.away}
+						<span class="pb-badge">On holiday · {data.away}</span>
+					{/if}
+					<span class="muted small">{season.name}</span>
+					{#if player.former}<span class="muted small">· Account erased.</span>{/if}
+				</div>
 			</div>
-			<div class="badges">
-				{#if player.group}<span class="pb-badge">{groupName(player.group)}</span>{/if}
-				{#if player.dropped}
-					<span class="pb-badge pb-badge-loss">Dropped</span>
-				{:else if row}
-					<span class="pb-badge pb-badge-rank">#{data.rank} in group</span>
-				{/if}
-				{#if data.away}
-					<span class="pb-badge">On holiday · {data.away}</span>
-				{/if}
-				<span class="muted small">{season.name}</span>
-				{#if player.former}<span class="muted small">· Account erased.</span>{/if}
-			</div>
+			{#if row?.played}
+				<div class="place">
+					<span class="eyebrow">Group position</span>
+					<strong>#{data.rank} <span>of {data.groupSize}</span></strong>
+					{#if data.line && season.status === 'play'}
+						<span class={['line-note', data.line.inside && 'is-in']}>
+							{#if data.line.inside}
+								In the top {data.cut}{data.line.points > 0
+									? ` · ${pts(data.line.points)} clear`
+									: ' · level on points'}
+							{:else if data.line.points > 0}
+								{pts(data.line.points)} off the top {data.cut}
+							{:else}
+								Level on points with the top {data.cut}
+							{/if}
+						</span>
+					{/if}
+				</div>
+			{/if}
 		</div>
+
+		{#if row}
+			<div class="profile-stats" role="group" aria-label="Season stats">
+				<div class="profile-stat is-lead">
+					<span class="eyebrow">Points</span><strong>{row.points}</strong>
+				</div>
+				<div class="profile-stat">
+					<span class="eyebrow">W–D–L</span><strong>{row.wins}–{row.draws}–{row.losses}</strong>
+				</div>
+				<div class="profile-stat">
+					<span class="eyebrow">Win rate</span><strong>{pct(stats.winRate)}</strong>
+				</div>
+				<div class="profile-stat">
+					<span class="eyebrow">Game-win %</span><strong>{row.played ? pct(row.gwp) : '—'}</strong>
+				</div>
+				<div class="profile-stat">
+					<span class="eyebrow">Games</span><strong>{stats.games.won}–{stats.games.lost}</strong>
+				</div>
+				<div class="profile-stat">
+					<span class="eyebrow">Dice rolls won</span><strong
+						>{data.dice.won} / {data.dice.of}</strong
+					>
+				</div>
+			</div>
+		{/if}
+
+		{#if stats.played}
+			<div class="form">
+				<span class="eyebrow">Form</span>
+				<ol aria-label="Results, oldest first">
+					{#each stats.form as f (f.round)}
+						{@const what = f.unplayed
+							? 'not played, a loss'
+							: `${RESULT[f.letter].toLowerCase()} ${f.won}–${f.lost}`}
+						<li class="is-{f.letter.toLowerCase()}">
+							<span aria-hidden="true">{f.letter}</span><span class="pb-sr"
+								>Round {f.round}: {what}</span
+							>
+						</li>
+					{/each}
+				</ol>
+				<span class="muted small">latest →</span>
+				{#if stats.streak && stats.streak.length > 1}
+					<span class={['run', `is-${stats.streak.letter.toLowerCase()}`]}>
+						{stats.streak.length}
+						{RUN[stats.streak.letter]} in a row
+					</span>
+				{/if}
+			</div>
+		{/if}
 	</section>
 
 	{#each data.holidays as h (h.id)}
@@ -150,21 +225,6 @@
 			{/if}
 		</section>
 	{/each}
-
-	{#if row}
-		<section class="stats" aria-label="Season stats">
-			<div class="panel"><span class="eyebrow">Points</span><strong>{row.points}</strong></div>
-			<div class="panel">
-				<span class="eyebrow">W–D–L</span><strong>{row.wins}–{row.draws}–{row.losses}</strong>
-			</div>
-			<div class="panel">
-				<span class="eyebrow">Game-win %</span><strong>{row.played ? pct(row.gwp) : '—'}</strong>
-			</div>
-			<div class="panel">
-				<span class="eyebrow">Dice rolls won</span><strong>{data.dice.won} / {data.dice.of}</strong>
-			</div>
-		</section>
-	{/if}
 
 	<section class="matches" aria-labelledby="matches-h">
 		<div class="matches-h">
@@ -351,11 +411,76 @@
 		margin: 0;
 		font-weight: 600;
 	}
-	.player-head {
+	.place {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-end;
+		gap: 2px;
+		text-align: right;
+	}
+	.place strong {
+		font: 700 56px/1 var(--font-display);
+		letter-spacing: -0.04em;
+	}
+	.place strong span {
+		font: 500 16px/1 var(--font-sans);
+		letter-spacing: 0;
+		color: var(--ink-muted);
+	}
+	.line-note {
+		font: 600 13px/18px var(--font-sans);
+		color: var(--signal);
+	}
+	.line-note.is-in {
+		color: var(--accent);
+	}
+	.form {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 24px;
 		align-items: center;
+		gap: 8px 12px;
+		padding: 14px 20px;
+		border-top: 1px solid var(--line);
+		background: color-mix(in srgb, var(--surface) 35%, transparent);
+	}
+	.form ol {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 4px;
+		list-style: none;
+		margin: 0;
+		padding: 0;
+	}
+	.form li {
+		display: grid;
+		place-items: center;
+		width: 26px;
+		height: 26px;
+		border-radius: 7px;
+		font: 700 12px/1 var(--font-sans);
+		border: 1px solid var(--line);
+		color: var(--ink-muted);
+	}
+	.form li.is-w {
+		background: color-mix(in srgb, var(--accent) 16%, transparent);
+		border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+		color: var(--accent);
+	}
+	.form li.is-l {
+		background: color-mix(in srgb, var(--brand) 14%, transparent);
+		border-color: color-mix(in srgb, var(--brand) 50%, transparent);
+		color: var(--brand);
+	}
+	.run {
+		margin-left: auto;
+		font: 600 13px/18px var(--font-sans);
+		color: var(--ink-muted);
+	}
+	.run.is-w {
+		color: var(--accent);
+	}
+	.run.is-l {
+		color: var(--brand);
 	}
 	.name-row {
 		display: flex;
@@ -378,8 +503,22 @@
 		min-width: 0;
 	}
 	@media (max-width: 640px) {
-		.player-head {
-			gap: 14px;
+		.place {
+			flex: 1 1 100%;
+			flex-direction: row;
+			flex-wrap: wrap;
+			align-items: baseline;
+			gap: 4px 10px;
+			text-align: left;
+		}
+		.place strong {
+			font-size: 32px;
+		}
+		.form {
+			padding: 12px 14px;
+		}
+		.run {
+			margin-left: 0;
 		}
 	}
 </style>

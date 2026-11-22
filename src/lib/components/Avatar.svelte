@@ -3,8 +3,16 @@
 		name,
 		src = null,
 		size = 32,
-		former = false
-	}: { name: string; src?: string | null; size?: number; former?: boolean } = $props();
+		former = false,
+		ring = false
+	}: {
+		name: string;
+		src?: string | null;
+		size?: number;
+		former?: boolean;
+		// In a gradient ring, for a player's card. An erased player keeps the dashed outline instead.
+		ring?: boolean;
+	} = $props();
 	const initials = $derived(
 		name
 			.split(/\s+/)
@@ -36,6 +44,14 @@
 			<circle cx="12" cy="8" r="4" />
 			<path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6" />
 		</svg>
+	</span>
+{:else if ring}
+	<span class="pb-avatar-ring" style:--pb-avatar-size="{size}px">
+		{#if src}
+			<img class="pb-avatar pb-avatar-img" {src} alt="" />
+		{:else}
+			<span class="pb-avatar" aria-hidden="true">{initials}</span>
+		{/if}
 	</span>
 {:else if src}
 	<img class="pb-avatar pb-avatar-img" {src} alt="" width={size} height={size} />

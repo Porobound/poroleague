@@ -1114,6 +1114,31 @@ th abbr[title] {
 	color: var(--ink-muted);
 	box-sizing: border-box;
 }
+/* Avatar in a gradient ring, for a player's card. The ring sets the size, smaller on phones.
+   An erased player's dashed outline is not ringed: Avatar leaves the ring off. */
+.pb-avatar-ring {
+	display: inline-grid;
+	flex: none;
+	padding: 3px;
+	border-radius: var(--radius-pill);
+	background: conic-gradient(from 210deg, var(--brand), var(--signal), var(--accent), var(--brand));
+	box-shadow: 0 12px 28px -14px color-mix(in srgb, var(--brand) 80%, transparent);
+}
+.pb-avatar-ring .pb-avatar {
+	width: var(--pb-avatar-size);
+	height: var(--pb-avatar-size);
+	border: 4px solid var(--surface-raised);
+	box-sizing: content-box;
+	font-size: 30px;
+	font-family: var(--font-display);
+}
+@media (max-width: 640px) {
+	.pb-avatar-ring .pb-avatar {
+		width: min(var(--pb-avatar-size), 64px);
+		height: min(var(--pb-avatar-size), 64px);
+		font-size: 22px;
+	}
+}
 .pb-former,
 .pb-match-p.is-former .pb-match-nm,
 .pb-pname.is-former .pb-pname-text {

@@ -1039,3 +1039,88 @@ html {
 		view-transition-name: site-header;
 	}
 }
+
+/* Player card: avatar and name over a strip of numbers. */
+.profile {
+	position: relative;
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+	border: 1px solid var(--line);
+	border-radius: var(--radius-lg);
+	background:
+		radial-gradient(
+			560px 240px at 0% 0%,
+			color-mix(in srgb, var(--brand) 14%, transparent),
+			transparent 70%
+		),
+		radial-gradient(
+			480px 220px at 100% 0%,
+			color-mix(in srgb, var(--accent) 9%, transparent),
+			transparent 70%
+		),
+		linear-gradient(180deg, var(--surface-raised), var(--panel-end));
+	box-shadow: var(--shadow-panel);
+}
+.profile-head {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 20px 28px;
+	align-items: center;
+	padding: 28px;
+}
+/* The name keeps the page's h1 size. A long name with no spaces breaks instead of running out
+   of the card. */
+.profile-name {
+	margin: 0;
+	overflow-wrap: anywhere;
+}
+.profile-stats {
+	display: grid;
+	grid-template-columns: repeat(6, minmax(0, 1fr));
+	border-top: 1px solid var(--line);
+}
+.profile-stat {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	padding: 16px 20px;
+	min-width: 0;
+}
+.profile-stat + .profile-stat {
+	border-left: 1px solid var(--line);
+}
+.profile-stat strong {
+	font: 600 26px/30px var(--font-display);
+	letter-spacing: -0.02em;
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+}
+.profile-stat.is-lead strong {
+	color: var(--signal);
+}
+/* Narrower: the six stats go three to a row. */
+@media (max-width: 900px) {
+	.profile-stats {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
+	.profile-stat:nth-child(4) {
+		border-left: 0;
+	}
+	.profile-stat:nth-child(n + 4) {
+		border-top: 1px solid var(--line);
+	}
+}
+@media (max-width: 640px) {
+	.profile-head {
+		gap: 14px;
+		padding: 20px 16px;
+	}
+	.profile-stat {
+		padding: 12px 14px;
+	}
+	.profile-stat strong {
+		font-size: 20px;
+		line-height: 26px;
+	}
+}
