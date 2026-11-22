@@ -110,7 +110,7 @@ Not in UI: managing organizers (Discord role), legend list (config file), messag
 - `/api` — interactive API reference (Scalar) over the OpenAPI spec
 - `/seasons/[slug]` — groups + standings. A draft is a 404 for everyone but organizers, who see this page as a preview; a draft's other pages are a 404 for all.
 - `/seasons/[slug]/schedule` — rounds and results
-- `/seasons/[slug]/players/[id]` — player page: this season's matches, per-legend record ("played as": W-D-L + game-win % per legend; "against": W-D-L vs each opponent legend), "report" buttons, "who do I play this week"
+- `/seasons/[slug]/players/[id]` — player page: a card with place in the group, gap to the top cut, season stats and form; place in the group after each round (a chart, with the same as a table) and how the matches went (results by score, best win streak, game-3 and dice-roll records); this season's matches, per-legend record ("played as": W-D-L + game-win % per legend; "against": W-D-L vs each opponent legend), "report" buttons, "who do I play this week"
 - `/seasons/[slug]/legends` — season legend stats: picks, players, W-D-L, match/game win % per legend; win % hidden under 5 non-mirror matches; click a legend → players who used it with their record
 - `/seasons/[slug]/top-cut` — the bracket, once published
 - `/seasons/[slug]/matches/[id]` — match page: report, flag, replays

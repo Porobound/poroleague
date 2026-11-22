@@ -3,6 +3,7 @@
 	import ConfirmButton from '#lib/components/ConfirmButton.svelte';
 	import MatchRows from '#lib/components/MatchRows.svelte';
 	import PlayerLegends from '#lib/components/PlayerLegends.svelte';
+	import RankChart from '#lib/components/RankChart.svelte';
 	import SeasonHistory from '#lib/components/SeasonHistory.svelte';
 	import { pct } from '#lib/format.ts';
 	import { coversLabel, holidayWeeks, requestError } from '#lib/league/holiday.ts';
@@ -27,6 +28,7 @@
 	const stats = $derived(data.stats);
 	const pts = (n: number) => `${n} ${n === 1 ? 'pt' : 'pts'}`;
 	const RESULT = { W: 'Won', D: 'Drew', L: 'Lost' } as const;
+	const share = (wins: number, played: number) => (played ? pct(wins / played) : '—');
 	const RUN = { W: 'wins', D: 'draws', L: 'losses' } as const;
 	const HOLIDAY = {
 		pending: { h: 'Holiday requested', badge: 'Pending', tone: '' },
@@ -225,6 +227,67 @@
 			{/if}
 		</section>
 	{/each}
+
+	{#if stats.played}
+		<div class="insights">
+			{#if data.progress.length > 1}
+				<section class="panel" aria-labelledby="position-h">
+					<div class="panel-h">
+						<h2 id="position-h">Group position</h2>
+						<span class="muted small">after each round</span>
+					</div>
+					<RankChart
+						points={data.progress}
+						size={data.groupSize}
+						cut={data.cut < data.groupSize ? data.cut : 0}
+					/>
+				</section>
+			{/if}
+			<section class="panel" aria-labelledby="shape-h">
+				<div class="panel-h">
+					<h2 id="shape-h">How matches went</h2>
+					<!-- "matches", not "played": after the deadline the count includes matches nobody played. -->
+					<span class="muted small">{stats.played} match{stats.played === 1 ? '' : 'es'}</span>
+				</div>
+				<div class="shape-bar" aria-hidden="true">
+					{#each stats.shapes.filter((x) => x.count) as x (x.key)}
+						<span class="is-{x.key}" style:flex-grow={x.count}></span>
+					{/each}
+				</div>
+				<ul class="shape-key">
+					{#each stats.shapes.filter((x) => x.key !== 'unplayed' || x.count) as x (x.key)}
+						<li class={[!x.count && 'is-none']}>
+							<i class="is-{x.key}"></i>
+							<span>{x.label}</span>
+							<strong>{x.count}</strong>
+						</li>
+					{/each}
+				</ul>
+				<dl class="facts">
+					<div>
+						<dt>Best win streak</dt>
+						<dd>{stats.bestWins || '—'}</dd>
+					</div>
+					<div>
+						<dt>Went to game 3</dt>
+						<dd>
+							{stats.deciders.played
+								? `${stats.deciders.wins} of ${stats.deciders.played} won`
+								: '—'}
+						</dd>
+					</div>
+					<div>
+						<dt>Won with the dice roll</dt>
+						<dd>{share(stats.dice.with.wins, stats.dice.with.played)}</dd>
+					</div>
+					<div>
+						<dt>Won without it</dt>
+						<dd>{share(stats.dice.without.wins, stats.dice.without.played)}</dd>
+					</div>
+				</dl>
+			</section>
+		</div>
+	{/if}
 
 	<section class="matches" aria-labelledby="matches-h">
 		<div class="matches-h">
@@ -501,6 +564,109 @@
 	.head-text {
 		flex: 1 1 200px;
 		min-width: 0;
+	}
+	.insights {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr));
+		gap: 24px;
+	}
+	.insights .panel {
+		display: flex;
+		flex-direction: column;
+		gap: 16px;
+		min-width: 0;
+	}
+	.panel-h {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 4px 12px;
+	}
+	.shape-bar {
+		display: flex;
+		gap: 2px;
+		height: 14px;
+	}
+	.shape-bar span {
+		flex-basis: 0;
+		border-radius: 4px;
+	}
+	.is-sweep {
+		background: var(--accent);
+	}
+	.is-close-win {
+		background: color-mix(in srgb, var(--accent) 50%, var(--surface-raised));
+	}
+	.is-draw {
+		background: var(--ink-muted);
+	}
+	.is-close-loss {
+		background: color-mix(in srgb, var(--brand) 50%, var(--surface-raised));
+	}
+	.is-swept {
+		background: var(--brand);
+	}
+	.is-unplayed {
+		background: var(--line);
+	}
+	.shape-key {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+		gap: 6px 20px;
+		font-size: 14px;
+	}
+	.shape-key li {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+	}
+	.shape-key li.is-none {
+		color: var(--ink-muted);
+	}
+	.shape-key i {
+		flex: none;
+		width: 10px;
+		height: 10px;
+		border-radius: 3px;
+	}
+	.shape-key span {
+		flex: 1;
+	}
+	.shape-key strong {
+		font-variant-numeric: tabular-nums;
+	}
+	.facts {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 0;
+		margin: auto 0 0;
+		border-top: 1px solid var(--line);
+	}
+	.facts div {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		padding: 12px 0;
+	}
+	.facts div:nth-child(n + 3) {
+		border-top: 1px solid var(--line);
+	}
+	.facts div:nth-last-child(-n + 2) {
+		padding-bottom: 0;
+	}
+	.facts dt {
+		font-size: 13px;
+		line-height: 18px;
+		color: var(--ink-muted);
+	}
+	.facts dd {
+		margin: 0;
+		font: 600 18px/24px var(--font-display);
+		font-variant-numeric: tabular-nums;
 	}
 	@media (max-width: 640px) {
 		.place {
