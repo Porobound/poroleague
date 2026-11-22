@@ -1,7 +1,7 @@
 <script lang="ts">
 	import '../app.css';
 	import favicon from '#lib/assets/favicon.png';
-	import { afterNavigate } from '$app/navigation';
+	import { afterNavigate, onNavigate } from '$app/navigation';
 	import { page } from '$app/state';
 	import Avatar from '#lib/components/Avatar.svelte';
 	import { RIOT_DISCLAIMER } from '#lib/legal.ts';
@@ -78,10 +78,27 @@
 
 	let menuOpen = $state(false);
 	afterNavigate(() => (menuOpen = false));
+
+	// Pages cross-fade where the browser can (the view-transition rules are in app.css).
+	onNavigate((navigation) => {
+		if (
+			!document.startViewTransition ||
+			navigation.from?.url.pathname === navigation.to?.url.pathname ||
+			matchMedia('(prefers-reduced-motion: reduce)').matches
+		)
+			return;
+		return new Promise((resolve) => {
+			document.startViewTransition(async () => {
+				resolve();
+				await navigation.complete;
+			});
+		});
+	});
 </script>
 
 <svelte:head>
 	<link rel="icon" href={favicon} />
+	<meta name="theme-color" content={theme === 'light' ? '#f6f4ef' : '#10141a'} />
 </svelte:head>
 
 <a class="skip-link" href="#main">Skip to content</a>
@@ -118,7 +135,7 @@
 					aria-current={data.myPage ? here(data.myPage) : undefined}
 				>
 					<Avatar name={data.user.displayName} src={data.user.avatar} />
-					{data.user.displayName}
+					<span class="me-name">{data.user.displayName}</span>
 				</svelte:element>
 				<form method="POST" action="/auth/logout">
 					<button class="pb-btn pb-btn-ghost pb-btn-sm">Log out</button>

@@ -92,7 +92,7 @@
 				<span class="pb-badge">{season.name}</span>
 				<h1>Final standings.</h1>
 			{:else if season.status === 'signup'}
-				<span class="pb-badge pb-badge-live">Signup open</span>
+				<span class="pb-badge pb-badge-live pb-badge-pulse">Signup open</span>
 				<h1>Join the herd for {season.name}.</h1>
 				<p class="lede">
 					Open to everyone in the Porobound Discord. One Bo3 per round, until the deadline.
@@ -189,7 +189,7 @@
 		<section class="matches narrow" aria-labelledby="this-week">
 			<div class="section-head">
 				<h2 id="this-week">Your matches this week</h2>
-				<a href="/seasons/{season.slug}/players/{user?.id}">Your page</a>
+				<a class="tap" href="/seasons/{season.slug}/players/{user?.id}">Your page</a>
 			</div>
 			{#if allDone}
 				<div class="empty">

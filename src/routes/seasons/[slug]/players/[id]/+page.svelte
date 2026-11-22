@@ -50,7 +50,7 @@
 		<div class="head-text">
 			<div class="name-row">
 				<h1 class={[player.former && 'pb-former']}>{player.displayName}</h1>
-				<a href="/players/{player.playerId}">Career</a>
+				<a class="tap" href="/players/{player.playerId}">Career</a>
 				{#if data.canRequest && cal}
 					<ConfirmButton
 						action="?/requestHoliday"

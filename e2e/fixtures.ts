@@ -37,6 +37,7 @@ export const SEASONS = {
 	replays: 'e2e-replays',
 	standings: 'e2e-standings',
 	header: 'e2e-header',
+	device: 'e2e-device',
 	shotsEarly: 'spring-2041',
 	shots: 'autumn-2039',
 	shotsDraft: 'spring-2040',
