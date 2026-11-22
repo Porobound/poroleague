@@ -66,7 +66,7 @@
 						<h2>Overdue</h2>
 						<span class="muted small">From earlier weeks · still reportable</span>
 					</div>
-					<MatchRows cards={data.overdue} label="Overdue from earlier weeks" />
+					<MatchRows cards={data.overdue} label="Overdue from earlier weeks" spread columns />
 				</section>
 			</div>
 		{/if}
@@ -83,7 +83,7 @@
 								><span class="pb-num">{s.done}</span> of <span class="pb-num">{s.total}</span> played</span
 							>
 						</div>
-						<MatchRows cards={s.cards} label={s.title} />
+						<MatchRows cards={s.cards} label={s.title} spread />
 					</section>
 				{/each}
 			</div>

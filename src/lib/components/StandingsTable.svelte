@@ -18,6 +18,10 @@
 	} = $props();
 	// Nobody has played: rows are still in name order, so show no ranks or cut line yet.
 	const fresh = $derived(rows.every((r) => !r.played));
+	// Erased players can't advance, so the cut counts only the rows that can, as when it is drawn.
+	const eligible = $derived(rows.flatMap((r, i) => (r.former ? [] : [i])));
+	// Index of the last row inside the cut; -1 until there are results and the cut leaves someone out.
+	const line = $derived(!fresh && cut > 0 && cut < eligible.length ? eligible[cut - 1] : -1);
 </script>
 
 <table class="pb-table">
@@ -38,10 +42,13 @@
 			<tr
 				class={[
 					r.playerId === me && 'is-me',
-					!fresh && i + 1 === cut && i + 1 < rows.length && 'is-cut'
+					i <= line && !r.former && 'is-in',
+					i === line && 'is-cut'
 				]}
 			>
-				<td class={['pb-rank', i === 0 && r.played > 0 && 'is-podium']}>{fresh ? '–' : i + 1}</td>
+				<td class={['pb-rank', i === 0 && r.played > 0 && 'is-podium']}
+					><span class="pb-rank-chip">{fresh ? '–' : i + 1}</span></td
+				>
 				<td class="pb-player-cell">
 					<PlayerName
 						cell
@@ -60,7 +67,9 @@
 				<td class={['pb-num pb-opt', !r.losses && 'pb-muted']}>{r.losses}</td>
 				<td class="pb-num">{r.played}</td>
 				<td class="pb-num">{r.played ? pct(r.gwp) : '—'}</td>
-				<td class="pb-num pb-pts">{r.points}</td>
+				<td class="pb-num pb-pts" data-cut={i === line ? `Top ${cut} advance` : undefined}
+					>{r.points}</td
+				>
 			</tr>
 		{/each}
 	</tbody>

@@ -7,13 +7,19 @@
 		cards,
 		player = null,
 		label,
-		header = true
+		header = true,
+		spread = false,
+		columns = false
 	}: {
 		cards: Card[];
 		// Set: rows read from this player's side. Unset: head-to-head rows.
 		player?: string | null;
 		label: string;
 		header?: boolean;
+		// Head-to-head rows only: players at the row's edges, for a long list (the schedule).
+		spread?: boolean;
+		// Two columns when the list is wide enough.
+		columns?: boolean;
 	} = $props();
 	const WORD = { W: 'Won', L: 'Lost', D: 'Drew' } as const;
 </script>
@@ -88,7 +94,14 @@
 	</span>
 {/snippet}
 
-<div class={['pb-mrows', player ? 'pb-mrows-pov' : 'pb-mrows-vs']}>
+<div
+	class={[
+		'pb-mrows',
+		player ? 'pb-mrows-pov' : 'pb-mrows-vs',
+		spread && 'pb-mrows-spread',
+		columns && 'pb-mrows-2col'
+	]}
+>
 	{#if player && header}
 		<div class="pb-mrow-head" aria-hidden="true">
 			<span>Round</span><span>Opponent</span><span>Played as</span><span>Dice</span><span

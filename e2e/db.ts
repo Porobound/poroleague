@@ -76,7 +76,7 @@ export const seedEntries = (key: SeasonKey, from: number, to: number) =>
 // ids in schedule order: round 1: 1v2, 3v4 · round 2: 1v3, 2v4 · round 3: 1v4, 2v3.
 export function seedSeason(
 	key: SeasonKey,
-	values: { publishedRound: number; startDate?: string; deadline?: string }
+	values: { publishedRound: number; startDate?: string; deadline?: string; topCut?: number }
 ) {
 	const ids: number[] = [];
 	write((db) => {
@@ -84,14 +84,15 @@ export function seedSeason(
 		addPlayers(db, key, 4);
 		const { id } = db
 			.prepare(
-				"insert into seasons (slug, name, status, published_round, start_date, deadline) values (?, ?, 'play', ?, ?, ?) returning id"
+				"insert into seasons (slug, name, status, published_round, start_date, deadline, top_cut_size) values (?, ?, 'play', ?, ?, ?, ?) returning id"
 			)
 			.get(
 				SEASONS[key],
 				`E2E ${key}`,
 				values.publishedRound,
 				values.startDate ?? null,
-				values.deadline ?? null
+				values.deadline ?? null,
+				values.topCut ?? null
 			) as {
 			id: number;
 		};
@@ -236,6 +237,10 @@ export const seedHoliday = (
 
 export const renamePlayer = (id: string, name: string) =>
 	write((db) => db.prepare('update players set display_name = ? where id = ?').run(name, id));
+
+// Marks a player erased without dropping them, as in a season that ended before the erasure.
+export const markErased = (id: string) =>
+	write((db) => db.prepare('update players set erased_at = unixepoch() where id = ?').run(id));
 
 // Soft-deletes the flow's season and frees its slug, as deleteSeason does, so the next flow can
 // have a running season of its own and a rerun after a failure can seed it again.
