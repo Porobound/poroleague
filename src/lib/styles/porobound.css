@@ -294,17 +294,6 @@
 	gap: 10px;
 	font-weight: 500;
 }
-/* In a table the row already says "player": the name is a quiet link until hovered or focused. */
-.pb-table a.pb-player {
-	color: var(--ink);
-	text-decoration: none;
-}
-.pb-table a.pb-player:hover .pb-player-name,
-.pb-table a.pb-player:focus-visible .pb-player-name {
-	color: var(--accent);
-	text-decoration: underline;
-	text-underline-offset: 3px;
-}
 .pb-delta-up {
 	color: var(--accent);
 }
@@ -767,7 +756,8 @@ th abbr[title] {
 	cursor: help;
 	border-bottom: 1px dotted currentColor;
 }
-/* Panels: a raised container; match cards inside step down to surface */
+/* Panels: a raised container; match cards inside step down to surface and cast no shadow of
+   their own. .panel is the page-level panel from app.css. */
 .pb-panel {
 	background: var(--surface-raised);
 	border: 1px solid var(--line);
@@ -775,8 +765,11 @@ th abbr[title] {
 }
 .pb-panel .pb-match,
 .pb-card .pb-match,
+.panel .pb-match,
 .pb-match.pb-match-inset {
 	background: var(--surface);
+	box-shadow: none;
+	border-radius: var(--radius-md);
 }
 /* Disclosure rows: a name that expands content in place */
 .pb-disclosure {

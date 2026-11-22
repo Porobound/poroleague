@@ -17,7 +17,6 @@ a:focus-visible,
 summary:focus-visible {
 	outline: 2px solid var(--accent);
 	outline-offset: 2px;
-	border-radius: var(--radius-sm);
 }
 /* First tab stop: jumps past the header. Off screen until it has focus. */
 .skip-link {
@@ -189,12 +188,6 @@ html {
 	border-radius: var(--radius-lg);
 	box-shadow: var(--shadow-panel);
 	padding: 24px;
-}
-/* Only the outermost surface casts a shadow. */
-.panel .panel,
-.panel .pb-card {
-	box-shadow: none;
-	border-radius: var(--radius-md);
 }
 .pb-notice {
 	margin: 0;
@@ -410,12 +403,6 @@ html {
 }
 .stats strong {
 	font: 500 28px/32px var(--font-mono);
-}
-/* Cards are raised on the page; inside a raised panel they sit a step down so they don't blend in. */
-.panel .pb-match {
-	background: var(--surface);
-	box-shadow: none;
-	border-radius: var(--radius-md);
 }
 
 /* Prose pages rendered from docs/ (rules, privacy, api). */
