@@ -31,6 +31,7 @@ Do branch work in a `git worktree` outside the repo, never by switching branches
 - Several branches in one session: one branch per command, and `git status --short` is empty before switching.
 - Never run a second `vite dev` from the main checkout: it rewrites the shared `.svelte-kit/generated/dev/env/` and the owner's :5173 silently switches DB. To serve a worktree, symlink `.env` and `local.db*` into it and run `npx vite dev --port 5173 --strictPort` only when :5173 is free.
 - Stacked PRs: before opening one, check whether the base PR merged; if so rebase onto `origin/main` and target `main`. An already-pushed branch goes back up with `git push --force-with-lease` (only `main` is protected; plain `--force` is denied). After a base squash-merges, restack with `git rebase --onto origin/main <old-base-tip>`: merging `main` instead gives add/add conflicts on the base's files.
+- After a review: fixes are new commits on top of the reviewed ones, never an amend, squash or rebase of them. PRs squash-merge, so branch history never reaches `main`, and a rewritten branch hides what changed since the review. A restack that can't wait is its own push with nothing else in it, announced in a comment.
 - Cleanup after merge: stop the dev server, `rm` the `.env`/`local.db*` symlinks (never their targets), `git worktree remove`, `git worktree prune`, delete the local branch, `npx svelte-kit sync` in the main repo.
 
 ## Naming
