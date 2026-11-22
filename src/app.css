@@ -36,14 +36,49 @@ summary:focus-visible {
 	color: var(--surface);
 }
 
+/* Text keeps its size when a phone turns; taps don't flash; double-tap doesn't zoom controls. */
+html {
+	-webkit-text-size-adjust: 100%;
+	text-size-adjust: 100%;
+	-webkit-tap-highlight-color: transparent;
+}
+a,
+button,
+label,
+summary {
+	touch-action: manipulation;
+}
+/* The side padding is the gutter or, on a notched phone held sideways, the safe area if that is
+   wider. A phone on its side is wider than any phone breakpoint, so this holds at every width. */
 .container {
+	--gutter: var(--space-8);
 	max-width: 1200px;
 	margin: 0 auto;
-	padding-inline: var(--space-8);
+	padding-left: max(var(--gutter), env(safe-area-inset-left));
+	padding-right: max(var(--gutter), env(safe-area-inset-right));
 }
 @media (max-width: 640px) {
 	.container {
-		padding-inline: var(--space-4);
+		--gutter: var(--space-4);
+	}
+}
+@media (min-width: 641px) and (max-width: 920px) {
+	.container {
+		--gutter: 20px;
+	}
+}
+@media (min-width: 1440px) {
+	.container {
+		max-width: 1320px;
+	}
+}
+/* A link or control that stands alone gets a 44px target on phones without moving its text. */
+@media (max-width: 640px) {
+	.tap {
+		display: inline-flex;
+		align-items: center;
+		min-height: 44px;
+		margin-block: -10px;
 	}
 }
 
@@ -157,6 +192,28 @@ html {
 .nav-link[aria-current='page'] {
 	background: var(--frost);
 }
+@media (min-width: 641px) and (max-width: 920px) {
+	.site-nav {
+		gap: 2px;
+	}
+	.nav-link {
+		padding: 8px;
+		font-size: 14px;
+	}
+	.brand {
+		font-size: 20px;
+	}
+	.me {
+		max-width: 132px;
+	}
+	/* The ellipsis has to be on the name itself: .me is a flex row. */
+	.me-name {
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+}
 
 .page {
 	padding-block: var(--space-8) 64px;
@@ -229,6 +286,15 @@ html {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(max(320px, calc((100% - 24px) / 2)), 1fr));
 	gap: 24px;
+}
+/* Group standings need more room than other pairs: below 440px a column, names are cut short. */
+.groups .grid-2 {
+	grid-template-columns: repeat(auto-fit, minmax(max(440px, calc((100% - 24px) / 2)), 1fr));
+}
+@media (max-width: 640px) {
+	.groups .grid-2 {
+		grid-template-columns: minmax(0, 1fr);
+	}
 }
 .admin {
 	display: flex;
@@ -442,6 +508,11 @@ html {
 	font-size: 12px;
 	line-height: 16px;
 }
+@media (min-width: 1440px) {
+	.footer-legal {
+		max-width: 1320px;
+	}
+}
 
 /* Phones. Desktop header markup stays as it is; phones get the menu and the tab bar instead. */
 .site-nav .desk {
@@ -454,6 +525,9 @@ html {
 	display: none;
 }
 @media (max-width: 640px) {
+	.site-header {
+		padding-top: env(safe-area-inset-top);
+	}
 	.site-nav {
 		padding-block: 12px;
 	}
@@ -470,6 +544,9 @@ html {
 		height: 44px;
 	}
 	.brand {
+		display: inline-flex;
+		align-items: center;
+		min-height: 44px;
 		font-size: 22px;
 	}
 	.me-menu {
@@ -534,6 +611,7 @@ html {
 		padding-bottom: env(safe-area-inset-bottom);
 	}
 	.tab-bar a {
+		position: relative;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
@@ -546,6 +624,17 @@ html {
 	.tab-bar a[aria-current='page'] {
 		color: var(--ink);
 		font-weight: 600;
+	}
+	.tab-bar a[aria-current='page']::before {
+		content: '';
+		position: absolute;
+		top: -1px;
+		left: 50%;
+		width: 28px;
+		height: 2px;
+		margin-left: -14px;
+		border-radius: 2px;
+		background: var(--brand);
 	}
 	/* The footer ends the scrolling content, above the fixed tab bar (pb-footer-compact). */
 	.pb-footer {
@@ -883,5 +972,47 @@ html {
 	.pb-replays-list:has(.pb-replay-more, .pb-replay-del) .pb-replay-actions {
 		display: grid;
 		grid-template-columns: minmax(0, 1fr) auto minmax(44px, auto);
+	}
+}
+
+/* Motion: sections fade in once per page load and pages cross-fade. Only for people who haven't
+   asked for less motion, which is also how screenshots are taken. The fade moves nothing: a
+   transform here shifts what scrollIntoView and position checks measure while it runs. */
+@keyframes fade-in {
+	from {
+		opacity: 0;
+	}
+}
+@keyframes vt-out {
+	to {
+		opacity: 0;
+	}
+}
+@keyframes vt-in {
+	from {
+		opacity: 0;
+	}
+}
+@media (prefers-reduced-motion: no-preference) {
+	.page > * {
+		animation: fade-in 0.4s ease-out backwards;
+	}
+	.page > :nth-child(2) {
+		animation-delay: 50ms;
+	}
+	.page > :nth-child(3) {
+		animation-delay: 100ms;
+	}
+	.page > :nth-child(n + 4) {
+		animation-delay: 150ms;
+	}
+	::view-transition-old(root) {
+		animation: 0.12s ease-out both vt-out;
+	}
+	::view-transition-new(root) {
+		animation: 0.22s var(--ease-out) both vt-in;
+	}
+	.site-header {
+		view-transition-name: site-header;
 	}
 }

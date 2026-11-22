@@ -35,7 +35,7 @@
 							<strong class="winner">{s.winners.join(' · ')}</strong>
 						</div>
 					{/if}
-					<span class={['pb-badge', s.status !== 'finished' && 'pb-badge-live']}
+					<span class={['pb-badge', s.status !== 'finished' && 'pb-badge-live pb-badge-pulse']}
 						>{STATUS_LABEL[s.status]}</span
 					>
 				</li>

@@ -299,7 +299,7 @@
 			/>
 		{/if}
 
-		<a href="/seasons/{data.season.slug}">Back to season</a>
+		<a class="tap" href="/seasons/{data.season.slug}">Back to season</a>
 	{/if}
 </div>
 
