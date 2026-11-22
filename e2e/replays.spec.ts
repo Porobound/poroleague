@@ -96,6 +96,12 @@ test('upload, watch, and who can see a replay', async ({ browser }) => {
 	);
 	await expect(field(uploader)).toBeHidden();
 	await expect(opener(uploader)).toHaveText('Add or replace your replay');
+	// Now a ghost button tinted accent: it keeps that colour when hovered.
+	const tint = () => opener(uploader).evaluate((el) => getComputedStyle(el).color);
+	const resting = await tint();
+	await opener(uploader).hover();
+	expect(await tint()).toBe(resting);
+	await uploader.mouse.move(0, 0);
 	// Every played game has a row; the ones without a replay have nothing to press.
 	await expect(rows(uploader)).toHaveText([
 		/^Game 1\s*Your replay\s*Both sides\s*Shows both decks and hands · added \w{3} \d+ \w{3}/,

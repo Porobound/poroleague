@@ -8,9 +8,32 @@ body {
 }
 a {
 	color: var(--accent);
+	text-underline-offset: 3px;
 }
 a:hover {
 	color: var(--ink);
+}
+a:focus-visible,
+summary:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}
+/* First tab stop: jumps past the header. Off screen until it has focus. */
+.skip-link {
+	position: absolute;
+	left: 16px;
+	top: -64px;
+	z-index: 40;
+	padding: 10px 16px;
+	border-radius: var(--radius-md);
+	background: var(--ink);
+	color: var(--surface);
+	font-weight: 600;
+	text-decoration: none;
+}
+.skip-link:focus {
+	top: 12px;
+	color: var(--surface);
 }
 
 .container {
@@ -24,14 +47,23 @@ a:hover {
 	}
 }
 
+/* Stays in view while the page scrolls; anchors land below it. */
+html {
+	scroll-padding-top: 80px;
+}
 .site-header {
+	position: sticky;
+	top: 0;
+	z-index: 30;
 	border-bottom: 1px solid var(--line);
+	/* Opaque on purpose: a backdrop blur here made screenshots differ by a few pixels run to run. */
+	background: var(--surface);
 }
 .site-nav {
 	display: flex;
 	align-items: center;
-	gap: var(--space-4);
-	padding-block: var(--space-4);
+	gap: var(--space-2);
+	padding-block: 12px;
 }
 .brand {
 	font: 700 24px/1 var(--font-display);
@@ -71,9 +103,10 @@ a:hover {
 	max-width: 480px;
 	margin: 64px auto;
 	box-sizing: border-box;
-	background: var(--surface-raised);
+	background: linear-gradient(180deg, var(--surface-raised), var(--panel-end));
 	border: 1px solid var(--line);
-	border-radius: var(--radius-md);
+	border-radius: var(--radius-lg);
+	box-shadow: var(--shadow-panel);
 	padding: var(--space-8);
 	display: flex;
 	flex-direction: column;
@@ -101,14 +134,28 @@ a:hover {
 }
 
 .nav-link {
+	padding: 8px 12px;
+	border-radius: 8px;
 	color: var(--ink-muted);
 	text-decoration: none;
 	font-weight: 500;
 	font-size: 15px;
+	line-height: 20px;
+	transition:
+		color 0.15s,
+		background 0.15s;
 }
 .nav-link:hover,
 .nav-link[aria-current='page'] {
 	color: var(--ink);
+}
+@media (hover: hover) {
+	.nav-link:hover {
+		background: color-mix(in srgb, var(--frost) 55%, transparent);
+	}
+}
+.nav-link[aria-current='page'] {
+	background: var(--frost);
 }
 
 .page {
@@ -136,9 +183,10 @@ a:hover {
 	color: var(--ink-muted);
 }
 .panel {
-	background: var(--surface-raised);
+	background: linear-gradient(180deg, var(--surface-raised), var(--panel-end));
 	border: 1px solid var(--line);
-	border-radius: var(--radius-md);
+	border-radius: var(--radius-lg);
+	box-shadow: var(--shadow-panel);
 	padding: 24px;
 }
 .pb-notice {
@@ -356,15 +404,8 @@ a:hover {
 .stats strong {
 	font: 500 28px/32px var(--font-mono);
 }
-/* Cards are raised on the page; inside a raised panel they sit a step down so they don't blend in. */
-.panel .pb-match {
-	background: var(--surface);
-}
 
 /* Prose pages rendered from docs/ (rules, privacy, api). */
-.doc h2 {
-	scroll-margin-top: 80px;
-}
 .doc ul,
 .doc ol {
 	padding-left: 20px;
