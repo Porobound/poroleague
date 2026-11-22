@@ -63,6 +63,15 @@ need Docker for it.
 Only add what you made yourself or have a licence for. Say in the pull request where each file
 comes from.
 
+## After a review
+
+- Answer review points with new commits on top of the ones that were reviewed. Don't amend, squash
+  or rebase them: a rewritten branch hides what changed since the review, and the whole pull request
+  has to be read again. The pull request is squashed when it merges, so a tidy history gains nothing.
+- Rebase only when you have to: the pull request yours is stacked on merged, or your branch
+  conflicts with `main`. Push the rebase on its own, with no other change in it, and say so in a
+  comment. Fixes go in a separate push, before or after.
+
 ## Working with an AI agent
 
 That is fine. The agent's rules for this repo are in [`CLAUDE.md`](CLAUDE.md); this page wins where
