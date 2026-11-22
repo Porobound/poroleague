@@ -26,7 +26,23 @@ refactor chore ci`.
 - At most about 400 lines of hand-written code and tests per pull request. Over that, split it.
 - One concern per pull request. A fix you notice on the way gets its own.
 - A big change comes as a series: pure logic with unit tests first, then one page per pull request.
-  Say in the issue how you plan to split it.
+  Say in the issue how you plan to split it. The series is a stack: see below.
+
+## Stacks
+
+A change that needs more than one pull request comes as a stack, and the stack is reviewed and
+merged as one.
+
+- The first pull request targets `main`. Each next one targets the branch of the one before it, so
+  its diff shows only its own change.
+- Each pull request is reviewed on its own. Nothing merges until every one in the stack is approved.
+- A fix to a lower pull request is a commit on that branch. Bring it up by merging that branch into
+  each one above it, not by rebasing them.
+- When all are approved, the maintainer points the top pull request at `main` and squash-merges it:
+  the whole stack lands as one commit. The others are closed with a link to it. That is how a merged
+  stack looks; all of your work is in.
+- A fix or a clean-up that stands on its own is not part of a stack: open it against `main` and it
+  merges alone.
 
 ## What to run
 
@@ -68,9 +84,9 @@ comes from.
 - Answer review points with new commits on top of the ones that were reviewed. Don't amend, squash
   or rebase them: a rewritten branch hides what changed since the review, and the whole pull request
   has to be read again. The pull request is squashed when it merges, so a tidy history gains nothing.
-- Rebase only when you have to: the pull request yours is stacked on merged, or your branch
-  conflicts with `main`. Push the rebase on its own, with no other change in it, and say so in a
-  comment. Fixes go in a separate push, before or after.
+- When your branch conflicts with `main`, merge `main` into it: in a stack, into the lowest branch,
+  then up. If a rebase can't be avoided, push it on its own, with no other change in it, and say so
+  in a comment. Fixes go in a separate push, before or after.
 
 ## Working with an AI agent
 
