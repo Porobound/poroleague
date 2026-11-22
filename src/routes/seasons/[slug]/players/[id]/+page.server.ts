@@ -3,7 +3,7 @@ import { dateSpan } from '#lib/format.ts';
 import { coversLabel, holidayWeeks, requestError, visibleTo } from '#lib/league/holiday.ts';
 import { cutGap } from '#lib/league/cutGap.ts';
 import { legendMatches, playerLegends } from '#lib/league/legendStats.ts';
-import { playerStats } from '#lib/league/playerStats.ts';
+import { playerStats, rankByRound } from '#lib/league/playerStats.ts';
 import { isPublished, published } from '#lib/league/publish.ts';
 import { leagueDate, reportingClosed } from '#lib/league/time.ts';
 import { cardContext, matchCard } from '#lib/matchCard.ts';
@@ -100,6 +100,8 @@ export const load: PageServerLoad = ({ params, locals }) => {
 					cut
 				),
 		stats: playerStats(group, results, player.playerId, closed),
+		// Place in the group after each round. Its last entry is the place in the standings.
+		progress: rankByRound(group, results, player.playerId, closed),
 		dice: {
 			won: counted.filter((m) => m.diceWinnerId === player.playerId).length,
 			of: counted.length
