@@ -480,19 +480,6 @@ html {
 .panel.overdue {
 	border-left: 3px solid var(--signal);
 }
-.stats {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-	gap: 16px;
-}
-.stats .panel {
-	display: flex;
-	flex-direction: column;
-	gap: 4px;
-}
-.stats strong {
-	font: 500 28px/32px var(--font-mono);
-}
 
 /* Prose pages rendered from docs/ (rules, privacy, api). */
 .doc ul,
@@ -1040,7 +1027,8 @@ html {
 	}
 }
 
-/* Player card: avatar and name over a strip of numbers. */
+/* Player card, on a player's season page and their career page: avatar and name over a strip
+   of numbers. The strip has six stats by default, four with .profile-stats-4. */
 .profile {
 	position: relative;
 	overflow: hidden;
@@ -1087,6 +1075,9 @@ html {
 	padding: 16px 20px;
 	min-width: 0;
 }
+.profile-stats-4 {
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+}
 .profile-stat + .profile-stat {
 	border-left: 1px solid var(--line);
 }
@@ -1099,15 +1090,15 @@ html {
 .profile-stat.is-lead strong {
 	color: var(--signal);
 }
-/* Narrower: the six stats go three to a row. */
+/* Narrower: six stats go three to a row, then four go two to a row. */
 @media (max-width: 900px) {
-	.profile-stats {
+	.profile-stats:not(.profile-stats-4) {
 		grid-template-columns: repeat(3, minmax(0, 1fr));
 	}
-	.profile-stat:nth-child(4) {
+	.profile-stats:not(.profile-stats-4) .profile-stat:nth-child(4) {
 		border-left: 0;
 	}
-	.profile-stat:nth-child(n + 4) {
+	.profile-stats:not(.profile-stats-4) .profile-stat:nth-child(n + 4) {
 		border-top: 1px solid var(--line);
 	}
 }
@@ -1122,5 +1113,14 @@ html {
 	.profile-stat strong {
 		font-size: 20px;
 		line-height: 26px;
+	}
+	.profile-stats-4 {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+	.profile-stats-4 .profile-stat:nth-child(3) {
+		border-left: 0;
+	}
+	.profile-stats-4 .profile-stat:nth-child(n + 3) {
+		border-top: 1px solid var(--line);
 	}
 }

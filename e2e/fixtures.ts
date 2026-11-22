@@ -46,6 +46,7 @@ export const SEASONS = {
 	heroNew: 'e2e-hero-new',
 	heroLate: 'e2e-hero-late',
 	chart: 'e2e-chart',
+	career: 'e2e-career',
 	shotsEarly: 'spring-2041',
 	shotsHero: 'winter-2040',
 	shots: 'autumn-2039',

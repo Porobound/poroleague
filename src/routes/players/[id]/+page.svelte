@@ -15,27 +15,36 @@
 </svelte:head>
 
 <div class="page">
-	<section class="player-head">
-		<Avatar name={player.displayName} src={player.avatar} size={72} former={player.former} />
-		<div class="who">
-			<span class="eyebrow">Career</span>
-			<h1 class={[player.former && 'pb-former']}>{player.displayName}</h1>
-			<span class="muted small">{n} season{n === 1 ? '' : 's'} · first season {data.first}</span>
+	<section class="profile">
+		<div class="profile-head">
+			<Avatar name={player.displayName} src={player.avatar} size={96} former={player.former} ring />
+			<div class="who">
+				<span class="eyebrow">Career</span>
+				<h1 class={['profile-name', player.former && 'pb-former']}>{player.displayName}</h1>
+				<span class="muted small">{n} season{n === 1 ? '' : 's'} · first season {data.first}</span>
+			</div>
 		</div>
+		{#if totals.played}
+			<div class="profile-stats profile-stats-4" role="group" aria-label="Career stats">
+				<div class="profile-stat is-lead">
+					<span class="eyebrow">Matches</span><strong>{totals.played}</strong>
+				</div>
+				<div class="profile-stat">
+					<span class="eyebrow">W–D–L</span><strong>{totals.wdl}</strong>
+				</div>
+				<div class="profile-stat">
+					<span class="eyebrow">Game-win %</span><strong>{pct(totals.gwp)}</strong>
+				</div>
+				<div class="profile-stat">
+					<span class="eyebrow">Dice rolls won</span><strong
+						>{data.dice.won} / {data.dice.of}</strong
+					>
+				</div>
+			</div>
+		{/if}
 	</section>
 
-	{#if totals.played}
-		<section class="stats" aria-label="Career stats">
-			<div class="panel"><span class="eyebrow">Matches</span><strong>{totals.played}</strong></div>
-			<div class="panel"><span class="eyebrow">W–D–L</span><strong>{totals.wdl}</strong></div>
-			<div class="panel">
-				<span class="eyebrow">Game-win %</span><strong>{pct(totals.gwp)}</strong>
-			</div>
-			<div class="panel">
-				<span class="eyebrow">Dice rolls won</span><strong>{data.dice.won} / {data.dice.of}</strong>
-			</div>
-		</section>
-	{:else}
+	{#if !totals.played}
 		<div class="empty">
 			<strong>No reported matches yet</strong>
 			<span
@@ -58,18 +67,15 @@
 </div>
 
 <style>
-	.player-head {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 24px;
-		align-items: center;
-	}
 	.who {
 		display: flex;
 		flex-direction: column;
 		gap: 4px;
+		/* Lets a long name wrap inside the card instead of widening this column. */
+		min-width: 0;
 	}
+	/* A long name with no spaces breaks instead of running out of the card. */
 	.who h1 {
-		margin: 0;
+		overflow-wrap: anywhere;
 	}
 </style>
