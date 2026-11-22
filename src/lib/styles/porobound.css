@@ -127,7 +127,6 @@
 }
 .pb-btn-ghost:hover:not(:disabled) {
 	background: var(--frost);
-	color: var(--ink);
 }
 .pb-btn-sm {
 	font-size: 13px;

@@ -1,11 +1,4 @@
 import { expect, test } from '@playwright/test';
-import { removeSeason, seedResult, seedSeason } from './db.ts';
-
-test.beforeAll(() => {
-	const [first] = seedSeason('header', { publishedRound: 1 });
-	seedResult(first, 2, 0);
-});
-test.afterAll(() => removeSeason('header'));
 
 test('the skip link is the first tab stop and jumps past the header', async ({ page }) => {
 	await page.goto('/rules');
