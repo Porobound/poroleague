@@ -67,7 +67,7 @@ Or `npm run db:reseed-dev -- <your-discord-id>` applies pending migrations, back
 
 Achievements:
 
-- `npm run db:achievements-dev -- <your-discord-id> <all|none|id…>` grants your player achievements (dated now) or clears them (`none`), to check rows, progress and long names. Ids are in `src/lib/league/achievements.ts`, e.g. `legend-renata-glasc-gold`, `first-blood`. The next app start re-awards what your results earned.
+- `npm run db:achievements-dev -- <your-discord-id> <all|none|id…>` grants your player achievements (dated now) or clears them (`none`), to check rows, progress and long names. Ids are in `src/lib/league/achievements.ts`, e.g. `comeback-gold`, `first-blood`. The next app start re-awards what your results earned.
 - `npm run db:backfill-achievements` awards what existing results earned. The app also does this on every start, and the other dev scripts run it after writing results.
 
 ### Troubleshooting

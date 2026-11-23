@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { History, HistoryMatch, HistorySeason } from '#lib/league/achievements.ts';
-import { mastery, MASTERY_NEEDS, MASTERY_RANKS } from '#lib/league/mastery.ts';
+import { mastery, MASTERY_NEEDS, MASTERY_RANKS, portrait } from '#lib/league/mastery.ts';
 import { compareRank, isRank, RANKS } from '#lib/league/ranks.ts';
 import { LEGENDS } from '#lib/legends.ts';
 
@@ -92,6 +92,11 @@ describe('mastery', () => {
 		const top = of(H(n(112)), 'Ahri');
 		expect(top).toMatchObject({ matches: 112, rank: 'challenger', next: null });
 		expect(top.hit).toEqual({ at: D(100), seasonId: 1 });
+	});
+
+	it('draws a legend with its champion portrait', () => {
+		expect(portrait('Master Yi (XP)')).toBe('/achievements/champions/master-yi.png');
+		expect(portrait("K'Sante")).toBe('/achievements/champions/ksante.png');
 	});
 
 	it('leaves out what achievements leave out', () => {

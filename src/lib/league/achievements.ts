@@ -1,7 +1,7 @@
 import { isPublished } from '#lib/league/publish.ts';
 import type { Rank } from '#lib/league/ranks.ts';
 import { isVoid } from '#lib/league/status.ts';
-import { LEGENDS, type Legend } from '#lib/legends.ts';
+import type { Legend } from '#lib/legends.ts';
 
 export type Tier = 'bronze' | 'silver' | 'gold';
 
@@ -16,7 +16,7 @@ export type Achievement = {
 	description: string;
 	title: string; // shown with the player's name when equipped (#143)
 	icon: string; // under static/
-	legend: Legend | null; // legend tracks only
+	legend: Legend | null; // a mastery badge's legend (mastery.ts); null for every achievement
 	need: number; // hits to unlock
 };
 
@@ -194,12 +194,6 @@ export const emblem = (t: Tier) => `/achievements/tiers/${t}.png`;
 
 const TIERS = ['bronze', 'silver', 'gold'] as const;
 type Three<T> = [T, T, T];
-// Most tracks name their tiers after the track: "Ahri Player", "Ahri Expert", "Ahri Master".
-const levels = (label: string): Three<string> => [
-	`${label} Player`,
-	`${label} Expert`,
-	`${label} Master`
-];
 
 function tiered(
 	track: string,
@@ -208,8 +202,7 @@ function tiered(
 	needs: Three<number>,
 	ranks: Three<Rank>,
 	hits: Hits,
-	icon: (t: Tier) => string,
-	legend: Legend | null = null
+	icon: (t: Tier) => string
 ): Def[] {
 	return TIERS.map((tier, i) => ({
 		id: `${track}-${tier}`,
@@ -220,7 +213,7 @@ function tiered(
 		description: describe(needs[i]),
 		title: names[i],
 		icon: icon(tier),
-		legend,
+		legend: null,
 		need: needs[i],
 		hits
 	}));
@@ -254,18 +247,6 @@ const glyph = (...[id, ...rest]: Parameters<typeof flat>): Def => ({
 });
 
 const DEFS: Def[] = [
-	...LEGENDS.flatMap((l) =>
-		tiered(
-			`legend-${key(l)}`,
-			levels(l),
-			(n) => `Play ${n} matches as ${l}.`,
-			[3, 10, 25],
-			['bronze', 'silver', 'gold'],
-			where((m) => m.legend === l),
-			() => `/achievements/champions/${key(champion(l))}.png`,
-			l
-		)
-	),
 	...tiered(
 		'variety',
 		['Dabbler', 'Explorer', 'Polymath'],
