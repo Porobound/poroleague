@@ -695,7 +695,7 @@ describe('publishing a week with early results', () => {
 			diceWinnerId: 'p2'
 		};
 		saveReport(get(m23), 'p2', result);
-		organizerEdit(get(m23), 'org', { ...result, games: '211', p1Games: 2, p2Games: 1 });
+		organizerEdit(get(m23), 'org', { ...result, games: '121', p1Games: 2, p2Games: 1 });
 		organizerEdit(get(m13), 'org', { ...result, games: '22', p1Games: 0, p2Games: 2 });
 		expect(db.select().from(playerAchievements).all()).toEqual([]);
 		await publish();
