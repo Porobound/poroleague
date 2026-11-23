@@ -7,6 +7,8 @@ import {
 	type History,
 	type Tier
 } from '#lib/league/achievements.ts';
+import { mastery, portrait } from '#lib/league/mastery.ts';
+import type { Rank } from '#lib/league/ranks.ts';
 import { standings } from '#lib/league/standings.ts';
 import { leagueDate } from '#lib/league/time.ts';
 import * as schema from '#lib/server/db/schema.ts';
@@ -134,7 +136,8 @@ function safely(what: string, fn: () => void) {
 function award(db: Db, playerIds: string[]) {
 	db.transaction((tx) => {
 		for (const playerId of new Set(playerIds)) {
-			const rows = evaluate(playerHistory(tx, playerId)).flatMap((p) =>
+			const h = playerHistory(tx, playerId);
+			const rows = evaluate(h).flatMap((p) =>
 				p.hit
 					? [{ playerId, achievementId: p.id, unlockedAt: p.hit.at, seasonId: p.hit.seasonId }]
 					: []
@@ -196,6 +199,15 @@ export type TrackView = {
 	tiers: TierView[];
 	next: { have: number; need: number; name: string } | null; // null once complete
 };
+// A legend's mastery on the career page: its rank, the matches behind it and what comes next.
+export type MasteryView = {
+	legend: string;
+	icon: string;
+	matches: number;
+	rank: Rank | null;
+	earned: string | null; // league date the rank was reached
+	next: { rank: Rank; need: number } | null; // null at the top rank
+};
 export type OneView = {
 	id: string;
 	name: string;
@@ -225,7 +237,8 @@ export function careerAchievements(db: Db, playerId: string) {
 			.all()
 			.map((r) => [r.achievementId, leagueDate(r.unlockedAt)])
 	);
-	const have = new Map(evaluate(playerHistory(db, playerId)).map((p) => [p.id, p.have]));
+	const h = playerHistory(db, playerId);
+	const have = new Map(evaluate(h).map((p) => [p.id, p.have]));
 	const tracks: TrackView[] = [];
 	const ones: OneView[] = [];
 	for (const [track, defs] of Map.groupBy(ACHIEVEMENTS, (a) => a.track)) {
@@ -239,7 +252,7 @@ export function careerAchievements(db: Db, playerId: string) {
 		const next = defs.find((a) => !earned.has(a.id));
 		tracks.push({
 			track,
-			name: first.legend ?? LEAGUE_TRACKS[track],
+			name: LEAGUE_TRACKS[track],
 			kind: kind(first),
 			icon: (top ?? first).icon,
 			tier: top?.tier ?? null,
@@ -254,16 +267,21 @@ export function careerAchievements(db: Db, playerId: string) {
 			next: next ? { have: have.get(next.id)!, need: next.need, name: next.name } : null
 		});
 	}
-	const started = (t: TrackView) => !!t.tier || t.next!.have > 0;
-	// Matches played as the legend, as far as the top tier counts them.
-	const played = (t: TrackView) => have.get(t.tiers.at(-1)!.id)!;
 	return {
 		earned: ACHIEVEMENTS.filter((a) => earned.has(a.id)).length,
-		// Tracks still in progress first, then finished ones; most played first within each.
-		legends: tracks
-			.filter((t) => t.kind === 'legend' && started(t))
-			.sort((a, b) => +!a.next - +!b.next || played(b) - played(a) || a.name.localeCompare(b.name)),
-		league: tracks.filter((t) => t.track in LEAGUE_TRACKS),
+		// Legends the player has played, most played first.
+		legends: mastery(h)
+			.filter((m) => m.matches)
+			.sort((a, b) => b.matches - a.matches || a.legend.localeCompare(b.legend))
+			.map((m): MasteryView => ({
+				legend: m.legend,
+				icon: portrait(m.legend),
+				matches: m.matches,
+				rank: m.rank,
+				earned: m.hit ? leagueDate(m.hit.at) : null,
+				next: m.next
+			})),
+		league: tracks,
 		ones
 	};
 }

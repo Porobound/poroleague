@@ -1,4 +1,4 @@
-import { played, type History, type Hit } from '#lib/league/achievements.ts';
+import { champion, key, played, type History, type Hit } from '#lib/league/achievements.ts';
 import { RANKS, type Rank } from '#lib/league/ranks.ts';
 import { LEGENDS, type Legend } from '#lib/legends.ts';
 
@@ -40,3 +40,6 @@ export function mastery(h: History): Mastery[] {
 		};
 	});
 }
+
+// A legend's portrait: its champion's, whichever set the legend is from.
+export const portrait = (legend: Legend) => `/achievements/champions/${key(champion(legend))}.png`;

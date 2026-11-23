@@ -26,11 +26,11 @@ test('a report that crosses a threshold shows the achievement on the career page
 			.getByRole('list', { name: list })
 			.getByRole('listitem')
 			.filter({ has: page.getByText(name, { exact: true }) });
-	const ahri = row('Legend tracks', 'Ahri');
+	const ahri = row('Legend mastery', 'Ahri');
 
 	await page.goto(`/players/${me}`);
-	await expect(ahri).toContainText('2/3 to Ahri Player');
-	await expect(ahri).toContainText('0 of 3 tiers earned');
+	await expect(ahri).toContainText('Unranked · 2 matches');
+	await expect(ahri).toContainText('2/3 to Bronze');
 	await expect(row('One-offs', 'First Blood')).toContainText('Locked');
 
 	await page.goto(`/seasons/${slug}/matches/${third}`);
@@ -47,13 +47,14 @@ test('a report that crosses a threshold shows the achievement on the career page
 	await expect(page.getByRole('status').first()).toContainText('Result saved');
 
 	await page.goto(`/players/${me}`);
-	await expect(ahri).toContainText('3/10 to Ahri Expert');
-	await expect(ahri).toContainText('1 of 3 tiers earned');
+	await expect(ahri).toContainText('Bronze · 3 matches');
+	await expect(ahri).toContainText('3/7 to Silver');
 	await expect(row('One-offs', 'First Blood')).toContainText(/\d{1,2} \w{3,4} \d{4}/);
-	// The tiers open on demand: the earned one carries its date, the rest say Locked.
-	await ahri.getByText('Ahri', { exact: true }).click();
-	const tiers = ahri.getByRole('listitem');
-	await expect(tiers.filter({ hasText: 'Ahri Player' })).toContainText(/\d{1,2} \w{3,4} \d{4}/);
-	await expect(tiers.filter({ hasText: 'Ahri Expert' })).toContainText('Locked');
-	await expect(tiers.filter({ hasText: 'Ahri Expert' })).toContainText('Play 10 matches as Ahri.');
+	// A track's tiers open on demand, each with its requirement and its date or Locked.
+	const wins = row('League tracks', 'Wins');
+	await expect(wins).toContainText('2/5 to Contender');
+	await wins.getByText('Wins', { exact: true }).click();
+	const tiers = wins.getByRole('listitem');
+	await expect(tiers.filter({ hasText: 'Contender' })).toContainText('Locked');
+	await expect(tiers.filter({ hasText: 'Contender' })).toContainText('Win 5 matches.');
 });

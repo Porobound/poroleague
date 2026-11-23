@@ -43,10 +43,10 @@ test.beforeAll(() => {
 	seedAchievements(me, [
 		'first-blood',
 		'seasons-bronze',
-		'legend-renata-glasc-bronze',
-		'legend-renata-glasc-silver',
-		'legend-renata-glasc-gold',
-		'legend-master-yi-pg-bronze'
+		'dice-bronze',
+		'dice-silver',
+		'dice-gold',
+		'participation-trophy'
 	]);
 });
 test.afterAll(() => {

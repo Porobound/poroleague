@@ -1,9 +1,10 @@
 <script lang="ts">
 	import AchIcon from '#lib/components/AchIcon.svelte';
 	import { date } from '#lib/format.ts';
-	import type { Career, OneView, TrackView } from '#lib/server/achievements.ts';
+	import { RANK_NAME } from '#lib/league/ranks.ts';
+	import type { Career, MasteryView, OneView, TrackView } from '#lib/server/achievements.ts';
 
-	// `all` lists every legend track; otherwise the list stops at LIMIT with a link to the rest.
+	// `all` lists every legend played; otherwise the list stops at LIMIT with a link to the rest.
 	let { data, all = false }: { data: Career; all?: boolean } = $props();
 	const LIMIT = 5;
 	const cut = $derived(!all && data.legends.length > LIMIT);
@@ -55,6 +56,26 @@
 	</details>
 {/snippet}
 
+{#snippet legend(m: MasteryView)}
+	<div class={['pb-achrow', 'pb-achrow-one', !m.rank && 'is-locked']}>
+		<div class="pb-achrow-main">
+			<AchIcon kind="legend" icon={m.icon} locked={!m.rank} />
+			<span class="pb-achrow-tx">
+				<span class="pb-achrow-nm">{m.legend}</span>
+				<span class="pb-achrow-ds"
+					>{m.rank ? RANK_NAME[m.rank] : 'Unranked'} · {m.matches}
+					{m.matches === 1 ? 'match' : 'matches'}</span
+				>
+			</span>
+			<span class="pb-achrow-prog"
+				>{#if m.next}{m.matches}/{m.next.need}<span class="pb-sr"
+						>{' to '}{RANK_NAME[m.next.rank]}</span
+					>{:else}Top rank{/if}</span
+			>
+		</div>
+	</div>
+{/snippet}
+
 {#snippet one(o: OneView)}
 	<div class={['pb-achrow', 'pb-achrow-one', !o.earned && 'is-locked']}>
 		<div class="pb-achrow-main">
@@ -75,11 +96,11 @@
 	</div>
 	<div class="cols">
 		<div class="col">
-			<h3 class="eyebrow">Legends</h3>
+			<h3 class="eyebrow">Mastery</h3>
 			{#if legends.length}
 				<div class="panel pb-achrows">
-					<ul aria-label="Legend tracks">
-						{#each legends as t (t.track)}<li>{@render track(t)}</li>{/each}
+					<ul aria-label="Legend mastery">
+						{#each legends as m (m.legend)}<li>{@render legend(m)}</li>{/each}
 					</ul>
 					{#if cut}
 						<a class="pb-achrows-more" href="?all#achievements">Show all {data.legends.length}</a>
@@ -88,7 +109,7 @@
 					{/if}
 				</div>
 			{:else}
-				<p class="empty">A legend track starts with the first match played as that legend.</p>
+				<p class="empty">Mastery starts with the first match played as a legend.</p>
 			{/if}
 			<h3 class="eyebrow">League</h3>
 			<div class="panel pb-achrows">

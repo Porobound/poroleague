@@ -123,8 +123,4 @@ Matches store the legend's name as text. Never remove a legend that has been pic
 sqlite3 data/poroleague.db "UPDATE matches SET p1_legend = 'Jinx (A)' WHERE p1_legend = 'Jinx'; UPDATE matches SET p2_legend = 'Jinx (A)' WHERE p2_legend = 'Jinx';"
 ```
 
-Achievement ids are derived from legend names, so a rename leaves earned rows under the old id: rename them in `player_achievements` too (`legend-<old-key>-…` → `legend-<new-key>-…`, key = lowercase, apostrophes dropped, other non-alphanumerics → `-`):
-
-```sh
-sqlite3 data/poroleague.db "UPDATE player_achievements SET achievement_id = replace(achievement_id, 'legend-jinx-', 'legend-jinx-a-') WHERE achievement_id LIKE 'legend-jinx-%';"
-```
+Achievements don't name legends, so nothing in `player_achievements` changes. Mastery is counted from the matches, so it follows the rename.

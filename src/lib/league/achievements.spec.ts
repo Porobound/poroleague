@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { existsSync } from 'node:fs';
-import { LEGENDS } from '#lib/legends.ts';
 import { compareRank, isRank } from '#lib/league/ranks.ts';
 import {
 	ACHIEVEMENTS,
@@ -15,20 +14,9 @@ import {
 } from '#lib/league/achievements.ts';
 
 describe('definitions', () => {
-	it('has unique ids: three tiers per legend and league track, and twenty-one one-offs', () => {
+	it('has unique ids: three tiers per track, and twenty-one one-offs', () => {
 		expect(new Set(ACHIEVEMENTS.map((a) => a.id)).size).toBe(ACHIEVEMENTS.length);
-		expect(ACHIEVEMENTS).toHaveLength(LEGENDS.length * 3 + 7 * 3 + 21);
-	});
-
-	it('gives every legend a Player/Expert/Master track at 3/10/25', () => {
-		for (const l of LEGENDS)
-			expect(
-				ACHIEVEMENTS.filter((a) => a.legend === l).map((a) => [a.id, a.tier, a.name, a.need])
-			).toEqual([
-				[`legend-${key(l)}-bronze`, 'bronze', `${l} Player`, 3],
-				[`legend-${key(l)}-silver`, 'silver', `${l} Expert`, 10],
-				[`legend-${key(l)}-gold`, 'gold', `${l} Master`, 25]
-			]);
+		expect(ACHIEVEMENTS).toHaveLength(7 * 3 + 21);
 	});
 
 	it('keys legends for ids and icons', () => {
@@ -39,9 +27,7 @@ describe('definitions', () => {
 			'renata-glasc'
 		]);
 		expect(champion('Master Yi (XP)')).toBe('Master Yi');
-		expect(achievementById.get('legend-master-yi-xp-gold')!.icon).toBe(
-			'/achievements/champions/master-yi.png'
-		);
+		expect(ACHIEVEMENTS.every((a) => a.legend === null)).toBe(true); // legends are mastery
 	});
 
 	it('names the tiers of Seasons and Comeback on their own', () => {
@@ -158,28 +144,6 @@ const H = (matches: HistoryMatch[], seasons = [S()]): History => ({
 });
 const get = (h: History, id: string) => evaluate(h).find((p) => p.id === id)!;
 const n = (k: number, o: Partial<HistoryMatch> = {}) => Array.from({ length: k }, () => M(o));
-
-describe('legend tracks', () => {
-	it('unlock on the match that reaches the threshold, from either side', () => {
-		expect(get(H(n(2)), 'legend-ahri-bronze')).toMatchObject({ have: 2, need: 3, hit: null });
-		day = 0;
-		const h = H(
-			[...n(2), M({ p1Id: 'op', p2Id: 'me', p1Legend: 'Annie', p2Legend: 'Ahri', seasonId: 2 })],
-			[S(), S({ id: 2 })]
-		);
-		expect(get(h, 'legend-ahri-bronze')).toMatchObject({ have: 3, hit: { at: D(3), seasonId: 2 } });
-		expect(get(h, 'legend-ahri-silver')).toMatchObject({ have: 3, need: 10, hit: null });
-	});
-
-	it('count losses and mirrors: matches, not wins', () => {
-		const h = H([
-			M({ p1Games: 0, p2Games: 2 }),
-			M({ p2Legend: 'Ahri' }),
-			M({ p1Games: 1, p2Games: 1 })
-		]);
-		expect(get(h, 'legend-ahri-bronze').hit).toEqual({ at: D(3), seasonId: 1 });
-	});
-});
 
 describe('what counts', () => {
 	it('leaves out void, unplayed (double loss), hidden, walkover and other seasons', () => {
