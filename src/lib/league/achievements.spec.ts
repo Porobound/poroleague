@@ -15,9 +15,9 @@ import {
 } from '#lib/league/achievements.ts';
 
 describe('definitions', () => {
-	it('has unique ids: three tiers per legend and league track, and three one-offs', () => {
+	it('has unique ids: three tiers per legend and league track, and twelve one-offs', () => {
 		expect(new Set(ACHIEVEMENTS.map((a) => a.id)).size).toBe(ACHIEVEMENTS.length);
-		expect(ACHIEVEMENTS).toHaveLength(LEGENDS.length * 3 + 4 * 3 + 3);
+		expect(ACHIEVEMENTS).toHaveLength(LEGENDS.length * 3 + 7 * 3 + 12);
 	});
 
 	it('gives every legend a Player/Expert/Master track at 3/10/25', () => {
@@ -80,6 +80,15 @@ describe('definitions', () => {
 		const flat = ACHIEVEMENTS.filter((a) => !a.tier).map((a) => [a.id, a.need]);
 		expect(flat).toEqual([
 			['first-blood', 1],
+			['on-the-board', 1],
+			['clean-sweep', 1],
+			['stalemate', 1],
+			['decider', 5],
+			['dice-dont-matter', 5],
+			['mirror-match', 1],
+			['revenge', 1],
+			['swept', 1],
+			['snake-eyes', 1],
 			['top-cut', 1],
 			['champion', 1]
 		]);
@@ -203,6 +212,82 @@ describe('league tracks', () => {
 	it('Dice: rolls won', () => {
 		const h = H([...n(2), M({ diceWinnerId: 'op' }), M()]);
 		expect(get(h, 'dice-bronze')).toMatchObject({ have: 3, hit: { at: D(4) } });
+	});
+});
+
+describe('wins, streaks and match results', () => {
+	const loss = { p1Games: 0, p2Games: 2 };
+	const draw = { p1Games: 1, p2Games: 1 };
+
+	it('Wins and Matches count every counted match', () => {
+		const h = H([...n(5), ...n(10, loss)]);
+		expect(get(h, 'wins-bronze').hit).toEqual({ at: D(5), seasonId: 1 });
+		expect(get(h, 'wins-silver')).toMatchObject({ have: 5, need: 15, hit: null });
+		expect(get(h, 'matches-bronze').hit).toEqual({ at: D(15), seasonId: 1 });
+		expect(get(h, 'on-the-board').hit).toEqual({ at: D(1), seasonId: 1 });
+	});
+
+	it('Streak: the best run of wins; a draw or a loss ends it', () => {
+		const h = H([...n(2), M(draw), ...n(3), M(loss), ...n(4)]);
+		expect(get(h, 'streak-bronze').hit).toEqual({ at: D(6), seasonId: 1 });
+		expect(get(h, 'streak-silver')).toMatchObject({ have: 4, need: 5, hit: null });
+		expect(get(H([...n(2), M(loss), ...n(2)]), 'streak-bronze')).toMatchObject({ have: 2 });
+	});
+
+	it('Clean Sweep, Swept and Stalemate read the score', () => {
+		const h = H([
+			M({ p1Games: 2, p2Games: 1 }),
+			M(),
+			M(loss),
+			M({ p1Games: 1, p2Games: 2 }),
+			M(draw)
+		]);
+		expect(get(h, 'clean-sweep').hit).toEqual({ at: D(2), seasonId: 1 });
+		expect(get(h, 'swept').hit).toEqual({ at: D(3), seasonId: 1 });
+		expect(get(h, 'stalemate').hit).toEqual({ at: D(5), seasonId: 1 });
+		const asP2 = H([M({ p1Id: 'op', p2Id: 'me' })]);
+		expect(get(asP2, 'swept').hit).toEqual({ at: D(6), seasonId: 1 });
+		expect(get(asP2, 'clean-sweep').hit).toBeNull();
+	});
+
+	it('Decider: wins that went to game 3, only with per-game results', () => {
+		const three = { games: '121', p1Games: 2, p2Games: 1 };
+		const h = H([
+			...n(4, three),
+			M({ p1Games: 2, p2Games: 1 }),
+			M({ games: '122', p1Games: 1, p2Games: 2 })
+		]);
+		expect(get(h, 'decider')).toMatchObject({ have: 4, need: 5, hit: null });
+		expect(get(H(n(5, three)), 'decider').hit).toEqual({ at: D(11), seasonId: 1 });
+	});
+
+	it("Dice Don't Matter and Snake Eyes: lost rolls, never a match without a roll", () => {
+		const lostRoll = { diceWinnerId: 'op' };
+		expect(get(H(n(5, lostRoll)), 'dice-dont-matter').hit).toEqual({ at: D(5), seasonId: 1 });
+		expect(get(H(n(5, lostRoll)), 'snake-eyes').hit).toEqual({ at: D(10), seasonId: 1 });
+		const broken = H([...n(4, lostRoll), M(), ...n(4, lostRoll), M({ diceWinnerId: null })]);
+		expect(get(broken, 'snake-eyes').hit).toBeNull();
+		expect(get(H(n(5, { diceWinnerId: null })), 'dice-dont-matter').have).toBe(0);
+		expect(get(H(n(5, { ...lostRoll, ...loss })), 'dice-dont-matter').have).toBe(0);
+	});
+
+	it('Mirror Match: a win with both on the same legend', () => {
+		const h = H([
+			M({ p2Legend: 'Ahri', ...loss }),
+			M({ p1Legend: null, p2Legend: null }),
+			M({ p2Legend: 'Ahri' })
+		]);
+		expect(get(h, 'mirror-match').hit).toEqual({ at: D(3), seasonId: 1 });
+	});
+
+	it('Revenge: beating someone who won in an earlier season', () => {
+		const seasons = [S(), S({ id: 2 })];
+		const same = H([M(loss), M()], seasons);
+		expect(get(same, 'revenge').hit).toBeNull(); // same season
+		const later = H([M(loss), M({ seasonId: 2, p2Id: 'x' }), M({ seasonId: 2 })], seasons);
+		expect(get(later, 'revenge').hit).toEqual({ at: D(5), seasonId: 2 });
+		const never = H([M(), M({ seasonId: 2 })], seasons);
+		expect(get(never, 'revenge').hit).toBeNull(); // they never beat me
 	});
 });
 

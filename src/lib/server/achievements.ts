@@ -158,7 +158,10 @@ const LEAGUE_TRACKS: Record<string, string> = {
 	variety: 'Variety',
 	dice: 'Dice',
 	seasons: 'Seasons',
-	comeback: 'Comeback'
+	comeback: 'Comeback',
+	wins: 'Wins',
+	streak: 'Streak',
+	matches: 'Matches'
 };
 const kind = (a: Achievement): Kind =>
 	a.legend ? 'legend' : a.icon.startsWith('/achievements/tiers/') ? 'rank' : 'item';
