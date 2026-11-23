@@ -14,6 +14,8 @@ const S = (o: Partial<HistorySeason> = {}): HistorySeason => ({
 	finalizedAt: null,
 	cutAt: null,
 	championAt: null,
+	finalAt: null,
+	group: null,
 	...o
 });
 // Me as p1, a 2–0 win as Ahri, reported the next day.
