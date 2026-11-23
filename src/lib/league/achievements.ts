@@ -1,4 +1,5 @@
 import { isPublished } from '#lib/league/publish.ts';
+import type { Rank } from '#lib/league/ranks.ts';
 import { isVoid } from '#lib/league/status.ts';
 import { LEGENDS, type Legend } from '#lib/legends.ts';
 
@@ -10,6 +11,7 @@ export type Achievement = {
 	id: string;
 	track: string; // the tiers of one track read as a progression; a one-off is its own track
 	tier: Tier | null; // null for a one-off
+	rank: Rank; // how hard it is, wood to challenger; the colour of its ring
 	name: string;
 	description: string;
 	title: string; // shown with the player's name when equipped (#143)
@@ -161,6 +163,7 @@ function tiered(
 	names: Three<string>,
 	describe: (n: number) => string,
 	needs: Three<number>,
+	ranks: Three<Rank>,
 	hits: Hits,
 	icon: (t: Tier) => string,
 	legend: Legend | null = null
@@ -169,6 +172,7 @@ function tiered(
 		id: `${track}-${tier}`,
 		track,
 		tier,
+		rank: ranks[i],
 		name: names[i],
 		description: describe(needs[i]),
 		title: names[i],
@@ -179,10 +183,11 @@ function tiered(
 	}));
 }
 
-const flat = (id: string, name: string, description: string, hits: Hits): Def => ({
+const flat = (id: string, name: string, rank: Rank, description: string, hits: Hits): Def => ({
 	id,
 	track: id,
 	tier: null,
+	rank,
 	name,
 	description,
 	title: name,
@@ -199,6 +204,7 @@ const DEFS: Def[] = [
 			levels(l),
 			(n) => `Play ${n} matches as ${l}.`,
 			[3, 10, 25],
+			['bronze', 'silver', 'gold'],
 			where((m) => m.legend === l),
 			() => `/achievements/champions/${key(champion(l))}.png`,
 			l
@@ -209,6 +215,7 @@ const DEFS: Def[] = [
 		levels('Variety'),
 		(n) => `Play at least 2 matches each with ${n} different legends.`,
 		[3, 5, 10],
+		['bronze', 'gold', 'platinum'],
 		variety,
 		emblem
 	),
@@ -217,6 +224,7 @@ const DEFS: Def[] = [
 		levels('Dice'),
 		(n) => `Win ${n} dice rolls.`,
 		[3, 6, 20],
+		['bronze', 'silver', 'emerald'],
 		where((m) => m.dice),
 		emblem
 	),
@@ -225,6 +233,7 @@ const DEFS: Def[] = [
 		['Veteran', 'Old Guard', 'Elder'],
 		(n) => `Play in ${n} seasons.`,
 		[2, 5, 10],
+		['gold', 'emerald', 'grandmaster'],
 		seasonsPlayed,
 		() => '/achievements/items/seasons.png'
 	),
@@ -233,13 +242,14 @@ const DEFS: Def[] = [
 		['Comeback Kid', 'Comeback King', 'Comeback Emperor'],
 		(n) => (n === 1 ? 'Win a match after losing game 1.' : `Win ${n} matches after losing game 1.`),
 		[1, 5, 15],
+		['bronze', 'gold', 'diamond'],
 		where((m) => m.games?.[0] === '2' && won(m)),
 		() => '/achievements/items/comeback.png'
 	),
-	flat('first-blood', 'First Blood', 'Win your first match.', where(won)),
-	flat('perfect-group', 'Perfect Group', 'Win every group match of a season.', perfect),
-	flat('top-cut', 'Top Cut', 'Reach a top cut.', seasonEvent('cutAt')),
-	flat('champion', 'Champion', 'Win a top-cut final.', seasonEvent('championAt'))
+	flat('first-blood', 'First Blood', 'bronze', 'Win your first match.', where(won)),
+	flat('perfect-group', 'Perfect Group', 'diamond', 'Win every group match of a season.', perfect),
+	flat('top-cut', 'Top Cut', 'gold', 'Reach a top cut.', seasonEvent('cutAt')),
+	flat('champion', 'Champion', 'challenger', 'Win a top-cut final.', seasonEvent('championAt'))
 ];
 
 export const ACHIEVEMENTS: readonly Achievement[] = DEFS;

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { existsSync } from 'node:fs';
 import { LEGENDS } from '#lib/legends.ts';
+import { compareRank, isRank } from '#lib/league/ranks.ts';
 import {
 	ACHIEVEMENTS,
 	achievementById,
@@ -84,6 +85,21 @@ describe('definitions', () => {
 			['champion', 1]
 		]);
 		for (const a of ACHIEVEMENTS) expect(a.title).toBe(a.name);
+	});
+
+	it('ranks every achievement, and a track never drops a rank as it grows', () => {
+		for (const a of ACHIEVEMENTS) expect(isRank(a.rank)).toBe(true);
+		const rank = (id: string) => achievementById.get(id)!.rank;
+		expect(rank('champion')).toBe('challenger');
+		expect(rank('first-blood')).toBe('bronze');
+		expect(['seasons-bronze', 'seasons-silver', 'seasons-gold'].map(rank)).toEqual([
+			'gold',
+			'emerald',
+			'grandmaster'
+		]);
+		for (const defs of Map.groupBy(ACHIEVEMENTS, (a) => a.track).values())
+			for (let i = 1; i < defs.length; i++)
+				expect(compareRank(defs[i].rank, defs[i - 1].rank)).toBeGreaterThanOrEqual(0);
 	});
 });
 
