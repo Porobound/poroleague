@@ -21,7 +21,16 @@ Before pushing: `npm run lint` (CI runs `prettier --check`), `npm run check`, `n
 
 Plan in the issue: the plan's tasks are its checklist → branch → one commit per task, ticking its box → PR. The owner merges, a stack all at once (see Worktrees). Plans are not committed: a decision that outlives the work goes in `docs/spec.md`, in the PR that makes it true.
 
-The issue agent's review step runs `.claude/agents/review-poroleague.md` (auth, input, audit, migrations, accessibility, league rules) next to the generic reviewers; `.github/automerge-exclude` lists the paths a pull request may not touch if it is to merge without a person.
+The issue agent's review step runs `.claude/agents/review-poroleague.md` (auth, input, audit, migrations, accessibility, league rules) next to the generic reviewers.
+
+## Full review
+
+A change to these paths is never a small diff for the pipeline's review, however few lines it touches:
+
+- `drizzle/`, `src/lib/server/db/`: schema and migrations; a bad one loses or corrupts league data.
+- `src/lib/server/auth.ts`, `session.ts`, `discord.ts`, `src/hooks.server.ts`, `src/routes/auth/`: login, sessions and the organizer check.
+- `src/env.ts`: secrets and env config.
+- `scripts/`: deploy, the nightly backup and the startup migration run on the prod host.
 
 ## Worktrees
 
