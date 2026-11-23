@@ -5,7 +5,8 @@ import { audit, entries, playerAchievements, players, seasons } from '#lib/serve
 import {
 	awardAchievements,
 	backfillAchievements,
-	careerAchievements
+	careerAchievements,
+	showcase
 } from '#lib/server/achievements.ts';
 import { flagMatch, keepResult, organizerEdit, saveReport } from '#lib/server/matches.ts';
 import { cancelDrop, dropPlayer, finalizeSeason, publishWeek } from '#lib/server/seasons.ts';
@@ -293,6 +294,51 @@ describe('careerAchievements', () => {
 		});
 		expect(place('wins')).toBeLessThan(place('wooden-spoon'));
 		expect(place('wooden-spoon')).toBeLessThan(place('dynasty'));
+	});
+
+	it('showcases the best achievements and legends, and counts the rest', () => {
+		seedPlayers(2);
+		const s = season('a');
+		for (let r = 1; r <= 3; r++) win(s.id, r, r);
+		awardAchievements(db, ['p1']);
+		for (const achievementId of ['champion', 'finalist', 'top-cut', 'group-winner'])
+			db.insert(playerAchievements)
+				.values({ playerId: 'p1', achievementId, unlockedAt: D(9), seasonId: null })
+				.run();
+		const strip = showcase(careerAchievements(db, 'p1'));
+		// Nine earned, the seven highest ranks shown: Champion first, the bronze ones cut off.
+		expect(strip.achievements.map((m) => m.name).slice(0, 5)).toEqual([
+			'Champion',
+			'Finalist',
+			'Group Winner',
+			'Top Cut',
+			'Warm'
+		]);
+		expect(strip.achievements).toHaveLength(7);
+		expect(strip.achievements[4]).toEqual({
+			name: 'Warm',
+			description: 'Win 3 matches in a row.',
+			icon: '/achievements/glyphs/streak.svg',
+			rank: 'gold'
+		});
+		expect(strip.moreAchievements).toBe(2);
+		expect(strip.mastery).toEqual([
+			{
+				name: 'Ahri · Bronze',
+				description: '3 matches as Ahri.',
+				icon: '/achievements/champions/ahri.png',
+				rank: 'bronze'
+			}
+		]);
+		expect(strip.moreMastery).toBe(0);
+		expect(showcase(careerAchievements(db, 'p2')).mastery).toEqual([
+			{
+				...strip.mastery[0],
+				name: 'Annie · Bronze',
+				description: '3 matches as Annie.',
+				icon: '/achievements/champions/annie.png'
+			}
+		]);
 	});
 
 	it('names the season an achievement was earned in, unless it was deleted', () => {

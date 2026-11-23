@@ -2,7 +2,7 @@ import { and, desc, eq, inArray, isNull, ne, or } from 'drizzle-orm';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import { ACHIEVEMENTS, evaluate, type History } from '#lib/league/achievements.ts';
 import { mastery, portrait } from '#lib/league/mastery.ts';
-import { compareRank, type Rank } from '#lib/league/ranks.ts';
+import { compareRank, RANK_NAME, type Rank } from '#lib/league/ranks.ts';
 import { standings } from '#lib/league/standings.ts';
 import { leagueDate } from '#lib/league/time.ts';
 import * as schema from '#lib/server/db/schema.ts';
@@ -269,3 +269,27 @@ export function careerAchievements(db: Db, playerId: string) {
 	};
 }
 export type Career = ReturnType<typeof careerAchievements>;
+
+// The strip on the season player page: the highest-ranked achievements and legends, as medals,
+// and how many more there are behind each row.
+const SHOWCASE = 7;
+export function showcase(c: Career) {
+	const earned = c.list.filter((a) => a.earned); // already highest rank first
+	const ranked = c.legends
+		.filter((m) => m.rank)
+		.sort((a, b) => compareRank(b.rank!, a.rank!) || b.matches - a.matches);
+	return {
+		achievements: earned
+			.slice(0, SHOWCASE)
+			.map(({ name, description, icon, rank }) => ({ name, description, icon, rank })),
+		moreAchievements: Math.max(0, earned.length - SHOWCASE),
+		mastery: ranked.slice(0, SHOWCASE).map((m) => ({
+			name: `${m.legend} · ${RANK_NAME[m.rank!]}`,
+			description: `${m.matches} ${m.matches === 1 ? 'match' : 'matches'} as ${m.legend}.`,
+			icon: m.icon,
+			rank: m.rank!
+		})),
+		moreMastery: Math.max(0, ranked.length - SHOWCASE)
+	};
+}
+export type Showcase = ReturnType<typeof showcase>;
