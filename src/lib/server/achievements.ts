@@ -193,6 +193,7 @@ export type MasteryView = {
 	matches: number;
 	rank: Rank | null;
 	earned: string | null; // league date the rank was reached
+	season: { slug: string; name: string } | null; // where, while that season is public
 	next: { rank: Rank; need: number } | null; // null at the top rank
 };
 
@@ -250,18 +251,21 @@ export function careerAchievements(db: Db, playerId: string) {
 		earned: list.filter((a) => a.earned).length,
 		total: list.length,
 		list,
-		// Legends the player has played, most played first.
+		// Every legend, played or not, most played first.
 		legends: mastery(h)
-			.filter((m) => m.matches)
 			.sort((a, b) => b.matches - a.matches || a.legend.localeCompare(b.legend))
-			.map((m): MasteryView => ({
-				legend: m.legend,
-				icon: portrait(m.legend),
-				matches: m.matches,
-				rank: m.rank,
-				earned: m.hit ? leagueDate(m.hit.at) : null,
-				next: m.next
-			}))
+			.map((m): MasteryView => {
+				const s = m.hit ? where.get(m.hit.seasonId) : undefined;
+				return {
+					legend: m.legend,
+					icon: portrait(m.legend),
+					matches: m.matches,
+					rank: m.rank,
+					earned: m.hit ? leagueDate(m.hit.at) : null,
+					season: s ? { slug: s.slug, name: s.name } : null,
+					next: m.next
+				};
+			})
 	};
 }
 export type Career = ReturnType<typeof careerAchievements>;

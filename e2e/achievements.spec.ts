@@ -30,7 +30,11 @@ test('a report that crosses a threshold shows the achievement on the career page
 
 	await page.goto(`/players/${me}`);
 	await expect(section).toContainText('0 of 28 earned');
-	await expect(ahri).toContainText('Unranked · 2 matches');
+	const tabs = section.getByRole('navigation', { name: 'Achievements and mastery' });
+	await tabs.getByRole('link', { name: 'Mastery' }).click();
+	await expect(page).toHaveURL(/tab=mastery/);
+	await expect(section).toContainText('0 of 58 legends ranked');
+	await expect(ahri).toContainText('Unranked');
 	await expect(ahri).toContainText('2/3 to Bronze');
 
 	await page.goto(`/seasons/${slug}/matches/${third}`);
@@ -46,9 +50,28 @@ test('a report that crosses a threshold shows the achievement on the career page
 	await page.getByRole('dialog').getByRole('button', { name: 'Save result' }).click();
 	await expect(page.getByRole('status').first()).toContainText('Result saved');
 
-	await page.goto(`/players/${me}`);
-	await expect(ahri).toContainText('Bronze · 3 matches');
+	// Mastery: every legend, ten a page, most played first or by name; a rank links to its season.
+	await page.goto(`/players/${me}?tab=mastery`);
+	await expect(section).toContainText('1 of 58 legends ranked');
+	await expect(ahri).toContainText('Bronze');
+	await expect(ahri).toContainText('3 matches');
 	await expect(ahri).toContainText('3/7 to Silver');
+	await expect(ahri.getByRole('link')).toHaveAttribute('href', `/seasons/${slug}`);
+	const legends = section.getByRole('list', { name: 'Legend mastery' }).getByRole('listitem');
+	await expect(legends).toHaveCount(10);
+	await section
+		.getByRole('navigation', { name: 'Sort legends' })
+		.getByRole('link', { name: 'Name' })
+		.click();
+	await expect(page).toHaveURL(/tab=mastery&sort=name/);
+	await expect(legends.nth(1)).toContainText('Akali');
+	await section
+		.getByRole('navigation', { name: 'Show' })
+		.getByRole('link', { name: 'Ranked', exact: true })
+		.click();
+	await expect(legends).toHaveCount(1);
+
+	await page.goto(`/players/${me}`);
 	// Earned ones lead the list, each with its rank, its date and a link to its season.
 	const first = row('Achievements', 'First Blood');
 	await expect(first).toContainText('Bronze');
@@ -56,12 +79,12 @@ test('a report that crosses a threshold shows the achievement on the career page
 	await expect(first.getByRole('link')).toHaveAttribute('href', `/seasons/${slug}`);
 
 	// The filter and the pages are plain links.
-	const show = section.getByRole('navigation', { name: 'Show achievements' });
+	const show = section.getByRole('navigation', { name: 'Show' });
 	await show.getByRole('link', { name: 'Earned' }).click();
 	await expect(page).toHaveURL(/show=earned/);
 	await expect(section.getByRole('list', { name: 'Achievements' })).not.toContainText('Locked');
 	await show.getByRole('link', { name: 'Locked' }).click();
-	const pages = section.getByRole('navigation', { name: 'Achievement pages' });
+	const pages = section.getByRole('navigation', { name: 'Pages' });
 	await expect(
 		section.getByRole('list', { name: 'Achievements' }).getByRole('listitem')
 	).toHaveCount(10);

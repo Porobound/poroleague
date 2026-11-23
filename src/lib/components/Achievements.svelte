@@ -4,34 +4,51 @@
 	import { RANK_NAME } from '#lib/league/ranks.ts';
 	import type { AchievementView, Career, MasteryView } from '#lib/server/achievements.ts';
 
-	// The achievement list: earned first, then what is under way, then locked, ten a page. The
-	// filter and the pages are links, so it works without JavaScript. `all` lists every legend
-	// played; otherwise that list stops at LIMIT with a link to the rest.
+	// Achievements and legend mastery, a tab each, ten rows a page. Achievements: earned first,
+	// then what is under way, then locked. Mastery: every legend, most played first or by name.
+	// The tabs, the filter, the sort and the pages are links, so it all works without JavaScript.
 	let {
 		data,
+		tab = 'achievements',
 		show = 'all',
-		page = 1,
-		all = false
-	}: { data: Career; show?: 'all' | 'earned' | 'locked'; page?: number; all?: boolean } = $props();
+		sort = 'played',
+		page = 1
+	}: {
+		data: Career;
+		tab?: 'achievements' | 'mastery';
+		show?: 'all' | 'earned' | 'locked';
+		sort?: 'played' | 'name';
+		page?: number;
+	} = $props();
 	const PER = 10;
-	const LIMIT = 5;
+	const TAB = { achievements: 'Achievements', mastery: 'Mastery' } as const;
 	const SHOW = { all: 'All', earned: 'Earned', locked: 'Locked' } as const;
-	const rows = $derived(
-		data.list.filter((a) => show === 'all' || (show === 'earned') === !!a.earned)
+	const SORT = { played: 'Most played', name: 'Name' } as const;
+	const keep = <T,>(list: T[], got: (x: T) => boolean) =>
+		list.filter((x) => show === 'all' || (show === 'earned') === got(x));
+	const achievements = $derived(keep(data.list, (a) => !!a.earned));
+	const legends = $derived(
+		keep(
+			sort === 'name'
+				? data.legends.toSorted((a, b) => a.legend.localeCompare(b.legend))
+				: data.legends,
+			(m) => !!m.rank
+		)
 	);
-	const pages = $derived(Math.max(1, Math.ceil(rows.length / PER)));
+	const count = $derived(tab === 'mastery' ? legends.length : achievements.length);
+	const pages = $derived(Math.max(1, Math.ceil(count / PER)));
 	const at = $derived(Math.min(page, pages));
-	const shown = $derived(rows.slice((at - 1) * PER, at * PER));
-	const cut = $derived(!all && data.legends.length > LIMIT);
-	const legends = $derived(cut ? data.legends.slice(0, LIMIT) : data.legends);
+	const slice = <T,>(list: T[]) => list.slice((at - 1) * PER, at * PER);
+	const ranked = $derived(data.legends.filter((m) => m.rank).length);
 	// A link that keeps the rest of the state: only what differs from the default is in the URL.
-	const href = (o: { show?: string; page?: number; all?: boolean }) => {
-		const s = { show, page: at, all, ...o };
+	const href = (o: { tab?: string; show?: string; sort?: string; page?: number }) => {
+		const s = { tab, show, sort, page: at, ...o };
 		const q = new URLSearchParams();
+		if (s.tab !== 'achievements') q.set('tab', s.tab);
 		if (s.show !== 'all') q.set('show', s.show);
+		if (s.tab === 'mastery' && s.sort !== 'played') q.set('sort', s.sort);
 		if (s.page > 1) q.set('page', String(s.page));
-		if (s.all) q.set('all', '');
-		return `?${q}#achievements`.replace('all=', 'all');
+		return `?${q}#achievements`;
 	};
 </script>
 
@@ -66,21 +83,34 @@
 {/snippet}
 
 {#snippet legend(m: MasteryView)}
-	<div class={['pb-achrow', 'pb-achrow-one', !m.rank && 'is-locked']}>
+	<div class={['pb-achrow', 'pb-achrow-one', 'pb-achrow-ach', !m.rank && 'is-locked']}>
 		<div class="pb-achrow-main">
 			<Medal icon={m.icon} rank={m.rank} size={36} />
 			<span class="pb-achrow-tx">
-				<span class="pb-achrow-nm">{m.legend}</span>
-				<span class="pb-achrow-ds"
-					>{m.rank ? RANK_NAME[m.rank] : 'Unranked'} · {m.matches}
-					{m.matches === 1 ? 'match' : 'matches'}</span
+				<span class="pb-achrow-nm"
+					><span>{m.legend}</span><span class="pb-achrow-rank"
+						>{m.rank ? RANK_NAME[m.rank] : 'Unranked'}</span
+					></span
 				>
+				<span class="pb-achrow-ds">{m.matches} {m.matches === 1 ? 'match' : 'matches'}</span>
+				{#if m.next}
+					<span class="pb-achprog">
+						<span class="pb-achbar" aria-hidden="true"
+							><i style:width="{Math.min(100, (m.matches / m.next.need) * 100)}%"></i></span
+						>
+						<span
+							>{m.matches}/{m.next.need}<span class="pb-sr">{' to '}{RANK_NAME[m.next.rank]}</span
+							></span
+						>
+					</span>
+				{/if}
 			</span>
-			<span class="pb-achrow-prog"
-				>{#if m.next}{m.matches}/{m.next.need}<span class="pb-sr"
-						>{' to '}{RANK_NAME[m.next.rank]}</span
-					>{:else}Top rank{/if}</span
-			>
+			<span class="pb-achwhen">
+				{#if m.earned}
+					{#if m.season}<a href="/seasons/{m.season.slug}">{m.season.name}</a>{/if}
+					<span>{date(m.earned)}</span>
+				{/if}
+			</span>
 		</div>
 	</div>
 {/snippet}
@@ -88,31 +118,62 @@
 <section id="achievements" aria-labelledby="ach-h">
 	<div class="head">
 		<h2 id="ach-h">Achievements</h2>
-		<span class="muted small">{data.earned} of {data.total} earned</span>
+		<span class="muted small"
+			>{#if tab === 'mastery'}{ranked} of {data.legends.length} legends ranked{:else}{data.earned}
+				of {data.total} earned{/if}</span
+		>
 	</div>
-	<div class="pb-achbar" aria-hidden="true">
-		<i style:width="{(data.earned / data.total) * 100}%"></i>
-	</div>
-	<nav class="pb-achnav" aria-label="Show achievements">
-		{#each ['all', 'earned', 'locked'] as const as s (s)}
-			<a href={href({ show: s, page: 1 })} aria-current={show === s ? 'true' : undefined}
-				>{SHOW[s]}</a
+	<nav class="pb-achtabs" aria-label="Achievements and mastery">
+		{#each ['achievements', 'mastery'] as const as t (t)}
+			<a
+				href={href({ tab: t, show: 'all', sort: 'played', page: 1 })}
+				aria-current={tab === t ? 'true' : undefined}>{TAB[t]}</a
 			>
 		{/each}
 	</nav>
+	<div class="pb-achbar" aria-hidden="true">
+		<i
+			style:width="{(tab === 'mastery' ? ranked / data.legends.length : data.earned / data.total) *
+				100}%"
+		></i>
+	</div>
+	<div class="controls">
+		<nav class="pb-achnav" aria-label="Show">
+			{#each ['all', 'earned', 'locked'] as const as s (s)}
+				<a href={href({ show: s, page: 1 })} aria-current={show === s ? 'true' : undefined}
+					>{tab === 'mastery' && s !== 'all'
+						? s === 'earned'
+							? 'Ranked'
+							: 'Unranked'
+						: SHOW[s]}</a
+				>
+			{/each}
+		</nav>
+		{#if tab === 'mastery'}
+			<nav class="pb-achnav" aria-label="Sort legends">
+				{#each ['played', 'name'] as const as s (s)}
+					<a href={href({ sort: s, page: 1 })} aria-current={sort === s ? 'true' : undefined}
+						>{SORT[s]}</a
+					>
+				{/each}
+			</nav>
+		{/if}
+	</div>
 	<div class="panel pb-achrows">
-		{#if shown.length}
-			<ul aria-label="Achievements">
-				{#each shown as a (a.key)}<li>{@render achievement(a)}</li>{/each}
+		{#if !count}
+			<p class="empty">Nothing here yet.</p>
+		{:else if tab === 'mastery'}
+			<ul aria-label="Legend mastery">
+				{#each slice(legends) as m (m.legend)}<li>{@render legend(m)}</li>{/each}
 			</ul>
 		{:else}
-			<p class="empty">{show === 'earned' ? 'Nothing earned yet.' : 'Nothing left to earn.'}</p>
+			<ul aria-label="Achievements">
+				{#each slice(achievements) as a (a.key)}<li>{@render achievement(a)}</li>{/each}
+			</ul>
 		{/if}
 		{#if pages > 1}
-			<nav class="pb-achnav pb-achpager" aria-label="Achievement pages">
-				<span class="muted small"
-					>{(at - 1) * PER + 1}–{(at - 1) * PER + shown.length} of {rows.length}</span
-				>
+			<nav class="pb-achnav pb-achpager" aria-label="Pages">
+				<span class="muted small">{(at - 1) * PER + 1}–{Math.min(at * PER, count)} of {count}</span>
 				<span>
 					{#if at > 1}<a href={href({ page: at - 1 })} rel="prev">Previous</a>{/if}
 					{#each { length: pages } as _, i (i)}
@@ -125,21 +186,6 @@
 			</nav>
 		{/if}
 	</div>
-	<h3 class="eyebrow">Mastery</h3>
-	{#if legends.length}
-		<div class="panel pb-achrows">
-			<ul aria-label="Legend mastery">
-				{#each legends as m (m.legend)}<li>{@render legend(m)}</li>{/each}
-			</ul>
-			{#if cut}
-				<a class="pb-achrows-more" href={href({ all: true })}>Show all {data.legends.length}</a>
-			{:else if all && data.legends.length > LIMIT}
-				<a class="pb-achrows-more" href={href({ all: false })}>Show fewer</a>
-			{/if}
-		</div>
-	{:else}
-		<p class="empty">Mastery starts with the first match played as a legend.</p>
-	{/if}
 </section>
 
 <style>
@@ -155,8 +201,11 @@
 		justify-content: space-between;
 		gap: 4px 16px;
 	}
-	h3 {
-		margin: 8px 0 0;
+	.controls {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: space-between;
+		gap: 8px 16px;
 	}
 	.panel {
 		padding: 0;
@@ -165,12 +214,5 @@
 	.panel > .empty {
 		margin: 0;
 		padding: 14px;
-	}
-	/* The design system styles the "more" control as a button; here it is a link, so it works without JavaScript. */
-	a.pb-achrows-more {
-		display: flex;
-		align-items: center;
-		box-sizing: border-box;
-		text-decoration: none;
 	}
 </style>
