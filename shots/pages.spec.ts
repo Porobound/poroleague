@@ -53,6 +53,7 @@ test('a season in play', async ({ browser }) => {
 		['visitor-audit', `${s}/audit`],
 		['visitor-player', `${s}/players/${me}`],
 		['visitor-career', `/players/${me}`],
+		['visitor-career-mastery', `/players/${me}?tab=mastery`],
 		['visitor-match-reported', `${s}/matches/${reported}`],
 		['visitor-match-flagged', `${s}/matches/${flagged}`],
 		['visitor-login-not-member', '/login/not-member'],

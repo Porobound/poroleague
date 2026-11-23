@@ -66,7 +66,13 @@
 		</section>
 	{/if}
 
-	<Achievements data={data.achievements} all={data.allLegends} show={data.show} page={data.page} />
+	<Achievements
+		data={data.achievements}
+		tab={data.tab}
+		show={data.show}
+		sort={data.sort}
+		page={data.page}
+	/>
 </div>
 
 <style>

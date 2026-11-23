@@ -10,6 +10,7 @@ import {
 import { flagMatch, keepResult, organizerEdit, saveReport } from '#lib/server/matches.ts';
 import { cancelDrop, dropPlayer, finalizeSeason, publishWeek } from '#lib/server/seasons.ts';
 import type { Report } from '#lib/league/report.ts';
+import { LEGENDS } from '#lib/legends.ts';
 import { seedEntries, seedMatch, seedPlayers, seedSeason } from '#lib/server/test/seed.ts';
 
 const D = (day: number) => new Date(Date.UTC(2026, 0, day));
@@ -246,17 +247,18 @@ describe('careerAchievements', () => {
 			])
 			.run();
 		const c = careerAchievements(db, 'p1');
-		// Legends never played aren't listed.
-		expect(c.legends).toEqual([
-			{
-				legend: 'Ahri',
-				icon: '/achievements/champions/ahri.png',
-				matches: 2,
-				rank: null,
-				earned: null,
-				next: { rank: 'bronze', need: 3 }
-			}
-		]);
+		// Every legend is listed, most played first.
+		expect(c.legends).toHaveLength(LEGENDS.length);
+		expect(c.legends[0]).toEqual({
+			legend: 'Ahri',
+			icon: '/achievements/champions/ahri.png',
+			matches: 2,
+			rank: null,
+			earned: null,
+			season: null,
+			next: { rank: 'bronze', need: 3 }
+		});
+		expect(c.legends[1]).toMatchObject({ legend: 'Akali', matches: 0, rank: null });
 		expect(c.total).toBe(28);
 		expect(c.earned).toBe(2); // Comeback and Dice; the unknown id doesn't count
 		// Earned first, highest rank on top.
