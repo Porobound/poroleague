@@ -8,6 +8,7 @@ Answer within one month of the request.
 
 1. Open the player's page in a season they played (`/seasons/<slug>/players/<id>`), scroll to **Erase player**, type their name and confirm. The site:
    - renames them "Former player" plus a short random code (e.g. "Former player 3f9a") and removes their avatar and Discord link;
+   - clears their equipped title, badge and frame;
    - logs them out everywhere;
    - clears the reasons on flags they filed;
    - deletes the replays of all their matches, and refuses new ones for those matches;
