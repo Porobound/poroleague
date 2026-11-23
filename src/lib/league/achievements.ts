@@ -44,6 +44,9 @@ export type HistorySeason = {
 	finalizedAt: Date | null; // group stage finalized (audit `finalize`)
 	cutAt: Date | null; // the player is in the published bracket (audit `topcut`)
 	championAt: Date | null; // the player won the final (audit `champion`)
+	finalAt: Date | null; // the player was in the final of a finished top cut
+	// Where the player ended in their group, once it is finalized; null if dropped or not in one.
+	group: { place: number; of: number; first: string; cut: number } | null;
 };
 export type History = { playerId: string; matches: HistoryMatch[]; seasons: HistorySeason[] };
 
@@ -152,13 +155,30 @@ const finished = (ms: Played[], h: History) =>
 	h.seasons.filter(
 		(s) => s.finalizedAt && !s.dropped.has(h.playerId) && ms.some((m) => m.seasonId === s.id)
 	);
-const seasonsFinished: Hits = (ms, h) =>
-	finished(ms, h)
-		.map((s) => ({ at: s.finalizedAt!, seasonId: s.id }))
-		.sort(byDate);
+// Achievements judged over a whole season: one hit per finished season that passes `f`, dated by
+// its finalize. `sm` is the player's counted matches in that season.
+const season =
+	(f: (s: HistorySeason, sm: Played[], h: History) => boolean): Hits =>
+	(ms, h) =>
+		finished(ms, h)
+			.filter((s) =>
+				f(
+					s,
+					ms.filter((m) => m.seasonId === s.id),
+					h
+				)
+			)
+			.map((s) => ({ at: s.finalizedAt!, seasonId: s.id }))
+			.sort(byDate);
+const seasonsFinished = season(() => true);
+const legends = (sm: Played[]) => {
+	const count = new Map<string, number>();
+	for (const m of sm) if (m.legend) count.set(m.legend, (count.get(m.legend) ?? 0) + 1);
+	return [...count.values()];
+};
 
 const seasonEvent =
-	(k: 'cutAt' | 'championAt'): Hits =>
+	(k: 'cutAt' | 'championAt' | 'finalAt'): Hits =>
 	(_, h) =>
 		h.seasons.flatMap((s) => (s[k] ? [{ at: s[k], seasonId: s.id }] : [])).sort(byDate);
 type Def = Achievement & { hits: Hits };
@@ -365,8 +385,71 @@ const DEFS: Def[] = [
 	glyph('snake-eyes', 'Snake Eyes', 'wood', 'Lose 5 dice rolls in a row.', (ms, h) =>
 		run((m) => m.diceLost)(ms, h).slice(4, 5)
 	),
+	glyph(
+		'one-trick',
+		'One Trick',
+		'silver',
+		'Play more than half your matches in a season as one legend.',
+		season((_, sm) => Math.max(0, ...legends(sm)) > sm.length / 2)
+	),
+	glyph(
+		'flex-pick',
+		'Flex Pick',
+		'gold',
+		'Play 5 different legends in a season.',
+		season((_, sm) => legends(sm).length >= 5)
+	),
+	glyph(
+		'giant-slayer',
+		'Giant Slayer',
+		'platinum',
+		'Beat the player who finishes first in your group.',
+		season(
+			(s, sm, h) =>
+				!!s.group &&
+				s.group.first !== h.playerId &&
+				sm.some((m) => m.stage === 'group' && m.opponent === s.group!.first && won(m))
+		)
+	),
+	glyph(
+		'group-winner',
+		'Group Winner',
+		'diamond',
+		'Finish first in your group.',
+		season((s) => s.group?.place === 1)
+	),
+	glyph(
+		'bubble',
+		'Bubble',
+		'wood',
+		'Finish one place below the top-cut line.',
+		season((s) => !!s.group && s.group.cut > 0 && s.group.place === s.group.cut + 1)
+	),
+	glyph(
+		'participation-trophy',
+		'Participation Trophy',
+		'wood',
+		'Finish a season without a win.',
+		season((_, sm) => !sm.some(won))
+	),
+	glyph(
+		'wooden-spoon',
+		'Wooden Spoon',
+		'wood',
+		'Finish last in your group.',
+		season((s) => !!s.group && s.group.of > 1 && s.group.place === s.group.of)
+	),
 	flat('top-cut', 'Top Cut', 'gold', 'Qualify for a top cut.', seasonEvent('cutAt')),
-	flat('champion', 'Champion', 'challenger', "Win a season's top cut.", seasonEvent('championAt'))
+	glyph('finalist', 'Finalist', 'grandmaster', 'Reach a top-cut final.', seasonEvent('finalAt')),
+	flat('champion', 'Champion', 'challenger', "Win a season's top cut.", seasonEvent('championAt')),
+	glyph(
+		'dynasty',
+		'Dynasty',
+		'challenger',
+		"Win two seasons' top cuts.",
+		seasonEvent('championAt'),
+		2
+	)
 ];
 
 export const ACHIEVEMENTS: readonly Achievement[] = DEFS;

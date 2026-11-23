@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull, ne, or } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull, ne, or } from 'drizzle-orm';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import {
 	ACHIEVEMENTS,
@@ -7,6 +7,7 @@ import {
 	type History,
 	type Tier
 } from '#lib/league/achievements.ts';
+import { standings } from '#lib/league/standings.ts';
 import { leagueDate } from '#lib/league/time.ts';
 import * as schema from '#lib/server/db/schema.ts';
 
@@ -17,7 +18,13 @@ export type Db = BetterSQLite3Database<typeof schema>;
 
 export function playerHistory(db: Db, playerId: string): History {
 	const mine = db
-		.select({ id: seasons.id, publishedRound: seasons.publishedRound, slot: entries.slot })
+		.select({
+			id: seasons.id,
+			publishedRound: seasons.publishedRound,
+			topCutSize: seasons.topCutSize,
+			slot: entries.slot,
+			group: entries.group
+		})
 		.from(entries)
 		.innerJoin(seasons, eq(entries.seasonId, seasons.id))
 		.where(
@@ -45,6 +52,46 @@ export function playerHistory(db: Db, playerId: string): History {
 		.all();
 	const at = (seasonId: number, action: string, ok = (_after: unknown) => true) =>
 		events.find((e) => e.seasonId === seasonId && e.action === action && ok(e.after))?.at ?? null;
+	// The player's final place in their group: the standings as they stand once it is finalized,
+	// unplayed matches counted as the double losses they became.
+	const group = (s: (typeof mine)[number]) => {
+		if (s.group === null || !at(s.id, 'finalize')) return null;
+		const list = db
+			.select({ playerId: entries.playerId, dropped: entries.dropped, tiebreak: entries.tiebreak })
+			.from(entries)
+			.where(and(eq(entries.seasonId, s.id), eq(entries.group, s.group)))
+			.all();
+		const results = db
+			.select({
+				p1: matches.p1Id,
+				p2: matches.p2Id,
+				p1Games: matches.p1Games,
+				p2Games: matches.p2Games
+			})
+			.from(matches)
+			.where(
+				and(eq(matches.seasonId, s.id), eq(matches.stage, 'group'), eq(matches.group, s.group))
+			)
+			.all();
+		const rows = standings(list, results, true);
+		const place = rows.findIndex((r) => r.playerId === playerId) + 1;
+		return place
+			? { place, of: rows.length, first: rows[0].playerId, cut: s.topCutSize ?? 0 }
+			: null;
+	};
+	// In the final of a finished top cut: the playoff match of the last round.
+	const finalAt = (seasonId: number) => {
+		const done = at(seasonId, 'champion');
+		if (!done) return null;
+		const [last] = db
+			.select({ p1Id: matches.p1Id, p2Id: matches.p2Id })
+			.from(matches)
+			.where(and(eq(matches.seasonId, seasonId), eq(matches.stage, 'playoff')))
+			.orderBy(desc(matches.round))
+			.limit(1)
+			.all();
+		return last && (last.p1Id === playerId || last.p2Id === playerId) ? done : null;
+	};
 	return {
 		playerId,
 		matches: db
@@ -67,7 +114,9 @@ export function playerHistory(db: Db, playerId: string): History {
 				s.id,
 				'champion',
 				(a) => (a as { champion?: string } | null)?.champion === playerId
-			)
+			),
+			finalAt: finalAt(s.id),
+			group: group(s)
 		}))
 	};
 }

@@ -175,6 +175,44 @@ describe('result writes award', () => {
 		expect(row('p3', 'seasons-bronze')).toBeUndefined(); // never entered
 	});
 
+	it('finalize places everyone in their group', () => {
+		seedPlayers(4);
+		const s = seedSeason({ slug: 'g', status: 'play', publishedRound: 9, topCutSize: 2 });
+		seedEntries(s.id, ['p1', 'p2', 'p3', 'p4'], 1);
+		const play = (round: number, p1Id: string, p2Id: string, p1Games: number, p2Games: number) =>
+			seedMatch({
+				seasonId: s.id,
+				group: 1,
+				round,
+				p1Id,
+				p2Id,
+				p1Games,
+				p2Games,
+				p1Legend: 'Ahri',
+				p2Legend: 'Annie',
+				reportedBy: p1Id,
+				reportedAt: D(round)
+			});
+		// p1, p2 and p3 each win two, beating each other in a circle; p4 loses all three.
+		play(1, 'p1', 'p2', 2, 0);
+		play(1, 'p3', 'p4', 2, 0);
+		play(2, 'p1', 'p3', 0, 2);
+		play(2, 'p2', 'p4', 2, 0);
+		play(3, 'p1', 'p4', 2, 0);
+		play(3, 'p2', 'p3', 2, 0);
+		finalizeSeason(s.id, 'p1', false);
+		const has = (id: string) => ['p1', 'p2', 'p3', 'p4'].filter((p) => row(p, id)).join();
+		const first = has('group-winner');
+		expect(first).toHaveLength(2); // exactly one winner
+		expect(has('wooden-spoon')).toBe('p4');
+		expect(has('participation-trophy')).toBe('p4');
+		expect(has('bubble')).toHaveLength(2);
+		expect(has('one-trick')).toBe('p1,p2,p3,p4');
+		// Whoever beat the winner in the group slew the giant.
+		expect(has('giant-slayer')).not.toContain(first);
+		expect(has('giant-slayer')).not.toBe('');
+	});
+
 	it('undrop after finalize recounts the void matches', () => {
 		seedPlayers(2);
 		const s = season('a');
@@ -247,8 +285,17 @@ describe('careerAchievements', () => {
 			['revenge', null],
 			['swept', null],
 			['snake-eyes', null],
+			['one-trick', null],
+			['flex-pick', null],
+			['giant-slayer', null],
+			['group-winner', null],
+			['bubble', null],
+			['participation-trophy', null],
+			['wooden-spoon', null],
 			['top-cut', null],
-			['champion', null]
+			['finalist', null],
+			['champion', null],
+			['dynasty', null]
 		]);
 	});
 });

@@ -15,9 +15,9 @@ import {
 } from '#lib/league/achievements.ts';
 
 describe('definitions', () => {
-	it('has unique ids: three tiers per legend and league track, and twelve one-offs', () => {
+	it('has unique ids: three tiers per legend and league track, and twenty-one one-offs', () => {
 		expect(new Set(ACHIEVEMENTS.map((a) => a.id)).size).toBe(ACHIEVEMENTS.length);
-		expect(ACHIEVEMENTS).toHaveLength(LEGENDS.length * 3 + 7 * 3 + 12);
+		expect(ACHIEVEMENTS).toHaveLength(LEGENDS.length * 3 + 7 * 3 + 21);
 	});
 
 	it('gives every legend a Player/Expert/Master track at 3/10/25', () => {
@@ -89,8 +89,17 @@ describe('definitions', () => {
 			['revenge', 1],
 			['swept', 1],
 			['snake-eyes', 1],
+			['one-trick', 1],
+			['flex-pick', 1],
+			['giant-slayer', 1],
+			['group-winner', 1],
+			['bubble', 1],
+			['participation-trophy', 1],
+			['wooden-spoon', 1],
 			['top-cut', 1],
-			['champion', 1]
+			['finalist', 1],
+			['champion', 1],
+			['dynasty', 2]
 		]);
 		for (const a of ACHIEVEMENTS) expect(a.title).toBe(a.name);
 	});
@@ -121,6 +130,8 @@ const S = (o: Partial<HistorySeason> = {}): HistorySeason => ({
 	finalizedAt: null,
 	cutAt: null,
 	championAt: null,
+	finalAt: null,
+	group: null,
 	...o
 });
 // Me as p1, a 2–0 win as Ahri, my dice roll, reported the next day.
@@ -288,6 +299,79 @@ describe('wins, streaks and match results', () => {
 		expect(get(later, 'revenge').hit).toEqual({ at: D(5), seasonId: 2 });
 		const never = H([M(), M({ seasonId: 2 })], seasons);
 		expect(get(never, 'revenge').hit).toBeNull(); // they never beat me
+	});
+});
+
+describe('achievements judged over a season', () => {
+	const fin = (o: Partial<HistorySeason> = {}) => S({ finalizedAt: D(40), ...o });
+	const at = { at: D(40), seasonId: 1 };
+
+	it('wait for the finalize, and skip a player who dropped', () => {
+		const ms = n(3);
+		expect(get(H(ms), 'one-trick').hit).toBeNull();
+		expect(get(H(ms, [fin()]), 'one-trick').hit).toEqual(at);
+		expect(get(H(ms, [fin({ dropped: new Set(['me']) })]), 'one-trick').hit).toBeNull();
+	});
+
+	it('One Trick: more than half the season on one legend', () => {
+		const half = H([...n(2), ...n(2, { p1Legend: 'Jinx' })], [fin()]);
+		expect(get(half, 'one-trick').hit).toBeNull();
+		const most = H([...n(3), ...n(2, { p1Legend: 'Jinx' })], [fin()]);
+		expect(get(most, 'one-trick').hit).toEqual(at);
+	});
+
+	it('Flex Pick: five different legends in one season', () => {
+		const five = ['Ahri', 'Jinx', 'Annie', 'Garen', 'Lux'].map((p1Legend) => M({ p1Legend }));
+		expect(get(H(five, [fin()]), 'flex-pick').hit).toEqual(at);
+		expect(get(H(five.slice(1), [fin()]), 'flex-pick').hit).toBeNull();
+		const split = five.map((m, i) => ({ ...m, seasonId: i < 3 ? 1 : 2 }));
+		expect(get(H(split, [fin(), fin({ id: 2 })]), 'flex-pick').hit).toBeNull();
+	});
+
+	it('Participation Trophy: a finished season without a win', () => {
+		const lost = n(3, { p1Games: 0, p2Games: 2 });
+		expect(get(H(lost, [fin()]), 'participation-trophy').hit).toEqual(at);
+		expect(get(H([...lost, M()], [fin()]), 'participation-trophy').hit).toBeNull();
+	});
+
+	it('Group Winner, Wooden Spoon and Bubble read the final place', () => {
+		const place = (place: number, cut = 2) =>
+			H(n(1), [fin({ group: { place, of: 4, first: place === 1 ? 'me' : 'op', cut } })]);
+		expect(get(place(1), 'group-winner').hit).toEqual(at);
+		expect(get(place(2), 'group-winner').hit).toBeNull();
+		expect(get(place(4), 'wooden-spoon').hit).toEqual(at);
+		expect(get(place(3), 'wooden-spoon').hit).toBeNull();
+		expect(get(place(3), 'bubble').hit).toEqual(at);
+		expect(get(place(3, 0), 'bubble').hit).toBeNull(); // no top cut
+		expect(get(H(n(1), [fin()]), 'wooden-spoon').hit).toBeNull(); // no place
+		const alone = H(n(1), [fin({ group: { place: 1, of: 1, first: 'me', cut: 0 } })]);
+		expect(get(alone, 'wooden-spoon').hit).toBeNull();
+	});
+
+	it('Giant Slayer: a group win over whoever finishes first', () => {
+		const group = { place: 2, of: 4, first: 'top', cut: 2 };
+		const beat = H([M({ p2Id: 'top' })], [fin({ group })]);
+		expect(get(beat, 'giant-slayer').hit).toEqual(at);
+		const lost = H([M({ p2Id: 'top', p1Games: 0, p2Games: 2 })], [fin({ group })]);
+		expect(get(lost, 'giant-slayer').hit).toBeNull();
+		const playoff = H([M({ p2Id: 'top', stage: 'playoff' })], [fin({ group })]);
+		expect(get(playoff, 'giant-slayer').hit).toBeNull();
+		const first = H([M()], [fin({ group: { ...group, place: 1, first: 'me' } })]);
+		expect(get(first, 'giant-slayer').hit).toBeNull();
+	});
+
+	it('Finalist and Dynasty read the top-cut events', () => {
+		const h = H(n(1), [
+			S({ finalAt: D(50), championAt: D(50) }),
+			S({ id: 2, finalAt: D(90) }),
+			S({ id: 3, finalAt: D(120), championAt: D(120) })
+		]);
+		expect(get(h, 'finalist').hit).toEqual({ at: D(50), seasonId: 1 });
+		expect(get(h, 'dynasty')).toMatchObject({ have: 2, need: 2, hit: { at: D(120), seasonId: 3 } });
+		expect(get(H(n(1), [S({ championAt: D(50) })]), 'dynasty')).toMatchObject({
+			have: 1,
+			hit: null
+		});
 	});
 });
 
