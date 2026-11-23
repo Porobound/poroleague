@@ -226,7 +226,7 @@ describe('result writes award', () => {
 });
 
 describe('careerAchievements', () => {
-	it('gives one row per track with the tier reached, and the mastery of each legend played', () => {
+	it('gives one row per achievement at the level reached, and the mastery of each legend played', () => {
 		seedPlayers(2);
 		const s = season('a');
 		win(s.id, 1, 1);
@@ -246,7 +246,6 @@ describe('careerAchievements', () => {
 			])
 			.run();
 		const c = careerAchievements(db, 'p1');
-		expect(c.earned).toBe(4); // unknown ids don't count
 		// Legends never played aren't listed.
 		expect(c.legends).toEqual([
 			{
@@ -258,38 +257,54 @@ describe('careerAchievements', () => {
 				next: { rank: 'bronze', need: 3 }
 			}
 		]);
-		expect(c.league.map((t) => [t.name, t.kind, t.tier, t.next])).toEqual([
-			['Variety', 'item', null, { have: 1, need: 3, name: 'Dabbler' }], // Ahri has her 2 matches
-			['Dice', 'item', 'bronze', { have: 2, need: 6, name: 'Charmed' }],
-			['Seasons', 'item', null, { have: 0, need: 2, name: 'Veteran' }], // not finalized
-			['Comeback', 'item', 'gold', null], // seeded as earned
-			['Wins', 'item', null, { have: 2, need: 5, name: 'Contender' }],
-			['Streak', 'item', null, { have: 2, need: 3, name: 'Warm' }],
-			['Matches', 'item', null, { have: 2, need: 15, name: 'Regular' }]
-		]);
-		expect(c.league[1].icon).toBe('/achievements/glyphs/dice.svg');
-		expect(c.ones.map((t) => [t.id, t.earned])).toEqual([
-			['first-blood', null], // seeded results weren't awarded
-			['on-the-board', null],
-			['clean-sweep', null],
-			['stalemate', null],
-			['decider', null],
-			['dice-dont-matter', null],
-			['mirror-match', null],
-			['revenge', null],
-			['swept', null],
-			['snake-eyes', null],
-			['one-trick', null],
-			['flex-pick', null],
-			['giant-slayer', null],
-			['group-winner', null],
-			['bubble', null],
-			['participation-trophy', null],
-			['wooden-spoon', null],
-			['top-cut', null],
-			['finalist', null],
-			['champion', null],
-			['dynasty', null]
-		]);
+		expect(c.total).toBe(28);
+		expect(c.earned).toBe(2); // Comeback and Dice; the unknown id doesn't count
+		// Earned first, highest rank on top.
+		const [comeback, dice, ...rest] = c.list;
+		expect(comeback).toEqual({
+			key: 'comeback',
+			name: 'Comeback Emperor',
+			description: 'Win 15 matches after losing game 1.',
+			icon: '/achievements/items/comeback.png',
+			rank: 'diamond',
+			earned: '2026-01-07',
+			season: null,
+			level: 3,
+			levels: 3,
+			next: null
+		});
+		expect(dice).toMatchObject({
+			key: 'dice',
+			name: 'Lucky',
+			rank: 'bronze',
+			earned: '2026-01-02',
+			season: { slug: 'a' },
+			level: 1,
+			next: { have: 2, need: 6, name: 'Charmed' }
+		});
+		// Then what is under way, then the rest from the easiest rank up.
+		expect(rest.every((a) => !a.earned)).toBe(true);
+		const place = (key: string) => rest.findIndex((a) => a.key === key);
+		expect(rest[place('wins')]).toMatchObject({
+			name: 'Contender',
+			next: { have: 2, need: 5, name: 'Contender' }
+		});
+		expect(place('wins')).toBeLessThan(place('wooden-spoon'));
+		expect(place('wooden-spoon')).toBeLessThan(place('dynasty'));
+	});
+
+	it('names the season an achievement was earned in, unless it was deleted', () => {
+		seedPlayers(2);
+		const s = season('a');
+		db.insert(playerAchievements)
+			.values({ playerId: 'p1', achievementId: 'champion', unlockedAt: D(3), seasonId: s.id })
+			.run();
+		const champion = () => careerAchievements(db, 'p1').list[0];
+		expect(champion()).toMatchObject({ key: 'champion', season: { slug: 'a', name: s.name } });
+		db.update(seasons)
+			.set({ deletedAt: D(4) })
+			.where(eq(seasons.id, s.id))
+			.run();
+		expect(champion()).toMatchObject({ key: 'champion', earned: '2026-01-03', season: null });
 	});
 });

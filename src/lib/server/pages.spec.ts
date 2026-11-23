@@ -292,9 +292,10 @@ describe('drafts on public sub-pages', () => {
 			.run();
 		const d = await careerLoad(event({ id: 'p1' }, null));
 		expect(d.achievements.earned).toBe(1);
-		expect(
-			d.achievements.ones.find((t: { id: string }) => t.id === 'champion').earned
-		).not.toBeNull();
+		expect(d.achievements.list[0]).toMatchObject({ key: 'champion', rank: 'challenger' });
+		expect(d.achievements.list[0].earned).not.toBeNull();
+		expect(d.show).toBe('all');
+		expect(d.page).toBe(1);
 	});
 });
 

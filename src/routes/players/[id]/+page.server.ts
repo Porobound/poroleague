@@ -28,6 +28,11 @@ export const load: PageServerLoad = ({ params, url }) => {
 		history: seasonHistory(list),
 		legends: playerLegends(counted, params.id),
 		achievements: careerAchievements(db, params.id),
-		allLegends: url.searchParams.has('all')
+		allLegends: url.searchParams.has('all'),
+		// The achievement list's filter and page, as links: it works without JavaScript.
+		show:
+			(['earned', 'locked'] as const).find((s) => s === url.searchParams.get('show')) ??
+			('all' as const),
+		page: Math.max(1, Math.floor(Number(url.searchParams.get('page'))) || 1)
 	};
 };

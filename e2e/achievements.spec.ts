@@ -20,7 +20,7 @@ test.use(as(me));
 test('a report that crosses a threshold shows the achievement on the career page', async ({
 	page
 }) => {
-	const section = page.getByRole('region', { name: 'Achievements' });
+	const section = page.getByRole('region', { name: 'Achievements', exact: true });
 	const row = (list: string, name: string) =>
 		section
 			.getByRole('list', { name: list })
@@ -29,9 +29,9 @@ test('a report that crosses a threshold shows the achievement on the career page
 	const ahri = row('Legend mastery', 'Ahri');
 
 	await page.goto(`/players/${me}`);
+	await expect(section).toContainText('0 of 28 earned');
 	await expect(ahri).toContainText('Unranked · 2 matches');
 	await expect(ahri).toContainText('2/3 to Bronze');
-	await expect(row('One-offs', 'First Blood')).toContainText('Locked');
 
 	await page.goto(`/seasons/${slug}/matches/${third}`);
 	await page.getByLabel('Legend').nth(0).selectOption('Ahri');
@@ -49,12 +49,25 @@ test('a report that crosses a threshold shows the achievement on the career page
 	await page.goto(`/players/${me}`);
 	await expect(ahri).toContainText('Bronze · 3 matches');
 	await expect(ahri).toContainText('3/7 to Silver');
-	await expect(row('One-offs', 'First Blood')).toContainText(/\d{1,2} \w{3,4} \d{4}/);
-	// A track's tiers open on demand, each with its requirement and its date or Locked.
-	const wins = row('League tracks', 'Wins');
-	await expect(wins).toContainText('2/5 to Contender');
-	await wins.getByText('Wins', { exact: true }).click();
-	const tiers = wins.getByRole('listitem');
-	await expect(tiers.filter({ hasText: 'Contender' })).toContainText('Locked');
-	await expect(tiers.filter({ hasText: 'Contender' })).toContainText('Win 5 matches.');
+	// Earned ones lead the list, each with its rank, its date and a link to its season.
+	const first = row('Achievements', 'First Blood');
+	await expect(first).toContainText('Bronze');
+	await expect(first).toContainText(/\d{1,2} \w{3,4} \d{4}/);
+	await expect(first.getByRole('link')).toHaveAttribute('href', `/seasons/${slug}`);
+
+	// The filter and the pages are plain links.
+	const show = section.getByRole('navigation', { name: 'Show achievements' });
+	await show.getByRole('link', { name: 'Earned' }).click();
+	await expect(page).toHaveURL(/show=earned/);
+	await expect(section.getByRole('list', { name: 'Achievements' })).not.toContainText('Locked');
+	await show.getByRole('link', { name: 'Locked' }).click();
+	const pages = section.getByRole('navigation', { name: 'Achievement pages' });
+	await expect(
+		section.getByRole('list', { name: 'Achievements' }).getByRole('listitem')
+	).toHaveCount(10);
+	// What is under way comes first among the locked: two wins towards Contender.
+	await expect(row('Achievements', 'Contender')).toContainText('2/5');
+	await pages.getByRole('link', { name: 'Next' }).click();
+	await expect(page).toHaveURL(/show=locked&page=2/);
+	await expect(pages.getByRole('link', { name: 'Page 2' })).toHaveAttribute('aria-current', 'page');
 });
