@@ -5,12 +5,16 @@ import {
 	actions as careerActions,
 	load as careerPage
 } from '../../routes/players/[id]/+page.server.ts';
+import { load as schedulePage } from '../../routes/seasons/[slug]/schedule/+page.server.ts';
+import { load as topCutPage } from '../../routes/seasons/[slug]/top-cut/+page.server.ts';
 import { load as seasonPlayerPage } from '../../routes/seasons/[slug]/players/[id]/+page.server.ts';
 import { ACHIEVEMENTS } from '#lib/league/achievements.ts';
 import { db } from '#lib/server/db/index.ts';
-import { playerAchievements, players } from '#lib/server/db/schema.ts';
+import { playerAchievements, players, seasons } from '#lib/server/db/schema.ts';
+import { groupStandings, seasonEntries } from '#lib/server/seasons.ts';
+import { publishCut } from '#lib/server/topCut.ts';
 import { equip, ownedAchievements } from '#lib/server/cosmetics.ts';
-import { seedEntries, seedPlayers, seedSeason } from '#lib/server/test/seed.ts';
+import { seedEntries, seedMatch, seedPlayers, seedSeason } from '#lib/server/test/seed.ts';
 
 const earn = (playerId: string, ids: string[]) =>
 	db
@@ -168,5 +172,83 @@ it('the season player page shows the same look', async () => {
 		title: 'First Blood',
 		badge: null,
 		frame: 'gold'
+	});
+});
+
+const FB = {
+	name: 'First Blood',
+	description: 'Win your first match.',
+	kind: 'item' as const,
+	icon: '/achievements/items/first-blood.png',
+	tier: null
+};
+
+it('standings rows carry the badge, nothing else', () => {
+	inSeason();
+	equip('p1', { title: 'first-blood', badge: 'first-blood', frame: 'gold' });
+	const s = db.select().from(seasons).get()!;
+	const rows = groupStandings(s, seasonEntries(s.id))[0].rows;
+	expect(rows.find((r) => r.playerId === 'p1')!.badge).toEqual(FB);
+	expect(rows.find((r) => r.playerId === 'p2')!.badge).toBeNull();
+});
+
+describe('top cut', () => {
+	// Two groups of three, all played, top 2 per group: p1 and p4 seed first.
+	const cut = () => {
+		seedPlayers(6);
+		const id = seedSeason({ status: 'topcut', topCutSize: 2, publishedRound: 9 }).id;
+		seedEntries(id, ['p1', 'p2', 'p3'], 1);
+		seedEntries(id, ['p4', 'p5', 'p6'], 2);
+		for (const [g, a, b, c] of [
+			[1, 'p1', 'p2', 'p3'],
+			[2, 'p4', 'p5', 'p6']
+		] as const)
+			for (const [x, y] of [
+				[a, b],
+				[a, c],
+				[b, c]
+			])
+				seedMatch({
+					seasonId: id,
+					group: g,
+					round: 1,
+					p1Id: x,
+					p2Id: y,
+					p1Games: 2,
+					p2Games: 0,
+					reportedBy: x
+				});
+		const season = db.select().from(seasons).where(eq(seasons.id, id)).get()!;
+		publishCut(season, null, 'p1');
+		earn('p1', ['first-blood']);
+		equip('p1', { title: 'first-blood', badge: 'first-blood', frame: null });
+		return season;
+	};
+	const ev = (slug: string) =>
+		({
+			params: { slug },
+			locals: { user: null, session: null },
+			url: new URL('http://localhost/x')
+		}) as never;
+
+	it('bracket slots and cards carry the badge', async () => {
+		cut();
+		const d = (await topCutPage(ev('s1'))) as {
+			rounds: {
+				slots: {
+					p1: { id: string; badge: unknown } | null;
+					card: { props: { sides: { badge?: unknown }[] } } | null;
+				}[];
+			}[];
+		};
+		const slot = d.rounds[0].slots.find((s) => s.p1?.id === 'p1')!;
+		expect(slot.p1!.badge).toEqual(FB);
+		expect(slot.card!.props.sides[0].badge).toEqual(FB);
+	});
+
+	it('other cards stay plain', async () => {
+		cut();
+		const d = (await schedulePage(ev('s1'))) as unknown;
+		expect(JSON.stringify(d)).not.toContain('first-blood.png');
 	});
 });

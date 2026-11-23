@@ -52,6 +52,22 @@ test('the owner equips a title, badge and frame, sees them on both pages, and cl
 	await expect(head.getByRole('button', { name: /^Badge: First Blood/ })).toBeVisible();
 });
 
+test('standings show the badge only; the schedule shows plain names', async ({ browser }) => {
+	const page = await browser.newPage(as(me)); // the test above left First Blood and a bronze frame on
+	await page.goto(`/seasons/${slug}`);
+	const row = page.getByRole('row').filter({ hasText: name });
+	const badge = row.getByRole('button', { name: /^Badge: First Blood/ });
+	await expect(badge).toBeVisible();
+	await expect(row.getByRole('img', { name: 'Bronze frame' })).toHaveCount(0);
+	// Tapping the badge explains it, and the name beside it is still its own link.
+	await badge.click();
+	await expect(page.getByText('Win your first match.')).toBeVisible();
+	await expect(row.getByRole('link', { name })).toBeVisible();
+	await page.goto(`/seasons/${slug}/schedule`);
+	await expect(page.getByRole('img', { name: /^Badge:/ })).toHaveCount(0);
+	await expect(page.getByRole('button', { name: /^Badge:/ })).toHaveCount(0);
+});
+
 test('without JavaScript the pickers are plain grouped selects', async ({ browser }) => {
 	const page = await browser.newPage({ ...as(me), javaScriptEnabled: false });
 	await page.goto(`/players/${me}`);
