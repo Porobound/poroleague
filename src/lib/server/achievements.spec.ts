@@ -52,7 +52,7 @@ describe('awardAchievements', () => {
 		expect(row('p1', 'dice-bronze')).toMatchObject({ unlockedAt: D(9) });
 		// Neither season is finalized, so nobody has finished one.
 		expect(row('p1', 'seasons-bronze')).toBeUndefined();
-		expect(rows('p2').map((r) => r.achievementId)).toEqual(['legend-annie-bronze']);
+		expect(rows('p2').map((r) => r.achievementId)).toEqual(['legend-annie-bronze', 'swept']);
 	});
 
 	it('is idempotent and never rewrites or removes a row', () => {
@@ -66,10 +66,11 @@ describe('awardAchievements', () => {
 			.values({ playerId: 'p1', achievementId: 'champion', unlockedAt: D(2), seasonId: null })
 			.run();
 		awardAchievements(db, ['p1']);
+		const first = rows('p1');
 		awardAchievements(db, ['p1']);
 		expect(row('p1', 'first-blood')!.unlockedAt).toEqual(D(1));
 		expect(row('p1', 'champion')).toBeDefined();
-		expect(rows('p1')).toHaveLength(2);
+		expect(rows('p1')).toEqual(first);
 	});
 
 	it('skips hidden rounds, drops, deleted and draft seasons', () => {
@@ -228,12 +229,24 @@ describe('careerAchievements', () => {
 			['Variety', 'rank', null, { have: 1, need: 3, name: 'Dabbler' }], // Ahri has her 2 matches
 			['Dice', 'rank', 'bronze', { have: 2, need: 6, name: 'Charmed' }],
 			['Seasons', 'item', null, { have: 0, need: 2, name: 'Veteran' }], // not finalized
-			['Comeback', 'item', null, { have: 0, need: 1, name: 'Comeback Kid' }]
+			['Comeback', 'item', null, { have: 0, need: 1, name: 'Comeback Kid' }],
+			['Wins', 'item', null, { have: 2, need: 5, name: 'Contender' }],
+			['Streak', 'item', null, { have: 2, need: 3, name: 'Warm' }],
+			['Matches', 'item', null, { have: 2, need: 15, name: 'Regular' }]
 		]);
 		// A rank track shows the emblem of the tier reached.
 		expect(c.league[1].icon).toBe('/achievements/tiers/bronze.png');
 		expect(c.ones.map((t) => [t.id, t.earned])).toEqual([
 			['first-blood', null], // seeded results weren't awarded
+			['on-the-board', null],
+			['clean-sweep', null],
+			['stalemate', null],
+			['decider', null],
+			['dice-dont-matter', null],
+			['mirror-match', null],
+			['revenge', null],
+			['swept', null],
+			['snake-eyes', null],
 			['top-cut', null],
 			['champion', null]
 		]);

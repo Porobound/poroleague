@@ -52,11 +52,14 @@ type Played = {
 	seasonId: number;
 	stage: 'group' | 'playoff';
 	at: Date;
+	opponent: string;
 	legend: string | null;
+	vs: string | null; // the opponent's legend
 	won: number;
 	lost: number;
 	games: string | null;
 	dice: boolean;
+	diceLost: boolean; // the opponent won the roll
 };
 type Hits = (ms: Played[], h: History) => Hit[];
 
@@ -87,11 +90,14 @@ export function played(h: History): Played[] {
 				seasonId: m.seasonId,
 				stage: m.stage,
 				at: m.reportedAt!,
+				opponent: me ? m.p2Id : m.p1Id,
 				legend: me ? m.p1Legend : m.p2Legend,
+				vs: me ? m.p2Legend : m.p1Legend,
 				won: me ? m.p1Games! : m.p2Games!,
 				lost: me ? m.p2Games! : m.p1Games!,
 				games: m.games && (me ? m.games : flip(m.games)),
-				dice: m.diceWinnerId === h.playerId
+				dice: m.diceWinnerId === h.playerId,
+				diceLost: !!m.diceWinnerId && m.diceWinnerId !== h.playerId
 			};
 		})
 		.sort((a, b) => a.at.getTime() - b.at.getTime());
@@ -115,6 +121,30 @@ const variety: Hits = (ms) => {
 };
 
 const byDate = (a: Hit, b: Hit) => a.at.getTime() - b.at.getTime();
+
+// The longest run of matches that pass `f`: one hit each time the best run grows, so hit N is the
+// match that first made a run of N.
+const run =
+	(f: (m: Played) => boolean): Hits =>
+	(ms) => {
+		let now = 0;
+		const best: Hit[] = [];
+		for (const m of ms) {
+			now = f(m) ? now + 1 : 0;
+			if (now > best.length) best.push(hit(m));
+		}
+		return best;
+	};
+
+// A win over someone who beat the player in an earlier season.
+const revenge: Hits = (ms) => {
+	const lostTo = new Map<string, number>(); // opponent → the first season they won in
+	return ms.flatMap((m) => {
+		const first = lostTo.get(m.opponent);
+		if (m.lost > m.won && first === undefined) lostTo.set(m.opponent, m.seasonId);
+		return won(m) && first !== undefined && first !== m.seasonId ? [hit(m)] : [];
+	});
+};
 
 // A season the player finished: its group stage is finalized, they weren't dropped, and they
 // played a counted match in it.
@@ -176,7 +206,14 @@ function tiered(
 	}));
 }
 
-const flat = (id: string, name: string, rank: Rank, description: string, hits: Hits): Def => ({
+const flat = (
+	id: string,
+	name: string,
+	rank: Rank,
+	description: string,
+	hits: Hits,
+	need = 1
+): Def => ({
 	id,
 	track: id,
 	tier: null,
@@ -186,8 +223,14 @@ const flat = (id: string, name: string, rank: Rank, description: string, hits: H
 	title: name,
 	icon: `/achievements/items/${id}.png`,
 	legend: null,
-	need: 1,
+	need,
 	hits
+});
+
+// A one-off drawn with one of our own glyphs instead of a game icon.
+const glyph = (...[id, ...rest]: Parameters<typeof flat>): Def => ({
+	...flat(id, ...rest),
+	icon: `/achievements/glyphs/${id}.svg`
 });
 
 const DEFS: Def[] = [
@@ -245,6 +288,82 @@ const DEFS: Def[] = [
 		'bronze',
 		'Win the first game of a match.',
 		where((m) => m.games?.[0] === '1')
+	),
+	...tiered(
+		'wins',
+		['Contender', 'Closer', 'Finisher'],
+		(n) => `Win ${n} matches.`,
+		[5, 15, 40],
+		['bronze', 'gold', 'diamond'],
+		where(won),
+		() => '/achievements/glyphs/wins.svg'
+	),
+	...tiered(
+		'streak',
+		['Warm', 'Hot', 'On Fire'],
+		(n) => `Win ${n} matches in a row.`,
+		[3, 5, 8],
+		['gold', 'emerald', 'diamond'],
+		run(won),
+		() => '/achievements/glyphs/streak.svg'
+	),
+	...tiered(
+		'matches',
+		['Regular', 'Stalwart', 'Marathoner'],
+		(n) => `Play ${n} matches.`,
+		[15, 30, 60],
+		['silver', 'platinum', 'master'],
+		where(() => true),
+		() => '/achievements/glyphs/matches.svg'
+	),
+	glyph('on-the-board', 'On the Board', 'bronze', 'Win a match.', where(won)),
+	glyph(
+		'clean-sweep',
+		'Clean Sweep',
+		'bronze',
+		'Win a match 2–0.',
+		where((m) => m.won === 2 && m.lost === 0)
+	),
+	glyph(
+		'stalemate',
+		'Stalemate',
+		'bronze',
+		'Draw a match.',
+		where((m) => m.won === m.lost)
+	),
+	glyph(
+		'decider',
+		'Decider',
+		'silver',
+		'Win 5 matches in game 3.',
+		where((m) => m.games?.length === 3 && won(m)),
+		5
+	),
+	glyph(
+		'dice-dont-matter',
+		"Dice Don't Matter",
+		'silver',
+		'Win 5 matches after losing the dice roll.',
+		where((m) => m.diceLost && won(m)),
+		5
+	),
+	glyph(
+		'mirror-match',
+		'Mirror Match',
+		'gold',
+		'Win a match where both players chose the same legend.',
+		where((m) => !!m.legend && m.legend === m.vs && won(m))
+	),
+	glyph('revenge', 'Revenge', 'gold', 'Beat a player who beat you in an earlier season.', revenge),
+	glyph(
+		'swept',
+		'Swept',
+		'wood',
+		'Lose a match 0–2.',
+		where((m) => m.won === 0 && m.lost === 2)
+	),
+	glyph('snake-eyes', 'Snake Eyes', 'wood', 'Lose 5 dice rolls in a row.', (ms, h) =>
+		run((m) => m.diceLost)(ms, h).slice(4, 5)
 	),
 	flat('top-cut', 'Top Cut', 'gold', 'Qualify for a top cut.', seasonEvent('cutAt')),
 	flat('champion', 'Champion', 'challenger', "Win a season's top cut.", seasonEvent('championAt'))
