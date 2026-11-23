@@ -1,14 +1,8 @@
 import { and, desc, eq, inArray, isNull, ne, or } from 'drizzle-orm';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
-import {
-	ACHIEVEMENTS,
-	type Achievement,
-	evaluate,
-	type History,
-	type Tier
-} from '#lib/league/achievements.ts';
+import { ACHIEVEMENTS, evaluate, type History } from '#lib/league/achievements.ts';
 import { mastery, portrait } from '#lib/league/mastery.ts';
-import type { Rank } from '#lib/league/ranks.ts';
+import { compareRank, type Rank } from '#lib/league/ranks.ts';
 import { standings } from '#lib/league/standings.ts';
 import { leagueDate } from '#lib/league/time.ts';
 import * as schema from '#lib/server/db/schema.ts';
@@ -179,24 +173,17 @@ export const backfillAchievements = (db: Db) =>
 		)
 	);
 
-// What the career page draws. A track is one row: its icon at the highest earned tier, a pip per
-// tier, and progress towards the first tier not yet earned.
-export type Kind = 'legend' | 'rank' | 'item'; // champion portrait, rank emblem, item icon
-export type TierView = {
-	id: string;
-	name: string;
+// What the career page draws: one row per achievement. A track is one row, at the level reached.
+export type AchievementView = {
+	key: string; // the track
+	name: string; // of the level reached, or of the first one while locked
 	description: string;
-	tier: Tier;
-	need: number;
-	earned: string | null; // league date it unlocked
-};
-export type TrackView = {
-	track: string;
-	name: string;
-	kind: Kind;
 	icon: string;
-	tier: Tier | null; // highest earned
-	tiers: TierView[];
+	rank: Rank;
+	earned: string | null; // league date that level unlocked
+	season: { slug: string; name: string } | null; // where it was earned, while that season is public
+	level: number; // levels earned
+	levels: number;
 	next: { have: number; need: number; name: string } | null; // null once complete
 };
 // A legend's mastery on the career page: its rank, the matches behind it and what comes next.
@@ -208,67 +195,61 @@ export type MasteryView = {
 	earned: string | null; // league date the rank was reached
 	next: { rank: Rank; need: number } | null; // null at the top rank
 };
-export type OneView = {
-	id: string;
-	name: string;
-	description: string;
-	icon: string;
-	earned: string | null;
-};
-const LEAGUE_TRACKS: Record<string, string> = {
-	variety: 'Variety',
-	dice: 'Dice',
-	seasons: 'Seasons',
-	comeback: 'Comeback',
-	wins: 'Wins',
-	streak: 'Streak',
-	matches: 'Matches'
-};
-const kind = (a: Achievement): Kind =>
-	a.legend ? 'legend' : a.icon.startsWith('/achievements/tiers/') ? 'rank' : 'item';
 
 // The career page's Achievements: earned from the table (award-only), progress derived now.
 export function careerAchievements(db: Db, playerId: string) {
-	const earned = new Map(
+	const got = new Map(
 		db
 			.select()
 			.from(playerAchievements)
 			.where(eq(playerAchievements.playerId, playerId))
 			.all()
-			.map((r) => [r.achievementId, leagueDate(r.unlockedAt)])
+			.map((r) => [r.achievementId, r])
+	);
+	// A deleted or draft season isn't linked, as the API doesn't name it either.
+	const where = new Map(
+		db
+			.select({ id: seasons.id, slug: seasons.slug, name: seasons.name })
+			.from(seasons)
+			.where(and(isNull(seasons.deletedAt), ne(seasons.status, 'draft')))
+			.all()
+			.map((s) => [s.id, s])
 	);
 	const h = playerHistory(db, playerId);
 	const have = new Map(evaluate(h).map((p) => [p.id, p.have]));
-	const tracks: TrackView[] = [];
-	const ones: OneView[] = [];
-	for (const [track, defs] of Map.groupBy(ACHIEVEMENTS, (a) => a.track)) {
-		const [first] = defs;
-		if (!first.tier) {
-			const { id, name, description, icon } = first;
-			ones.push({ id, name, description, icon, earned: earned.get(id) ?? null });
-			continue;
+	const list = [...Map.groupBy(ACHIEVEMENTS, (a) => a.track)].map(
+		([key, defs]): AchievementView => {
+			const top = defs.findLast((a) => got.has(a.id));
+			const next = defs.find((a) => !got.has(a.id));
+			const shown = top ?? defs[0];
+			const row = top ? got.get(top.id)! : null;
+			const s = row?.seasonId != null ? where.get(row.seasonId) : undefined;
+			return {
+				key,
+				name: shown.name,
+				description: shown.description,
+				icon: shown.icon,
+				rank: shown.rank,
+				earned: row ? leagueDate(row.unlockedAt) : null,
+				season: s ? { slug: s.slug, name: s.name } : null,
+				level: defs.filter((a) => got.has(a.id)).length,
+				levels: defs.length,
+				next: next ? { have: have.get(next.id)!, need: next.need, name: next.name } : null
+			};
 		}
-		const top = defs.findLast((a) => earned.has(a.id));
-		const next = defs.find((a) => !earned.has(a.id));
-		tracks.push({
-			track,
-			name: LEAGUE_TRACKS[track],
-			kind: kind(first),
-			icon: (top ?? first).icon,
-			tier: top?.tier ?? null,
-			tiers: defs.map((a) => ({
-				id: a.id,
-				name: a.name,
-				description: a.description,
-				tier: a.tier!,
-				need: a.need,
-				earned: earned.get(a.id) ?? null
-			})),
-			next: next ? { have: have.get(next.id)!, need: next.need, name: next.name } : null
-		});
-	}
+	);
+	// Earned first, highest rank on top, newest first within a rank; then what is under way; then
+	// the rest, easiest rank first.
+	const started = (a: AchievementView) => +!!a.next?.have;
+	list.sort((a, b) =>
+		a.earned && b.earned
+			? compareRank(b.rank, a.rank) || b.earned.localeCompare(a.earned)
+			: +!!b.earned - +!!a.earned || started(b) - started(a) || compareRank(a.rank, b.rank)
+	);
 	return {
-		earned: ACHIEVEMENTS.filter((a) => earned.has(a.id)).length,
+		earned: list.filter((a) => a.earned).length,
+		total: list.length,
+		list,
 		// Legends the player has played, most played first.
 		legends: mastery(h)
 			.filter((m) => m.matches)
@@ -280,9 +261,7 @@ export function careerAchievements(db: Db, playerId: string) {
 				rank: m.rank,
 				earned: m.hit ? leagueDate(m.hit.at) : null,
 				next: m.next
-			})),
-		league: tracks,
-		ones
+			}))
 	};
 }
 export type Career = ReturnType<typeof careerAchievements>;

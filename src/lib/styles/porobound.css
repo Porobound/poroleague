@@ -1523,6 +1523,99 @@ th abbr[title] {
 .pb-ach.is-locked.pb-ach-legend {
 	border-width: 1px;
 }
+/* Achievement list: the rank beside a name, progress, where and when it was earned, and the
+   filter and page links. */
+.pb-achrow-rank {
+	margin-left: 8px;
+	font: 500 11px/16px var(--font-mono);
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--ink-muted);
+}
+.pb-achbar {
+	display: block;
+	height: 6px;
+	border-radius: var(--radius-pill);
+	background: var(--frost);
+	overflow: hidden;
+}
+.pb-achbar > i {
+	display: block;
+	height: 100%;
+	border-radius: inherit;
+	background: var(--accent);
+}
+.pb-achprog {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	max-width: 280px;
+	margin-top: 4px;
+	font: 500 12px/16px var(--font-mono);
+	color: var(--ink-muted);
+}
+.pb-achprog .pb-achbar {
+	flex: 1;
+}
+.pb-achwhen {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: 2px;
+	font: 500 13px/18px var(--font-mono);
+	color: var(--ink-muted);
+	white-space: nowrap;
+}
+.pb-achwhen a {
+	font-family: var(--font-sans);
+}
+.pb-achnav {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px;
+}
+.pb-achnav a {
+	padding: 4px 12px;
+	border: 1px solid var(--line);
+	border-radius: var(--radius-pill);
+	color: var(--ink-muted);
+	font: 600 13px/18px var(--font-sans);
+	text-decoration: none;
+}
+.pb-achnav a:hover {
+	color: var(--ink);
+}
+.pb-achnav a[aria-current] {
+	border-color: var(--frost);
+	background: var(--frost);
+	color: var(--ink);
+}
+.pb-achnav a:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}
+.pb-achpager {
+	justify-content: space-between;
+	padding: 10px 14px;
+	border-top: 1px solid var(--line);
+}
+.pb-achpager > span:last-child {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+@media (max-width: 560px) {
+	.pb-achrow-ach .pb-achrow-main {
+		grid-template-columns: 36px minmax(0, 1fr);
+	}
+	.pb-achrow-ach .pb-achwhen {
+		grid-column: 2;
+		flex-direction: row;
+		align-items: baseline;
+		gap: 8px;
+	}
+}
 /* Medal: an achievement or a legend, its icon in a chrome ring the colour of its rank (wood to
    challenger). The rings are metal, so they are the same in both themes. */
 .pb-medal {
