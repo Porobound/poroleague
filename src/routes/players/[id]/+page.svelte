@@ -1,12 +1,14 @@
 <script lang="ts">
 	import Achievements from '#lib/components/Achievements.svelte';
 	import Avatar from '#lib/components/Avatar.svelte';
+	import Customize from '#lib/components/Customize.svelte';
+	import Flair from '#lib/components/Flair.svelte';
 	import PlayerLegends from '#lib/components/PlayerLegends.svelte';
 	import SeasonHistory from '#lib/components/SeasonHistory.svelte';
 	import { pct } from '#lib/format.ts';
 	import type { PageProps } from './$types';
 
-	let { data }: PageProps = $props();
+	let { data, form }: PageProps = $props();
 	const { player, totals } = $derived(data);
 	const n = $derived(data.history.length);
 </script>
@@ -16,14 +18,40 @@
 </svelte:head>
 
 <div class="page">
-	<section class="profile">
+	{#if form?.message}<p class="pb-notice" role="status">{form.message}</p>{/if}
+
+	<section class="profile" aria-labelledby="player-h">
 		<div class="profile-head">
-			<Avatar name={player.displayName} src={player.avatar} size={96} former={player.former} ring />
+			<Avatar
+				name={player.displayName}
+				src={player.avatar}
+				size={96}
+				former={player.former}
+				ring
+				frame={data.cosmetics.frame}
+			/>
 			<div class="who">
 				<span class="eyebrow">Career</span>
-				<h1 class={['profile-name', player.former && 'pb-former']}>{player.displayName}</h1>
-				<span class="muted small">{n} season{n === 1 ? '' : 's'} · first season {data.first}</span>
+				<div class="name-row">
+					<h1 id="player-h" class={['profile-name', player.former && 'pb-former']}>
+						{player.displayName}
+					</h1>
+					{#if data.cosmetics.badge}<Flair badge={data.cosmetics.badge} />{/if}
+				</div>
+				<span class="muted small">
+					{#if data.cosmetics.title}<span class="cos-title">{data.cosmetics.title}</span
+						>{' · '}{/if}{n}
+					season{n === 1 ? '' : 's'} · first season {data.first}
+				</span>
 			</div>
+			{#if data.customize}
+				<Customize
+					name={player.displayName}
+					avatar={player.avatar}
+					{...data.customize}
+					error={form?.customizeError}
+				/>
+			{/if}
 		</div>
 		{#if totals.played}
 			<div class="profile-stats profile-stats-4" role="group" aria-label="Career stats">
@@ -74,11 +102,19 @@
 		display: flex;
 		flex-direction: column;
 		gap: 4px;
+		flex: 1 1 180px;
 		/* Lets a long name wrap inside the card instead of widening this column. */
+		min-width: 0;
+	}
+	.name-row {
+		display: flex;
+		align-items: center;
+		gap: 10px;
 		min-width: 0;
 	}
 	/* A long name with no spaces breaks instead of running out of the card. */
 	.who h1 {
+		min-width: 0;
 		overflow-wrap: anywhere;
 	}
 </style>

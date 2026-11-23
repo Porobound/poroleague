@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Avatar from '#lib/components/Avatar.svelte';
 	import ConfirmButton from '#lib/components/ConfirmButton.svelte';
+	import Flair from '#lib/components/Flair.svelte';
 	import MatchRows from '#lib/components/MatchRows.svelte';
 	import PlayerLegends from '#lib/components/PlayerLegends.svelte';
 	import RankChart from '#lib/components/RankChart.svelte';
@@ -51,12 +52,22 @@
 		<p class="pb-notice" role="alert">{form.holidayError}</p>
 	{/if}
 
-	<section class="profile">
+	<section class="profile" aria-labelledby="player-h">
 		<div class="profile-head">
-			<Avatar name={player.displayName} src={player.avatar} size={96} former={player.former} ring />
+			<Avatar
+				name={player.displayName}
+				src={player.avatar}
+				size={96}
+				former={player.former}
+				ring
+				frame={data.cosmetics.frame}
+			/>
 			<div class="head-text">
 				<div class="name-row">
-					<h1 class={['profile-name', player.former && 'pb-former']}>{player.displayName}</h1>
+					<h1 id="player-h" class={['profile-name', player.former && 'pb-former']}>
+						{player.displayName}
+					</h1>
+					{#if data.cosmetics.badge}<Flair badge={data.cosmetics.badge} />{/if}
 					<a class="tap" href="/players/{player.playerId}">Career</a>
 					{#if data.canRequest && cal}
 						<ConfirmButton
@@ -112,7 +123,10 @@
 					{#if data.away}
 						<span class="pb-badge">On holiday · {data.away}</span>
 					{/if}
-					<span class="muted small">{season.name}</span>
+					<span class="muted small"
+						>{#if data.cosmetics.title}<span class="cos-title">{data.cosmetics.title}</span
+							>{' · '}{/if}{season.name}</span
+					>
 					{#if player.former}<span class="muted small">· Account erased.</span>{/if}
 				</div>
 			</div>
