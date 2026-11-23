@@ -254,7 +254,7 @@ const DEFS: Def[] = [
 		[3, 5, 10],
 		['bronze', 'gold', 'platinum'],
 		variety,
-		emblem
+		() => '/achievements/glyphs/variety.svg'
 	),
 	...tiered(
 		'dice',
@@ -263,7 +263,7 @@ const DEFS: Def[] = [
 		[3, 6, 20],
 		['bronze', 'silver', 'emerald'],
 		where((m) => m.dice),
-		emblem
+		() => '/achievements/glyphs/dice.svg'
 	),
 	...tiered(
 		'seasons',
