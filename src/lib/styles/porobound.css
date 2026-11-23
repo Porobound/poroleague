@@ -1523,6 +1523,172 @@ th abbr[title] {
 .pb-ach.is-locked.pb-ach-legend {
 	border-width: 1px;
 }
+/* Medal: an achievement or a legend, its icon in a chrome ring the colour of its rank (wood to
+   challenger). The rings are metal, so they are the same in both themes. */
+.pb-medal {
+	--pb-medal: 40px;
+	--ring: max(2px, calc(var(--pb-medal) * 0.08));
+	display: inline-grid;
+	flex: none;
+	box-sizing: border-box;
+	width: var(--pb-medal);
+	height: var(--pb-medal);
+	padding: var(--ring);
+	border-radius: 50%;
+	background: var(--chrome, var(--line));
+	box-shadow: 0 0 6px -1px color-mix(in srgb, var(--glow, transparent) 70%, transparent);
+	vertical-align: middle;
+	line-height: 0;
+}
+.pb-medal img {
+	display: block;
+	width: 100%;
+	height: 100%;
+	border-radius: 50%;
+	object-fit: cover;
+	background: var(--frost);
+}
+.pb-medal.is-locked {
+	padding: calc(var(--ring) - 1px);
+	border: 1px dashed var(--ink-muted);
+	background: none;
+	box-shadow: none;
+}
+.pb-medal.is-locked img {
+	filter: grayscale(1);
+	opacity: 0.45;
+}
+.pb-rank-wood {
+	--chrome: conic-gradient(
+		from 200deg,
+		#4a3626,
+		#b89a80 12%,
+		#6b4e38 28%,
+		#2a1d14 45%,
+		#93745a 62%,
+		#5a4230 80%,
+		#4a3626
+	);
+	--glow: #6b4e38;
+}
+.pb-rank-bronze {
+	--chrome: conic-gradient(
+		from 200deg,
+		#7d4230,
+		#f0b79e 12%,
+		#b0654a 28%,
+		#4e2618 45%,
+		#dd9478 62%,
+		#8f4d38 80%,
+		#7d4230
+	);
+	--glow: #c47a5e;
+}
+.pb-rank-silver {
+	--chrome: conic-gradient(
+		from 200deg,
+		#66748c,
+		#f4f8ff 12%,
+		#9fb0c8 28%,
+		#3f4b61 45%,
+		#d9e4f5 62%,
+		#7888a2 80%,
+		#66748c
+	);
+	--glow: #b4c4dc;
+}
+.pb-rank-gold {
+	--chrome: conic-gradient(
+		from 200deg,
+		#9a6412,
+		#ffe3a1 12%,
+		#d99a2b 28%,
+		#6e4208 45%,
+		#f5c466 62%,
+		#aa721a 80%,
+		#9a6412
+	);
+	--glow: #e8b04a;
+}
+.pb-rank-platinum {
+	--chrome: conic-gradient(
+		from 200deg,
+		#166a85,
+		#c9f8ff 12%,
+		#3fc0dc 28%,
+		#0c4459 45%,
+		#8fe9f7 62%,
+		#2288a6 80%,
+		#166a85
+	);
+	--glow: #4fd0e8;
+}
+.pb-rank-emerald {
+	--chrome: conic-gradient(
+		from 200deg,
+		#0c5e33,
+		#b6ffd3 12%,
+		#22b865 28%,
+		#063a1e 45%,
+		#6ee9a0 62%,
+		#137a43 80%,
+		#0c5e33
+	);
+	--glow: #2fcf78;
+}
+.pb-rank-diamond {
+	--chrome: conic-gradient(
+		from 200deg,
+		#3338a8,
+		#dbe8ff 12%,
+		#6f8cf5 28%,
+		#1d2070 45%,
+		#a9c4ff 62%,
+		#4349c0 80%,
+		#3338a8
+	);
+	--glow: #7f9cff;
+}
+.pb-rank-master {
+	--chrome: conic-gradient(
+		from 200deg,
+		#7f1c9c,
+		#ffd6ff 12%,
+		#d05ae6 28%,
+		#4c0f60 45%,
+		#f09cf5 62%,
+		#9426b4 80%,
+		#7f1c9c
+	);
+	--glow: #dd6cf0;
+}
+.pb-rank-grandmaster {
+	--chrome: conic-gradient(
+		from 200deg,
+		#a11a1e,
+		#ffd2b0 12%,
+		#f0502e 28%,
+		#640e12 45%,
+		#ff9a52 62%,
+		#b8242a 80%,
+		#a11a1e
+	);
+	--glow: #ff6a3a;
+}
+.pb-rank-challenger {
+	--chrome: conic-gradient(
+		from 200deg,
+		#c8962e,
+		#ffffff 10%,
+		#7fd8ff 24%,
+		#2f6fd0 40%,
+		#ffe9ad 56%,
+		#e9b64f 70%,
+		#6cc6f5 86%,
+		#c8962e
+	);
+	--glow: #6cc6f5;
+}
 /* Flair: the equipped badge, an icon-only chip after a name */
 .pb-flair {
 	position: relative;

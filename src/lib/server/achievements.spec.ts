@@ -259,16 +259,15 @@ describe('careerAchievements', () => {
 			}
 		]);
 		expect(c.league.map((t) => [t.name, t.kind, t.tier, t.next])).toEqual([
-			['Variety', 'rank', null, { have: 1, need: 3, name: 'Dabbler' }], // Ahri has her 2 matches
-			['Dice', 'rank', 'bronze', { have: 2, need: 6, name: 'Charmed' }],
+			['Variety', 'item', null, { have: 1, need: 3, name: 'Dabbler' }], // Ahri has her 2 matches
+			['Dice', 'item', 'bronze', { have: 2, need: 6, name: 'Charmed' }],
 			['Seasons', 'item', null, { have: 0, need: 2, name: 'Veteran' }], // not finalized
 			['Comeback', 'item', 'gold', null], // seeded as earned
 			['Wins', 'item', null, { have: 2, need: 5, name: 'Contender' }],
 			['Streak', 'item', null, { have: 2, need: 3, name: 'Warm' }],
 			['Matches', 'item', null, { have: 2, need: 15, name: 'Regular' }]
 		]);
-		// A rank track shows the emblem of the tier reached.
-		expect(c.league[1].icon).toBe('/achievements/tiers/bronze.png');
+		expect(c.league[1].icon).toBe('/achievements/glyphs/dice.svg');
 		expect(c.ones.map((t) => [t.id, t.earned])).toEqual([
 			['first-blood', null], // seeded results weren't awarded
 			['on-the-board', null],
