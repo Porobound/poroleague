@@ -5,6 +5,7 @@
 	import PlayerLegends from '#lib/components/PlayerLegends.svelte';
 	import RankChart from '#lib/components/RankChart.svelte';
 	import SeasonHistory from '#lib/components/SeasonHistory.svelte';
+	import Showcase from '#lib/components/Showcase.svelte';
 	import { pct } from '#lib/format.ts';
 	import { coversLabel, holidayWeeks, requestError } from '#lib/league/holiday.ts';
 	import { groupName } from '#lib/season.ts';
@@ -187,6 +188,8 @@
 			</div>
 		{/if}
 	</section>
+
+	{#if data.showcase}<Showcase data={data.showcase} id={player.playerId} />{/if}
 
 	{#each data.holidays as h (h.id)}
 		{@const s = HOLIDAY[h.status]}

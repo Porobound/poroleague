@@ -7,7 +7,9 @@ import { playerStats, rankByRound } from '#lib/league/playerStats.ts';
 import { isPublished, published } from '#lib/league/publish.ts';
 import { leagueDate, reportingClosed } from '#lib/league/time.ts';
 import { cardContext, matchCard } from '#lib/matchCard.ts';
+import { careerAchievements, showcase } from '#lib/server/achievements.ts';
 import { organizerAction, playerAction } from '#lib/server/auth.ts';
+import { db } from '#lib/server/db/index.ts';
 import {
 	cancelHoliday,
 	requestHoliday,
@@ -84,6 +86,8 @@ export const load: PageServerLoad = ({ params, locals }) => {
 	);
 
 	return {
+		// What they earned across every season, best first: a strip that leads to the career page.
+		showcase: player.former ? null : showcase(careerAchievements(db, player.playerId)),
 		season,
 		player,
 		row: rank >= 0 ? standing!.rows[rank] : null,

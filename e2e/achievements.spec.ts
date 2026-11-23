@@ -93,4 +93,13 @@ test('a report that crosses a threshold shows the achievement on the career page
 	await pages.getByRole('link', { name: 'Next' }).click();
 	await expect(page).toHaveURL(/show=locked&page=2/);
 	await expect(pages.getByRole('link', { name: 'Page 2' })).toHaveAttribute('aria-current', 'page');
+
+	// The season player page shows the best of both in a strip that leads back here.
+	await page.goto(`/seasons/${slug}/players/${me}`);
+	const strip = page.getByRole('region', { name: 'Achievements and mastery' });
+	await strip.getByRole('button', { name: /^Achievement: First Blood\./ }).click();
+	await expect(page.getByText('Win the first game of a match.')).toBeVisible();
+	await expect(strip.getByRole('button', { name: /^Mastery: Ahri · Bronze\./ })).toBeVisible();
+	await strip.getByRole('link', { name: 'Mastery' }).click();
+	await expect(page).toHaveURL(new RegExp(`/players/${me}\\?tab=mastery#achievements$`));
 });
