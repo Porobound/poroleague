@@ -78,6 +78,13 @@
       "when": 1795383397257,
       "tag": "0010_fancy_fantastic_four",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1795383624604,
+      "tag": "0011_small_sleeper",
+      "breakpoints": true
     }
   ]
 }
