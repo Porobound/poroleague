@@ -28,9 +28,9 @@ The issue agent's review step runs `.claude/agents/review-poroleague.md` (auth, 
 A change to these paths is never a small diff for the pipeline's review, however few lines it touches:
 
 - `drizzle/`, `src/lib/server/db/`: schema and migrations; a bad one loses or corrupts league data.
-- `src/lib/server/auth.ts`, `session.ts`, `discord.ts`, `src/hooks.server.ts`, `src/routes/auth/`: login, sessions and the organizer check.
+- `src/lib/server/auth.ts`, `src/lib/server/session.ts`, `src/lib/server/discord.ts`, `src/hooks.server.ts`, `src/routes/auth/`: login, sessions and the organizer check.
 - `src/env.ts`: secrets and env config.
-- `scripts/`: deploy, the nightly backup and the startup migration run on the prod host.
+- `scripts/`: deploy, the nightly backup and the startup migration run on the dev server and the prod host.
 
 ## Worktrees
 
