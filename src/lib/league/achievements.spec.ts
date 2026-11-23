@@ -15,9 +15,9 @@ import {
 } from '#lib/league/achievements.ts';
 
 describe('definitions', () => {
-	it('has unique ids: three tiers per legend and league track, and four one-offs', () => {
+	it('has unique ids: three tiers per legend and league track, and three one-offs', () => {
 		expect(new Set(ACHIEVEMENTS.map((a) => a.id)).size).toBe(ACHIEVEMENTS.length);
-		expect(ACHIEVEMENTS).toHaveLength(LEGENDS.length * 3 + 4 * 3 + 4);
+		expect(ACHIEVEMENTS).toHaveLength(LEGENDS.length * 3 + 4 * 3 + 3);
 	});
 
 	it('gives every legend a Player/Expert/Master track at 3/10/25', () => {
@@ -49,8 +49,8 @@ describe('definitions', () => {
 			ACHIEVEMENTS.filter((a) => a.track === track).map((a) => [a.id, a.name, a.need]);
 		expect(rows('seasons')).toEqual([
 			['seasons-bronze', 'Veteran', 2],
-			['seasons-silver', 'Old Guard', 5],
-			['seasons-gold', 'Elder', 10]
+			['seasons-silver', 'Old Guard', 3],
+			['seasons-gold', 'Elder', 5]
 		]);
 		expect(rows('comeback')).toEqual([
 			['comeback-bronze', 'Comeback Kid', 1],
@@ -72,15 +72,14 @@ describe('definitions', () => {
 				return [a.track, a.tier, a.name, a.need];
 			});
 		expect(pick(['variety-bronze', 'variety-silver', 'variety-gold'])).toEqual([
-			['variety', 'bronze', 'Variety Player', 3],
-			['variety', 'silver', 'Variety Expert', 5],
-			['variety', 'gold', 'Variety Master', 10]
+			['variety', 'bronze', 'Dabbler', 3],
+			['variety', 'silver', 'Explorer', 5],
+			['variety', 'gold', 'Polymath', 10]
 		]);
 		expect(pick(['dice-bronze', 'dice-silver', 'dice-gold']).map((x) => x[3])).toEqual([3, 6, 20]);
 		const flat = ACHIEVEMENTS.filter((a) => !a.tier).map((a) => [a.id, a.need]);
 		expect(flat).toEqual([
 			['first-blood', 1],
-			['perfect-group', 1],
 			['top-cut', 1],
 			['champion', 1]
 		]);
@@ -180,7 +179,10 @@ describe('what counts', () => {
 
 	it('counts playoff matches whatever the published round', () => {
 		expect(
-			get(H([M({ stage: 'playoff', round: 5 })], [S({ publishedRound: 0 })]), 'first-blood').have
+			get(
+				H([M({ stage: 'playoff', round: 5, games: '11' })], [S({ publishedRound: 0 })]),
+				'first-blood'
+			).have
 		).toBe(1);
 	});
 });
@@ -205,43 +207,31 @@ describe('league tracks', () => {
 });
 
 describe('seasons, comeback and one-offs', () => {
-	it('First Blood: the first win, not a draw or loss', () => {
-		const h = H([M({ p1Games: 1, p2Games: 1 }), M({ p1Games: 0, p2Games: 2 }), M()]);
+	it('First Blood: winning game 1, whoever takes the match, only with per-game results', () => {
+		const h = H([
+			M(), // a score alone: no game 1 to read
+			M({ games: '211', p1Games: 2, p2Games: 1 }),
+			M({ games: '122', p1Games: 1, p2Games: 2 }),
+			M({ p1Id: 'op', p2Id: 'me', games: '11', p1Games: 2, p2Games: 0 })
+		]);
 		expect(get(h, 'first-blood').hit).toEqual({ at: D(3), seasonId: 1 });
+		const asP2 = H([M({ p1Id: 'op', p2Id: 'me', games: '22', p1Games: 0, p2Games: 2 })]);
+		expect(get(asP2, 'first-blood').hit).toEqual({ at: D(5), seasonId: 1 });
 	});
 
-	it('Seasons: the first counted match of the Nth season', () => {
-		const seasons = [1, 2, 3, 4].map((id) => S({ id }));
+	it('Seasons: finalized seasons the player finished, dated by the finalize', () => {
 		const h = H(
+			[M({ seasonId: 1 }), M({ seasonId: 2 }), M({ seasonId: 3 }), M({ seasonId: 4 })],
 			[
-				M({ seasonId: 1 }),
-				M({ seasonId: 2 }),
-				M({ seasonId: 2 }),
-				M({ seasonId: 4, p2Id: 'gone' }),
-				M({ seasonId: 3 })
-			],
-			[...seasons.slice(0, 3), S({ id: 4, dropped: new Set(['gone']) })]
+				S({ id: 1, finalizedAt: D(40) }),
+				S({ id: 2, finalizedAt: D(30) }),
+				S({ id: 3 }), // still running
+				S({ id: 4, finalizedAt: D(50), dropped: new Set(['me']) }),
+				S({ id: 5, finalizedAt: D(60) }) // entered, never played
+			]
 		);
-		expect(get(h, 'seasons-bronze')).toMatchObject({ have: 2, hit: { at: D(2), seasonId: 2 } });
-		expect(get(h, 'seasons-silver')).toMatchObject({ have: 3, need: 5, hit: null });
-	});
-
-	it('Perfect Group: every non-void group match won, dated by the finalize', () => {
-		const fin = S({ finalizedAt: D(30), dropped: new Set(['gone']) });
-		const won = [M(), M(), M({ p2Id: 'gone', p1Games: 0, p2Games: 2 })];
-		expect(get(H(won, [fin]), 'perfect-group').hit).toEqual({ at: D(30), seasonId: 1 });
-		expect(get(H(won, [S()]), 'perfect-group').hit).toBeNull(); // not finalized
-		expect(get(H([M(), M({ p1Games: 1, p2Games: 1 })], [fin]), 'perfect-group').hit).toBeNull();
-		expect(
-			get(H([M(), M({ p1Games: null, p2Games: null, reportedAt: null })], [fin]), 'perfect-group')
-				.hit
-		).toBeNull();
-		// Two perfect seasons: the earlier finalize dates it, whatever order the seasons come in.
-		const later = S({ id: 2, finalizedAt: D(60) });
-		expect(get(H([M(), M({ seasonId: 2 })], [later, fin]), 'perfect-group').hit).toEqual({
-			at: D(30),
-			seasonId: 1
-		});
+		expect(get(h, 'seasons-bronze')).toMatchObject({ have: 2, hit: { at: D(40), seasonId: 1 } });
+		expect(get(h, 'seasons-silver')).toMatchObject({ have: 2, need: 3, hit: null });
 	});
 
 	it('Comeback: won after losing game 1, only with per-game results', () => {

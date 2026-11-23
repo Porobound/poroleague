@@ -114,24 +114,17 @@ const variety: Hits = (ms) => {
 	});
 };
 
-const seasonsPlayed: Hits = (ms) => {
-	const seen = new Set<number>();
-	return ms.filter((m) => !seen.has(m.seasonId) && !!seen.add(m.seasonId)).map(hit);
-};
-
 const byDate = (a: Hit, b: Hit) => a.at.getTime() - b.at.getTime();
 
-const perfect: Hits = (ms, h) =>
-	h.seasons
-		.flatMap((s) => {
-			if (!s.finalizedAt) return [];
-			const scheduled = h.matches.filter(
-				(m) =>
-					m.seasonId === s.id && m.stage === 'group' && mine(m, h.playerId) && !isVoid(m, s.dropped)
-			).length;
-			const wins = ms.filter((m) => m.seasonId === s.id && m.stage === 'group' && won(m)).length;
-			return scheduled && wins === scheduled ? [{ at: s.finalizedAt, seasonId: s.id }] : [];
-		})
+// A season the player finished: its group stage is finalized, they weren't dropped, and they
+// played a counted match in it.
+const finished = (ms: Played[], h: History) =>
+	h.seasons.filter(
+		(s) => s.finalizedAt && !s.dropped.has(h.playerId) && ms.some((m) => m.seasonId === s.id)
+	);
+const seasonsFinished: Hits = (ms, h) =>
+	finished(ms, h)
+		.map((s) => ({ at: s.finalizedAt!, seasonId: s.id }))
 		.sort(byDate);
 
 const seasonEvent =
@@ -212,8 +205,8 @@ const DEFS: Def[] = [
 	),
 	...tiered(
 		'variety',
-		levels('Variety'),
-		(n) => `Play at least 2 matches each with ${n} different legends.`,
+		['Dabbler', 'Explorer', 'Polymath'],
+		(n) => `Play ${n} different legends at least twice each.`,
 		[3, 5, 10],
 		['bronze', 'gold', 'platinum'],
 		variety,
@@ -221,7 +214,7 @@ const DEFS: Def[] = [
 	),
 	...tiered(
 		'dice',
-		levels('Dice'),
+		['Lucky', 'Charmed', 'Blessed'],
 		(n) => `Win ${n} dice rolls.`,
 		[3, 6, 20],
 		['bronze', 'silver', 'emerald'],
@@ -231,10 +224,10 @@ const DEFS: Def[] = [
 	...tiered(
 		'seasons',
 		['Veteran', 'Old Guard', 'Elder'],
-		(n) => `Play in ${n} seasons.`,
-		[2, 5, 10],
+		(n) => `Finish ${n} seasons: play each to its end without dropping.`,
+		[2, 3, 5],
 		['gold', 'emerald', 'grandmaster'],
-		seasonsPlayed,
+		seasonsFinished,
 		() => '/achievements/items/seasons.png'
 	),
 	...tiered(
@@ -246,10 +239,15 @@ const DEFS: Def[] = [
 		where((m) => m.games?.[0] === '2' && won(m)),
 		() => '/achievements/items/comeback.png'
 	),
-	flat('first-blood', 'First Blood', 'bronze', 'Win your first match.', where(won)),
-	flat('perfect-group', 'Perfect Group', 'diamond', 'Win every group match of a season.', perfect),
-	flat('top-cut', 'Top Cut', 'gold', 'Reach a top cut.', seasonEvent('cutAt')),
-	flat('champion', 'Champion', 'challenger', 'Win a top-cut final.', seasonEvent('championAt'))
+	flat(
+		'first-blood',
+		'First Blood',
+		'bronze',
+		'Win the first game of a match.',
+		where((m) => m.games?.[0] === '1')
+	),
+	flat('top-cut', 'Top Cut', 'gold', 'Qualify for a top cut.', seasonEvent('cutAt')),
+	flat('champion', 'Champion', 'challenger', "Win a season's top cut.", seasonEvent('championAt'))
 ];
 
 export const ACHIEVEMENTS: readonly Achievement[] = DEFS;

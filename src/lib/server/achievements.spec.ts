@@ -26,6 +26,7 @@ const win = (seasonId: number, round: number, day: number) =>
 		p2Id: 'p2',
 		p1Games: 2,
 		p2Games: 0,
+		games: '11',
 		p1Legend: 'Ahri',
 		p2Legend: 'Annie',
 		diceWinnerId: 'p1',
@@ -49,12 +50,9 @@ describe('awardAchievements', () => {
 		expect(row('p1', 'first-blood')).toMatchObject({ unlockedAt: D(1), seasonId: a.id });
 		expect(row('p1', 'legend-ahri-bronze')).toMatchObject({ unlockedAt: D(9), seasonId: b.id });
 		expect(row('p1', 'dice-bronze')).toMatchObject({ unlockedAt: D(9) });
-		// The second season's first match makes both of them Veterans.
-		expect(row('p1', 'seasons-bronze')).toMatchObject({ unlockedAt: D(9), seasonId: b.id });
-		expect(rows('p2').map((r) => r.achievementId)).toEqual([
-			'legend-annie-bronze',
-			'seasons-bronze'
-		]);
+		// Neither season is finalized, so nobody has finished one.
+		expect(row('p1', 'seasons-bronze')).toBeUndefined();
+		expect(rows('p2').map((r) => r.achievementId)).toEqual(['legend-annie-bronze']);
 	});
 
 	it('is idempotent and never rewrites or removes a row', () => {
@@ -108,7 +106,6 @@ describe('awardAchievements', () => {
 			])
 			.run();
 		awardAchievements(db, ['p1', 'p2']);
-		expect(row('p1', 'perfect-group')!.unlockedAt).toEqual(D(10));
 		expect(row('p1', 'top-cut')!.unlockedAt).toEqual(D(11));
 		expect(row('p1', 'champion')!.unlockedAt).toEqual(D(12));
 		expect(row('p2', 'top-cut')).toBeUndefined();
@@ -125,7 +122,7 @@ describe('backfillAchievements', () => {
 });
 
 const result = (p1Games: number, p2Games: number): Report => ({
-	games: null,
+	games: p1Games > p2Games ? '11' : '22',
 	p1Games,
 	p2Games,
 	p1Legend: 'Ahri',
@@ -162,24 +159,29 @@ describe('result writes award', () => {
 		expect(row('p1', 'first-blood')!.unlockedAt).toEqual(D(3));
 	});
 
-	it('finalize awards Perfect Group', () => {
-		seedPlayers(2);
-		const s = season('a');
-		win(s.id, 1, 1);
-		finalizeSeason(s.id, 'p1', false);
-		expect(row('p1', 'perfect-group')).toBeDefined();
-		expect(row('p2', 'perfect-group')).toBeUndefined();
+	it('finalize counts the season as finished, for players who were not dropped', () => {
+		seedPlayers(3);
+		const a = season('a', { status: 'finished' });
+		win(a.id, 1, 1);
+		db.insert(audit)
+			.values({ seasonId: a.id, actorId: 'p1', action: 'finalize', createdAt: D(2) })
+			.run();
+		const b = season('b');
+		win(b.id, 1, 5);
+		finalizeSeason(b.id, 'p1', false);
+		expect(row('p1', 'seasons-bronze')).toMatchObject({ seasonId: b.id });
+		expect(row('p2', 'seasons-bronze')).toBeDefined();
+		expect(row('p3', 'seasons-bronze')).toBeUndefined(); // never entered
 	});
 
-	it('undrop after finalize recounts Perfect Group', () => {
+	it('undrop after finalize recounts the void matches', () => {
 		seedPlayers(2);
 		const s = season('a');
 		win(s.id, 1, 1);
 		dropPlayer(s.id, 'p2', 'p1');
 		finalizeSeason(s.id, 'p1', false);
-		expect(row('p1', 'perfect-group')).toBeUndefined(); // only match void
+		expect(row('p1', 'first-blood')).toBeUndefined(); // only match void
 		cancelDrop(s.id, 'p2', 'p1');
-		expect(row('p1', 'perfect-group')).toBeDefined();
 		expect(row('p1', 'first-blood')).toBeDefined();
 	});
 });
@@ -223,16 +225,15 @@ describe('careerAchievements', () => {
 		expect(jinx).toMatchObject({ tier: 'gold', next: null });
 		expect(jinx.tiers.map((t) => t.earned)).toEqual(['2026-01-05', '2026-01-06', '2026-01-07']);
 		expect(c.league.map((t) => [t.name, t.kind, t.tier, t.next])).toEqual([
-			['Variety', 'rank', null, { have: 1, need: 3, name: 'Variety Player' }], // Ahri has her 2 matches
-			['Dice', 'rank', 'bronze', { have: 2, need: 6, name: 'Dice Expert' }],
-			['Seasons', 'item', null, { have: 1, need: 2, name: 'Veteran' }],
+			['Variety', 'rank', null, { have: 1, need: 3, name: 'Dabbler' }], // Ahri has her 2 matches
+			['Dice', 'rank', 'bronze', { have: 2, need: 6, name: 'Charmed' }],
+			['Seasons', 'item', null, { have: 0, need: 2, name: 'Veteran' }], // not finalized
 			['Comeback', 'item', null, { have: 0, need: 1, name: 'Comeback Kid' }]
 		]);
 		// A rank track shows the emblem of the tier reached.
 		expect(c.league[1].icon).toBe('/achievements/tiers/bronze.png');
 		expect(c.ones.map((t) => [t.id, t.earned])).toEqual([
 			['first-blood', null], // seeded results weren't awarded
-			['perfect-group', null],
 			['top-cut', null],
 			['champion', null]
 		]);

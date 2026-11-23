@@ -10,7 +10,6 @@ const OUT = 'static/achievements';
 const ITEMS = {
 	'first-blood': 'spell/SummonerDot',
 	seasons: 'item/3340',
-	'perfect-group': 'item/3031',
 	comeback: 'spell/SummonerHeal',
 	'top-cut': 'spell/SummonerFlash',
 	champion: 'item/3089'
