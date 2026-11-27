@@ -1,5 +1,5 @@
-import { matchPoints } from './score';
-import { isVoid } from './status';
+import { matchPoints } from '#lib/league/score.ts';
+import { isVoid } from '#lib/league/status.ts';
 
 export type LegendMatch = {
 	p1Id: string;
