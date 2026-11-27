@@ -3,6 +3,9 @@ import { describe, expect, it } from 'vitest';
 import { db } from '#lib/server/db/index.ts';
 import { audit, entries, playerAchievements, seasons } from '#lib/server/db/schema.ts';
 import { awardAchievements, backfillAchievements } from '#lib/server/achievements.ts';
+import { flagMatch, keepResult, organizerEdit, saveReport } from '#lib/server/matches.ts';
+import { cancelDrop, dropPlayer, finalizeSeason, publishWeek } from '#lib/server/seasons.ts';
+import type { Report } from '#lib/league/report.ts';
 import { seedEntries, seedMatch, seedPlayers, seedSeason } from '#lib/server/test/seed.ts';
 
 const D = (day: number) => new Date(Date.UTC(2026, 0, day));
@@ -113,6 +116,66 @@ describe('backfillAchievements', () => {
 		seedPlayers(2);
 		win(season('a').id, 1, 1);
 		backfillAchievements(db);
+		expect(row('p1', 'first-blood')).toBeDefined();
+	});
+});
+
+const result = (p1Games: number, p2Games: number): Report => ({
+	games: null,
+	p1Games,
+	p2Games,
+	p1Legend: 'Ahri',
+	p2Legend: 'Annie',
+	diceWinnerId: 'p1'
+});
+const open = (seasonId: number, round = 1) =>
+	seedMatch({ seasonId, group: 1, round, p1Id: 'p1', p2Id: 'p2' });
+
+describe('result writes award', () => {
+	it('report, and an edit after it keeps what was earned (award-only)', () => {
+		seedPlayers(2);
+		const m = open(season('a').id);
+		saveReport(m, 'p1', result(2, 0));
+		expect(row('p1', 'first-blood')).toBeDefined();
+		organizerEdit({ ...m, reportedBy: 'p1' }, 'p2', result(0, 2));
+		expect(row('p1', 'first-blood')).toBeDefined();
+		expect(row('p2', 'first-blood')).toBeDefined();
+	});
+
+	it('flag resolve', () => {
+		seedPlayers(2);
+		const m = win(season('a').id, 1, 1);
+		flagMatch(m, 'p2', 'wrong');
+		keepResult(m, 'p1');
+		expect(row('p1', 'first-blood')!.unlockedAt).toEqual(D(1));
+	});
+
+	it('week publish counts an earlier hidden result, dated by its report', () => {
+		seedPlayers(2);
+		const s = season('a', { publishedRound: 1 });
+		win(s.id, 2, 3);
+		publishWeek(s.id, 1, [2, 2], 'p1');
+		expect(row('p1', 'first-blood')!.unlockedAt).toEqual(D(3));
+	});
+
+	it('finalize awards Perfect Group', () => {
+		seedPlayers(2);
+		const s = season('a');
+		win(s.id, 1, 1);
+		finalizeSeason(s.id, 'p1', false);
+		expect(row('p1', 'perfect-group')).toBeDefined();
+		expect(row('p2', 'perfect-group')).toBeUndefined();
+	});
+
+	it('undrop after finalize recounts Perfect Group', () => {
+		seedPlayers(2);
+		const s = season('a');
+		win(s.id, 1, 1);
+		dropPlayer(s.id, 'p2', 'p1');
+		finalizeSeason(s.id, 'p1', false);
+		expect(row('p1', 'perfect-group')).toBeUndefined(); // only match void
+		cancelDrop(s.id, 'p2', 'p1');
+		expect(row('p1', 'perfect-group')).toBeDefined();
 		expect(row('p1', 'first-blood')).toBeDefined();
 	});
 });
