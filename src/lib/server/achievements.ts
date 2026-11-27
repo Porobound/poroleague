@@ -1,6 +1,13 @@
 import { and, eq, inArray, isNull, ne, or } from 'drizzle-orm';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
-import { evaluate, type History } from '#lib/league/achievements.ts';
+import {
+	ACHIEVEMENTS,
+	type Achievement,
+	evaluate,
+	type History,
+	type Tier
+} from '#lib/league/achievements.ts';
+import { leagueDate } from '#lib/league/time.ts';
 import * as schema from '#lib/server/db/schema.ts';
 
 const { audit, entries, matches, playerAchievements, players, seasons } = schema;
@@ -119,3 +126,93 @@ export const backfillAchievements = (db: Db) =>
 				.map((p) => p.id)
 		)
 	);
+
+// What the career page draws. A track is one row: its icon at the highest earned tier, a pip per
+// tier, and progress towards the first tier not yet earned.
+export type Kind = 'legend' | 'rank' | 'item'; // champion portrait, rank emblem, item icon
+export type TierView = {
+	id: string;
+	name: string;
+	description: string;
+	tier: Tier;
+	need: number;
+	earned: string | null; // league date it unlocked
+};
+export type TrackView = {
+	track: string;
+	name: string;
+	kind: Kind;
+	icon: string;
+	tier: Tier | null; // highest earned
+	tiers: TierView[];
+	next: { have: number; need: number; name: string } | null; // null once complete
+};
+export type OneView = {
+	id: string;
+	name: string;
+	description: string;
+	icon: string;
+	earned: string | null;
+};
+const LEAGUE_TRACKS: Record<string, string> = {
+	variety: 'Variety',
+	dice: 'Dice',
+	seasons: 'Seasons',
+	comeback: 'Comeback'
+};
+const kind = (a: Achievement): Kind =>
+	a.legend ? 'legend' : a.icon.startsWith('/achievements/tiers/') ? 'rank' : 'item';
+
+// The career page's Achievements: earned from the table (award-only), progress derived now.
+export function careerAchievements(db: Db, playerId: string) {
+	const earned = new Map(
+		db
+			.select()
+			.from(playerAchievements)
+			.where(eq(playerAchievements.playerId, playerId))
+			.all()
+			.map((r) => [r.achievementId, leagueDate(r.unlockedAt)])
+	);
+	const have = new Map(evaluate(playerHistory(db, playerId)).map((p) => [p.id, p.have]));
+	const tracks: TrackView[] = [];
+	const ones: OneView[] = [];
+	for (const [track, defs] of Map.groupBy(ACHIEVEMENTS, (a) => a.track)) {
+		const [first] = defs;
+		if (!first.tier) {
+			const { id, name, description, icon } = first;
+			ones.push({ id, name, description, icon, earned: earned.get(id) ?? null });
+			continue;
+		}
+		const top = defs.findLast((a) => earned.has(a.id));
+		const next = defs.find((a) => !earned.has(a.id));
+		tracks.push({
+			track,
+			name: first.legend ?? LEAGUE_TRACKS[track],
+			kind: kind(first),
+			icon: (top ?? first).icon,
+			tier: top?.tier ?? null,
+			tiers: defs.map((a) => ({
+				id: a.id,
+				name: a.name,
+				description: a.description,
+				tier: a.tier!,
+				need: a.need,
+				earned: earned.get(a.id) ?? null
+			})),
+			next: next ? { have: have.get(next.id)!, need: next.need, name: next.name } : null
+		});
+	}
+	const started = (t: TrackView) => !!t.tier || t.next!.have > 0;
+	// Matches played as the legend, as far as the top tier counts them.
+	const played = (t: TrackView) => have.get(t.tiers.at(-1)!.id)!;
+	return {
+		earned: ACHIEVEMENTS.filter((a) => earned.has(a.id)).length,
+		// Tracks still in progress first, then finished ones; most played first within each.
+		legends: tracks
+			.filter((t) => t.kind === 'legend' && started(t))
+			.sort((a, b) => +!a.next - +!b.next || played(b) - played(a) || a.name.localeCompare(b.name)),
+		league: tracks.filter((t) => t.track in LEAGUE_TRACKS),
+		ones
+	};
+}
+export type Career = ReturnType<typeof careerAchievements>;

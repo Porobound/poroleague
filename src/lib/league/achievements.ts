@@ -146,7 +146,6 @@ export const key = (s: string) =>
 		.replace(/^-|-$/g, '');
 export const champion = (legend: string) => legend.replace(/ \((PG|XP)\)$/, '');
 export const emblem = (t: Tier) => `/achievements/tiers/${t}.png`;
-export const crest = (t: Tier) => `/achievements/tiers/${t}.svg`;
 
 const TIERS = ['bronze', 'silver', 'gold'] as const;
 type Three<T> = [T, T, T];
