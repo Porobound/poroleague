@@ -4,6 +4,9 @@
 // order any ties and Finalize on Admin → Season to reach the top cut.
 // Same seed + same season = same results. Writes audit rows like the app; posts nothing to Discord.
 import Database from 'better-sqlite3';
+import { drizzle } from 'drizzle-orm/better-sqlite3';
+import { backfillAchievements } from '#lib/server/achievements.ts';
+import * as schema from '#lib/server/db/schema.ts';
 import { LEGENDS } from '#lib/legends.ts';
 
 process.loadEnvFile();
@@ -126,6 +129,8 @@ db.transaction(() => {
 		}
 	}
 })();
+// Results written with SQL skip the app's award calls.
+backfillAchievements(drizzle(db, { schema }));
 console.log(
 	finish
 		? `Reported all ${open.length} open matches; order any ties and finalize on Admin → Season.`
